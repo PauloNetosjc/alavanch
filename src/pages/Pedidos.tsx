@@ -531,6 +531,16 @@ export default function Pedidos() {
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {selectedOrder && (
+        <PromobImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          orderId={selectedOrder.id}
+          existingEnvironmentId={importTargetEnvId}
+          onImportComplete={() => { if (selectedOrder) openDetail(selectedOrder); }}
+        />
+      )}
     </div>
   );
 }
