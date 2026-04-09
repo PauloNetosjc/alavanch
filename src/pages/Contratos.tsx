@@ -114,7 +114,7 @@ export default function Contratos() {
   };
 
   const handleStatusChange = async (contract: ContractWithOrder, newStatus: string) => {
-    const updates: Record<string, unknown> = { status: newStatus };
+    const updates: any = { status: newStatus };
     if (newStatus === 'enviado') updates.sent_at = new Date().toISOString();
     if (newStatus === 'assinado') updates.signed_at = new Date().toISOString();
 

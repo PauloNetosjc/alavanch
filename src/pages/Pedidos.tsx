@@ -96,14 +96,15 @@ export default function Pedidos() {
     setDetailLoading(false);
   };
 
-  const handleStatusChange = async (field: string, value: string) => {
+  const handleStatusChange = async (field: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'occurrence_status', value: string) => {
     if (!selectedOrder) return;
-    const prev = selectedOrder[field as keyof typeof selectedOrder];
-    // Optimistic
+    const prev = selectedOrder[field];
     setSelectedOrder({ ...selectedOrder, [field]: value } as OrderWithRelations);
     setOrders(prev2 => prev2.map(o => o.id === selectedOrder.id ? { ...o, [field]: value } as OrderWithRelations : o));
 
-    const { error } = await supabase.from('orders').update({ [field]: value }).eq('id', selectedOrder.id);
+    const updateObj: Record<string, string> = {};
+    updateObj[field] = value;
+    const { error } = await supabase.from('orders').update(updateObj as any).eq('id', selectedOrder.id);
     if (error) {
       toast.error('Erro ao atualizar status');
       setSelectedOrder({ ...selectedOrder, [field]: prev } as OrderWithRelations);
