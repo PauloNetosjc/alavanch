@@ -374,7 +374,7 @@ export default function Contratos() {
                     <Button size="sm" onClick={() => handleStatusChange(selectedContract, 'enviado')}><Send className="h-3.5 w-3.5 mr-1.5" /> Marcar Enviado</Button>
                   )}
                   {(selectedContract.status === 'enviado' || selectedContract.status === 'pendente') && (
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusChange(selectedContract, 'assinado')}>
+                    <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => handleStatusChange(selectedContract, 'assinado')}>
                       <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Marcar Assinado
                     </Button>
                   )}
