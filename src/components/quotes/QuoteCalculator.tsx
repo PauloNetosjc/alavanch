@@ -257,7 +257,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
                 min="0"
                 max="100"
                 value={discountPercent || ''}
-                onChange={(e) => setDiscountPercent(Number(e.target.value))}
+                onChange={(e) => handleDiscountPercentChange(Number(e.target.value))}
               />
             </div>
             <div className="space-y-1.5">
@@ -267,7 +267,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
                 step="0.01"
                 min="0"
                 value={discountValue || ''}
-                onChange={(e) => setDiscountValue(Number(e.target.value))}
+                onChange={(e) => handleDiscountValueChange(Number(e.target.value))}
               />
             </div>
             <div className="space-y-1.5">
