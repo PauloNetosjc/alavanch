@@ -1,8 +1,8 @@
 /**
  * Parser robusto para arquivos TXT exportados do Promob.
  * Tolerante a campos vazios e espaçamento variável.
- * Formato real: colunas de largura fixa, sem cabeçalho de colunas,
- * ambiente embutido na linha do item ("Projeto - AMBIENTE - CLIENTE").
+ * Formato: colunas separadas por 2+ espaços, ambiente embutido
+ * na linha do item como "Projeto - AMBIENTE - CLIENTE".
  */
 
 export interface PromobHeader {
@@ -72,17 +72,20 @@ function parseDim(str: string): number | null {
   return n === 0 ? null : n;
 }
 
+function isNumeric(s: string): boolean {
+  return /^\d+(\.\d+)?$/.test(s.trim());
+}
+
 /**
- * Parse a single item line using multi-space splitting.
- * Format observed:
- * INDEX  QTY  CODE+DESCRIPTION  WIDTH  HEIGHT  DEPTH  COST_A  COST_B  COST_C  "Projeto - ENV - CLIENT" + REF  CATEGORY  FINISH
+ * Parse a single item line.
+ * Strategy: split by 2+ spaces, find "Projeto -" anchor,
+ * then map surrounding parts.
  */
 function parseItemLine(line: string): { item: PromobItem; envName: string; envClient: string } | null {
   if (!line.trim()) return null;
 
-  // Split by 2+ spaces or tabs
   const parts = line.split(/\t+|\s{2,}/).filter(p => p.trim());
-  if (parts.length < 6) return null;
+  if (parts.length < 5) return null;
 
   const indexNum = parseInt(parts[0]);
   if (isNaN(indexNum)) return null;
@@ -90,34 +93,38 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   const quantity = parseInt(parts[1]) || 1;
   const description = parts[2] || '';
 
-  // Find the "Projeto - " part to locate environment info
-  // It could be in any part after the numeric columns
-  let envName = '';
+  // Find the part containing "Projeto -"
+  let projetoIdx = -1;
+  for (let i = 3; i < parts.length; i++) {
+    if (/Projeto\s*[-–]/i.test(parts[i])) {
+      projetoIdx = i;
+      break;
+    }
+  }
+
+  let envName = 'Ambiente Geral';
   let envClient = '';
   let projectRef = '';
   let category = '';
   let finish = '';
 
-  // Numeric columns: width, height, depth, cost_a, cost_b, cost_c
-  // They follow the description
-  let numericStart = 3;
-  const width = parseDim(parts[numericStart] || '');
-  const height = parseDim(parts[numericStart + 1] || '');
-  const depth = parseDim(parts[numericStart + 2] || '');
-  const costA = parseNum(parts[numericStart + 3] || '0');
-  const costB = parseNum(parts[numericStart + 4] || '0');
-  const costC = parseNum(parts[numericStart + 5] || '0');
+  // Numeric parts are between description (index 2) and Projeto anchor
+  const numEnd = projetoIdx > 0 ? projetoIdx : parts.length;
+  const numericParts = parts.slice(3, numEnd).filter(p => isNumeric(p));
 
-  // Remaining parts after numeric columns contain env info, category, finish
-  const remaining = parts.slice(numericStart + 6);
+  const width = parseDim(numericParts[0] || '');
+  const height = parseDim(numericParts[1] || '');
+  const depth = parseDim(numericParts[2] || '');
+  const costA = parseNum(numericParts[3] || '0');
+  const costB = parseNum(numericParts[4] || '0');
+  const costC = parseNum(numericParts[5] || '0');
 
-  for (const part of remaining) {
-    const envMatch = part.match(/Projeto\s*[-–]\s*(.+?)\s*[-–]\s*(.+)/i);
+  if (projetoIdx >= 0) {
+    const projPart = parts[projetoIdx];
+    const envMatch = projPart.match(/Projeto\s*[-–]\s*(.+?)\s*[-–]\s*(.+)/i);
     if (envMatch) {
       envName = envMatch[1].trim();
-      // Client name might be truncated and have a ref number appended
       const clientRaw = envMatch[2].trim();
-      // Remove trailing numbers that are project refs
       const refMatch = clientRaw.match(/^(.+?)(\d{4,})$/);
       if (refMatch) {
         envClient = refMatch[1].trim();
@@ -125,11 +132,12 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
       } else {
         envClient = clientRaw;
       }
-    } else if (!category) {
-      category = part.trim();
-    } else {
-      finish = part.trim();
     }
+
+    // Parts after Projeto are category and finish
+    const afterProjeto = parts.slice(projetoIdx + 1);
+    if (afterProjeto.length >= 1) category = afterProjeto[0].trim();
+    if (afterProjeto.length >= 2) finish = afterProjeto[1].trim();
   }
 
   return {
@@ -148,19 +156,15 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
       projectRef,
       rawLine: line,
     },
-    envName: envName || 'Ambiente Geral',
+    envName,
     envClient,
   };
 }
 
 function extractTotal(lines: string[]): number {
   for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i];
-    const match = line.match(/total\s*=?\s*(?:R\$)?\s*([\d.,]+)/i);
-    if (match) {
-      // In this format numbers use dot as decimal
-      return parseNum(match[1]);
-    }
+    const match = lines[i].match(/total\s*=?\s*(?:R\$)?\s*([\d.,]+)/i);
+    if (match) return parseNum(match[1]);
   }
   return 0;
 }
@@ -170,7 +174,6 @@ export function parsePromobTxt(content: string): PromobParseResult {
   const lines = content.split(/\r?\n/);
   const warnings: string[] = [];
 
-  // Parse header (first ~15 lines before blank line)
   const headerLines = lines.slice(0, 20);
   const header: PromobHeader = {
     projectId: extractHeaderField(headerLines, 'ID do Projeto'),
@@ -185,11 +188,9 @@ export function parsePromobTxt(content: string): PromobParseResult {
     deliveryAddress: extractHeaderField(headerLines, 'EEntrega'),
   };
 
-  // Parse items - environment is embedded in each item line
   const envMap = new Map<string, PromobEnvironment>();
 
   for (const line of lines) {
-    // Skip header lines and total
     if (line.match(/^\s*(ID do Projeto|Promob|System|Loja|Cliente|Endere|Bairro|Fone|CPF|EEntrega|Total)\s*=/i)) continue;
 
     const result = parseItemLine(line);
@@ -208,15 +209,12 @@ export function parsePromobTxt(content: string): PromobParseResult {
   }
 
   const environments = Array.from(envMap.values());
-
-  // Calculate totals per environment
   for (const env of environments) {
     env.total = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
   }
 
   const fileTotal = extractTotal(lines);
   const calculatedTotal = environments.reduce((s, env) => s + env.total, 0);
-
   const hasDivergence = fileTotal > 0 && Math.abs(fileTotal - calculatedTotal) > 0.01;
   const divergenceAmount = fileTotal > 0 ? fileTotal - calculatedTotal : 0;
 
@@ -229,14 +227,5 @@ export function parsePromobTxt(content: string): PromobParseResult {
     warnings.push('Nenhum item foi extraído do arquivo.');
   }
 
-  return {
-    header,
-    environments,
-    rawContent,
-    fileTotal,
-    calculatedTotal,
-    hasDivergence,
-    divergenceAmount,
-    warnings,
-  };
+  return { header, environments, rawContent, fileTotal, calculatedTotal, hasDivergence, divergenceAmount, warnings };
 }
