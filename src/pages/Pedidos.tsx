@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { maskPhone, maskCpf } from '@/lib/masks';
 import type { Tables as DbTables } from '@/integrations/supabase/types';
+import PromobImportDialog from '@/components/orders/PromobImportDialog';
 
 interface OrderWithRelations extends DbTables<'orders'> {
   clients: { name: string; phone: string | null; email: string | null; cpf: string | null; delivery_address: string | null } | null;
