@@ -96,6 +96,7 @@ export default function Orcamentos() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por código, cliente, telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         <Badge variant="secondary" className="text-xs">
           {filteredList.length} orçamento{filteredList.length !== 1 ? 's' : ''}
         </Badge>
