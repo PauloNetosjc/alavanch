@@ -65,7 +65,12 @@ export default function Pedidos() {
   const [financialEntries, setFinancialEntries] = useState<DbTables<'financial_entries'>[]>([]);
   const [occurrences, setOccurrences] = useState<DbTables<'occurrences'>[]>([]);
   const [environments, setEnvironments] = useState<DbTables<'order_environments'>[]>([]);
+  const [envItems, setEnvItems] = useState<Record<string, DbTables<'order_items'>[]>>({});
+  const [imports, setImports] = useState<DbTables<'promob_imports'>[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importTargetEnvId, setImportTargetEnvId] = useState<string | null>(null);
+  const [expandedEnv, setExpandedEnv] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
