@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,8 +29,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { maskPhone } from '@/lib/masks';
+import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
@@ -58,6 +59,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [saving, setSaving] = useState(false);
   const [clients, setClients] = useState<Tables<'clients'>[]>([]);
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -97,6 +99,14 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
     setClients(clientsRes.data ?? []);
     setStores(storesRes.data ?? []);
   };
+
+  const handleClientCreated = useCallback(async () => {
+    const { data } = await supabase.from('clients').select('*').order('created_at', { ascending: false }).limit(1);
+    if (data && data.length > 0) {
+      await loadData();
+      form.setValue('client_id', data[0].id);
+    }
+  }, [form]);
 
   const generateCode = async (): Promise<string> => {
     const year = new Date().getFullYear();
@@ -158,6 +168,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -179,20 +190,31 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel>Cliente *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um cliente" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {clients.map(c => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name} {c.phone ? `— ${maskPhone(c.phone)}` : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Selecione um cliente" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {clients.map(c => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name} {c.phone ? `— ${maskPhone(c.phone)}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setClientFormOpen(true)}
+                          title="Cadastrar novo cliente"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -341,5 +363,12 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         </Form>
       </DialogContent>
     </Dialog>
+
+    <ClientFormDialog
+      open={clientFormOpen}
+      onOpenChange={setClientFormOpen}
+      onSuccess={handleClientCreated}
+    />
+  </>
   );
 }
