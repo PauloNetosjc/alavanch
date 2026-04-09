@@ -59,6 +59,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [saving, setSaving] = useState(false);
   const [clients, setClients] = useState<Tables<'clients'>[]>([]);
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
