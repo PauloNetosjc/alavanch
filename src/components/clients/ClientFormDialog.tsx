@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Tables } from '@/integrations/supabase/types';
+import { maskCpf, maskPhone } from '@/lib/masks';
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, 'Nome deve ter ao menos 2 caracteres').max(200),
@@ -66,11 +67,11 @@ export function ClientFormDialog({ open, onOpenChange, onSuccess, editClient }: 
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: editClient?.name ?? '',
-      cpf: editClient?.cpf ?? '',
+      cpf: editClient?.cpf ? maskCpf(editClient.cpf) : '',
       birth_date: editClient?.birth_date ?? '',
       email: editClient?.email ?? '',
-      phone: editClient?.phone ?? '',
-      phone_secondary: editClient?.phone_secondary ?? '',
+      phone: editClient?.phone ? maskPhone(editClient.phone) : '',
+      phone_secondary: editClient?.phone_secondary ? maskPhone(editClient.phone_secondary) : '',
       delivery_address: editClient?.delivery_address ?? '',
       billing_address: editClient?.billing_address ?? '',
       notes: editClient?.notes ?? '',
@@ -273,7 +274,12 @@ export function ClientFormDialog({ open, onOpenChange, onSuccess, editClient }: 
                     <FormItem>
                       <FormLabel>CPF</FormLabel>
                       <FormControl>
-                        <Input placeholder="000.000.000-00" maxLength={14} {...field} />
+                        <Input
+                          placeholder="000.000.000-00"
+                          maxLength={14}
+                          {...field}
+                          onChange={(e) => field.onChange(maskCpf(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -321,7 +327,12 @@ export function ClientFormDialog({ open, onOpenChange, onSuccess, editClient }: 
                     <FormItem>
                       <FormLabel>Telefone principal</FormLabel>
                       <FormControl>
-                        <Input placeholder="(00) 00000-0000" maxLength={20} {...field} />
+                        <Input
+                          placeholder="(00) 00000-0000"
+                          maxLength={15}
+                          {...field}
+                          onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -334,7 +345,12 @@ export function ClientFormDialog({ open, onOpenChange, onSuccess, editClient }: 
                     <FormItem>
                       <FormLabel>Telefone secundário</FormLabel>
                       <FormControl>
-                        <Input placeholder="(00) 00000-0000" maxLength={20} {...field} />
+                        <Input
+                          placeholder="(00) 00000-0000"
+                          maxLength={15}
+                          {...field}
+                          onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
