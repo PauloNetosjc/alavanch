@@ -216,16 +216,26 @@ function EntryFormDialog({
 
 // ─── Entries Table ───
 function EntriesTable({
-  entries, type, onEdit, onMarkPaid, search, statusFilter,
+  entries, type, onEdit, onMarkPaid, search, statusFilter, dateFrom, dateTo,
 }: {
   entries: FinancialEntry[]; type: 'receita' | 'despesa';
   onEdit: (e: FinancialEntry) => void; onMarkPaid: (e: FinancialEntry) => void;
   search: string; statusFilter: string;
+  dateFrom?: Date; dateTo?: Date;
 }) {
   const filtered = entries.filter(e => {
     if (e.type !== type) return false;
     if (statusFilter && statusFilter !== 'todos' && e.status !== statusFilter) return false;
     if (search && !e.description?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (dateFrom && e.due_date) {
+      const d = parseISO(e.due_date);
+      if (d < dateFrom) return false;
+    }
+    if (dateTo && e.due_date) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (parseISO(e.due_date) > end) return false;
+    }
     return true;
   });
 
