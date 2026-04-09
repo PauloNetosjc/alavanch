@@ -26,10 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { maskPhone } from '@/lib/masks';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
@@ -191,20 +205,48 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                     <FormItem className="md:col-span-2">
                       <FormLabel>Cliente *</FormLabel>
                       <div className="flex gap-2">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Selecione um cliente" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients.map(c => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name} {c.phone ? `— ${maskPhone(c.phone)}` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn('flex-1 justify-between font-normal', !field.value && 'text-muted-foreground')}
+                              >
+                                {field.value
+                                  ? (() => {
+                                      const c = clients.find(c => c.id === field.value);
+                                      return c ? `${c.name}${c.phone ? ` — ${maskPhone(c.phone)}` : ''}` : 'Selecione...';
+                                    })()
+                                  : 'Buscar cliente...'}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Buscar por nome, telefone, CPF..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup>
+                                  {clients.map(c => (
+                                    <CommandItem
+                                      key={c.id}
+                                      value={`${c.name} ${c.phone ?? ''} ${c.cpf ?? ''}`}
+                                      onSelect={() => field.onChange(c.id)}
+                                    >
+                                      <Check className={cn('mr-2 h-4 w-4', field.value === c.id ? 'opacity-100' : 'opacity-0')} />
+                                      <div className="flex flex-col">
+                                        <span className="text-sm">{c.name}</span>
+                                        {c.phone && <span className="text-xs text-muted-foreground">{maskPhone(c.phone)}</span>}
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <Button
                           type="button"
                           variant="outline"

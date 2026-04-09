@@ -21,6 +21,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend, Line
 } from 'recharts';
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import type { Tables } from '@/integrations/supabase/types';
 
 type FinancialEntry = Tables<'financial_entries'>;
@@ -215,16 +216,26 @@ function EntryFormDialog({
 
 // ─── Entries Table ───
 function EntriesTable({
-  entries, type, onEdit, onMarkPaid, search, statusFilter,
+  entries, type, onEdit, onMarkPaid, search, statusFilter, dateFrom, dateTo,
 }: {
   entries: FinancialEntry[]; type: 'receita' | 'despesa';
   onEdit: (e: FinancialEntry) => void; onMarkPaid: (e: FinancialEntry) => void;
   search: string; statusFilter: string;
+  dateFrom?: Date; dateTo?: Date;
 }) {
   const filtered = entries.filter(e => {
     if (e.type !== type) return false;
     if (statusFilter && statusFilter !== 'todos' && e.status !== statusFilter) return false;
     if (search && !e.description?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (dateFrom && e.due_date) {
+      const d = parseISO(e.due_date);
+      if (d < dateFrom) return false;
+    }
+    if (dateTo && e.due_date) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (parseISO(e.due_date) > end) return false;
+    }
     return true;
   });
 
@@ -281,6 +292,8 @@ export default function Financeiro() {
   const [editEntry, setEditEntry] = useState<FinancialEntry | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const fetchAll = async () => {
     setLoading(true);
@@ -403,11 +416,12 @@ export default function Financeiro() {
           <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
         </TabsList>
 
-        <div className="flex gap-3 mt-4 mb-2">
+        <div className="flex gap-3 mt-4 mb-2 flex-wrap">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar lançamento…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40"><Filter className="h-4 w-4 mr-2" /><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -421,10 +435,10 @@ export default function Financeiro() {
         </div>
 
         <TabsContent value="receber">
-          <EntriesTable entries={entries} type="receita" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} />
+          <EntriesTable entries={entries} type="receita" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} dateFrom={dateFrom} dateTo={dateTo} />
         </TabsContent>
         <TabsContent value="pagar">
-          <EntriesTable entries={entries} type="despesa" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} />
+          <EntriesTable entries={entries} type="despesa" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} dateFrom={dateFrom} dateTo={dateTo} />
         </TabsContent>
 
         <TabsContent value="conciliacao">

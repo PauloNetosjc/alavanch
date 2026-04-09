@@ -13,6 +13,7 @@ import { QuoteFormDialog } from '@/components/quotes/QuoteFormDialog';
 import { QuoteKanban } from '@/components/quotes/QuoteKanban';
 import { QuoteCalculator } from '@/components/quotes/QuoteCalculator';
 import { QuoteDetailSheet } from '@/components/quotes/QuoteDetailSheet';
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import { maskPhone } from '@/lib/masks';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -29,6 +30,8 @@ const statusLabels: Record<string, string> = {
 
 export default function Orcamentos() {
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [formOpen, setFormOpen] = useState(false);
   const [editQuote, setEditQuote] = useState<Tables<'quotes'> | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
@@ -59,9 +62,21 @@ export default function Orcamentos() {
     v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
 
   const filteredList = listQuotes.filter(q => {
-    if (!search.trim()) return true;
-    const s = search.toLowerCase();
-    return q.code.toLowerCase().includes(s) || q.clients?.name?.toLowerCase().includes(s) || q.clients?.phone?.includes(s);
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      if (!(q.code.toLowerCase().includes(s) || q.clients?.name?.toLowerCase().includes(s) || q.clients?.phone?.includes(s))) return false;
+    }
+    if (dateFrom) {
+      const d = new Date(q.created_at);
+      if (d < dateFrom) return false;
+    }
+    if (dateTo) {
+      const d = new Date(q.created_at);
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (d > end) return false;
+    }
+    return true;
   });
 
   return (
@@ -81,6 +96,7 @@ export default function Orcamentos() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por código, cliente, telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         <Badge variant="secondary" className="text-xs">
           {filteredList.length} orçamento{filteredList.length !== 1 ? 's' : ''}
         </Badge>
