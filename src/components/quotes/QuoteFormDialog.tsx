@@ -189,20 +189,31 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel>Cliente *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um cliente" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {clients.map(c => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name} {c.phone ? `— ${maskPhone(c.phone)}` : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Selecione um cliente" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {clients.map(c => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name} {c.phone ? `— ${maskPhone(c.phone)}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setClientFormOpen(true)}
+                          title="Cadastrar novo cliente"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
