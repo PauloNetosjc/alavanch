@@ -89,16 +89,34 @@ export default function Pedidos() {
     setDetailOpen(true);
     setDetailLoading(true);
 
-    const [contractsRes, financialRes, occurrencesRes, envsRes] = await Promise.all([
+    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes] = await Promise.all([
       supabase.from('contracts').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
       supabase.from('financial_entries').select('*').eq('order_id', order.id).order('due_date'),
       supabase.from('occurrences').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
       supabase.from('order_environments').select('*').eq('order_id', order.id).order('name'),
+      supabase.from('promob_imports').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
     ]);
     setContracts(contractsRes.data ?? []);
     setFinancialEntries(financialRes.data ?? []);
     setOccurrences(occurrencesRes.data ?? []);
-    setEnvironments(envsRes.data ?? []);
+    const envs = envsRes.data ?? [];
+    setEnvironments(envs);
+    setImports(importsRes.data ?? []);
+
+    // Load items for each environment
+    if (envs.length > 0) {
+      const envIds = envs.map(e => e.id);
+      const { data: items } = await supabase.from('order_items').select('*').in('environment_id', envIds).order('index_num');
+      const grouped: Record<string, DbTables<'order_items'>[]> = {};
+      (items ?? []).forEach(it => {
+        if (!grouped[it.environment_id]) grouped[it.environment_id] = [];
+        grouped[it.environment_id].push(it);
+      });
+      setEnvItems(grouped);
+    } else {
+      setEnvItems({});
+    }
+
     setDetailLoading(false);
   };
 
