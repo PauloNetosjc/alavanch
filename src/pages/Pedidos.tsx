@@ -24,6 +24,7 @@ import {
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Info,
 } from 'lucide-react';
 import { maskPhone, maskCpf } from '@/lib/masks';
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import type { Tables as DbTables } from '@/integrations/supabase/types';
 import PromobImportDialog from '@/components/orders/PromobImportDialog';
 
@@ -58,6 +59,8 @@ const getStatusBadge = (status: string | null) => {
 
 export default function Pedidos() {
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [orders, setOrders] = useState<OrderWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
@@ -156,9 +159,21 @@ export default function Pedidos() {
     d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
   const filteredOrders = orders.filter(o => {
-    if (!search.trim()) return true;
-    const s = search.toLowerCase();
-    return o.code.toLowerCase().includes(s) || o.clients?.name?.toLowerCase().includes(s) || o.clients?.phone?.includes(s);
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      if (!(o.code.toLowerCase().includes(s) || o.clients?.name?.toLowerCase().includes(s) || o.clients?.phone?.includes(s))) return false;
+    }
+    if (dateFrom) {
+      const d = new Date(o.order_date + 'T00:00');
+      if (d < dateFrom) return false;
+    }
+    if (dateTo) {
+      const d = new Date(o.order_date + 'T00:00');
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (d > end) return false;
+    }
+    return true;
   });
 
   // Alerts / pendencies for Resumo tab
@@ -188,6 +203,7 @@ export default function Pedidos() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por código, cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         <Badge variant="secondary" className="text-xs">
           {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
         </Badge>
