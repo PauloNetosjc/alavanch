@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -13,6 +13,9 @@ import { Separator } from '@/components/ui/separator';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
   Search, ShoppingCart, Eye, FileText, CheckSquare, Wrench,
   DollarSign, AlertTriangle, Calendar, User, Store, CreditCard, Loader2,
@@ -25,6 +28,17 @@ interface OrderWithRelations extends DbTables<'orders'> {
   clients: { name: string; phone: string | null; email: string | null; cpf: string | null; delivery_address: string | null } | null;
   stores: { name: string } | null;
 }
+
+const STATUS_OPTIONS = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'em_andamento', label: 'Em andamento' },
+  { value: 'concluido', label: 'Concluído' },
+];
+
+const OCCURRENCE_STATUS_OPTIONS = [
+  { value: 'sem_ocorrencias', label: 'Sem ocorrências' },
+  { value: 'com_ocorrencias', label: 'Com ocorrências' },
+];
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-800 border-amber-300' },
@@ -40,14 +54,12 @@ const getStatusBadge = (status: string | null) => {
 };
 
 export default function Pedidos() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<OrderWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // Detail data
   const [contracts, setContracts] = useState<DbTables<'contracts'>[]>([]);
   const [financialEntries, setFinancialEntries] = useState<DbTables<'financial_entries'>[]>([]);
   const [occurrences, setOccurrences] = useState<DbTables<'occurrences'>[]>([]);
@@ -82,6 +94,23 @@ export default function Pedidos() {
     setOccurrences(occurrencesRes.data ?? []);
     setEnvironments(envsRes.data ?? []);
     setDetailLoading(false);
+  };
+
+  const handleStatusChange = async (field: string, value: string) => {
+    if (!selectedOrder) return;
+    const prev = selectedOrder[field as keyof typeof selectedOrder];
+    // Optimistic
+    setSelectedOrder({ ...selectedOrder, [field]: value } as OrderWithRelations);
+    setOrders(prev2 => prev2.map(o => o.id === selectedOrder.id ? { ...o, [field]: value } as OrderWithRelations : o));
+
+    const { error } = await supabase.from('orders').update({ [field]: value }).eq('id', selectedOrder.id);
+    if (error) {
+      toast.error('Erro ao atualizar status');
+      setSelectedOrder({ ...selectedOrder, [field]: prev } as OrderWithRelations);
+      setOrders(prev2 => prev2.map(o => o.id === selectedOrder.id ? { ...o, [field]: prev } as OrderWithRelations : o));
+    } else {
+      toast.success('Status atualizado');
+    }
   };
 
   const fmt = (v: number | null | undefined) =>
@@ -182,14 +211,14 @@ export default function Pedidos() {
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : selectedOrder ? (
             <div className="mt-4">
-              {/* Summary cards */}
+              {/* Editable status cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                <SummaryCard icon={<FileText className="h-4 w-4" />} label="Contrato" status={selectedOrder.contract_status} />
-                <SummaryCard icon={<CheckSquare className="h-4 w-4" />} label="Revisão" status={selectedOrder.revision_status} />
-                <SummaryCard icon={<Wrench className="h-4 w-4" />} label="Montagem" status={selectedOrder.assembly_status} />
-                <SummaryCard icon={<DollarSign className="h-4 w-4" />} label="Financeiro" status={selectedOrder.financial_status} />
-                <SummaryCard icon={<Wrench className="h-4 w-4" />} label="Pós-montagem" status={selectedOrder.post_assembly_status} />
-                <SummaryCard icon={<AlertTriangle className="h-4 w-4" />} label="Ocorrências" status={selectedOrder.occurrence_status} />
+                <StatusSelect icon={<FileText className="h-4 w-4" />} label="Contrato" value={selectedOrder.contract_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('contract_status', v)} />
+                <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
+                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
+                <StatusSelect icon={<DollarSign className="h-4 w-4" />} label="Financeiro" value={selectedOrder.financial_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('financial_status', v)} />
+                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                <StatusSelect icon={<AlertTriangle className="h-4 w-4" />} label="Ocorrências" value={selectedOrder.occurrence_status ?? 'sem_ocorrencias'} options={OCCURRENCE_STATUS_OPTIONS} onChange={v => handleStatusChange('occurrence_status', v)} />
               </div>
 
               <Tabs defaultValue="resumo">
@@ -201,9 +230,7 @@ export default function Pedidos() {
                   <TabsTrigger value="ocorrencias" className="text-xs">Ocorrências</TabsTrigger>
                 </TabsList>
 
-                {/* Resumo */}
                 <TabsContent value="resumo" className="space-y-4 mt-4">
-                  {/* Client */}
                   <div className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5" /> Cliente
@@ -237,7 +264,6 @@ export default function Pedidos() {
 
                   <Separator />
 
-                  {/* Values */}
                   <div className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5" /> Valores
@@ -261,7 +287,6 @@ export default function Pedidos() {
                     </div>
                   </div>
 
-                  {/* Snapshot info */}
                   {selectedOrder.snapshot && (
                     <div className="text-xs text-muted-foreground bg-muted/20 rounded p-2">
                       Convertido do orçamento <span className="font-mono font-medium">{(selectedOrder.snapshot as Record<string, unknown>).quote_code as string}</span>
@@ -278,7 +303,6 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
-                {/* Contrato */}
                 <TabsContent value="contrato" className="mt-4">
                   {contracts.length === 0 ? (
                     <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
@@ -292,7 +316,7 @@ export default function Pedidos() {
                               {getStatusBadge(c.status)}
                             </div>
                             {c.sent_at && <p className="text-xs text-muted-foreground">Enviado: {fmtDate(c.sent_at)}</p>}
-                            {c.signed_at && <p className="text-xs text-emerald-600">Assinado: {fmtDate(c.signed_at)}</p>}
+                            {c.signed_at && <p className="text-xs text-muted-foreground">Assinado: {fmtDate(c.signed_at)}</p>}
                             {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
                           </CardContent>
                         </Card>
@@ -301,7 +325,6 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
-                {/* Financeiro */}
                 <TabsContent value="financeiro" className="mt-4">
                   {financialEntries.length === 0 ? (
                     <EmptyTab icon={<DollarSign className="h-8 w-8" />} text="Nenhum lançamento financeiro." />
@@ -325,7 +348,6 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
-                {/* Ambientes */}
                 <TabsContent value="ambientes" className="mt-4">
                   {environments.length === 0 ? (
                     <EmptyTab icon={<Package className="h-8 w-8" />} text="Nenhum ambiente cadastrado." />
@@ -346,7 +368,6 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
-                {/* Ocorrências */}
                 <TabsContent value="ocorrencias" className="mt-4">
                   {occurrences.length === 0 ? (
                     <EmptyTab icon={<AlertTriangle className="h-8 w-8" />} text="Nenhuma ocorrência registrada." />
@@ -366,9 +387,9 @@ export default function Pedidos() {
                             </div>
                             {occ.description && <p className="text-sm">{occ.description}</p>}
                             {occ.solution && (
-                              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded p-2">
-                                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Solução:</p>
-                                <p className="text-xs text-emerald-600 dark:text-emerald-300">{occ.solution}</p>
+                              <div className="bg-muted/20 rounded p-2">
+                                <p className="text-xs font-medium">Solução:</p>
+                                <p className="text-xs text-muted-foreground">{occ.solution}</p>
                               </div>
                             )}
                             <div className="flex gap-4 text-xs text-muted-foreground">
@@ -391,14 +412,29 @@ export default function Pedidos() {
   );
 }
 
-function SummaryCard({ icon, label, status }: { icon: React.ReactNode; label: string; status: string | null }) {
-  const s = statusLabels[status ?? 'pendente'] ?? { label: status ?? '—', color: '' };
+function StatusSelect({ icon, label, value, options, onChange }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  const s = statusLabels[value] ?? { label: value, color: '' };
   return (
-    <div className={`rounded-lg border p-3 space-y-1 ${s.color || 'bg-muted/30'}`}>
+    <div className={`rounded-lg border p-3 space-y-2 ${s.color || 'bg-muted/30'}`}>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon} {label}
       </div>
-      <p className="text-sm font-medium">{s.label}</p>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-7 text-xs bg-background/80">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(o => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
