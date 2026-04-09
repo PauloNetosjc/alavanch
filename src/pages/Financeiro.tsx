@@ -416,11 +416,12 @@ export default function Financeiro() {
           <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
         </TabsList>
 
-        <div className="flex gap-3 mt-4 mb-2">
+        <div className="flex gap-3 mt-4 mb-2 flex-wrap">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar lançamento…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40"><Filter className="h-4 w-4 mr-2" /><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -434,10 +435,10 @@ export default function Financeiro() {
         </div>
 
         <TabsContent value="receber">
-          <EntriesTable entries={entries} type="receita" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} />
+          <EntriesTable entries={entries} type="receita" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} dateFrom={dateFrom} dateTo={dateTo} />
         </TabsContent>
         <TabsContent value="pagar">
-          <EntriesTable entries={entries} type="despesa" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} />
+          <EntriesTable entries={entries} type="despesa" onEdit={openEdit} onMarkPaid={markPaid} search={search} statusFilter={statusFilter} dateFrom={dateFrom} dateTo={dateTo} />
         </TabsContent>
 
         <TabsContent value="conciliacao">
