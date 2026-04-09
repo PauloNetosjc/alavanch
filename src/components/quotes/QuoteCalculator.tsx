@@ -60,15 +60,31 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
     }
   }, [open, quote]);
 
+  // Track which discount field was last edited
+  const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+
   // Recalculate final value whenever inputs change
   useEffect(() => {
-    const discByPercent = totalValue * (discountPercent / 100);
-    const totalDisc = Math.max(discByPercent, discountValue);
-    const afterDiscount = totalValue - totalDisc;
+    const disc = lastDiscountEdit === 'percent'
+      ? totalValue * (discountPercent / 100)
+      : discountValue;
+    const afterDiscount = totalValue - disc;
     const interest = afterDiscount * (interestPercent / 100);
     const computed = afterDiscount + interest + surcharge;
     setFinalValue(Math.max(0, computed));
-  }, [totalValue, discountPercent, discountValue, interestPercent, surcharge]);
+  }, [totalValue, discountPercent, discountValue, interestPercent, surcharge, lastDiscountEdit]);
+
+  const handleDiscountPercentChange = (pct: number) => {
+    setLastDiscountEdit('percent');
+    setDiscountPercent(pct);
+    setDiscountValue(Math.round(totalValue * (pct / 100) * 100) / 100);
+  };
+
+  const handleDiscountValueChange = (val: number) => {
+    setLastDiscountEdit('value');
+    setDiscountValue(val);
+    setDiscountPercent(totalValue > 0 ? Math.round((val / totalValue) * 100 * 100) / 100 : 0);
+  };
 
   const loadInstallments = async (quoteId: string) => {
     const { data } = await supabase
@@ -241,7 +257,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
                 min="0"
                 max="100"
                 value={discountPercent || ''}
-                onChange={(e) => setDiscountPercent(Number(e.target.value))}
+                onChange={(e) => handleDiscountPercentChange(Number(e.target.value))}
               />
             </div>
             <div className="space-y-1.5">
@@ -251,7 +267,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
                 step="0.01"
                 min="0"
                 value={discountValue || ''}
-                onChange={(e) => setDiscountValue(Number(e.target.value))}
+                onChange={(e) => handleDiscountValueChange(Number(e.target.value))}
               />
             </div>
             <div className="space-y-1.5">
