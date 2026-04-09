@@ -29,8 +29,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { maskPhone } from '@/lib/masks';
+import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
