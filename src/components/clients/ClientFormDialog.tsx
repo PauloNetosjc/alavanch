@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -77,6 +77,24 @@ export function ClientFormDialog({ open, onOpenChange, onSuccess, editClient }: 
       notes: editClient?.notes ?? '',
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: editClient?.name ?? '',
+        cpf: editClient?.cpf ? maskCpf(editClient.cpf) : '',
+        birth_date: editClient?.birth_date ?? '',
+        email: editClient?.email ?? '',
+        phone: editClient?.phone ? maskPhone(editClient.phone) : '',
+        phone_secondary: editClient?.phone_secondary ? maskPhone(editClient.phone_secondary) : '',
+        delivery_address: editClient?.delivery_address ?? '',
+        billing_address: editClient?.billing_address ?? '',
+        notes: editClient?.notes ?? '',
+      });
+      setDuplicates([]);
+      setSkipDuplicateCheck(false);
+    }
+  }, [open, editClient]);
 
   const checkDuplicates = async (data: ClientFormData): Promise<DuplicateMatch[]> => {
     const matches: DuplicateMatch[] = [];
