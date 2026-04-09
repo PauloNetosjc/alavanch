@@ -100,6 +100,14 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
     setStores(storesRes.data ?? []);
   };
 
+  const handleClientCreated = useCallback(async () => {
+    const { data } = await supabase.from('clients').select('*').order('created_at', { ascending: false }).limit(1);
+    if (data && data.length > 0) {
+      await loadData();
+      form.setValue('client_id', data[0].id);
+    }
+  }, [form]);
+
   const generateCode = async (): Promise<string> => {
     const year = new Date().getFullYear();
     const { count } = await supabase
