@@ -1,28 +1,94 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, LayoutGrid, List } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Plus, Search, LayoutGrid, List, Pencil, Calculator } from 'lucide-react';
+import { QuoteFormDialog } from '@/components/quotes/QuoteFormDialog';
+import { QuoteKanban } from '@/components/quotes/QuoteKanban';
+import { QuoteCalculator } from '@/components/quotes/QuoteCalculator';
+import { maskPhone } from '@/lib/masks';
+import type { Tables } from '@/integrations/supabase/types';
 
-const kanbanColumns = [
-  { id: 'novo_lead', title: 'Novo Lead', color: 'bg-info' },
-  { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-primary' },
-  { id: 'em_elaboracao', title: 'Em Elaboração', color: 'bg-primary' },
-  { id: 'enviado', title: 'Enviado', color: 'bg-warning' },
-  { id: 'em_negociacao', title: 'Em Negociação', color: 'bg-warning' },
-  { id: 'acomp_7d', title: 'Acomp. 7d', color: 'bg-muted-foreground' },
-  { id: 'acomp_15d', title: 'Acomp. 15d', color: 'bg-muted-foreground' },
-  { id: 'acomp_30d', title: 'Acomp. 30d', color: 'bg-muted-foreground' },
-  { id: '30d_plus', title: '30d+', color: 'bg-muted-foreground' },
-  { id: 'fechado', title: 'Fechado', color: 'bg-success' },
-  { id: 'declinado', title: 'Declinado', color: 'bg-destructive' },
-  { id: 'arquivado', title: 'Arquivado', color: 'bg-muted-foreground' },
-];
+interface QuoteWithClient extends Tables<'quotes'> {
+  clients: { name: string; phone: string | null } | null;
+}
+
+const statusLabels: Record<string, string> = {
+  novo_lead: 'Novo Lead',
+  em_atendimento: 'Em Atendimento',
+  em_elaboracao: 'Em Elaboração',
+  enviado: 'Enviado',
+  em_negociacao: 'Em Negociação',
+  acomp_7d: 'Acomp. 7d',
+  acomp_15d: 'Acomp. 15d',
+  acomp_30d: 'Acomp. 30d',
+  '30d_plus': '30d+',
+  fechado: 'Fechado',
+  declinado: 'Declinado',
+  arquivado: 'Arquivado',
+};
 
 export default function Orcamentos() {
   const [search, setSearch] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editQuote, setEditQuote] = useState<Tables<'quotes'> | null>(null);
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcQuote, setCalcQuote] = useState<Tables<'quotes'> | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [listQuotes, setListQuotes] = useState<QuoteWithClient[]>([]);
+
+  const refresh = () => setRefreshKey(k => k + 1);
+
+  const fetchList = async () => {
+    const { data } = await supabase
+      .from('quotes')
+      .select('*, clients(name, phone)')
+      .order('created_at', { ascending: false });
+    setListQuotes((data as QuoteWithClient[]) ?? []);
+  };
+
+  useEffect(() => {
+    fetchList();
+  }, [refreshKey]);
+
+  const handleEdit = (q: Tables<'quotes'>) => {
+    setEditQuote(q);
+    setFormOpen(true);
+  };
+
+  const handleFormClose = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) setEditQuote(null);
+  };
+
+  const handleOpenCalc = (q: Tables<'quotes'>) => {
+    setCalcQuote(q);
+    setCalcOpen(true);
+  };
+
+  const fmt = (v: number | null) =>
+    v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
+
+  const filteredList = listQuotes.filter(q => {
+    if (!search.trim()) return true;
+    const s = search.toLowerCase();
+    return (
+      q.code.toLowerCase().includes(s) ||
+      q.clients?.name?.toLowerCase().includes(s) ||
+      q.clients?.phone?.includes(s)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -31,7 +97,7 @@ export default function Orcamentos() {
           <h1 className="text-2xl font-display font-semibold text-foreground">Orçamentos</h1>
           <p className="text-sm text-muted-foreground mt-1">Gestão comercial e pipeline de vendas</p>
         </div>
-        <Button>
+        <Button onClick={() => setFormOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Orçamento
         </Button>
@@ -41,12 +107,15 @@ export default function Orcamentos() {
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar orçamento..."
+            placeholder="Buscar por código, cliente, telefone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
+        <Badge variant="secondary" className="text-xs">
+          {filteredList.length} orçamento{filteredList.length !== 1 ? 's' : ''}
+        </Badge>
       </div>
 
       <Tabs defaultValue="kanban">
@@ -60,32 +129,92 @@ export default function Orcamentos() {
         </TabsList>
 
         <TabsContent value="kanban" className="mt-4">
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {kanbanColumns.map((col) => (
-              <div key={col.id} className="min-w-[260px] max-w-[260px] flex-shrink-0">
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <div className={`h-2 w-2 rounded-full ${col.color}`} />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {col.title}
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-auto">0</Badge>
-                </div>
-                <div className="space-y-2 min-h-[120px] rounded-lg bg-muted/30 p-2">
-                  <p className="text-xs text-muted-foreground/60 text-center py-6">Vazio</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <QuoteKanban
+            search={search}
+            onEdit={handleEdit}
+            onOpenCalc={handleOpenCalc}
+            refreshKey={refreshKey}
+          />
         </TabsContent>
 
         <TabsContent value="lista" className="mt-4">
           <Card className="border-border/60">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <p className="text-sm">Nenhum orçamento cadastrado.</p>
+            <CardContent className="p-0">
+              {filteredList.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <p className="text-sm">Nenhum orçamento encontrado.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Origem</TableHead>
+                        <TableHead>Urgência</TableHead>
+                        <TableHead className="w-[100px] text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredList.map(q => (
+                        <TableRow key={q.id}>
+                          <TableCell className="font-mono text-xs">{q.code}</TableCell>
+                          <TableCell className="font-medium">{q.clients?.name ?? '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {statusLabels[q.status] ?? q.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{fmt(q.final_value ?? q.total_value)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{q.origin ?? '—'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] ${
+                                q.urgency === 'urgente' ? 'border-destructive text-destructive' :
+                                q.urgency === 'alta' ? 'border-amber-500 text-amber-700' : ''
+                              }`}
+                            >
+                              {q.urgency ?? 'normal'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenCalc(q)}>
+                                <Calculator className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(q)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <QuoteFormDialog
+        open={formOpen}
+        onOpenChange={handleFormClose}
+        onSuccess={refresh}
+        editQuote={editQuote}
+      />
+
+      <QuoteCalculator
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        quote={calcQuote}
+        onSuccess={refresh}
+      />
     </div>
   );
 }
