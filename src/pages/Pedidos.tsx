@@ -19,7 +19,7 @@ import {
 import {
   Search, ShoppingCart, Eye, FileText, CheckSquare, Wrench,
   DollarSign, AlertTriangle, Calendar, User, Store, CreditCard, Loader2,
-  Package,
+  Package, Upload, RotateCcw,
 } from 'lucide-react';
 import { maskPhone, maskCpf } from '@/lib/masks';
 import type { Tables as DbTables } from '@/integrations/supabase/types';
