@@ -34,10 +34,11 @@ interface QuoteKanbanProps {
   search: string;
   onEdit: (q: Tables<'quotes'>) => void;
   onOpenCalc: (q: Tables<'quotes'>) => void;
+  onCardClick: (quoteId: string) => void;
   refreshKey: number;
 }
 
-export function QuoteKanban({ search, onEdit, onOpenCalc, refreshKey }: QuoteKanbanProps) {
+export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKey }: QuoteKanbanProps) {
   const [quotes, setQuotes] = useState<QuoteWithClient[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -133,6 +134,7 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, refreshKey }: QuoteKan
                     key={q.id}
                     draggable
                     onDragStart={() => handleDragStart(q.id)}
+                    onClick={() => onCardClick(q.id)}
                     className={`bg-card border border-border/60 rounded-lg p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow ${
                       draggedId === q.id ? 'opacity-50' : ''
                     } ${urgencyColors[q.urgency ?? 'normal'] || ''}`}
