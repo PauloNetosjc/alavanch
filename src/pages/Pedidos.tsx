@@ -16,17 +16,19 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Search, ShoppingCart, Eye, FileText, CheckSquare, Wrench,
   DollarSign, AlertTriangle, Calendar, User, Store, CreditCard, Loader2,
-  Package, Upload, RotateCcw,
+  Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
+  Phone, Mail, MapPin, Hash, ArrowRightLeft, Info,
 } from 'lucide-react';
 import { maskPhone, maskCpf } from '@/lib/masks';
 import type { Tables as DbTables } from '@/integrations/supabase/types';
 import PromobImportDialog from '@/components/orders/PromobImportDialog';
 
 interface OrderWithRelations extends DbTables<'orders'> {
-  clients: { name: string; phone: string | null; email: string | null; cpf: string | null; delivery_address: string | null } | null;
+  clients: { name: string; phone: string | null; email: string | null; cpf: string | null; delivery_address: string | null; billing_address: string | null; birth_date: string | null; notes: string | null } | null;
   stores: { name: string } | null;
 }
 
@@ -67,6 +69,8 @@ export default function Pedidos() {
   const [environments, setEnvironments] = useState<DbTables<'order_environments'>[]>([]);
   const [envItems, setEnvItems] = useState<Record<string, DbTables<'order_items'>[]>>({});
   const [imports, setImports] = useState<DbTables<'promob_imports'>[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<DbTables<'timeline_events'>[]>([]);
+  const [attachments, setAttachments] = useState<DbTables<'attachments'>[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importTargetEnvId, setImportTargetEnvId] = useState<string | null>(null);
@@ -76,7 +80,7 @@ export default function Pedidos() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('*, clients(name, phone, email, cpf, delivery_address), stores(name)')
+      .select('*, clients(name, phone, email, cpf, delivery_address, billing_address, birth_date, notes), stores(name)')
       .order('created_at', { ascending: false });
     setOrders((data as OrderWithRelations[]) ?? []);
     setLoading(false);
@@ -88,13 +92,16 @@ export default function Pedidos() {
     setSelectedOrder(order);
     setDetailOpen(true);
     setDetailLoading(true);
+    setExpandedEnv(null);
 
-    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes] = await Promise.all([
+    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes] = await Promise.all([
       supabase.from('contracts').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
       supabase.from('financial_entries').select('*').eq('order_id', order.id).order('due_date'),
       supabase.from('occurrences').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
       supabase.from('order_environments').select('*').eq('order_id', order.id).order('name'),
       supabase.from('promob_imports').select('*').eq('order_id', order.id).order('created_at', { ascending: false }),
+      supabase.from('timeline_events').select('*').eq('entity_id', order.id).eq('entity_type', 'order').order('created_at', { ascending: false }),
+      supabase.from('attachments').select('*').eq('entity_id', order.id).eq('entity_type', 'order').order('created_at', { ascending: false }),
     ]);
     setContracts(contractsRes.data ?? []);
     setFinancialEntries(financialRes.data ?? []);
@@ -102,8 +109,9 @@ export default function Pedidos() {
     const envs = envsRes.data ?? [];
     setEnvironments(envs);
     setImports(importsRes.data ?? []);
+    setTimelineEvents(timelineRes.data ?? []);
+    setAttachments(attachmentsRes.data ?? []);
 
-    // Load items for each environment
     if (envs.length > 0) {
       const envIds = envs.map(e => e.id);
       const { data: items } = await supabase.from('order_items').select('*').in('environment_id', envIds).order('index_num');
@@ -144,11 +152,27 @@ export default function Pedidos() {
   const fmtDate = (d: string | null | undefined) =>
     d ? new Date(d.includes('T') ? d : d + 'T00:00').toLocaleDateString('pt-BR') : '—';
 
+  const fmtDateTime = (d: string | null | undefined) =>
+    d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
   const filteredOrders = orders.filter(o => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
     return o.code.toLowerCase().includes(s) || o.clients?.name?.toLowerCase().includes(s) || o.clients?.phone?.includes(s);
   });
+
+  // Alerts / pendencies for Resumo tab
+  const getAlerts = () => {
+    if (!selectedOrder) return [];
+    const alerts: { text: string; severity: 'warning' | 'error' }[] = [];
+    if (selectedOrder.contract_status === 'pendente') alerts.push({ text: 'Contrato pendente', severity: 'warning' });
+    if (selectedOrder.revision_status === 'pendente') alerts.push({ text: 'Revisão pendente', severity: 'warning' });
+    if (selectedOrder.financial_status === 'pendente') alerts.push({ text: 'Financeiro pendente', severity: 'warning' });
+    if (selectedOrder.assembly_status === 'pendente') alerts.push({ text: 'Montagem pendente', severity: 'warning' });
+    if (selectedOrder.occurrence_status === 'com_ocorrencias') alerts.push({ text: 'Existem ocorrências abertas', severity: 'error' });
+    if (!selectedOrder.factory_send_date) alerts.push({ text: 'Data de envio à fábrica não definida', severity: 'warning' });
+    return alerts;
+  };
 
   return (
     <div className="space-y-6">
@@ -224,19 +248,20 @@ export default function Pedidos() {
 
       {/* 360° Detail Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-3xl p-0 flex flex-col">
+          <SheetHeader className="px-6 pt-6 pb-3">
             <SheetTitle className="font-display flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
               {selectedOrder?.code ?? 'Pedido'}
+              <span className="text-sm font-normal text-muted-foreground ml-2">Visão 360°</span>
             </SheetTitle>
           </SheetHeader>
 
           {detailLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="flex items-center justify-center py-12 flex-1"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : selectedOrder ? (
-            <div className="mt-4">
-              {/* Editable status cards */}
+            <ScrollArea className="flex-1 px-6 pb-6">
+              {/* Status cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 <StatusSelect icon={<FileText className="h-4 w-4" />} label="Contrato" value={selectedOrder.contract_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('contract_status', v)} />
                 <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
@@ -247,132 +272,141 @@ export default function Pedidos() {
               </div>
 
               <Tabs defaultValue="resumo">
-                <TabsList className="w-full justify-start flex-wrap h-auto gap-1">
+                <TabsList className="w-full justify-start flex-wrap h-auto gap-1 bg-muted/50 p-1">
                   <TabsTrigger value="resumo" className="text-xs">Resumo</TabsTrigger>
+                  <TabsTrigger value="cliente" className="text-xs">Cliente</TabsTrigger>
+                  <TabsTrigger value="ambientes" className="text-xs">Ambientes</TabsTrigger>
                   <TabsTrigger value="contrato" className="text-xs">Contrato</TabsTrigger>
                   <TabsTrigger value="financeiro" className="text-xs">Financeiro</TabsTrigger>
-                  <TabsTrigger value="ambientes" className="text-xs">Ambientes</TabsTrigger>
+                  <TabsTrigger value="revisao" className="text-xs">Revisão</TabsTrigger>
+                  <TabsTrigger value="montagem" className="text-xs">Montagem</TabsTrigger>
+                  <TabsTrigger value="pos-montagem" className="text-xs">Pós-montagem</TabsTrigger>
                   <TabsTrigger value="ocorrencias" className="text-xs">Ocorrências</TabsTrigger>
+                  <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
+                  <TabsTrigger value="anexos" className="text-xs">Anexos</TabsTrigger>
                 </TabsList>
 
+                {/* ====== RESUMO ====== */}
                 <TabsContent value="resumo" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5" /> Cliente
-                    </h3>
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-sm">
-                      <p className="font-medium">{selectedOrder.clients?.name ?? '—'}</p>
-                      {selectedOrder.clients?.phone && <p className="text-muted-foreground">{maskPhone(selectedOrder.clients.phone)}</p>}
-                      {selectedOrder.clients?.email && <p className="text-muted-foreground">{selectedOrder.clients.email}</p>}
-                      {selectedOrder.clients?.cpf && <p className="text-muted-foreground">CPF: {maskCpf(selectedOrder.clients.cpf)}</p>}
+                  {/* Alerts */}
+                  {getAlerts().length > 0 && (
+                    <div className="space-y-1.5">
+                      {getAlerts().map((a, i) => (
+                        <div key={i} className={`flex items-center gap-2 text-xs rounded-md px-3 py-2 ${a.severity === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'}`}>
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                          {a.text}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {selectedOrder.stores?.name && (
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Store className="h-3 w-3" /> Loja</span>
-                        <p className="font-medium">{selectedOrder.stores.name}</p>
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Data do pedido</span>
-                      <p className="font-medium">{fmtDate(selectedOrder.order_date)}</p>
-                    </div>
-                    {selectedOrder.factory_send_date && (
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground">Envio fábrica</span>
-                        <p className="font-medium">{fmtDate(selectedOrder.factory_send_date)}</p>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <InfoItem icon={Hash} label="Código" value={selectedOrder.code} mono />
+                    <InfoItem icon={User} label="Cliente" value={selectedOrder.clients?.name} />
+                    <InfoItem icon={Store} label="Loja" value={selectedOrder.stores?.name} />
+                    <InfoItem icon={User} label="Vendedor" value={selectedOrder.seller_id ? 'Vinculado' : '—'} />
+                    <InfoItem icon={Calendar} label="Data do pedido" value={fmtDate(selectedOrder.order_date)} />
+                    <InfoItem icon={Calendar} label="Envio fábrica" value={fmtDate(selectedOrder.factory_send_date)} />
                   </div>
 
                   <Separator />
 
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <CreditCard className="h-3.5 w-3.5" /> Valores
-                    </h3>
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-2 text-sm">
+                  {/* Values */}
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Valor total</span>
+                      <span>{fmt(selectedOrder.total_value)}</span>
+                    </div>
+                    {(selectedOrder.discount_percent ?? 0) > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Valor total</span>
-                        <span>{fmt(selectedOrder.total_value)}</span>
+                        <span className="text-muted-foreground">Desconto ({selectedOrder.discount_percent}%)</span>
+                        <span className="text-destructive">-{fmt(selectedOrder.discount_value)}</span>
                       </div>
-                      {(selectedOrder.discount_percent ?? 0) > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Desconto ({selectedOrder.discount_percent}%)</span>
-                          <span className="text-destructive">-{fmt(selectedOrder.discount_value)}</span>
-                        </div>
-                      )}
-                      <Separator />
-                      <div className="flex justify-between font-semibold text-base">
-                        <span>Valor final</span>
-                        <span className="text-primary">{fmt(selectedOrder.final_value)}</span>
-                      </div>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-base">
+                      <span>Valor final</span>
+                      <span className="text-primary">{fmt(selectedOrder.final_value)}</span>
                     </div>
                   </div>
 
+                  {/* Tags */}
+                  {selectedOrder.tags && selectedOrder.tags.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Tag className="h-3 w-3" /> Tags</span>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedOrder.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Internal comments */}
+                  {selectedOrder.internal_comments && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Comentários internos</span>
+                      <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{selectedOrder.internal_comments}</p>
+                    </div>
+                  )}
+
                   {selectedOrder.snapshot && (
-                    <div className="text-xs text-muted-foreground bg-muted/20 rounded p-2">
+                    <div className="text-xs text-muted-foreground bg-muted/20 rounded p-2 flex items-center gap-1.5">
+                      <ArrowRightLeft className="h-3 w-3" />
                       Convertido do orçamento <span className="font-mono font-medium">{(selectedOrder.snapshot as Record<string, unknown>).quote_code as string}</span>
                       {' em '}
                       {fmtDate((selectedOrder.snapshot as Record<string, unknown>).converted_at as string)}
                     </div>
                   )}
-
-                  {selectedOrder.internal_comments && (
-                    <div className="space-y-1">
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase">Comentários internos</h3>
-                      <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{selectedOrder.internal_comments}</p>
-                    </div>
-                  )}
                 </TabsContent>
 
-                <TabsContent value="contrato" className="mt-4">
-                  {contracts.length === 0 ? (
-                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
-                  ) : (
-                    <div className="space-y-3">
-                      {contracts.map(c => (
-                        <Card key={c.id} className="border-border/60">
-                          <CardContent className="p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">Contrato v{c.version}</span>
-                              {getStatusBadge(c.status)}
-                            </div>
-                            {c.sent_at && <p className="text-xs text-muted-foreground">Enviado: {fmtDate(c.sent_at)}</p>}
-                            {c.signed_at && <p className="text-xs text-muted-foreground">Assinado: {fmtDate(c.signed_at)}</p>}
-                            {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="financeiro" className="mt-4">
-                  {financialEntries.length === 0 ? (
-                    <EmptyTab icon={<DollarSign className="h-8 w-8" />} text="Nenhum lançamento financeiro." />
-                  ) : (
-                    <div className="space-y-2">
-                      {financialEntries.map(f => (
-                        <div key={f.id} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{f.description ?? `Parcela ${f.installment_number ?? ''}`}</p>
-                            <p className="text-xs text-muted-foreground">Vencimento: {fmtDate(f.due_date)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-sm font-semibold ${f.type === 'receita' ? 'text-emerald-600' : 'text-destructive'}`}>
-                              {f.type === 'receita' ? '+' : '-'}{fmt(f.value)}
-                            </p>
-                            {getStatusBadge(f.status)}
-                          </div>
+                {/* ====== CLIENTE ====== */}
+                <TabsContent value="cliente" className="space-y-4 mt-4">
+                  {selectedOrder.clients ? (
+                    <>
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados pessoais</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                          <InfoItem icon={User} label="Nome" value={selectedOrder.clients.name} />
+                          <InfoItem icon={Hash} label="CPF" value={selectedOrder.clients.cpf ? maskCpf(selectedOrder.clients.cpf) : null} />
+                          <InfoItem icon={Calendar} label="Nascimento" value={fmtDate(selectedOrder.clients.birth_date)} />
                         </div>
-                      ))}
-                    </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                          <InfoItem icon={Phone} label="Telefone" value={selectedOrder.clients.phone ? maskPhone(selectedOrder.clients.phone) : null} />
+                          <InfoItem icon={Mail} label="E-mail" value={selectedOrder.clients.email} />
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Endereços</h3>
+                        <div className="space-y-3 text-sm">
+                          <InfoItem icon={MapPin} label="Endereço de entrega" value={selectedOrder.clients.delivery_address} />
+                          <InfoItem icon={MapPin} label="Endereço de cobrança" value={selectedOrder.clients.billing_address} />
+                        </div>
+                      </div>
+
+                      {selectedOrder.clients.notes && (
+                        <>
+                          <Separator />
+                          <div className="space-y-1">
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observações</h3>
+                            <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{selectedOrder.clients.notes}</p>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <EmptyTab icon={<User className="h-8 w-8" />} text="Dados do cliente não disponíveis." />
                   )}
                 </TabsContent>
 
+                {/* ====== AMBIENTES ====== */}
                 <TabsContent value="ambientes" className="mt-4 space-y-3">
                   <div className="flex justify-end">
                     <Button size="sm" variant="outline" onClick={() => { setImportTargetEnvId(null); setImportDialogOpen(true); }}>
@@ -396,14 +430,13 @@ export default function Pedidos() {
                                   <Package className="h-4 w-4 text-primary" />
                                   <span className="text-sm font-medium">{env.name}</span>
                                   <Badge variant="secondary" className="text-[10px]">{items.length} itens</Badge>
+                                  {envImport && <span className="text-[10px] text-muted-foreground">• {fmtDate(envImport.created_at)}</span>}
                                 </div>
                                 <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
                               </div>
-                              {env.description && <p className="text-xs text-muted-foreground">{env.description}</p>}
 
                               {isExpanded && (
                                 <div className="space-y-2 pt-2">
-                                  {/* Action buttons */}
                                   <div className="flex gap-2 flex-wrap">
                                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); setImportTargetEnvId(env.id); setImportDialogOpen(true); }}>
                                       <RotateCcw className="h-3 w-3 mr-1" /> Reimportar
@@ -419,12 +452,11 @@ export default function Pedidos() {
                                         a.click();
                                         URL.revokeObjectURL(url);
                                       }}>
-                                        <FileText className="h-3 w-3 mr-1" /> Baixar TXT original
+                                        <FileText className="h-3 w-3 mr-1" /> Baixar TXT
                                       </Button>
                                     )}
                                   </div>
 
-                                  {/* Import history */}
                                   {envImport && (
                                     <div className="text-xs text-muted-foreground bg-muted/20 rounded px-2 py-1">
                                       Versão {envImport.version} • Importado em {fmtDate(envImport.created_at)}
@@ -432,7 +464,6 @@ export default function Pedidos() {
                                     </div>
                                   )}
 
-                                  {/* Items table */}
                                   {items.length > 0 ? (
                                     <div className="overflow-x-auto max-h-[250px] overflow-y-auto border rounded">
                                       <Table>
@@ -474,7 +505,6 @@ export default function Pedidos() {
                     </div>
                   )}
 
-                  {/* Import history */}
                   {imports.length > 0 && (
                     <div className="space-y-2 pt-2">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Histórico de importações</h4>
@@ -491,6 +521,89 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
+                {/* ====== CONTRATO ====== */}
+                <TabsContent value="contrato" className="mt-4">
+                  {contracts.length === 0 ? (
+                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
+                  ) : (
+                    <div className="space-y-3">
+                      {contracts.map(c => (
+                        <Card key={c.id} className="border-border/60">
+                          <CardContent className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">Contrato v{c.version}</span>
+                              {getStatusBadge(c.status)}
+                            </div>
+                            {c.sent_at && <p className="text-xs text-muted-foreground">Enviado: {fmtDate(c.sent_at)}</p>}
+                            {c.signed_at && <p className="text-xs text-muted-foreground">Assinado: {fmtDate(c.signed_at)}</p>}
+                            {c.signature_link && <p className="text-xs text-muted-foreground">Link: <span className="font-mono">{c.signature_link}</span></p>}
+                            {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ====== FINANCEIRO ====== */}
+                <TabsContent value="financeiro" className="mt-4">
+                  {financialEntries.length === 0 ? (
+                    <EmptyTab icon={<DollarSign className="h-8 w-8" />} text="Nenhum lançamento financeiro." />
+                  ) : (
+                    <div className="space-y-2">
+                      {financialEntries.map(f => (
+                        <div key={f.id} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{f.description ?? `Parcela ${f.installment_number ?? ''}`}</p>
+                            <p className="text-xs text-muted-foreground">Vencimento: {fmtDate(f.due_date)}</p>
+                            {f.paid_date && <p className="text-xs text-muted-foreground">Pago em: {fmtDate(f.paid_date)}</p>}
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-semibold ${f.type === 'receita' ? 'text-emerald-600' : 'text-destructive'}`}>
+                              {f.type === 'receita' ? '+' : '-'}{fmt(f.value)}
+                            </p>
+                            {getStatusBadge(f.status)}
+                          </div>
+                        </div>
+                      ))}
+                      <Separator />
+                      <div className="flex justify-between text-sm font-semibold px-3">
+                        <span>Total</span>
+                        <span className="text-primary">{fmt(financialEntries.reduce((s, f) => s + (f.type === 'receita' ? Number(f.value) : -Number(f.value)), 0))}</span>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ====== REVISÃO ====== */}
+                <TabsContent value="revisao" className="mt-4 space-y-4">
+                  <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Status da Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
+                  <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
+                    <p className="text-muted-foreground">Acompanhe aqui o status da revisão técnica do pedido.</p>
+                    <p className="text-xs text-muted-foreground">Use o controle acima para atualizar o status conforme o progresso da revisão.</p>
+                  </div>
+                </TabsContent>
+
+                {/* ====== MONTAGEM ====== */}
+                <TabsContent value="montagem" className="mt-4 space-y-4">
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status da Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
+                  <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
+                    <p className="text-muted-foreground">Acompanhe aqui o status da montagem do pedido.</p>
+                    {selectedOrder.factory_send_date && (
+                      <p className="text-xs">Data de envio à fábrica: <span className="font-medium">{fmtDate(selectedOrder.factory_send_date)}</span></p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* ====== PÓS-MONTAGEM ====== */}
+                <TabsContent value="pos-montagem" className="mt-4 space-y-4">
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                  <div className="bg-muted/30 rounded-lg p-4 text-sm">
+                    <p className="text-muted-foreground">Acompanhe aqui o status da pós-montagem e vistoria final.</p>
+                  </div>
+                </TabsContent>
+
+                {/* ====== OCORRÊNCIAS ====== */}
                 <TabsContent value="ocorrencias" className="mt-4">
                   {occurrences.length === 0 ? (
                     <EmptyTab icon={<AlertTriangle className="h-8 w-8" />} text="Nenhuma ocorrência registrada." />
@@ -502,9 +615,7 @@ export default function Pedidos() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-[10px]">{occ.type}</Badge>
-                                <Badge variant="outline" className={`text-[10px] ${
-                                  occ.priority === 'alta' || occ.priority === 'urgente' ? 'border-destructive text-destructive' : ''
-                                }`}>{occ.priority}</Badge>
+                                <Badge variant="outline" className={`text-[10px] ${occ.priority === 'alta' || occ.priority === 'urgente' ? 'border-destructive text-destructive' : ''}`}>{occ.priority}</Badge>
                               </div>
                               {getStatusBadge(occ.status)}
                             </div>
@@ -526,8 +637,59 @@ export default function Pedidos() {
                     </div>
                   )}
                 </TabsContent>
+
+                {/* ====== TIMELINE ====== */}
+                <TabsContent value="timeline" className="mt-4">
+                  {timelineEvents.length === 0 ? (
+                    <EmptyTab icon={<Clock className="h-8 w-8" />} text="Nenhum evento registrado na timeline." />
+                  ) : (
+                    <div className="relative pl-6 space-y-4">
+                      {/* Vertical line */}
+                      <div className="absolute left-2.5 top-2 bottom-2 w-px bg-border" />
+                      {timelineEvents.map(ev => (
+                        <div key={ev.id} className="relative">
+                          <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          </div>
+                          <div className="bg-muted/30 rounded-lg p-3 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold">{ev.event_type}</span>
+                              <span className="text-[10px] text-muted-foreground">{fmtDateTime(ev.created_at)}</span>
+                            </div>
+                            {ev.description && <p className="text-sm text-muted-foreground">{ev.description}</p>}
+                            {ev.user_id && <p className="text-[10px] text-muted-foreground">Por: {ev.user_id.slice(0, 8)}...</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ====== ANEXOS ====== */}
+                <TabsContent value="anexos" className="mt-4">
+                  {attachments.length === 0 ? (
+                    <EmptyTab icon={<Paperclip className="h-8 w-8" />} text="Nenhum anexo vinculado a este pedido." />
+                  ) : (
+                    <div className="space-y-2">
+                      {attachments.map(a => (
+                        <div key={a.id} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Paperclip className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{a.file_name}</p>
+                              <p className="text-[10px] text-muted-foreground">{a.file_type} {a.file_size ? `• ${(a.file_size / 1024).toFixed(1)} KB` : ''} • {fmtDate(a.created_at)}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                            <a href={a.file_url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
-            </div>
+            </ScrollArea>
           ) : null}
         </SheetContent>
       </Sheet>
@@ -541,6 +703,17 @@ export default function Pedidos() {
           onImportComplete={() => { if (selectedOrder) openDetail(selectedOrder); }}
         />
       )}
+    </div>
+  );
+}
+
+/* ── Helper components ── */
+
+function InfoItem({ icon: Icon, label, value, mono }: { icon: React.ElementType; label: string; value: string | null | undefined; mono?: boolean }) {
+  return (
+    <div className="space-y-0.5">
+      <span className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</span>
+      <p className={`text-sm font-medium ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
     </div>
   );
 }
