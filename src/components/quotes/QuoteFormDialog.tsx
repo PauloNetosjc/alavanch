@@ -362,5 +362,12 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         </Form>
       </DialogContent>
     </Dialog>
+
+    <ClientFormDialog
+      open={clientFormOpen}
+      onOpenChange={setClientFormOpen}
+      onSuccess={handleClientCreated}
+    />
+  </>
   );
 }
