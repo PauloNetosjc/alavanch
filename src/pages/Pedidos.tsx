@@ -373,21 +373,119 @@ export default function Pedidos() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="ambientes" className="mt-4">
+                <TabsContent value="ambientes" className="mt-4 space-y-3">
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="outline" onClick={() => { setImportTargetEnvId(null); setImportDialogOpen(true); }}>
+                      <Upload className="h-4 w-4 mr-1" /> Importar arquivo Promob
+                    </Button>
+                  </div>
+
                   {environments.length === 0 ? (
-                    <EmptyTab icon={<Package className="h-8 w-8" />} text="Nenhum ambiente cadastrado." />
+                    <EmptyTab icon={<Package className="h-8 w-8" />} text="Nenhum ambiente cadastrado. Importe um arquivo Promob para começar." />
                   ) : (
                     <div className="space-y-2">
-                      {environments.map(env => (
-                        <Card key={env.id} className="border-border/60">
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">{env.name}</span>
-                              <span className="text-sm text-muted-foreground">{fmt(env.value)}</span>
-                            </div>
-                            {env.description && <p className="text-xs text-muted-foreground mt-1">{env.description}</p>}
-                          </CardContent>
-                        </Card>
+                      {environments.map(env => {
+                        const items = envItems[env.id] ?? [];
+                        const isExpanded = expandedEnv === env.id;
+                        const envImport = imports.find(imp => imp.environment_id === env.id);
+                        return (
+                          <Card key={env.id} className="border-border/60">
+                            <CardContent className="p-3 space-y-2">
+                              <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedEnv(isExpanded ? null : env.id)}>
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-medium">{env.name}</span>
+                                  <Badge variant="secondary" className="text-[10px]">{items.length} itens</Badge>
+                                </div>
+                                <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
+                              </div>
+                              {env.description && <p className="text-xs text-muted-foreground">{env.description}</p>}
+
+                              {isExpanded && (
+                                <div className="space-y-2 pt-2">
+                                  {/* Action buttons */}
+                                  <div className="flex gap-2 flex-wrap">
+                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); setImportTargetEnvId(env.id); setImportDialogOpen(true); }}>
+                                      <RotateCcw className="h-3 w-3 mr-1" /> Reimportar
+                                    </Button>
+                                    {envImport?.raw_content && (
+                                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => {
+                                        e.stopPropagation();
+                                        const blob = new Blob([envImport.raw_content!], { type: 'text/plain' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `promob_${env.name.replace(/\s+/g, '_')}.txt`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                      }}>
+                                        <FileText className="h-3 w-3 mr-1" /> Baixar TXT original
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {/* Import history */}
+                                  {envImport && (
+                                    <div className="text-xs text-muted-foreground bg-muted/20 rounded px-2 py-1">
+                                      Versão {envImport.version} • Importado em {fmtDate(envImport.created_at)}
+                                      {envImport.project_id && <> • Projeto: <span className="font-mono">{envImport.project_id}</span></>}
+                                    </div>
+                                  )}
+
+                                  {/* Items table */}
+                                  {items.length > 0 ? (
+                                    <div className="overflow-x-auto max-h-[250px] overflow-y-auto border rounded">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead className="text-xs w-[40px]">#</TableHead>
+                                            <TableHead className="text-xs w-[40px]">Qtd</TableHead>
+                                            <TableHead className="text-xs">Descrição</TableHead>
+                                            <TableHead className="text-xs w-[100px]">Medidas</TableHead>
+                                            <TableHead className="text-xs w-[80px]">Custo</TableHead>
+                                            <TableHead className="text-xs w-[80px]">Acab.</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {items.map(it => (
+                                            <TableRow key={it.id}>
+                                              <TableCell className="text-xs">{it.index_num}</TableCell>
+                                              <TableCell className="text-xs">{it.quantity}</TableCell>
+                                              <TableCell className="text-xs font-medium">{it.description}</TableCell>
+                                              <TableCell className="text-xs text-muted-foreground">
+                                                {[it.width, it.height, it.depth].filter(Boolean).join(' × ') || '—'}
+                                              </TableCell>
+                                              <TableCell className="text-xs">{fmt(it.cost)}</TableCell>
+                                              <TableCell className="text-xs text-muted-foreground">{it.finish || '—'}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground text-center py-2">Nenhum item neste ambiente.</p>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Import history */}
+                  {imports.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Histórico de importações</h4>
+                      {imports.map(imp => (
+                        <div key={imp.id} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-xs font-medium">Versão {imp.version} — {imp.client_name || 'Sem cliente'}</p>
+                            <p className="text-[10px] text-muted-foreground">{fmtDate(imp.created_at)} • Projeto: {imp.project_id || '—'}</p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">{imp.status}</Badge>
+                        </div>
                       ))}
                     </div>
                   )}
