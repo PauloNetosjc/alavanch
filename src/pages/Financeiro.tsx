@@ -21,6 +21,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend, Line
 } from 'recharts';
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import type { Tables } from '@/integrations/supabase/types';
 
 type FinancialEntry = Tables<'financial_entries'>;
@@ -281,6 +282,8 @@ export default function Financeiro() {
   const [editEntry, setEditEntry] = useState<FinancialEntry | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const fetchAll = async () => {
     setLoading(true);
