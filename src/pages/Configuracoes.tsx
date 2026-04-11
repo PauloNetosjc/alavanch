@@ -78,6 +78,7 @@ export default function Configuracoes() {
   const [userOpen, setUserOpen] = useState(false);
   const [userSaving, setUserSaving] = useState(false);
   const [userForm, setUserForm] = useState({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+  const [editUserId, setEditUserId] = useState<string | null>(null);
   // Role edit
   const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
   const [roleEditValue, setRoleEditValue] = useState('');
@@ -188,33 +189,77 @@ export default function Configuracoes() {
     setStoreOpen(false); fetchStores();
   };
 
-  // ─── User creation ───
+  // ─── User creation / editing ───
+  const openUserForm = (profile?: Profile) => {
+    if (profile) {
+      setEditUserId(profile.user_id);
+      setUserForm({
+        email: '', // Can't retrieve email from profile, user fills if changing
+        password: '',
+        full_name: profile.full_name ?? '',
+        role: userRoles[profile.user_id] ?? 'atendente',
+        store_id: profile.store_id ?? '',
+      });
+    } else {
+      setEditUserId(null);
+      setUserForm({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+    }
+    setUserOpen(true);
+  };
+
   const saveUser = async () => {
-    if (!userForm.email || !userForm.password || !userForm.full_name) { toast.error('Preencha todos os campos obrigatórios'); return; }
-    if (userForm.password.length < 6) { toast.error('Senha deve ter no mínimo 6 caracteres'); return; }
     setUserSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await supabase.functions.invoke('create-user', {
-        body: {
-          email: userForm.email,
-          password: userForm.password,
-          full_name: userForm.full_name,
-          role: userForm.role,
-          store_id: userForm.store_id || null,
-        },
-      });
-      if (resp.error || resp.data?.error) {
-        toast.error(resp.data?.error || 'Erro ao criar usuário');
-        setUserSaving(false);
-        return;
+      if (editUserId) {
+        // Update existing user via edge function
+        const body: Record<string, unknown> = { user_id: editUserId };
+        if (userForm.full_name) body.full_name = userForm.full_name;
+        if (userForm.email) body.email = userForm.email;
+        if (userForm.password) body.password = userForm.password;
+        if (userForm.role) body.role = userForm.role;
+        body.store_id = userForm.store_id || null;
+
+        const resp = await supabase.functions.invoke('update-user', { body });
+        if (resp.error || resp.data?.error) {
+          toast.error(resp.data?.error || 'Erro ao atualizar usuário');
+          setUserSaving(false);
+          return;
+        }
+        toast.success('Usuário atualizado com sucesso');
+      } else {
+        // Create new user
+        if (!userForm.email || !userForm.password || !userForm.full_name) {
+          toast.error('Preencha todos os campos obrigatórios');
+          setUserSaving(false);
+          return;
+        }
+        if (userForm.password.length < 6) {
+          toast.error('Senha deve ter no mínimo 6 caracteres');
+          setUserSaving(false);
+          return;
+        }
+        const resp = await supabase.functions.invoke('create-user', {
+          body: {
+            email: userForm.email,
+            password: userForm.password,
+            full_name: userForm.full_name,
+            role: userForm.role,
+            store_id: userForm.store_id || null,
+          },
+        });
+        if (resp.error || resp.data?.error) {
+          toast.error(resp.data?.error || 'Erro ao criar usuário');
+          setUserSaving(false);
+          return;
+        }
+        toast.success('Usuário criado com sucesso');
       }
-      toast.success('Usuário criado com sucesso');
       setUserOpen(false);
+      setEditUserId(null);
       setUserForm({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
       fetchProfiles(); fetchUserRoles();
     } catch (e: any) {
-      toast.error(e.message || 'Erro ao criar usuário');
+      toast.error(e.message || 'Erro ao salvar usuário');
     }
     setUserSaving(false);
   };
@@ -474,7 +519,7 @@ export default function Configuracoes() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Usuários e Perfis</h2>
-              <Button onClick={() => setUserOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
+              <Button onClick={() => openUserForm()}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
             </div>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
@@ -488,26 +533,11 @@ export default function Configuracoes() {
                       <TableCell className="font-medium">{p.full_name ?? '—'}</TableCell>
                       <TableCell>{stores.find(s => s.id === p.store_id)?.name ?? '—'}</TableCell>
                       <TableCell>
-                        {roleEditUserId === p.user_id ? (
-                          <div className="flex items-center gap-2">
-                            <Select value={roleEditValue} onValueChange={setRoleEditValue}>
-                              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" className="h-7 text-xs" onClick={saveRoleEdit} disabled={roleEditSaving}>OK</Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setRoleEditUserId(null)}>✕</Button>
-                          </div>
-                        ) : (
-                          <Badge variant="outline">{ROLE_LABELS[userRoles[p.user_id]] ?? userRoles[p.user_id] ?? 'Sem cargo'}</Badge>
-                        )}
+                        <Badge variant="outline">{ROLE_LABELS[userRoles[p.user_id]] ?? userRoles[p.user_id] ?? 'Sem cargo'}</Badge>
                       </TableCell>
                       <TableCell>{fmtDate(p.created_at)}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => { setRoleEditUserId(p.user_id); setRoleEditValue(userRoles[p.user_id] ?? 'atendente'); }}>
+                        <Button size="sm" variant="ghost" onClick={() => openUserForm(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
@@ -777,11 +807,11 @@ export default function Configuracoes() {
         </div>
       </CrudDialog>
 
-      {/* User creation dialog */}
-      <CrudDialog open={userOpen} onClose={() => setUserOpen(false)} title="Novo Usuário" onSave={saveUser} saving={userSaving}>
-        <div><Label>Nome completo *</Label><Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} /></div>
-        <div><Label>E-mail *</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} /></div>
-        <div><Label>Senha *</Label><Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 6 caracteres" /></div>
+      {/* User creation/editing dialog */}
+      <CrudDialog open={userOpen} onClose={() => { setUserOpen(false); setEditUserId(null); }} title={editUserId ? 'Editar Usuário' : 'Novo Usuário'} onSave={saveUser} saving={userSaving}>
+        <div><Label>Nome completo {!editUserId && '*'}</Label><Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} /></div>
+        <div><Label>E-mail {!editUserId && '*'}</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder={editUserId ? 'Deixe em branco para manter o atual' : ''} /></div>
+        <div><Label>Senha {!editUserId && '*'}</Label><Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder={editUserId ? 'Deixe em branco para manter a atual' : 'Mínimo 6 caracteres'} /></div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Cargo</Label>

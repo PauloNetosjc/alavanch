@@ -20,6 +20,17 @@ import {
 } from '@/components/ui/select';
 import { Calculator, Plus, Trash2, Loader2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { AlertTriangle } from 'lucide-react';
+
+interface ApprovalRule {
+  id: string;
+  rule_type: string;
+  max_percent: number | null;
+  approver_role: string;
+  description: string | null;
+  active: boolean | null;
+}
 
 interface QuoteCalculatorProps {
   open: boolean;
@@ -37,6 +48,7 @@ interface Installment {
 }
 
 export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteCalculatorProps) {
+  const { user } = useAuth();
   const [totalValue, setTotalValue] = useState(0);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
@@ -47,6 +59,48 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   const [saving, setSaving] = useState(false);
   const [numInstallments, setNumInstallments] = useState(1);
   const [baseDate, setBaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [approvalRules, setApprovalRules] = useState<ApprovalRule[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [discountBlocked, setDiscountBlocked] = useState(false);
+  const [discountWarning, setDiscountWarning] = useState<string | null>(null);
+  const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+
+  // Load approval rules and user role
+  useEffect(() => {
+    const loadRulesAndRole = async () => {
+      const [rulesRes, roleRes] = await Promise.all([
+        supabase.from('approval_rules').select('*').eq('active', true).eq('rule_type', 'desconto'),
+        user ? supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+      setApprovalRules((rulesRes.data as ApprovalRule[]) ?? []);
+      setUserRole(roleRes.data?.role ?? null);
+    };
+    if (open) loadRulesAndRole();
+  }, [open, user]);
+
+  // Check discount against approval rules
+  useEffect(() => {
+    if (!approvalRules.length || !userRole) {
+      setDiscountBlocked(false);
+      setDiscountWarning(null);
+      return;
+    }
+    const effectivePct = lastDiscountEdit === 'percent' ? discountPercent : (totalValue > 0 ? (discountValue / totalValue) * 100 : 0);
+    const violatedRule = approvalRules.find(r => r.max_percent != null && effectivePct > r.max_percent);
+    if (violatedRule) {
+      const isApprover = userRole === violatedRule.approver_role || userRole === 'admin';
+      if (!isApprover) {
+        setDiscountBlocked(true);
+        setDiscountWarning(`Desconto de ${effectivePct.toFixed(1)}% excede o limite de ${violatedRule.max_percent}%. Apenas ${violatedRule.approver_role === 'admin' ? 'Administradores' : 'o cargo ' + violatedRule.approver_role} pode aprovar.`);
+      } else {
+        setDiscountBlocked(false);
+        setDiscountWarning(`Desconto de ${effectivePct.toFixed(1)}% excede o limite de ${violatedRule.max_percent}%, mas seu cargo permite aprovar.`);
+      }
+    } else {
+      setDiscountBlocked(false);
+      setDiscountWarning(null);
+    }
+  }, [discountPercent, discountValue, totalValue, lastDiscountEdit, approvalRules, userRole]);
 
   useEffect(() => {
     if (open && quote) {
@@ -60,8 +114,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
     }
   }, [open, quote]);
 
-  // Track which discount field was last edited
-  const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+  // (lastDiscountEdit already declared above)
 
   // Recalculate final value whenever inputs change
   useEffect(() => {
@@ -180,6 +233,10 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
 
   const handleSave = async () => {
     if (!quote) return;
+    if (discountBlocked) {
+      toast.error('Desconto excede o limite permitido para seu cargo');
+      return;
+    }
     setSaving(true);
     try {
       // Update quote values
@@ -298,6 +355,14 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
             </div>
           </div>
 
+          {/* Discount warning */}
+          {discountWarning && (
+            <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${discountBlocked ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{discountWarning}</span>
+            </div>
+          )}
+
           <Separator />
 
           {/* Installments */}
@@ -403,7 +468,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || discountBlocked}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Salvar valores
             </Button>
