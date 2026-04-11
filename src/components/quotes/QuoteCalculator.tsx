@@ -468,7 +468,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || discountBlocked}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Salvar valores
             </Button>
