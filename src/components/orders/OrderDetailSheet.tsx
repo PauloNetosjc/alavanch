@@ -336,7 +336,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     const updates: Record<string, any> = { status: newStatus };
     if (newStatus === 'enviado') updates.sent_at = new Date().toISOString();
     if (newStatus === 'assinado') updates.signed_at = new Date().toISOString();
-    const { error } = await supabase.from('contracts').update(updates).eq('id', contract.id);
+    const { error } = await supabase.from('contracts').update(updates as any).eq('id', contract.id);
     if (error) { toast.error('Erro ao atualizar status'); return; }
     toast.success(`Status: ${newStatus}`);
     await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_status_changed', description: `Contrato v${contract.version}: ${contract.status} → ${newStatus}`, metadata: { pipeline: 'contrato' } });
