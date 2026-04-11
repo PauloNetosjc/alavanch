@@ -644,7 +644,7 @@ export default function Pedidos() {
 
                 {/* ====== REVISÃO ====== */}
                 <TabsContent value="revisao" className="mt-4 space-y-4">
-                  <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Status da Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
+                  <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Status da Revisão" value={selectedOrder.revision_status ?? 'Pendente'} options={stageOptions('revisao')} onChange={v => handleStatusChange('revision_status', v)} color={stageColor('revisao', selectedOrder.revision_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
                     <p className="text-muted-foreground">Acompanhe aqui o status da revisão técnica do pedido.</p>
                     <p className="text-xs text-muted-foreground">Use o controle acima para atualizar o status conforme o progresso da revisão.</p>
@@ -653,7 +653,7 @@ export default function Pedidos() {
 
                 {/* ====== MONTAGEM ====== */}
                 <TabsContent value="montagem" className="mt-4 space-y-4">
-                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status da Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status da Montagem" value={selectedOrder.assembly_status ?? 'Pendente'} options={stageOptions('montagem')} onChange={v => handleStatusChange('assembly_status', v)} color={stageColor('montagem', selectedOrder.assembly_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
                     <p className="text-muted-foreground">Acompanhe aqui o status da montagem do pedido.</p>
                     {selectedOrder.factory_send_date && (
@@ -664,7 +664,7 @@ export default function Pedidos() {
 
                 {/* ====== PÓS-MONTAGEM ====== */}
                 <TabsContent value="pos-montagem" className="mt-4 space-y-4">
-                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status Pós-montagem" value={selectedOrder.post_assembly_status ?? 'Pendente'} options={stageOptions('pos_montagem')} onChange={v => handleStatusChange('post_assembly_status', v)} color={stageColor('pos_montagem', selectedOrder.post_assembly_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm">
                     <p className="text-muted-foreground">Acompanhe aqui o status da pós-montagem e vistoria final.</p>
                   </div>
