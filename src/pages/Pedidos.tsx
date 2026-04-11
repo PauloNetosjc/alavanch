@@ -284,10 +284,10 @@ export default function Pedidos() {
                       <TableCell className="font-mono text-xs">{o.code}</TableCell>
                       <TableCell className="font-medium">{o.clients?.name ?? '—'}</TableCell>
                       <TableCell>{fmt(o.final_value)}</TableCell>
-                      <TableCell>{getStatusBadge(o.contract_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.revision_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.assembly_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.financial_status)}</TableCell>
+                      <TableCell>{getStatusBadge(o.contract_status, 'contrato')}</TableCell>
+                      <TableCell>{getStatusBadge(o.revision_status, 'revisao')}</TableCell>
+                      <TableCell>{getStatusBadge(o.assembly_status, 'montagem')}</TableCell>
+                      <TableCell>{getStatusBadge(o.financial_status, 'financeiro')}</TableCell>
                       <TableCell>{getStatusBadge(o.occurrence_status)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openDetail(o); }}>
@@ -320,11 +320,21 @@ export default function Pedidos() {
             <ScrollArea className="flex-1 px-6 pb-6">
               {/* Status cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                <StatusSelect icon={<FileText className="h-4 w-4" />} label="Contrato" value={selectedOrder.contract_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('contract_status', v)} />
-                <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
-                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
-                <StatusSelect icon={<DollarSign className="h-4 w-4" />} label="Financeiro" value={selectedOrder.financial_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('financial_status', v)} />
-                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                {['contrato', 'revisao', 'montagem', 'financeiro', 'pos_montagem'].map(pt => {
+                  const field = PIPELINE_FIELDS[pt];
+                  const value = selectedOrder[field] ?? stagesForPipeline(pt).find(s => s.is_initial)?.name ?? 'Pendente';
+                  return (
+                    <StatusSelect
+                      key={pt}
+                      icon={PIPELINE_ICONS[pt]}
+                      label={PIPELINE_LABELS[pt]}
+                      value={value}
+                      options={stageOptions(pt)}
+                      onChange={v => handleStatusChange(field, v)}
+                      color={stageColor(pt, value)}
+                    />
+                  );
+                })}
                 <StatusSelect icon={<AlertTriangle className="h-4 w-4" />} label="Ocorrências" value={selectedOrder.occurrence_status ?? 'sem_ocorrencias'} options={OCCURRENCE_STATUS_OPTIONS} onChange={v => handleStatusChange('occurrence_status', v)} />
               </div>
 
