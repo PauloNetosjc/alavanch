@@ -23,7 +23,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Eye, FileText, CheckSquare, Wrench,
+  Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
   Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
@@ -200,7 +200,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     }
   }, [open, orderId, loadDetail]);
 
-  const handleStatusChange = async (field: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'occurrence_status', value: string) => {
+  const handleStatusChange = async (field: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'production_status' | 'delivery_status' | 'occurrence_status', value: string) => {
     if (!selectedOrder || !isAdmin) return;
     const prev = selectedOrder[field];
     setSelectedOrder({ ...selectedOrder, [field]: value } as OrderWithRelations);
