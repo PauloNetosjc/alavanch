@@ -129,10 +129,21 @@ export default function Pedidos() {
 
   useEffect(() => {
     fetchOrders();
-    // Fetch pipeline stages
     supabase.from('pipeline_stages').select('*').eq('active', true).order('display_order')
       .then(({ data }) => setPipelineStages((data as PipelineStage[]) ?? []));
   }, []);
+
+  // Auto-open order from URL param (e.g. ?order=<id>)
+  useEffect(() => {
+    const orderId = searchParams.get('order');
+    if (orderId && orders.length > 0 && !detailOpen) {
+      const found = orders.find(o => o.id === orderId);
+      if (found) {
+        openDetail(found);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [orders, searchParams]);
 
   const openDetail = async (order: OrderWithRelations) => {
     setSelectedOrder(order);
