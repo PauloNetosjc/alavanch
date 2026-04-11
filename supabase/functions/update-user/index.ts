@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     }
     const callerId = claimsData.claims.sub;
 
-    const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", caller.id).eq("role", "admin").maybeSingle();
+    const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", callerId).eq("role", "admin").maybeSingle();
     if (!roleCheck) return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: corsHeaders });
 
     const { user_id, email, password, full_name, role, store_id } = await req.json();
