@@ -302,6 +302,16 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-auto">{items.length}</Badge>
                   {isAdmin && (
                     <div className="flex gap-0.5">
+                      {stages.indexOf(stage) > 0 && (
+                        <button onClick={() => moveStage(stages.indexOf(stage), 'left')} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Mover para esquerda">
+                          <ArrowLeft className="h-3 w-3" />
+                        </button>
+                      )}
+                      {stages.indexOf(stage) < stages.length - 1 && (
+                        <button onClick={() => moveStage(stages.indexOf(stage), 'right')} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Mover para direita">
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      )}
                       <button onClick={() => openEditStage(stage)} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Editar estágio">
                         <Settings2 className="h-3 w-3" />
                       </button>
