@@ -739,7 +739,10 @@ export default function Configuracoes() {
                       <TableCell><Badge variant="outline">{ROLE_LABELS[r.approver_role] ?? r.approver_role}</Badge></TableCell>
                       <TableCell className="flex flex-wrap gap-1">{(r.affected_roles?.length > 0) ? r.affected_roles.map((ar: string) => <Badge key={ar} variant="secondary" className="text-[10px]">{ROLE_LABELS[ar] ?? ar}</Badge>) : <span className="text-muted-foreground text-xs">Todos</span>}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.description ?? '—'}</TableCell>
-                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openRuleForm(r)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
+                      <TableCell className="text-right flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openRuleForm(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={async () => { const { error } = await supabase.from('approval_rules').delete().eq('id', r.id); if (error) toast.error('Erro ao excluir'); else { toast.success('Regra excluída'); fetchRules(); } }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
