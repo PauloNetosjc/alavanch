@@ -49,9 +49,11 @@ interface PipelineStage {
   is_final: boolean;
 }
 
-const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status'> = {
+const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'production_status' | 'delivery_status'> = {
   contrato: 'contract_status',
   revisao: 'revision_status',
+  producao: 'production_status',
+  entrega: 'delivery_status',
   montagem: 'assembly_status',
   financeiro: 'financial_status',
   pos_montagem: 'post_assembly_status',
@@ -60,6 +62,8 @@ const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'a
 const PIPELINE_ICONS: Record<string, React.ReactNode> = {
   contrato: <FileText className="h-4 w-4" />,
   revisao: <CheckSquare className="h-4 w-4" />,
+  producao: <Factory className="h-4 w-4" />,
+  entrega: <Truck className="h-4 w-4" />,
   montagem: <Wrench className="h-4 w-4" />,
   financeiro: <DollarSign className="h-4 w-4" />,
   pos_montagem: <Wrench className="h-4 w-4" />,
@@ -68,6 +72,8 @@ const PIPELINE_ICONS: Record<string, React.ReactNode> = {
 const PIPELINE_LABELS: Record<string, string> = {
   contrato: 'Contrato',
   revisao: 'Revisão',
+  producao: 'Produção',
+  entrega: 'Entrega',
   montagem: 'Montagem',
   financeiro: 'Financeiro',
   pos_montagem: 'Pós-montagem',
@@ -82,6 +88,8 @@ const OCCURRENCE_STATUS_OPTIONS = [
 const TAB_PIPELINE_MAP: Record<string, string[]> = {
   contrato: ['contrato', 'contract_status'],
   revisao: ['revisao', 'revision_status'],
+  producao: ['producao', 'production_status'],
+  entrega: ['entrega', 'delivery_status'],
   montagem: ['montagem', 'assembly_status'],
   financeiro: ['financeiro', 'financial_status'],
   'pos-montagem': ['pos_montagem', 'post_assembly_status'],
