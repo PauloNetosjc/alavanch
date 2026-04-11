@@ -14,8 +14,9 @@ import { toast } from 'sonner';
 import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
-  Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2,
+  Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2, DollarSign,
 } from 'lucide-react';
+import Financeiro from '@/pages/Financeiro';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type BankAccount = DBTables<'bank_accounts'>;
@@ -420,7 +421,7 @@ export default function Configuracoes() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-semibold text-foreground">Configurações</h1>
+        <h1 className="text-2xl font-display font-semibold text-foreground">Administração</h1>
         <p className="text-sm text-muted-foreground mt-1">Gerenciamento completo do sistema</p>
       </div>
 
@@ -435,6 +436,7 @@ export default function Configuracoes() {
           <TabsTrigger value="templates"><FileText className="h-3.5 w-3.5 mr-1.5" />Templates</TabsTrigger>
           <TabsTrigger value="aprovacoes"><Shield className="h-3.5 w-3.5 mr-1.5" />Aprovações</TabsTrigger>
           <TabsTrigger value="pipelines"><GitBranch className="h-3.5 w-3.5 mr-1.5" />Pipelines</TabsTrigger>
+          <TabsTrigger value="financeiro"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Financeiro</TabsTrigger>
         </TabsList>
 
         {/* ─── Lojas ─── */}
@@ -754,6 +756,11 @@ export default function Configuracoes() {
               );
             })}
           </div>
+        </TabsContent>
+
+        {/* ─── Financeiro ─── */}
+        <TabsContent value="financeiro">
+          <Financeiro />
         </TabsContent>
       </Tabs>
 
