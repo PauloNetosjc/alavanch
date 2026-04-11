@@ -14,7 +14,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Plus, Search, Users, Eye, Pencil, Loader2, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables } from '@/integrations/supabase/types';
