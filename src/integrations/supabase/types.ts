@@ -704,6 +704,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_stages: {
+        Row: {
+          active: boolean | null
+          color: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_final: boolean | null
+          is_initial: boolean | null
+          name: string
+          pipeline_type: string
+        }
+        Insert: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_final?: boolean | null
+          is_initial?: boolean | null
+          name: string
+          pipeline_type: string
+        }
+        Update: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_final?: boolean | null
+          is_initial?: boolean | null
+          name?: string
+          pipeline_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

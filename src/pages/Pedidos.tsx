@@ -33,29 +33,45 @@ interface OrderWithRelations extends DbTables<'orders'> {
   stores: { name: string } | null;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'concluido', label: 'Concluído' },
-];
+// Pipeline stages loaded from DB
+interface PipelineStage {
+  id: string;
+  pipeline_type: string;
+  name: string;
+  display_order: number;
+  color: string;
+  is_initial: boolean;
+  is_final: boolean;
+}
+
+const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status'> = {
+  contrato: 'contract_status',
+  revisao: 'revision_status',
+  montagem: 'assembly_status',
+  financeiro: 'financial_status',
+  pos_montagem: 'post_assembly_status',
+};
+
+const PIPELINE_ICONS: Record<string, React.ReactNode> = {
+  contrato: <FileText className="h-4 w-4" />,
+  revisao: <CheckSquare className="h-4 w-4" />,
+  montagem: <Wrench className="h-4 w-4" />,
+  financeiro: <DollarSign className="h-4 w-4" />,
+  pos_montagem: <Wrench className="h-4 w-4" />,
+};
+
+const PIPELINE_LABELS: Record<string, string> = {
+  contrato: 'Contrato',
+  revisao: 'Revisão',
+  montagem: 'Montagem',
+  financeiro: 'Financeiro',
+  pos_montagem: 'Pós-montagem',
+};
 
 const OCCURRENCE_STATUS_OPTIONS = [
   { value: 'sem_ocorrencias', label: 'Sem ocorrências' },
   { value: 'com_ocorrencias', label: 'Com ocorrências' },
 ];
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-  em_andamento: { label: 'Em andamento', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-  concluido: { label: 'Concluído', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-  sem_ocorrencias: { label: 'Sem ocorrências', color: 'bg-muted text-muted-foreground' },
-  com_ocorrencias: { label: 'Com ocorrências', color: 'bg-red-100 text-red-800 border-red-300' },
-};
-
-const getStatusBadge = (status: string | null) => {
-  const s = statusLabels[status ?? 'pendente'] ?? { label: status ?? '—', color: '' };
-  return <Badge variant="outline" className={`text-[10px] ${s.color}`}>{s.label}</Badge>;
-};
 
 export default function Pedidos() {
   const [search, setSearch] = useState('');
@@ -79,6 +95,26 @@ export default function Pedidos() {
   const [importTargetEnvId, setImportTargetEnvId] = useState<string | null>(null);
   const [expandedEnv, setExpandedEnv] = useState<string | null>(null);
 
+  // Dynamic pipeline stages
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+
+  const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
+  const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
+  const stageColor = (type: string, value: string | null) => {
+    const stage = stagesForPipeline(type).find(s => s.name === value);
+    return stage?.color ?? '#6b7280';
+  };
+
+  const getStatusBadge = (status: string | null, pipelineType?: string) => {
+    if (!status) return <Badge variant="outline" className="text-[10px]">—</Badge>;
+    const color = pipelineType ? stageColor(pipelineType, status) : '#6b7280';
+    return (
+      <Badge variant="outline" className="text-[10px]" style={{ backgroundColor: color + '20', color: color, borderColor: color + '40' }}>
+        {status}
+      </Badge>
+    );
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -89,7 +125,12 @@ export default function Pedidos() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    // Fetch pipeline stages
+    supabase.from('pipeline_stages').select('*').eq('active', true).order('display_order')
+      .then(({ data }) => setPipelineStages((data as PipelineStage[]) ?? []));
+  }, []);
 
   const openDetail = async (order: OrderWithRelations) => {
     setSelectedOrder(order);
@@ -243,10 +284,10 @@ export default function Pedidos() {
                       <TableCell className="font-mono text-xs">{o.code}</TableCell>
                       <TableCell className="font-medium">{o.clients?.name ?? '—'}</TableCell>
                       <TableCell>{fmt(o.final_value)}</TableCell>
-                      <TableCell>{getStatusBadge(o.contract_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.revision_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.assembly_status)}</TableCell>
-                      <TableCell>{getStatusBadge(o.financial_status)}</TableCell>
+                      <TableCell>{getStatusBadge(o.contract_status, 'contrato')}</TableCell>
+                      <TableCell>{getStatusBadge(o.revision_status, 'revisao')}</TableCell>
+                      <TableCell>{getStatusBadge(o.assembly_status, 'montagem')}</TableCell>
+                      <TableCell>{getStatusBadge(o.financial_status, 'financeiro')}</TableCell>
                       <TableCell>{getStatusBadge(o.occurrence_status)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openDetail(o); }}>
@@ -279,11 +320,21 @@ export default function Pedidos() {
             <ScrollArea className="flex-1 px-6 pb-6">
               {/* Status cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                <StatusSelect icon={<FileText className="h-4 w-4" />} label="Contrato" value={selectedOrder.contract_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('contract_status', v)} />
-                <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
-                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
-                <StatusSelect icon={<DollarSign className="h-4 w-4" />} label="Financeiro" value={selectedOrder.financial_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('financial_status', v)} />
-                <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                {['contrato', 'revisao', 'montagem', 'financeiro', 'pos_montagem'].map(pt => {
+                  const field = PIPELINE_FIELDS[pt];
+                  const value = selectedOrder[field] ?? stagesForPipeline(pt).find(s => s.is_initial)?.name ?? 'Pendente';
+                  return (
+                    <StatusSelect
+                      key={pt}
+                      icon={PIPELINE_ICONS[pt]}
+                      label={PIPELINE_LABELS[pt]}
+                      value={value}
+                      options={stageOptions(pt)}
+                      onChange={v => handleStatusChange(field, v)}
+                      color={stageColor(pt, value)}
+                    />
+                  );
+                })}
                 <StatusSelect icon={<AlertTriangle className="h-4 w-4" />} label="Ocorrências" value={selectedOrder.occurrence_status ?? 'sem_ocorrencias'} options={OCCURRENCE_STATUS_OPTIONS} onChange={v => handleStatusChange('occurrence_status', v)} />
               </div>
 
@@ -593,7 +644,7 @@ export default function Pedidos() {
 
                 {/* ====== REVISÃO ====== */}
                 <TabsContent value="revisao" className="mt-4 space-y-4">
-                  <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Status da Revisão" value={selectedOrder.revision_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('revision_status', v)} />
+                  <StatusSelect icon={<CheckSquare className="h-4 w-4" />} label="Status da Revisão" value={selectedOrder.revision_status ?? 'Pendente'} options={stageOptions('revisao')} onChange={v => handleStatusChange('revision_status', v)} color={stageColor('revisao', selectedOrder.revision_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
                     <p className="text-muted-foreground">Acompanhe aqui o status da revisão técnica do pedido.</p>
                     <p className="text-xs text-muted-foreground">Use o controle acima para atualizar o status conforme o progresso da revisão.</p>
@@ -602,7 +653,7 @@ export default function Pedidos() {
 
                 {/* ====== MONTAGEM ====== */}
                 <TabsContent value="montagem" className="mt-4 space-y-4">
-                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status da Montagem" value={selectedOrder.assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('assembly_status', v)} />
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status da Montagem" value={selectedOrder.assembly_status ?? 'Pendente'} options={stageOptions('montagem')} onChange={v => handleStatusChange('assembly_status', v)} color={stageColor('montagem', selectedOrder.assembly_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm space-y-2">
                     <p className="text-muted-foreground">Acompanhe aqui o status da montagem do pedido.</p>
                     {selectedOrder.factory_send_date && (
@@ -613,7 +664,7 @@ export default function Pedidos() {
 
                 {/* ====== PÓS-MONTAGEM ====== */}
                 <TabsContent value="pos-montagem" className="mt-4 space-y-4">
-                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status Pós-montagem" value={selectedOrder.post_assembly_status ?? 'pendente'} options={STATUS_OPTIONS} onChange={v => handleStatusChange('post_assembly_status', v)} />
+                  <StatusSelect icon={<Wrench className="h-4 w-4" />} label="Status Pós-montagem" value={selectedOrder.post_assembly_status ?? 'Pendente'} options={stageOptions('pos_montagem')} onChange={v => handleStatusChange('post_assembly_status', v)} color={stageColor('pos_montagem', selectedOrder.post_assembly_status)} />
                   <div className="bg-muted/30 rounded-lg p-4 text-sm">
                     <p className="text-muted-foreground">Acompanhe aqui o status da pós-montagem e vistoria final.</p>
                   </div>
@@ -734,16 +785,17 @@ function InfoItem({ icon: Icon, label, value, mono }: { icon: React.ElementType;
   );
 }
 
-function StatusSelect({ icon, label, value, options, onChange }: {
+function StatusSelect({ icon, label, value, options, onChange, color }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
+  color?: string;
 }) {
-  const s = statusLabels[value] ?? { label: value, color: '' };
+  const bgStyle = color ? { backgroundColor: color + '15', borderColor: color + '40' } : {};
   return (
-    <div className={`rounded-lg border p-3 space-y-2 ${s.color || 'bg-muted/30'}`}>
+    <div className="rounded-lg border p-3 space-y-2" style={bgStyle}>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon} {label}
       </div>

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
-  Plus, Pencil, FolderTree, ChevronRight,
+  Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2,
 } from 'lucide-react';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
@@ -130,6 +130,13 @@ export default function Configuracoes() {
   const [editRule, setEditRule] = useState<any>(null);
   const [ruleSaving, setRuleSaving] = useState(false);
 
+  // Pipeline stages
+  const [pipelineStages, setPipelineStages] = useState<any[]>([]);
+  const [pipeForm, setPipeForm] = useState({ pipeline_type: 'contrato', name: '', display_order: '', color: '#6b7280', is_initial: false, is_final: false });
+  const [pipeOpen, setPipeOpen] = useState(false);
+  const [editPipe, setEditPipe] = useState<any>(null);
+  const [pipeSaving, setPipeSaving] = useState(false);
+
   // Fetch functions
   const fetchStores = async () => { const { data } = await supabase.from('stores').select('*').order('name'); setStores(data ?? []); };
   const fetchProfiles = async () => { const { data } = await supabase.from('profiles').select('*').order('full_name'); setProfiles(data ?? []); };
@@ -146,10 +153,11 @@ export default function Configuracoes() {
   const fetchPayments = async () => { const { data } = await supabase.from('payment_methods').select('*').order('name'); setPayments(data ?? []); };
   const fetchTemplates = async () => { const { data } = await supabase.from('contract_templates').select('*').order('name'); setTemplates(data ?? []); };
   const fetchRules = async () => { const { data } = await supabase.from('approval_rules').select('*').order('created_at'); setRules(data ?? []); };
+  const fetchPipelines = async () => { const { data } = await supabase.from('pipeline_stages').select('*').order('pipeline_type').order('display_order'); setPipelineStages(data ?? []); };
 
   useEffect(() => {
     fetchStores(); fetchProfiles(); fetchUserRoles(); fetchAccounts(); fetchCategories();
-    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules();
+    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules(); fetchPipelines();
   }, []);
 
   const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -374,6 +382,37 @@ export default function Configuracoes() {
     setRuleOpen(false); fetchRules();
   };
 
+  // ─── Pipeline handlers ───
+  const PIPELINE_TYPES = [
+    { value: 'contrato', label: 'Contrato' },
+    { value: 'revisao', label: 'Revisão' },
+    { value: 'montagem', label: 'Montagem' },
+    { value: 'financeiro', label: 'Financeiro' },
+    { value: 'pos_montagem', label: 'Pós-montagem' },
+  ];
+  const openPipeForm = (p?: any) => {
+    if (p) { setEditPipe(p); setPipeForm({ pipeline_type: p.pipeline_type, name: p.name, display_order: String(p.display_order), color: p.color ?? '#6b7280', is_initial: p.is_initial ?? false, is_final: p.is_final ?? false }); }
+    else { setEditPipe(null); setPipeForm({ pipeline_type: 'contrato', name: '', display_order: String(pipelineStages.length), color: '#6b7280', is_initial: false, is_final: false }); }
+    setPipeOpen(true);
+  };
+  const savePipe = async () => {
+    if (!pipeForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setPipeSaving(true);
+    const payload = { pipeline_type: pipeForm.pipeline_type, name: pipeForm.name, display_order: parseInt(pipeForm.display_order) || 0, color: pipeForm.color, is_initial: pipeForm.is_initial, is_final: pipeForm.is_final } as any;
+    const { error } = editPipe
+      ? await supabase.from('pipeline_stages').update(payload).eq('id', editPipe.id)
+      : await supabase.from('pipeline_stages').insert(payload);
+    setPipeSaving(false);
+    if (error) { toast.error('Erro ao salvar estágio'); return; }
+    toast.success(editPipe ? 'Estágio atualizado' : 'Estágio criado');
+    setPipeOpen(false); fetchPipelines();
+  };
+  const deletePipe = async (id: string) => {
+    await supabase.from('pipeline_stages').update({ active: false } as any).eq('id', id);
+    toast.success('Estágio desativado');
+    fetchPipelines();
+  };
+
   const rootCats = categories.filter(c => !c.parent_id);
   const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
   const parentCats = (type: string) => categories.filter(c => !c.parent_id && c.type === type && (!editCat || c.id !== editCat.id));
@@ -395,6 +434,7 @@ export default function Configuracoes() {
           <TabsTrigger value="pagamentos"><CreditCard className="h-3.5 w-3.5 mr-1.5" />Pagamentos</TabsTrigger>
           <TabsTrigger value="templates"><FileText className="h-3.5 w-3.5 mr-1.5" />Templates</TabsTrigger>
           <TabsTrigger value="aprovacoes"><Shield className="h-3.5 w-3.5 mr-1.5" />Aprovações</TabsTrigger>
+          <TabsTrigger value="pipelines"><GitBranch className="h-3.5 w-3.5 mr-1.5" />Pipelines</TabsTrigger>
         </TabsList>
 
         {/* ─── Lojas ─── */}
@@ -673,6 +713,48 @@ export default function Configuracoes() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ─── Pipelines ─── */}
+        <TabsContent value="pipelines">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Estágios dos Pipelines</h2>
+              <Button onClick={() => openPipeForm()}><Plus className="h-4 w-4 mr-2" />Novo Estágio</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Configure os estágios de cada pipeline/departamento. Eles serão usados nos Kanbans e na Visão 360° dos pedidos.</p>
+            {PIPELINE_TYPES.map(pt => {
+              const ptStages = pipelineStages.filter(s => s.pipeline_type === pt.value && s.active !== false);
+              return (
+                <Card key={pt.value} className="border-border/60">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <GitBranch className="h-4 w-4 text-primary" />{pt.label}
+                      <Badge variant="secondary" className="text-[10px]">{ptStages.length} estágios</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {ptStages.length === 0 && <p className="text-xs text-muted-foreground py-2 text-center">Nenhum estágio</p>}
+                    {ptStages.map(s => (
+                      <div key={s.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
+                          <span className="font-medium">{s.name}</span>
+                          <span className="text-[10px] text-muted-foreground">#{s.display_order}</span>
+                          {s.is_initial && <Badge variant="outline" className="text-[9px] h-4">Inicial</Badge>}
+                          {s.is_final && <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-600">Final</Badge>}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openPipeForm(s)}><Pencil className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deletePipe(s.id)}><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ─── Dialogs ─── */}
@@ -825,6 +907,29 @@ export default function Configuracoes() {
           </Select>
         </div>
         <div><Label>Descrição</Label><Input value={ruleForm.description} onChange={e => setRuleForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Desconto acima de 10% precisa de aprovação" /></div>
+      </CrudDialog>
+
+      <CrudDialog open={pipeOpen} onClose={() => setPipeOpen(false)} title={editPipe ? 'Editar Estágio' : 'Novo Estágio'} onSave={savePipe} saving={pipeSaving}>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Pipeline *</Label>
+            <Select value={pipeForm.pipeline_type} onValueChange={v => setPipeForm(f => ({ ...f, pipeline_type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PIPELINE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Nome *</Label><Input value={pipeForm.name} onChange={e => setPipeForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Em andamento" /></div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label>Ordem</Label><Input type="number" value={pipeForm.display_order} onChange={e => setPipeForm(f => ({ ...f, display_order: e.target.value }))} /></div>
+          <div><Label>Cor</Label><Input type="color" value={pipeForm.color} onChange={e => setPipeForm(f => ({ ...f, color: e.target.value }))} className="h-9" /></div>
+          <div className="flex flex-col gap-2 pt-5">
+            <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={pipeForm.is_initial} onChange={e => setPipeForm(f => ({ ...f, is_initial: e.target.checked }))} /> Inicial</label>
+            <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={pipeForm.is_final} onChange={e => setPipeForm(f => ({ ...f, is_final: e.target.checked }))} /> Final</label>
+          </div>
+        </div>
       </CrudDialog>
     </div>
   );
