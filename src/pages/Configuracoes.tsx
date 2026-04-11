@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,140 +13,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Settings, Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
-  Plus, Pencil, Trash2, FolderTree, ChevronRight,
+  Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
+  Plus, Pencil, FolderTree, ChevronRight, CheckCircle, Settings,
 } from 'lucide-react';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables as DBTables } from '@/integrations/supabase/types';
 
-type BankAccount = Tables<'bank_accounts'>;
-type FinancialCategory = Tables<'financial_categories'>;
+type BankAccount = DBTables<'bank_accounts'>;
+type FinancialCategory = DBTables<'financial_categories'>;
+type StoreType = DBTables<'stores'>;
+type Profile = DBTables<'profiles'>;
 
-// ─── Bank Account Form ───
-function BankAccountForm({
-  open, onClose, account,
-}: { open: boolean; onClose: (saved?: boolean) => void; account?: BankAccount | null }) {
-  const [form, setForm] = useState({ name: '', bank: '', agency: '', account_number: '', balance: '' });
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (account) {
-      setForm({
-        name: account.name, bank: account.bank ?? '', agency: account.agency ?? '',
-        account_number: account.account_number ?? '', balance: String(account.balance ?? 0),
-      });
-    } else {
-      setForm({ name: '', bank: '', agency: '', account_number: '', balance: '0' });
-    }
-  }, [account, open]);
-
-  const save = async () => {
-    if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    setSaving(true);
-    const payload = {
-      name: form.name, bank: form.bank || null, agency: form.agency || null,
-      account_number: form.account_number || null, balance: parseFloat(form.balance) || 0,
-    };
-    let error;
-    if (account) {
-      ({ error } = await supabase.from('bank_accounts').update(payload).eq('id', account.id));
-    } else {
-      ({ error } = await supabase.from('bank_accounts').insert(payload));
-    }
-    setSaving(false);
-    if (error) { toast.error('Erro ao salvar'); return; }
-    toast.success(account ? 'Conta atualizada' : 'Conta criada');
-    onClose(true);
-  };
-
+// ─── Generic CRUD Dialog ───
+function CrudDialog({ open, onClose, title, children, onSave, saving }: {
+  open: boolean; onClose: () => void; title: string; children: React.ReactNode; onSave: () => void; saving: boolean;
+}) {
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>{account ? 'Editar' : 'Nova'} Conta Bancária</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Banco</Label><Input value={form.bank} onChange={e => setForm(f => ({ ...f, bank: e.target.value }))} placeholder="Ex: Bradesco" /></div>
-            <div><Label>Agência</Label><Input value={form.agency} onChange={e => setForm(f => ({ ...f, agency: e.target.value }))} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Conta</Label><Input value={form.account_number} onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))} /></div>
-            <div><Label>Saldo Inicial (R$)</Label><Input type="number" step="0.01" value={form.balance} onChange={e => setForm(f => ({ ...f, balance: e.target.value }))} /></div>
-          </div>
-        </div>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        <div className="grid gap-4 py-2">{children}</div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onClose()}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Category Form ───
-function CategoryForm({
-  open, onClose, category, categories,
-}: { open: boolean; onClose: (saved?: boolean) => void; category?: FinancialCategory | null; categories: FinancialCategory[] }) {
-  const [form, setForm] = useState({ name: '', type: 'despesa', parent_id: '' });
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (category) {
-      setForm({ name: category.name, type: category.type, parent_id: category.parent_id ?? '' });
-    } else {
-      setForm({ name: '', type: 'despesa', parent_id: '' });
-    }
-  }, [category, open]);
-
-  const parents = categories.filter(c => !c.parent_id && (!category || c.id !== category.id));
-
-  const save = async () => {
-    if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    setSaving(true);
-    const payload = { name: form.name, type: form.type, parent_id: form.parent_id || null };
-    let error;
-    if (category) {
-      ({ error } = await supabase.from('financial_categories').update(payload).eq('id', category.id));
-    } else {
-      ({ error } = await supabase.from('financial_categories').insert(payload));
-    }
-    setSaving(false);
-    if (error) { toast.error('Erro ao salvar'); return; }
-    toast.success(category ? 'Categoria atualizada' : 'Categoria criada');
-    onClose(true);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>{category ? 'Editar' : 'Nova'} Categoria</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Categoria Pai</Label>
-              <Select value={form.parent_id} onValueChange={v => setForm(f => ({ ...f, parent_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhuma (raiz)</SelectItem>
-                  {parents.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onClose()}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={onSave} disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -154,121 +43,295 @@ function CategoryForm({
 
 // ─── Main Settings Page ───
 export default function Configuracoes() {
-  const [tab, setTab] = useState('geral');
+  const [tab, setTab] = useState('lojas');
+
+  // Stores
+  const [stores, setStores] = useState<StoreType[]>([]);
+  const [storeForm, setStoreForm] = useState({ name: '', cnpj: '', email: '', phone: '', address: '' });
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [editStore, setEditStore] = useState<StoreType | null>(null);
+  const [storeSaving, setStoreSaving] = useState(false);
+
+  // Profiles / Users
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Bank accounts
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
-  const [accFormOpen, setAccFormOpen] = useState(false);
-  const [editAccount, setEditAccount] = useState<BankAccount | null>(null);
+  const [accForm, setAccForm] = useState({ name: '', bank: '', agency: '', account_number: '', balance: '' });
+  const [accOpen, setAccOpen] = useState(false);
+  const [editAcc, setEditAcc] = useState<BankAccount | null>(null);
+  const [accSaving, setAccSaving] = useState(false);
 
   // Categories
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
-  const [catFormOpen, setCatFormOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState<FinancialCategory | null>(null);
+  const [catForm, setCatForm] = useState({ name: '', type: 'despesa', parent_id: '' });
+  const [catOpen, setCatOpen] = useState(false);
+  const [editCat, setEditCat] = useState<FinancialCategory | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
 
-  const fetchAccounts = async () => {
-    const { data } = await supabase.from('bank_accounts').select('*').order('name');
-    setAccounts(data ?? []);
+  // Tags & Origins
+  const [tags, setTags] = useState<any[]>([]);
+  const [tagForm, setTagForm] = useState({ name: '', type: 'orcamento', color: '#6b7280' });
+  const [tagOpen, setTagOpen] = useState(false);
+  const [editTag, setEditTag] = useState<any>(null);
+  const [tagSaving, setTagSaving] = useState(false);
+
+  const [origins, setOrigins] = useState<any[]>([]);
+  const [originForm, setOriginForm] = useState({ name: '' });
+  const [originOpen, setOriginOpen] = useState(false);
+  const [editOrigin, setEditOrigin] = useState<any>(null);
+  const [originSaving, setOriginSaving] = useState(false);
+
+  // Payment methods
+  const [payments, setPayments] = useState<any[]>([]);
+  const [payForm, setPayForm] = useState({ name: '' });
+  const [payOpen, setPayOpen] = useState(false);
+  const [editPay, setEditPay] = useState<any>(null);
+  const [paySaving, setPaySaving] = useState(false);
+
+  // Contract templates
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [tplForm, setTplForm] = useState({ name: '', content: '', store_id: '' });
+  const [tplOpen, setTplOpen] = useState(false);
+  const [editTpl, setEditTpl] = useState<any>(null);
+  const [tplSaving, setTplSaving] = useState(false);
+
+  // Approval rules
+  const [rules, setRules] = useState<any[]>([]);
+  const [ruleForm, setRuleForm] = useState({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '' });
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const [editRule, setEditRule] = useState<any>(null);
+  const [ruleSaving, setRuleSaving] = useState(false);
+
+  // Fetch functions
+  const fetchStores = async () => { const { data } = await supabase.from('stores').select('*').order('name'); setStores(data ?? []); };
+  const fetchProfiles = async () => { const { data } = await supabase.from('profiles').select('*').order('full_name'); setProfiles(data ?? []); };
+  const fetchAccounts = async () => { const { data } = await supabase.from('bank_accounts').select('*').order('name'); setAccounts(data ?? []); };
+  const fetchCategories = async () => { const { data } = await supabase.from('financial_categories').select('*').order('name'); setCategories(data ?? []); };
+  const fetchTags = async () => { const { data } = await supabase.from('tags_config').select('*').order('name'); setTags(data ?? []); };
+  const fetchOrigins = async () => { const { data } = await supabase.from('origins_config').select('*').order('name'); setOrigins(data ?? []); };
+  const fetchPayments = async () => { const { data } = await supabase.from('payment_methods').select('*').order('name'); setPayments(data ?? []); };
+  const fetchTemplates = async () => { const { data } = await supabase.from('contract_templates').select('*').order('name'); setTemplates(data ?? []); };
+  const fetchRules = async () => { const { data } = await supabase.from('approval_rules').select('*').order('created_at'); setRules(data ?? []); };
+
+  useEffect(() => {
+    fetchStores(); fetchProfiles(); fetchAccounts(); fetchCategories();
+    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules();
+  }, []);
+
+  const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  // ─── Store handlers ───
+  const openStoreForm = (store?: StoreType) => {
+    if (store) {
+      setEditStore(store);
+      setStoreForm({ name: store.name, cnpj: store.cnpj ?? '', email: store.email ?? '', phone: store.phone ?? '', address: store.address ?? '' });
+    } else {
+      setEditStore(null);
+      setStoreForm({ name: '', cnpj: '', email: '', phone: '', address: '' });
+    }
+    setStoreOpen(true);
+  };
+  const saveStore = async () => {
+    if (!storeForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setStoreSaving(true);
+    const payload = { name: storeForm.name, cnpj: storeForm.cnpj || null, email: storeForm.email || null, phone: storeForm.phone || null, address: storeForm.address || null };
+    const { error } = editStore
+      ? await supabase.from('stores').update(payload).eq('id', editStore.id)
+      : await supabase.from('stores').insert(payload);
+    setStoreSaving(false);
+    if (error) { toast.error('Erro ao salvar loja'); return; }
+    toast.success(editStore ? 'Loja atualizada' : 'Loja criada');
+    setStoreOpen(false); fetchStores();
   };
 
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('financial_categories').select('*').order('name');
-    setCategories(data ?? []);
+  // ─── Bank Account handlers ───
+  const openAccForm = (acc?: BankAccount) => {
+    if (acc) {
+      setEditAcc(acc);
+      setAccForm({ name: acc.name, bank: acc.bank ?? '', agency: acc.agency ?? '', account_number: acc.account_number ?? '', balance: String(acc.balance ?? 0) });
+    } else {
+      setEditAcc(null);
+      setAccForm({ name: '', bank: '', agency: '', account_number: '', balance: '0' });
+    }
+    setAccOpen(true);
+  };
+  const saveAcc = async () => {
+    if (!accForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setAccSaving(true);
+    const payload = { name: accForm.name, bank: accForm.bank || null, agency: accForm.agency || null, account_number: accForm.account_number || null, balance: parseFloat(accForm.balance) || 0 };
+    const { error } = editAcc
+      ? await supabase.from('bank_accounts').update(payload).eq('id', editAcc.id)
+      : await supabase.from('bank_accounts').insert(payload);
+    setAccSaving(false);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    toast.success(editAcc ? 'Conta atualizada' : 'Conta criada');
+    setAccOpen(false); fetchAccounts();
   };
 
-  useEffect(() => { fetchAccounts(); fetchCategories(); }, []);
+  // ─── Category handlers ───
+  const openCatForm = (cat?: FinancialCategory) => {
+    if (cat) {
+      setEditCat(cat);
+      setCatForm({ name: cat.name, type: cat.type, parent_id: cat.parent_id ?? '' });
+    } else {
+      setEditCat(null);
+      setCatForm({ name: '', type: 'despesa', parent_id: '' });
+    }
+    setCatOpen(true);
+  };
+  const saveCat = async () => {
+    if (!catForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setCatSaving(true);
+    const payload = { name: catForm.name, type: catForm.type, parent_id: catForm.parent_id || null };
+    const { error } = editCat
+      ? await supabase.from('financial_categories').update(payload).eq('id', editCat.id)
+      : await supabase.from('financial_categories').insert(payload);
+    setCatSaving(false);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    toast.success(editCat ? 'Categoria atualizada' : 'Categoria criada');
+    setCatOpen(false); fetchCategories();
+  };
 
-  const fmt = (v: number | null | undefined) =>
-    (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  // ─── Tag handlers ───
+  const openTagForm = (t?: any) => {
+    if (t) { setEditTag(t); setTagForm({ name: t.name, type: t.type, color: t.color ?? '#6b7280' }); }
+    else { setEditTag(null); setTagForm({ name: '', type: 'orcamento', color: '#6b7280' }); }
+    setTagOpen(true);
+  };
+  const saveTag = async () => {
+    if (!tagForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setTagSaving(true);
+    const payload = { name: tagForm.name, type: tagForm.type, color: tagForm.color };
+    const { error } = editTag
+      ? await supabase.from('tags_config').update(payload).eq('id', editTag.id)
+      : await supabase.from('tags_config').insert(payload);
+    setTagSaving(false);
+    if (error) { toast.error('Erro ao salvar tag'); return; }
+    toast.success(editTag ? 'Tag atualizada' : 'Tag criada');
+    setTagOpen(false); fetchTags();
+  };
 
-  const sections = [
-    { title: 'Lojas', desc: 'Gerenciar lojas cadastradas', icon: Store },
-    { title: 'Usuários', desc: 'Gerenciar usuários do sistema', icon: Users },
-    { title: 'Perfis e Permissões', desc: 'Definir níveis de acesso', icon: Shield },
-    { title: 'Tags e Origens', desc: 'Configurar tags e origens de leads', icon: Tags },
-    { title: 'Formas de Pagamento', desc: 'Gerenciar formas de pagamento', icon: CreditCard },
-    { title: 'Templates de Contrato', desc: 'Modelos de contrato por loja', icon: FileText },
-    { title: 'Regras de Aprovação', desc: 'Limites de desconto e aprovações', icon: Settings },
-  ];
+  // ─── Origin handlers ───
+  const openOriginForm = (o?: any) => {
+    if (o) { setEditOrigin(o); setOriginForm({ name: o.name }); }
+    else { setEditOrigin(null); setOriginForm({ name: '' }); }
+    setOriginOpen(true);
+  };
+  const saveOrigin = async () => {
+    if (!originForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setOriginSaving(true);
+    const payload = { name: originForm.name };
+    const { error } = editOrigin
+      ? await supabase.from('origins_config').update(payload).eq('id', editOrigin.id)
+      : await supabase.from('origins_config').insert(payload);
+    setOriginSaving(false);
+    if (error) { toast.error('Erro ao salvar origem'); return; }
+    toast.success(editOrigin ? 'Origem atualizada' : 'Origem criada');
+    setOriginOpen(false); fetchOrigins();
+  };
 
-  // Build category tree
-  const rootCategories = categories.filter(c => !c.parent_id);
-  const getChildren = (parentId: string) => categories.filter(c => c.parent_id === parentId);
+  // ─── Payment handlers ───
+  const openPayForm = (p?: any) => {
+    if (p) { setEditPay(p); setPayForm({ name: p.name }); }
+    else { setEditPay(null); setPayForm({ name: '' }); }
+    setPayOpen(true);
+  };
+  const savePay = async () => {
+    if (!payForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setPaySaving(true);
+    const payload = { name: payForm.name };
+    const { error } = editPay
+      ? await supabase.from('payment_methods').update(payload).eq('id', editPay.id)
+      : await supabase.from('payment_methods').insert(payload);
+    setPaySaving(false);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    toast.success(editPay ? 'Forma atualizada' : 'Forma criada');
+    setPayOpen(false); fetchPayments();
+  };
+
+  // ─── Template handlers ───
+  const openTplForm = (t?: any) => {
+    if (t) { setEditTpl(t); setTplForm({ name: t.name, content: t.content ?? '', store_id: t.store_id ?? '' }); }
+    else { setEditTpl(null); setTplForm({ name: '', content: '', store_id: '' }); }
+    setTplOpen(true);
+  };
+  const saveTpl = async () => {
+    if (!tplForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setTplSaving(true);
+    const payload = { name: tplForm.name, content: tplForm.content || null, store_id: tplForm.store_id || null };
+    const { error } = editTpl
+      ? await supabase.from('contract_templates').update(payload).eq('id', editTpl.id)
+      : await supabase.from('contract_templates').insert(payload);
+    setTplSaving(false);
+    if (error) { toast.error('Erro ao salvar template'); return; }
+    toast.success(editTpl ? 'Template atualizado' : 'Template criado');
+    setTplOpen(false); fetchTemplates();
+  };
+
+  // ─── Rule handlers ───
+  const openRuleForm = (r?: any) => {
+    if (r) { setEditRule(r); setRuleForm({ rule_type: r.rule_type, max_percent: String(r.max_percent ?? ''), approver_role: r.approver_role, description: r.description ?? '' }); }
+    else { setEditRule(null); setRuleForm({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '' }); }
+    setRuleOpen(true);
+  };
+  const saveRule = async () => {
+    setRuleSaving(true);
+    const payload = { rule_type: ruleForm.rule_type, max_percent: parseFloat(ruleForm.max_percent) || 0, approver_role: ruleForm.approver_role, description: ruleForm.description || null };
+    const { error } = editRule
+      ? await supabase.from('approval_rules').update(payload).eq('id', editRule.id)
+      : await supabase.from('approval_rules').insert(payload);
+    setRuleSaving(false);
+    if (error) { toast.error('Erro ao salvar regra'); return; }
+    toast.success(editRule ? 'Regra atualizada' : 'Regra criada');
+    setRuleOpen(false); fetchRules();
+  };
+
+  const rootCats = categories.filter(c => !c.parent_id);
+  const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
+  const parentCats = (type: string) => categories.filter(c => !c.parent_id && c.type === type && (!editCat || c.id !== editCat.id));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold text-foreground">Configurações</h1>
-        <p className="text-sm text-muted-foreground mt-1">Configurações gerais do sistema</p>
+        <p className="text-sm text-muted-foreground mt-1">Gerenciamento completo do sistema</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="geral">Geral</TabsTrigger>
-          <TabsTrigger value="contas">Contas Bancárias</TabsTrigger>
-          <TabsTrigger value="categorias">Categorias Financeiras</TabsTrigger>
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="lojas"><Store className="h-3.5 w-3.5 mr-1.5" />Lojas</TabsTrigger>
+          <TabsTrigger value="usuarios"><Users className="h-3.5 w-3.5 mr-1.5" />Usuários</TabsTrigger>
+          <TabsTrigger value="contas"><Landmark className="h-3.5 w-3.5 mr-1.5" />Contas</TabsTrigger>
+          <TabsTrigger value="categorias"><FolderTree className="h-3.5 w-3.5 mr-1.5" />Categorias</TabsTrigger>
+          <TabsTrigger value="tags"><Tags className="h-3.5 w-3.5 mr-1.5" />Tags/Origens</TabsTrigger>
+          <TabsTrigger value="pagamentos"><CreditCard className="h-3.5 w-3.5 mr-1.5" />Pagamentos</TabsTrigger>
+          <TabsTrigger value="templates"><FileText className="h-3.5 w-3.5 mr-1.5" />Templates</TabsTrigger>
+          <TabsTrigger value="aprovacoes"><Shield className="h-3.5 w-3.5 mr-1.5" />Aprovações</TabsTrigger>
         </TabsList>
 
-        {/* General */}
-        <TabsContent value="geral">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {sections.map(s => (
-              <Card key={s.title} className="border-border/60 hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-2">
-                  <s.icon className="h-5 w-5 text-primary mb-2" />
-                  <CardTitle className="text-sm font-medium">{s.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{s.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Bank Accounts */}
-        <TabsContent value="contas">
+        {/* ─── Lojas ─── */}
+        <TabsContent value="lojas">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Contas Bancárias</h2>
-              <Button onClick={() => { setEditAccount(null); setAccFormOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" /> Nova Conta
-              </Button>
+              <h2 className="text-lg font-semibold">Lojas</h2>
+              <Button onClick={() => openStoreForm()}><Plus className="h-4 w-4 mr-2" />Nova Loja</Button>
             </div>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Banco</TableHead>
-                    <TableHead>Agência</TableHead>
-                    <TableHead>Conta</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow className="bg-muted/50">
+                  <TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>E-mail</TableHead><TableHead>Telefone</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                </TableRow></TableHeader>
                 <TableBody>
-                  {accounts.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma conta cadastrada</TableCell></TableRow>
-                  )}
-                  {accounts.map(a => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-medium">{a.name}</TableCell>
-                      <TableCell>{a.bank ?? '—'}</TableCell>
-                      <TableCell>{a.agency ?? '—'}</TableCell>
-                      <TableCell>{a.account_number ?? '—'}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(a.balance)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={a.active ? 'bg-success/10 text-success border-success/30' : ''}>
-                          {a.active ? 'Ativa' : 'Inativa'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => { setEditAccount(a); setAccFormOpen(true); }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
+                  {stores.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma loja</TableCell></TableRow>}
+                  {stores.map(s => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>{s.cnpj ?? '—'}</TableCell>
+                      <TableCell>{s.email ?? '—'}</TableCell>
+                      <TableCell>{s.phone ?? '—'}</TableCell>
+                      <TableCell><Badge variant="outline" className={s.active ? 'bg-emerald-500/10 text-emerald-600' : ''}>{s.active ? 'Ativa' : 'Inativa'}</Badge></TableCell>
+                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openStoreForm(s)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -277,96 +340,337 @@ export default function Configuracoes() {
           </div>
         </TabsContent>
 
-        {/* Financial Categories */}
+        {/* ─── Usuários ─── */}
+        <TabsContent value="usuarios">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Usuários e Perfis</h2>
+            <p className="text-sm text-muted-foreground">Usuários cadastrados no sistema. Para adicionar novos usuários, utilize o formulário de registro.</p>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader><TableRow className="bg-muted/50">
+                  <TableHead>Nome</TableHead><TableHead>Loja</TableHead><TableHead>Criado em</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {profiles.length === 0 && <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum usuário</TableCell></TableRow>}
+                  {profiles.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.full_name ?? '—'}</TableCell>
+                      <TableCell>{stores.find(s => s.id === p.store_id)?.name ?? '—'}</TableCell>
+                      <TableCell>{new Date(p.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── Contas Bancárias ─── */}
+        <TabsContent value="contas">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Contas Bancárias</h2>
+              <Button onClick={() => openAccForm()}><Plus className="h-4 w-4 mr-2" />Nova Conta</Button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader><TableRow className="bg-muted/50">
+                  <TableHead>Nome</TableHead><TableHead>Banco</TableHead><TableHead>Agência</TableHead><TableHead>Conta</TableHead><TableHead className="text-right">Saldo</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {accounts.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma conta</TableCell></TableRow>}
+                  {accounts.map(a => (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-medium">{a.name}</TableCell>
+                      <TableCell>{a.bank ?? '—'}</TableCell>
+                      <TableCell>{a.agency ?? '—'}</TableCell>
+                      <TableCell>{a.account_number ?? '—'}</TableCell>
+                      <TableCell className="text-right font-mono">{fmt(a.balance)}</TableCell>
+                      <TableCell><Badge variant="outline" className={a.active ? 'bg-emerald-500/10 text-emerald-600' : ''}>{a.active ? 'Ativa' : 'Inativa'}</Badge></TableCell>
+                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openAccForm(a)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── Categorias ─── */}
         <TabsContent value="categorias">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Categorias Financeiras</h2>
-              <Button onClick={() => { setEditCategory(null); setCatFormOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" /> Nova Categoria
-              </Button>
+              <Button onClick={() => openCatForm()}><Plus className="h-4 w-4 mr-2" />Nova Categoria</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Receitas */}
-              <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-success" /> Receitas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  {rootCategories.filter(c => c.type === 'receita').length === 0 && (
-                    <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma categoria de receita</p>
-                  )}
-                  {rootCategories.filter(c => c.type === 'receita').map(cat => (
-                    <div key={cat.id}>
-                      <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <FolderTree className="h-3.5 w-3.5 text-muted-foreground" />
-                          {cat.name}
+              {['receita', 'despesa'].map(type => (
+                <Card key={type} className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${type === 'receita' ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                      {type === 'receita' ? 'Receitas' : 'Despesas'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {rootCats.filter(c => c.type === type).length === 0 && (
+                      <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma categoria</p>
+                    )}
+                    {rootCats.filter(c => c.type === type).map(cat => (
+                      <div key={cat.id}>
+                        <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group">
+                          <div className="flex items-center gap-2 text-sm font-medium"><FolderTree className="h-3.5 w-3.5 text-muted-foreground" />{cat.name}</div>
+                          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => openCatForm(cat)}><Pencil className="h-3 w-3" /></Button>
                         </div>
-                        <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => { setEditCategory(cat); setCatFormOpen(true); }}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      {getChildren(cat.id).map(sub => (
-                        <div key={sub.id} className="flex items-center justify-between py-1 px-2 pl-8 rounded hover:bg-muted/50 group">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <ChevronRight className="h-3 w-3" /> {sub.name}
+                        {getChildren(cat.id).map(sub => (
+                          <div key={sub.id} className="flex items-center justify-between py-1 px-2 pl-8 rounded hover:bg-muted/50 group">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground"><ChevronRight className="h-3 w-3" />{sub.name}</div>
+                            <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => openCatForm(sub)}><Pencil className="h-3 w-3" /></Button>
                           </div>
-                          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => { setEditCategory(sub); setCatFormOpen(true); }}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
 
-              {/* Despesas */}
-              <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-destructive" /> Despesas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  {rootCategories.filter(c => c.type === 'despesa').length === 0 && (
-                    <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma categoria de despesa</p>
-                  )}
-                  {rootCategories.filter(c => c.type === 'despesa').map(cat => (
-                    <div key={cat.id}>
-                      <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <FolderTree className="h-3.5 w-3.5 text-muted-foreground" />
-                          {cat.name}
-                        </div>
-                        <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => { setEditCategory(cat); setCatFormOpen(true); }}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      {getChildren(cat.id).map(sub => (
-                        <div key={sub.id} className="flex items-center justify-between py-1 px-2 pl-8 rounded hover:bg-muted/50 group">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <ChevronRight className="h-3 w-3" /> {sub.name}
-                          </div>
-                          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0" onClick={() => { setEditCategory(sub); setCatFormOpen(true); }}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
+        {/* ─── Tags & Origens ─── */}
+        <TabsContent value="tags">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Tags</h2>
+                <Button onClick={() => openTagForm()}><Plus className="h-4 w-4 mr-2" />Nova Tag</Button>
+              </div>
+              <div className="space-y-2">
+                {tags.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tag</p>}
+                {tags.map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/30 group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                      <span className="text-sm font-medium">{t.name}</span>
+                      <Badge variant="outline" className="text-[10px]">{t.type}</Badge>
                     </div>
+                    <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => openTagForm(t)}><Pencil className="h-3.5 w-3.5" /></Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Origens de Lead</h2>
+                <Button onClick={() => openOriginForm()}><Plus className="h-4 w-4 mr-2" />Nova Origem</Button>
+              </div>
+              <div className="space-y-2">
+                {origins.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma origem</p>}
+                {origins.map(o => (
+                  <div key={o.id} className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/30 group">
+                    <span className="text-sm font-medium">{o.name}</span>
+                    <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => openOriginForm(o)}><Pencil className="h-3.5 w-3.5" /></Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── Formas de Pagamento ─── */}
+        <TabsContent value="pagamentos">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Formas de Pagamento</h2>
+              <Button onClick={() => openPayForm()}><Plus className="h-4 w-4 mr-2" />Nova Forma</Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {payments.length === 0 && <p className="text-sm text-muted-foreground col-span-full text-center py-8">Nenhuma forma de pagamento</p>}
+              {payments.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-4 rounded-lg border border-border/60 hover:bg-muted/30 group">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{p.name}</span>
+                  </div>
+                  <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => openPayForm(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── Templates de Contrato ─── */}
+        <TabsContent value="templates">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Templates de Contrato</h2>
+              <Button onClick={() => openTplForm()}><Plus className="h-4 w-4 mr-2" />Novo Template</Button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {templates.length === 0 && <p className="text-sm text-muted-foreground col-span-full text-center py-8">Nenhum template</p>}
+              {templates.map(t => (
+                <Card key={t.id} className="border-border/60 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openTplForm(t)}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />{t.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{t.content ? t.content.slice(0, 120) + '…' : 'Sem conteúdo'}</p>
+                    {t.store_id && <Badge variant="outline" className="mt-2 text-[10px]">{stores.find(s => s.id === t.store_id)?.name ?? 'Loja'}</Badge>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ─── Regras de Aprovação ─── */}
+        <TabsContent value="aprovacoes">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Regras de Aprovação</h2>
+              <Button onClick={() => openRuleForm()}><Plus className="h-4 w-4 mr-2" />Nova Regra</Button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader><TableRow className="bg-muted/50">
+                  <TableHead>Tipo</TableHead><TableHead>Limite %</TableHead><TableHead>Aprovador</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Ações</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {rules.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma regra</TableCell></TableRow>}
+                  {rules.map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium capitalize">{r.rule_type}</TableCell>
+                      <TableCell>{r.max_percent}%</TableCell>
+                      <TableCell><Badge variant="outline">{r.approver_role}</Badge></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.description ?? '—'}</TableCell>
+                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openRuleForm(r)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
+                    </TableRow>
                   ))}
-                </CardContent>
-              </Card>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </TabsContent>
       </Tabs>
 
-      <BankAccountForm open={accFormOpen} onClose={(saved) => { setAccFormOpen(false); setEditAccount(null); if (saved) fetchAccounts(); }} account={editAccount} />
-      <CategoryForm open={catFormOpen} onClose={(saved) => { setCatFormOpen(false); setEditCategory(null); if (saved) fetchCategories(); }} category={editCategory} categories={categories} />
+      {/* ─── Dialogs ─── */}
+      <CrudDialog open={storeOpen} onClose={() => setStoreOpen(false)} title={editStore ? 'Editar Loja' : 'Nova Loja'} onSave={saveStore} saving={storeSaving}>
+        <div><Label>Nome *</Label><Input value={storeForm.name} onChange={e => setStoreForm(f => ({ ...f, name: e.target.value }))} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>CNPJ</Label><Input value={storeForm.cnpj} onChange={e => setStoreForm(f => ({ ...f, cnpj: e.target.value }))} /></div>
+          <div><Label>E-mail</Label><Input value={storeForm.email} onChange={e => setStoreForm(f => ({ ...f, email: e.target.value }))} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Telefone</Label><Input value={storeForm.phone} onChange={e => setStoreForm(f => ({ ...f, phone: e.target.value }))} /></div>
+          <div><Label>Endereço</Label><Input value={storeForm.address} onChange={e => setStoreForm(f => ({ ...f, address: e.target.value }))} /></div>
+        </div>
+      </CrudDialog>
+
+      <CrudDialog open={accOpen} onClose={() => setAccOpen(false)} title={editAcc ? 'Editar Conta' : 'Nova Conta'} onSave={saveAcc} saving={accSaving}>
+        <div><Label>Nome *</Label><Input value={accForm.name} onChange={e => setAccForm(f => ({ ...f, name: e.target.value }))} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Banco</Label><Input value={accForm.bank} onChange={e => setAccForm(f => ({ ...f, bank: e.target.value }))} /></div>
+          <div><Label>Agência</Label><Input value={accForm.agency} onChange={e => setAccForm(f => ({ ...f, agency: e.target.value }))} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Conta</Label><Input value={accForm.account_number} onChange={e => setAccForm(f => ({ ...f, account_number: e.target.value }))} /></div>
+          <div><Label>Saldo (R$)</Label><Input type="number" step="0.01" value={accForm.balance} onChange={e => setAccForm(f => ({ ...f, balance: e.target.value }))} /></div>
+        </div>
+      </CrudDialog>
+
+      <CrudDialog open={catOpen} onClose={() => setCatOpen(false)} title={editCat ? 'Editar Categoria' : 'Nova Categoria'} onSave={saveCat} saving={catSaving}>
+        <div><Label>Nome *</Label><Input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Tipo</Label>
+            <Select value={catForm.type} onValueChange={v => setCatForm(f => ({ ...f, type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="receita">Receita</SelectItem><SelectItem value="despesa">Despesa</SelectItem></SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Categoria Pai</Label>
+            <Select value={catForm.parent_id} onValueChange={v => setCatForm(f => ({ ...f, parent_id: v }))}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma (raiz)</SelectItem>
+                {parentCats(catForm.type).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CrudDialog>
+
+      <CrudDialog open={tagOpen} onClose={() => setTagOpen(false)} title={editTag ? 'Editar Tag' : 'Nova Tag'} onSave={saveTag} saving={tagSaving}>
+        <div><Label>Nome *</Label><Input value={tagForm.name} onChange={e => setTagForm(f => ({ ...f, name: e.target.value }))} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Tipo</Label>
+            <Select value={tagForm.type} onValueChange={v => setTagForm(f => ({ ...f, type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="orcamento">Orçamento</SelectItem><SelectItem value="pedido">Pedido</SelectItem><SelectItem value="geral">Geral</SelectItem></SelectContent>
+            </Select>
+          </div>
+          <div><Label>Cor</Label><Input type="color" value={tagForm.color} onChange={e => setTagForm(f => ({ ...f, color: e.target.value }))} className="h-9" /></div>
+        </div>
+      </CrudDialog>
+
+      <CrudDialog open={originOpen} onClose={() => setOriginOpen(false)} title={editOrigin ? 'Editar Origem' : 'Nova Origem'} onSave={saveOrigin} saving={originSaving}>
+        <div><Label>Nome *</Label><Input value={originForm.name} onChange={e => setOriginForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Instagram, Indicação, Showroom" /></div>
+      </CrudDialog>
+
+      <CrudDialog open={payOpen} onClose={() => setPayOpen(false)} title={editPay ? 'Editar Forma' : 'Nova Forma de Pagamento'} onSave={savePay} saving={paySaving}>
+        <div><Label>Nome *</Label><Input value={payForm.name} onChange={e => setPayForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: PIX, Boleto, Cartão 3x" /></div>
+      </CrudDialog>
+
+      <CrudDialog open={tplOpen} onClose={() => setTplOpen(false)} title={editTpl ? 'Editar Template' : 'Novo Template'} onSave={saveTpl} saving={tplSaving}>
+        <div><Label>Nome *</Label><Input value={tplForm.name} onChange={e => setTplForm(f => ({ ...f, name: e.target.value }))} /></div>
+        <div>
+          <Label>Loja (opcional)</Label>
+          <Select value={tplForm.store_id} onValueChange={v => setTplForm(f => ({ ...f, store_id: v }))}>
+            <SelectTrigger><SelectValue placeholder="Todas as lojas" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas as lojas</SelectItem>
+              {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Conteúdo do contrato</Label>
+          <Textarea value={tplForm.content} onChange={e => setTplForm(f => ({ ...f, content: e.target.value }))} rows={12} placeholder="Use variáveis como {{cliente}}, {{valor}}, {{data}}..." className="font-mono text-xs" />
+        </div>
+      </CrudDialog>
+
+      <CrudDialog open={ruleOpen} onClose={() => setRuleOpen(false)} title={editRule ? 'Editar Regra' : 'Nova Regra'} onSave={saveRule} saving={ruleSaving}>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Tipo</Label>
+            <Select value={ruleForm.rule_type} onValueChange={v => setRuleForm(f => ({ ...f, rule_type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desconto">Desconto</SelectItem>
+                <SelectItem value="prazo">Prazo de pagamento</SelectItem>
+                <SelectItem value="valor">Valor mínimo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Limite máximo (%)</Label><Input type="number" step="0.5" value={ruleForm.max_percent} onChange={e => setRuleForm(f => ({ ...f, max_percent: e.target.value }))} /></div>
+        </div>
+        <div>
+          <Label>Cargo aprovador</Label>
+          <Select value={ruleForm.approver_role} onValueChange={v => setRuleForm(f => ({ ...f, approver_role: v }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gerente_loja">Gerente de Loja</SelectItem>
+              <SelectItem value="diretoria">Diretoria</SelectItem>
+              <SelectItem value="admin">Administrador</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div><Label>Descrição</Label><Input value={ruleForm.description} onChange={e => setRuleForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Desconto acima de 10% precisa de aprovação" /></div>
+      </CrudDialog>
     </div>
   );
 }
