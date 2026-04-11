@@ -570,6 +570,7 @@ export type Database = {
           contract_notes: string | null
           contract_status: string | null
           created_at: string
+          delivery_status: string | null
           discount_percent: number | null
           discount_value: number | null
           factory_send_date: string | null
@@ -580,6 +581,7 @@ export type Database = {
           occurrence_status: string | null
           order_date: string
           post_assembly_status: string | null
+          production_status: string | null
           quote_id: string | null
           revision_status: string | null
           seller_id: string | null
@@ -596,6 +598,7 @@ export type Database = {
           contract_notes?: string | null
           contract_status?: string | null
           created_at?: string
+          delivery_status?: string | null
           discount_percent?: number | null
           discount_value?: number | null
           factory_send_date?: string | null
@@ -606,6 +609,7 @@ export type Database = {
           occurrence_status?: string | null
           order_date?: string
           post_assembly_status?: string | null
+          production_status?: string | null
           quote_id?: string | null
           revision_status?: string | null
           seller_id?: string | null
@@ -622,6 +626,7 @@ export type Database = {
           contract_notes?: string | null
           contract_status?: string | null
           created_at?: string
+          delivery_status?: string | null
           discount_percent?: number | null
           discount_value?: number | null
           factory_send_date?: string | null
@@ -632,6 +637,7 @@ export type Database = {
           occurrence_status?: string | null
           order_date?: string
           post_assembly_status?: string | null
+          production_status?: string | null
           quote_id?: string | null
           revision_status?: string | null
           seller_id?: string | null
