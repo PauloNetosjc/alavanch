@@ -25,7 +25,7 @@ import {
 import {
   Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
-  Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
+  Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare, Plus,
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
   CheckCircle2, Archive, XCircle,
 } from 'lucide-react';
