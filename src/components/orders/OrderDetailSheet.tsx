@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,12 +17,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Eye, FileText, CheckSquare, Wrench,
-  DollarSign, AlertTriangle, Calendar, User, Store, CreditCard, Loader2,
+  DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
   Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
-  Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2,
+  Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { maskPhone, maskCpf } from '@/lib/masks';
 import type { Tables as DbTables } from '@/integrations/supabase/types';
 import PromobImportDialog from '@/components/orders/PromobImportDialog';
@@ -70,6 +77,15 @@ const OCCURRENCE_STATUS_OPTIONS = [
   { value: 'com_ocorrencias', label: 'Com ocorrências' },
 ];
 
+// Map tab names to pipeline metadata fields for filtering timeline
+const TAB_PIPELINE_MAP: Record<string, string[]> = {
+  contrato: ['contrato', 'contract_status'],
+  revisao: ['revisao', 'revision_status'],
+  montagem: ['montagem', 'assembly_status'],
+  financeiro: ['financeiro', 'financial_status'],
+  'pos-montagem': ['pos_montagem', 'post_assembly_status'],
+};
+
 interface OrderDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -94,6 +110,9 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const [importTargetEnvId, setImportTargetEnvId] = useState<string | null>(null);
   const [expandedEnv, setExpandedEnv] = useState<string | null>(null);
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState('');
+  const [editingFactoryDate, setEditingFactoryDate] = useState(false);
 
   const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
   const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
@@ -115,6 +134,8 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
     setExpandedEnv(null);
+    setEditingNotes(false);
+    setEditingFactoryDate(false);
 
     const [orderRes, stagesRes] = await Promise.all([
       supabase.from('orders').select('*, clients(name, phone, email, cpf, delivery_address, billing_address, birth_date, notes), stores(name)').eq('id', id).single(),
@@ -124,6 +145,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     if (!orderRes.data) { setDetailLoading(false); return; }
     const order = orderRes.data as OrderWithRelations;
     setSelectedOrder(order);
+    setNotesValue(order.internal_comments ?? '');
     setPipelineStages((stagesRes.data as PipelineStage[]) ?? []);
 
     const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes] = await Promise.all([
@@ -186,6 +208,48 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (!selectedOrder || !isAdmin) return;
+    const { error } = await supabase.from('orders').update({ internal_comments: notesValue } as any).eq('id', selectedOrder.id);
+    if (error) {
+      toast.error('Erro ao salvar observações');
+    } else {
+      setSelectedOrder({ ...selectedOrder, internal_comments: notesValue } as OrderWithRelations);
+      setEditingNotes(false);
+      toast.success('Observações salvas');
+      // Log timeline
+      await supabase.from('timeline_events').insert({
+        entity_type: 'order',
+        entity_id: selectedOrder.id,
+        event_type: 'notes_updated',
+        description: 'Observações internas atualizadas',
+      });
+    }
+  };
+
+  const handleFactoryDateChange = async (date: Date | undefined) => {
+    if (!selectedOrder || !isAdmin || !date) return;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const prev = selectedOrder.factory_send_date;
+    setSelectedOrder({ ...selectedOrder, factory_send_date: dateStr } as OrderWithRelations);
+    setEditingFactoryDate(false);
+
+    const { error } = await supabase.from('orders').update({ factory_send_date: dateStr } as any).eq('id', selectedOrder.id);
+    if (error) {
+      toast.error('Erro ao atualizar data');
+      setSelectedOrder({ ...selectedOrder, factory_send_date: prev } as OrderWithRelations);
+    } else {
+      toast.success('Data de envio atualizada');
+      onOrderUpdated?.();
+      await supabase.from('timeline_events').insert({
+        entity_type: 'order',
+        entity_id: selectedOrder.id,
+        event_type: 'factory_date_changed',
+        description: `Data de envio à fábrica alterada para ${fmtDate(dateStr)}`,
+      });
+    }
+  };
+
   const fmt = (v: number | null | undefined) =>
     v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
@@ -205,6 +269,17 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     if (selectedOrder.occurrence_status === 'com_ocorrencias') alerts.push({ text: 'Existem ocorrências abertas', severity: 'error' });
     if (!selectedOrder.factory_send_date) alerts.push({ text: 'Data de envio à fábrica não definida', severity: 'warning' });
     return alerts;
+  };
+
+  // Filter timeline events for a specific tab
+  const getTabTimeline = (tabKey: string) => {
+    const mapping = TAB_PIPELINE_MAP[tabKey];
+    if (!mapping) return [];
+    return timelineEvents.filter(ev => {
+      const meta = ev.metadata as Record<string, unknown> | null;
+      if (!meta) return false;
+      return mapping.includes(meta.pipeline as string) || mapping.includes(meta.field as string);
+    });
   };
 
   return (
@@ -291,8 +366,39 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                     <InfoItem icon={User} label="Cliente" value={selectedOrder.clients?.name} />
                     <InfoItem icon={Store} label="Loja" value={selectedOrder.stores?.name} />
                     <InfoItem icon={User} label="Vendedor" value={selectedOrder.seller_id ? 'Vinculado' : '—'} />
-                    <InfoItem icon={Calendar} label="Data do pedido" value={fmtDate(selectedOrder.order_date)} />
-                    <InfoItem icon={Calendar} label="Envio fábrica" value={fmtDate(selectedOrder.factory_send_date)} />
+                    <InfoItem icon={CalendarIcon} label="Data do pedido" value={fmtDate(selectedOrder.order_date)} />
+                    {/* Editable factory date */}
+                    <div className="space-y-0.5">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" /> Envio fábrica
+                        {isAdmin && (
+                          <button onClick={() => setEditingFactoryDate(!editingFactoryDate)} className="ml-1 text-primary hover:text-primary/80">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                      {editingFactoryDate && isAdmin ? (
+                        <Popover open={editingFactoryDate} onOpenChange={setEditingFactoryDate}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn("h-8 text-xs w-full justify-start", !selectedOrder.factory_send_date && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-3 w-3" />
+                              {selectedOrder.factory_send_date ? fmtDate(selectedOrder.factory_send_date) : 'Selecionar data'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedOrder.factory_send_date ? new Date(selectedOrder.factory_send_date + 'T00:00') : undefined}
+                              onSelect={handleFactoryDateChange}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <p className="text-sm font-medium">{fmtDate(selectedOrder.factory_send_date)}</p>
+                      )}
+                    </div>
                   </div>
 
                   <Separator />
@@ -324,12 +430,30 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                     </div>
                   )}
 
-                  {selectedOrder.internal_comments && (
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Comentários internos</span>
-                      <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{selectedOrder.internal_comments}</p>
-                    </div>
-                  )}
+                  {/* Internal notes - admin editable */}
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> Observações internas
+                      {isAdmin && !editingNotes && (
+                        <button onClick={() => { setNotesValue(selectedOrder.internal_comments ?? ''); setEditingNotes(true); }} className="ml-1 text-primary hover:text-primary/80">
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                    {editingNotes && isAdmin ? (
+                      <div className="space-y-2">
+                        <Textarea value={notesValue} onChange={e => setNotesValue(e.target.value)} rows={3} placeholder="Adicionar observações internas..." />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleSaveNotes}>Salvar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingNotes(false)}>Cancelar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">
+                        {selectedOrder.internal_comments || 'Nenhuma observação.'}
+                      </p>
+                    )}
+                  </div>
 
                   {selectedOrder.snapshot && (
                     <div className="text-xs text-muted-foreground bg-muted/20 rounded p-2 flex items-center gap-1.5">
@@ -350,7 +474,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                           <InfoItem icon={User} label="Nome" value={selectedOrder.clients.name} />
                           <InfoItem icon={Hash} label="CPF" value={selectedOrder.clients.cpf ? maskCpf(selectedOrder.clients.cpf) : null} />
-                          <InfoItem icon={Calendar} label="Nascimento" value={fmtDate(selectedOrder.clients.birth_date)} />
+                          <InfoItem icon={CalendarIcon} label="Nascimento" value={fmtDate(selectedOrder.clients.birth_date)} />
                         </div>
                       </div>
                       <Separator />
@@ -504,7 +628,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                 </TabsContent>
 
                 {/* ====== CONTRATO ====== */}
-                <TabsContent value="contrato" className="mt-4">
+                <TabsContent value="contrato" className="mt-4 space-y-4">
                   {contracts.length === 0 ? (
                     <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
                   ) : (
@@ -525,10 +649,11 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                       ))}
                     </div>
                   )}
+                  <TabTimelineSection events={getTabTimeline('contrato')} fmtDateTime={fmtDateTime} />
                 </TabsContent>
 
                 {/* ====== FINANCEIRO ====== */}
-                <TabsContent value="financeiro" className="mt-4">
+                <TabsContent value="financeiro" className="mt-4 space-y-4">
                   {financialEntries.length === 0 ? (
                     <EmptyTab icon={<DollarSign className="h-8 w-8" />} text="Nenhum lançamento financeiro." />
                   ) : (
@@ -555,6 +680,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                       </div>
                     </div>
                   )}
+                  <TabTimelineSection events={getTabTimeline('financeiro')} fmtDateTime={fmtDateTime} />
                 </TabsContent>
 
                 {/* ====== REVISÃO ====== */}
@@ -564,6 +690,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                     <p className="text-muted-foreground">Acompanhe aqui o status da revisão técnica do pedido.</p>
                     <p className="text-xs text-muted-foreground">Use o controle acima para atualizar o status conforme o progresso da revisão.</p>
                   </div>
+                  <TabTimelineSection events={getTabTimeline('revisao')} fmtDateTime={fmtDateTime} />
                 </TabsContent>
 
                 {/* ====== MONTAGEM ====== */}
@@ -575,6 +702,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                       <p className="text-xs">Data de envio à fábrica: <span className="font-medium">{fmtDate(selectedOrder.factory_send_date)}</span></p>
                     )}
                   </div>
+                  <TabTimelineSection events={getTabTimeline('montagem')} fmtDateTime={fmtDateTime} />
                 </TabsContent>
 
                 {/* ====== PÓS-MONTAGEM ====== */}
@@ -583,6 +711,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                   <div className="bg-muted/30 rounded-lg p-4 text-sm">
                     <p className="text-muted-foreground">Acompanhe aqui o status da pós-montagem e vistoria final.</p>
                   </div>
+                  <TabTimelineSection events={getTabTimeline('pos-montagem')} fmtDateTime={fmtDateTime} />
                 </TabsContent>
 
                 {/* ====== OCORRÊNCIAS ====== */}
@@ -739,6 +868,33 @@ function EmptyTab({ icon, text }: { icon: React.ReactNode; text: string }) {
     <div className="py-8 text-center text-muted-foreground">
       <div className="mx-auto mb-2 opacity-30">{icon}</div>
       <p className="text-sm">{text}</p>
+    </div>
+  );
+}
+
+function TabTimelineSection({ events, fmtDateTime }: { events: DbTables<'timeline_events'>[]; fmtDateTime: (d: string | null | undefined) => string }) {
+  if (events.length === 0) return null;
+  return (
+    <div className="space-y-2 pt-2">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <History className="h-3.5 w-3.5" /> Histórico de alterações
+      </div>
+      <div className="relative pl-5 space-y-2">
+        <div className="absolute left-2 top-1 bottom-1 w-px bg-border" />
+        {events.map(ev => (
+          <div key={ev.id} className="relative">
+            <div className="absolute -left-5 top-1.5 w-3 h-3 rounded-full bg-primary/10 border border-primary flex items-center justify-center">
+              <div className="w-1 h-1 rounded-full bg-primary" />
+            </div>
+            <div className="bg-muted/20 rounded px-3 py-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{ev.description}</p>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">{fmtDateTime(ev.created_at)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
