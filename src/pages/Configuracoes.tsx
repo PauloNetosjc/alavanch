@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
-  Plus, Pencil, FolderTree, ChevronRight,
+  Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2,
 } from 'lucide-react';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
@@ -130,6 +130,13 @@ export default function Configuracoes() {
   const [editRule, setEditRule] = useState<any>(null);
   const [ruleSaving, setRuleSaving] = useState(false);
 
+  // Pipeline stages
+  const [pipelineStages, setPipelineStages] = useState<any[]>([]);
+  const [pipeForm, setPipeForm] = useState({ pipeline_type: 'contrato', name: '', display_order: '', color: '#6b7280', is_initial: false, is_final: false });
+  const [pipeOpen, setPipeOpen] = useState(false);
+  const [editPipe, setEditPipe] = useState<any>(null);
+  const [pipeSaving, setPipeSaving] = useState(false);
+
   // Fetch functions
   const fetchStores = async () => { const { data } = await supabase.from('stores').select('*').order('name'); setStores(data ?? []); };
   const fetchProfiles = async () => { const { data } = await supabase.from('profiles').select('*').order('full_name'); setProfiles(data ?? []); };
@@ -146,10 +153,11 @@ export default function Configuracoes() {
   const fetchPayments = async () => { const { data } = await supabase.from('payment_methods').select('*').order('name'); setPayments(data ?? []); };
   const fetchTemplates = async () => { const { data } = await supabase.from('contract_templates').select('*').order('name'); setTemplates(data ?? []); };
   const fetchRules = async () => { const { data } = await supabase.from('approval_rules').select('*').order('created_at'); setRules(data ?? []); };
+  const fetchPipelines = async () => { const { data } = await supabase.from('pipeline_stages').select('*').order('pipeline_type').order('display_order'); setPipelineStages(data ?? []); };
 
   useEffect(() => {
     fetchStores(); fetchProfiles(); fetchUserRoles(); fetchAccounts(); fetchCategories();
-    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules();
+    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules(); fetchPipelines();
   }, []);
 
   const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
