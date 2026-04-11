@@ -383,6 +383,11 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
               </div>
             </div>
 
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tags</h3>
+              <TagSelector value={selectedTags} onChange={setSelectedTags} types={['orcamento']} />
+            </div>
+
             <FormField
               control={form.control}
               name="notes"
