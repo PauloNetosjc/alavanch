@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { maskPhone } from '@/lib/masks';
-import { Plus, Settings2, Trash2, CalendarIcon } from 'lucide-react';
+import { Plus, Settings2, Trash2, CalendarIcon, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderDetailSheet } from '@/components/orders/OrderDetailSheet';
@@ -234,6 +234,18 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
     fetchOrders();
   };
 
+  const moveStage = async (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= stages.length) return;
+    const a = stages[index];
+    const b = stages[targetIndex];
+    await Promise.all([
+      supabase.from('pipeline_stages').update({ display_order: b.display_order }).eq('id', a.id),
+      supabase.from('pipeline_stages').update({ display_order: a.display_order }).eq('id', b.id),
+    ]);
+    fetchStages();
+  };
+
   const deleteStage = async (stage: PipelineStage) => {
     if (!confirm(`Excluir o estágio "${stage.name}"? Os pedidos neste estágio serão movidos para o primeiro estágio.`)) return;
     
@@ -290,6 +302,16 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-auto">{items.length}</Badge>
                   {isAdmin && (
                     <div className="flex gap-0.5">
+                      {stages.indexOf(stage) > 0 && (
+                        <button onClick={() => moveStage(stages.indexOf(stage), 'left')} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Mover para esquerda">
+                          <ArrowLeft className="h-3 w-3" />
+                        </button>
+                      )}
+                      {stages.indexOf(stage) < stages.length - 1 && (
+                        <button onClick={() => moveStage(stages.indexOf(stage), 'right')} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Mover para direita">
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      )}
                       <button onClick={() => openEditStage(stage)} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Editar estágio">
                         <Settings2 className="h-3 w-3" />
                       </button>
