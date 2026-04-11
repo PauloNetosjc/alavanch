@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_rules ADD COLUMN affected_roles text[] DEFAULT '{}'::text[];

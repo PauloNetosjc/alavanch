@@ -86,9 +86,13 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
       return;
     }
     const effectivePct = lastDiscountEdit === 'percent' ? discountPercent : (totalValue > 0 ? (discountValue / totalValue) * 100 : 0);
-    const violatedRule = approvalRules.find(r => r.max_percent != null && effectivePct > r.max_percent);
+    const violatedRule = approvalRules.find(r => {
+      if (r.max_percent == null || effectivePct <= r.max_percent) return false;
+      const affected = (r as any).affected_roles ?? [];
+      return affected.length === 0 || affected.includes(userRole);
+    });
     if (violatedRule) {
-      const isApprover = userRole === violatedRule.approver_role || userRole === 'admin';
+      const isApprover = userRole === violatedRule.approver_role || userRole === 'admin' || userRole === 'diretoria';
       if (!isApprover) {
         setDiscountBlocked(true);
         setDiscountWarning(`Desconto de ${effectivePct.toFixed(1)}% excede o limite de ${violatedRule.max_percent}%. Apenas ${violatedRule.approver_role === 'admin' ? 'Administradores' : 'o cargo ' + violatedRule.approver_role} pode aprovar.`);

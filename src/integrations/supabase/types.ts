@@ -17,6 +17,7 @@ export type Database = {
       approval_rules: {
         Row: {
           active: boolean | null
+          affected_roles: string[] | null
           approver_role: string
           created_at: string
           description: string | null
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          affected_roles?: string[] | null
           approver_role?: string
           created_at?: string
           description?: string | null
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          affected_roles?: string[] | null
           approver_role?: string
           created_at?: string
           description?: string | null
