@@ -355,6 +355,14 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
             </div>
           </div>
 
+          {/* Discount warning */}
+          {discountWarning && (
+            <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${discountBlocked ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{discountWarning}</span>
+            </div>
+          )}
+
           <Separator />
 
           {/* Installments */}
