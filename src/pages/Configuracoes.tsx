@@ -143,6 +143,33 @@ export default function Configuracoes() {
   const [editPipe, setEditPipe] = useState<any>(null);
   const [pipeSaving, setPipeSaving] = useState(false);
 
+  // Clients
+  const [clientsList, setClientsList] = useState<DBTables<'clients'>[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [editClientItem, setEditClientItem] = useState<DBTables<'clients'> | null>(null);
+  const [detailClientItem, setDetailClientItem] = useState<DBTables<'clients'> | null>(null);
+  const [detailClientOpen, setDetailClientOpen] = useState(false);
+
+  const fetchClientsList = async () => {
+    setClientsLoading(true);
+    const { data } = await supabase.from('clients').select('*').order('name');
+    setClientsList(data ?? []);
+    setClientsLoading(false);
+  };
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return clientsList;
+    const q = clientSearch.toLowerCase();
+    return clientsList.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.cpf?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.includes(q)
+    );
+  }, [clientsList, clientSearch]);
+
   // Fetch functions
   const fetchStores = async () => { const { data } = await supabase.from('stores').select('*').order('name'); setStores(data ?? []); };
   const fetchProfiles = async () => { const { data } = await supabase.from('profiles').select('*').order('full_name'); setProfiles(data ?? []); };
