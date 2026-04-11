@@ -107,16 +107,28 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const handleDrop = async (stageName: string) => {
     if (!draggedId) return;
     setDragOverCol(null);
+    const movedId = draggedId;
     setDraggedId(null);
-    const order = orders.find(o => o.id === draggedId);
-    if (!order || resolveStatus(order.status) === stageName) return;
-    setOrders(prev => prev.map(o => o.id === draggedId ? { ...o, status: stageName } : o));
+    const order = orders.find(o => o.id === movedId);
+    const previousStatus = order ? resolveStatus(order.status) : null;
+    if (!order || previousStatus === stageName) return;
+    setOrders(prev => prev.map(o => o.id === movedId ? { ...o, status: stageName } : o));
     const updateObj: Record<string, string> = {};
     updateObj[statusField] = stageName;
-    const { error } = await supabase.from('orders').update(updateObj as any).eq('id', draggedId);
+    const { error } = await supabase.from('orders').update(updateObj as any).eq('id', movedId);
     if (error) {
-      setOrders(prev => prev.map(o => o.id === draggedId ? { ...o, status: order.status } : o));
+      setOrders(prev => prev.map(o => o.id === movedId ? { ...o, status: order.status } : o));
+      return;
     }
+    // Log timeline event for stage change
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order',
+      entity_id: movedId,
+      event_type: 'status_change',
+      description: `${title}: movido de "${previousStatus}" para "${stageName}"`,
+      user_id: user?.id ?? null,
+      metadata: { pipeline: pipelineType, field: statusField, from: previousStatus, to: stageName },
+    });
   };
 
   const formatCurrency = (v: number | null) =>
