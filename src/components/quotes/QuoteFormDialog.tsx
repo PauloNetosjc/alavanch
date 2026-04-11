@@ -74,6 +74,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [clients, setClients] = useState<Tables<'clients'>[]>([]);
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -101,6 +102,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         urgency: editQuote?.urgency ?? 'normal',
         notes: editQuote?.notes ?? '',
       });
+      setSelectedTags(editQuote?.tags ?? []);
       loadData();
     }
   }, [open, editQuote]);
