@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { maskPhone } from '@/lib/masks';
-import { Plus, Settings2, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Settings2, Trash2, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { OrderDetailSheet } from '@/components/orders/OrderDetailSheet';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PipelineStage {
   id: string;
@@ -40,7 +44,6 @@ interface DepartmentKanbanProps {
 }
 
 export function DepartmentKanban({ pipelineType, statusField, title, subtitle }: DepartmentKanbanProps) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [orders, setOrders] = useState<OrderCard[]>([]);
@@ -48,11 +51,21 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Order detail sheet
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
   // Admin stage management
   const [stageDialogOpen, setStageDialogOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<PipelineStage | null>(null);
   const [stageForm, setStageForm] = useState({ name: '', display_order: '', color: '#6b7280', is_initial: false, is_final: false });
   const [stageSaving, setStageSaving] = useState(false);
+
+  // Factory send date popup (for revisão final stage)
+  const [factoryDateDialogOpen, setFactoryDateDialogOpen] = useState(false);
+  const [factoryDate, setFactoryDate] = useState<Date | undefined>(undefined);
+  const [pendingFactoryOrderId, setPendingFactoryOrderId] = useState<string | null>(null);
+  const [pendingFactoryStageName, setPendingFactoryStageName] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -104,23 +117,22 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const getOrdersInStage = (stageName: string) =>
     orders.filter(o => resolveStatus(o.status) === stageName);
 
-  const handleDrop = async (stageName: string) => {
-    if (!draggedId) return;
-    setDragOverCol(null);
-    const movedId = draggedId;
-    setDraggedId(null);
+  const executeMove = async (movedId: string, stageName: string, factorySendDate?: Date) => {
     const order = orders.find(o => o.id === movedId);
     const previousStatus = order ? resolveStatus(order.status) : null;
     if (!order || previousStatus === stageName) return;
+
     setOrders(prev => prev.map(o => o.id === movedId ? { ...o, status: stageName } : o));
-    const updateObj: Record<string, string> = {};
+    const updateObj: Record<string, any> = {};
     updateObj[statusField] = stageName;
+    if (factorySendDate) {
+      updateObj['factory_send_date'] = format(factorySendDate, 'yyyy-MM-dd');
+    }
     const { error } = await supabase.from('orders').update(updateObj as any).eq('id', movedId);
     if (error) {
       setOrders(prev => prev.map(o => o.id === movedId ? { ...o, status: order.status } : o));
       return;
     }
-    // Log timeline event for stage change
     await supabase.from('timeline_events').insert({
       entity_type: 'order',
       entity_id: movedId,
@@ -131,11 +143,42 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
     });
   };
 
+  const handleDrop = async (stageName: string) => {
+    if (!draggedId) return;
+    setDragOverCol(null);
+    const movedId = draggedId;
+    setDraggedId(null);
+
+    // Check if this is the revisão pipeline and the target is a final stage
+    if (pipelineType === 'revisao') {
+      const targetStage = stages.find(s => s.name === stageName);
+      if (targetStage?.is_final) {
+        setPendingFactoryOrderId(movedId);
+        setPendingFactoryStageName(stageName);
+        setFactoryDate(undefined);
+        setFactoryDateDialogOpen(true);
+        return;
+      }
+    }
+
+    await executeMove(movedId, stageName);
+  };
+
+  const handleFactoryDateConfirm = async () => {
+    if (!pendingFactoryOrderId || !pendingFactoryStageName) return;
+    await executeMove(pendingFactoryOrderId, pendingFactoryStageName, factoryDate || undefined);
+    setFactoryDateDialogOpen(false);
+    setPendingFactoryOrderId(null);
+    setPendingFactoryStageName(null);
+    toast.success(factoryDate ? 'Revisão concluída e data de envio à fábrica definida' : 'Revisão concluída');
+  };
+
   const formatCurrency = (v: number | null) =>
     v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '';
 
   const openCardDetail = (orderId: string) => {
-    navigate(`/pedidos?order=${orderId}`);
+    setDetailOrderId(orderId);
+    setDetailOpen(true);
   };
 
   // ─── Admin stage CRUD ───
@@ -178,7 +221,6 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
     
     if (error) { toast.error('Erro ao salvar estágio'); setStageSaving(false); return; }
 
-    // If renamed, update all orders that had the old stage name
     if (editingStage && oldName && oldName !== stageForm.name.trim()) {
       const updateObj: Record<string, string> = {};
       updateObj[statusField] = stageForm.name.trim();
@@ -195,7 +237,6 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const deleteStage = async (stage: PipelineStage) => {
     if (!confirm(`Excluir o estágio "${stage.name}"? Os pedidos neste estágio serão movidos para o primeiro estágio.`)) return;
     
-    // Move orders to first stage
     const firstStage = stages.find(s => s.id !== stage.id && s.is_initial) ?? stages.find(s => s.id !== stage.id);
     if (firstStage) {
       const updateObj: Record<string, string> = {};
@@ -294,6 +335,77 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
           })}
         </div>
       )}
+
+      {/* Order Detail Sheet - opens inline */}
+      <OrderDetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        orderId={detailOrderId}
+        isAdmin={isAdmin}
+        onOrderDeleted={() => { fetchOrders(); }}
+        onOrderUpdated={() => { fetchOrders(); }}
+      />
+
+      {/* Factory Send Date Dialog (revisão final stage) */}
+      <Dialog open={factoryDateDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          // If user closes without confirming, still move but without date
+          if (pendingFactoryOrderId && pendingFactoryStageName) {
+            executeMove(pendingFactoryOrderId, pendingFactoryStageName);
+            toast.success('Revisão concluída');
+          }
+          setFactoryDateDialogOpen(false);
+          setPendingFactoryOrderId(null);
+          setPendingFactoryStageName(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Data de envio à fábrica</DialogTitle>
+            <DialogDescription>
+              A revisão foi concluída. Informe a data de envio do pedido à fábrica (opcional).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Data de envio</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !factoryDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {factoryDate ? format(factoryDate, 'dd/MM/yyyy') : 'Selecione uma data'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={factoryDate}
+                  onSelect={setFactoryDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              if (pendingFactoryOrderId && pendingFactoryStageName) {
+                executeMove(pendingFactoryOrderId, pendingFactoryStageName);
+                toast.success('Revisão concluída');
+              }
+              setFactoryDateDialogOpen(false);
+              setPendingFactoryOrderId(null);
+              setPendingFactoryStageName(null);
+            }}>Pular</Button>
+            <Button onClick={handleFactoryDateConfirm}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Admin Stage Dialog */}
       <Dialog open={stageDialogOpen} onOpenChange={setStageDialogOpen}>
