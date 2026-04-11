@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
-  Plus, Pencil, FolderTree, ChevronRight, CheckCircle, Settings,
+  Plus, Pencil, FolderTree, ChevronRight,
 } from 'lucide-react';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
@@ -23,6 +23,22 @@ type FinancialCategory = DBTables<'financial_categories'>;
 type StoreType = DBTables<'stores'>;
 type Profile = DBTables<'profiles'>;
 
+const NONE = '__none__';
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrador',
+  projetista: 'Projetista',
+  financeiro: 'Financeiro',
+  gerente_loja: 'Gerente',
+  conferente: 'Conferente',
+  atendente: 'Atendente',
+  vendedor: 'Vendedor',
+  diretoria: 'Diretoria',
+  revisao: 'Revisão',
+  montagem: 'Montagem',
+  pos_venda: 'Pós-venda',
+};
+
 // ─── Generic CRUD Dialog ───
 function CrudDialog({ open, onClose, title, children, onSave, saving }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode; onSave: () => void; saving: boolean;
@@ -30,7 +46,10 @@ function CrudDialog({ open, onClose, title, children, onSave, saving }: {
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">{title}</DialogDescription>
+        </DialogHeader>
         <div className="grid gap-4 py-2">{children}</div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -54,6 +73,14 @@ export default function Configuracoes() {
 
   // Profiles / Users
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userRoles, setUserRoles] = useState<Record<string, string>>({});
+  const [userOpen, setUserOpen] = useState(false);
+  const [userSaving, setUserSaving] = useState(false);
+  const [userForm, setUserForm] = useState({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+  // Role edit
+  const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
+  const [roleEditValue, setRoleEditValue] = useState('');
+  const [roleEditSaving, setRoleEditSaving] = useState(false);
 
   // Bank accounts
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -106,6 +133,12 @@ export default function Configuracoes() {
   // Fetch functions
   const fetchStores = async () => { const { data } = await supabase.from('stores').select('*').order('name'); setStores(data ?? []); };
   const fetchProfiles = async () => { const { data } = await supabase.from('profiles').select('*').order('full_name'); setProfiles(data ?? []); };
+  const fetchUserRoles = async () => {
+    const { data } = await supabase.from('user_roles').select('user_id, role');
+    const map: Record<string, string> = {};
+    (data ?? []).forEach(r => { map[r.user_id] = r.role; });
+    setUserRoles(map);
+  };
   const fetchAccounts = async () => { const { data } = await supabase.from('bank_accounts').select('*').order('name'); setAccounts(data ?? []); };
   const fetchCategories = async () => { const { data } = await supabase.from('financial_categories').select('*').order('name'); setCategories(data ?? []); };
   const fetchTags = async () => { const { data } = await supabase.from('tags_config').select('*').order('name'); setTags(data ?? []); };
@@ -115,11 +148,12 @@ export default function Configuracoes() {
   const fetchRules = async () => { const { data } = await supabase.from('approval_rules').select('*').order('created_at'); setRules(data ?? []); };
 
   useEffect(() => {
-    fetchStores(); fetchProfiles(); fetchAccounts(); fetchCategories();
+    fetchStores(); fetchProfiles(); fetchUserRoles(); fetchAccounts(); fetchCategories();
     fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules();
   }, []);
 
   const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmtDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
 
   // ─── Store handlers ───
   const openStoreForm = (store?: StoreType) => {
@@ -145,6 +179,53 @@ export default function Configuracoes() {
     setStoreOpen(false); fetchStores();
   };
 
+  // ─── User creation ───
+  const saveUser = async () => {
+    if (!userForm.email || !userForm.password || !userForm.full_name) { toast.error('Preencha todos os campos obrigatórios'); return; }
+    if (userForm.password.length < 6) { toast.error('Senha deve ter no mínimo 6 caracteres'); return; }
+    setUserSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await supabase.functions.invoke('create-user', {
+        body: {
+          email: userForm.email,
+          password: userForm.password,
+          full_name: userForm.full_name,
+          role: userForm.role,
+          store_id: userForm.store_id || null,
+        },
+      });
+      if (resp.error || resp.data?.error) {
+        toast.error(resp.data?.error || 'Erro ao criar usuário');
+        setUserSaving(false);
+        return;
+      }
+      toast.success('Usuário criado com sucesso');
+      setUserOpen(false);
+      setUserForm({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+      fetchProfiles(); fetchUserRoles();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao criar usuário');
+    }
+    setUserSaving(false);
+  };
+
+  // ─── Role edit ───
+  const saveRoleEdit = async () => {
+    if (!roleEditUserId || !roleEditValue) return;
+    setRoleEditSaving(true);
+    const existing = userRoles[roleEditUserId];
+    if (existing) {
+      await supabase.from('user_roles').update({ role: roleEditValue as any }).eq('user_id', roleEditUserId);
+    } else {
+      await supabase.from('user_roles').insert({ user_id: roleEditUserId, role: roleEditValue as any });
+    }
+    toast.success('Cargo atualizado');
+    setRoleEditUserId(null);
+    setRoleEditSaving(false);
+    fetchUserRoles();
+  };
+
   // ─── Bank Account handlers ───
   const openAccForm = (acc?: BankAccount) => {
     if (acc) {
@@ -159,7 +240,8 @@ export default function Configuracoes() {
   const saveAcc = async () => {
     if (!accForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     setAccSaving(true);
-    const payload = { name: accForm.name, bank: accForm.bank || null, agency: accForm.agency || null, account_number: accForm.account_number || null, balance: parseFloat(accForm.balance) || 0 };
+    const payload: any = { name: accForm.name, bank: accForm.bank || null, agency: accForm.agency || null, account_number: accForm.account_number || null, balance: parseFloat(accForm.balance) || 0 };
+    if (!editAcc) payload.last_check_date = new Date().toISOString();
     const { error } = editAcc
       ? await supabase.from('bank_accounts').update(payload).eq('id', editAcc.id)
       : await supabase.from('bank_accounts').insert(payload);
@@ -167,6 +249,11 @@ export default function Configuracoes() {
     if (error) { toast.error('Erro ao salvar'); return; }
     toast.success(editAcc ? 'Conta atualizada' : 'Conta criada');
     setAccOpen(false); fetchAccounts();
+  };
+  const markCheckDate = async (acc: BankAccount) => {
+    await supabase.from('bank_accounts').update({ last_check_date: new Date().toISOString() } as any).eq('id', acc.id);
+    toast.success('Data de checagem atualizada');
+    fetchAccounts();
   };
 
   // ─── Category handlers ───
@@ -327,9 +414,9 @@ export default function Configuracoes() {
                   {stores.map(s => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.cnpj ?? '—'}</TableCell>
+                      <TableCell>{s.cnpj ? maskCnpj(s.cnpj) : '—'}</TableCell>
                       <TableCell>{s.email ?? '—'}</TableCell>
-                      <TableCell>{s.phone ?? '—'}</TableCell>
+                      <TableCell>{s.phone ? maskPhone(s.phone) : '—'}</TableCell>
                       <TableCell><Badge variant="outline" className={s.active ? 'bg-emerald-500/10 text-emerald-600' : ''}>{s.active ? 'Ativa' : 'Inativa'}</Badge></TableCell>
                       <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openStoreForm(s)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
                     </TableRow>
@@ -343,20 +430,45 @@ export default function Configuracoes() {
         {/* ─── Usuários ─── */}
         <TabsContent value="usuarios">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Usuários e Perfis</h2>
-            <p className="text-sm text-muted-foreground">Usuários cadastrados no sistema. Para adicionar novos usuários, utilize o formulário de registro.</p>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Usuários e Perfis</h2>
+              <Button onClick={() => setUserOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
+            </div>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader><TableRow className="bg-muted/50">
-                  <TableHead>Nome</TableHead><TableHead>Loja</TableHead><TableHead>Criado em</TableHead>
+                  <TableHead>Nome</TableHead><TableHead>Loja</TableHead><TableHead>Cargo</TableHead><TableHead>Criado em</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {profiles.length === 0 && <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum usuário</TableCell></TableRow>}
+                  {profiles.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum usuário</TableCell></TableRow>}
                   {profiles.map(p => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.full_name ?? '—'}</TableCell>
                       <TableCell>{stores.find(s => s.id === p.store_id)?.name ?? '—'}</TableCell>
-                      <TableCell>{new Date(p.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        {roleEditUserId === p.user_id ? (
+                          <div className="flex items-center gap-2">
+                            <Select value={roleEditValue} onValueChange={setRoleEditValue}>
+                              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="h-7 text-xs" onClick={saveRoleEdit} disabled={roleEditSaving}>OK</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setRoleEditUserId(null)}>✕</Button>
+                          </div>
+                        ) : (
+                          <Badge variant="outline">{ROLE_LABELS[userRoles[p.user_id]] ?? userRoles[p.user_id] ?? 'Sem cargo'}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{fmtDate(p.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => { setRoleEditUserId(p.user_id); setRoleEditValue(userRoles[p.user_id] ?? 'atendente'); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -375,10 +487,10 @@ export default function Configuracoes() {
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader><TableRow className="bg-muted/50">
-                  <TableHead>Nome</TableHead><TableHead>Banco</TableHead><TableHead>Agência</TableHead><TableHead>Conta</TableHead><TableHead className="text-right">Saldo</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Nome</TableHead><TableHead>Banco</TableHead><TableHead>Agência</TableHead><TableHead>Conta</TableHead><TableHead className="text-right">Saldo</TableHead><TableHead>Criação</TableHead><TableHead>Última Checagem</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {accounts.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma conta</TableCell></TableRow>}
+                  {accounts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma conta</TableCell></TableRow>}
                   {accounts.map(a => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.name}</TableCell>
@@ -386,8 +498,15 @@ export default function Configuracoes() {
                       <TableCell>{a.agency ?? '—'}</TableCell>
                       <TableCell>{a.account_number ?? '—'}</TableCell>
                       <TableCell className="text-right font-mono">{fmt(a.balance)}</TableCell>
+                      <TableCell>{fmtDate(a.created_at)}</TableCell>
+                      <TableCell>{fmtDate((a as any).last_check_date)}</TableCell>
                       <TableCell><Badge variant="outline" className={a.active ? 'bg-emerald-500/10 text-emerald-600' : ''}>{a.active ? 'Ativa' : 'Inativa'}</Badge></TableCell>
-                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openAccForm(a)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => markCheckDate(a)}>Checar</Button>
+                          <Button size="sm" variant="ghost" onClick={() => openAccForm(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -403,6 +522,7 @@ export default function Configuracoes() {
               <h2 className="text-lg font-semibold">Categorias Financeiras</h2>
               <Button onClick={() => openCatForm()}><Plus className="h-4 w-4 mr-2" />Nova Categoria</Button>
             </div>
+            <p className="text-xs text-muted-foreground">As categorias serão usadas para classificar lançamentos financeiros e gerar o DRE. Caso precise de categorias específicas, envie a lista que configuramos para você.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {['receita', 'despesa'].map(type => (
                 <Card key={type} className="border-border/60">
@@ -543,7 +663,7 @@ export default function Configuracoes() {
                     <TableRow key={r.id}>
                       <TableCell className="font-medium capitalize">{r.rule_type}</TableCell>
                       <TableCell>{r.max_percent}%</TableCell>
-                      <TableCell><Badge variant="outline">{r.approver_role}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{ROLE_LABELS[r.approver_role] ?? r.approver_role}</Badge></TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.description ?? '—'}</TableCell>
                       <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openRuleForm(r)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
                     </TableRow>
@@ -559,12 +679,42 @@ export default function Configuracoes() {
       <CrudDialog open={storeOpen} onClose={() => setStoreOpen(false)} title={editStore ? 'Editar Loja' : 'Nova Loja'} onSave={saveStore} saving={storeSaving}>
         <div><Label>Nome *</Label><Input value={storeForm.name} onChange={e => setStoreForm(f => ({ ...f, name: e.target.value }))} /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>CNPJ</Label><Input value={storeForm.cnpj} onChange={e => setStoreForm(f => ({ ...f, cnpj: e.target.value }))} /></div>
+          <div><Label>CNPJ</Label><Input value={storeForm.cnpj} onChange={e => setStoreForm(f => ({ ...f, cnpj: maskCnpj(e.target.value) }))} placeholder="00.000.000/0000-00" /></div>
           <div><Label>E-mail</Label><Input value={storeForm.email} onChange={e => setStoreForm(f => ({ ...f, email: e.target.value }))} /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>Telefone</Label><Input value={storeForm.phone} onChange={e => setStoreForm(f => ({ ...f, phone: e.target.value }))} /></div>
+          <div><Label>Telefone</Label><Input value={storeForm.phone} onChange={e => setStoreForm(f => ({ ...f, phone: maskPhone(e.target.value) }))} /></div>
           <div><Label>Endereço</Label><Input value={storeForm.address} onChange={e => setStoreForm(f => ({ ...f, address: e.target.value }))} /></div>
+        </div>
+      </CrudDialog>
+
+      {/* User creation dialog */}
+      <CrudDialog open={userOpen} onClose={() => setUserOpen(false)} title="Novo Usuário" onSave={saveUser} saving={userSaving}>
+        <div><Label>Nome completo *</Label><Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} /></div>
+        <div><Label>E-mail *</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} /></div>
+        <div><Label>Senha *</Label><Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 6 caracteres" /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Cargo</Label>
+            <Select value={userForm.role} onValueChange={v => setUserForm(f => ({ ...f, role: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Loja</Label>
+            <Select value={userForm.store_id || NONE} onValueChange={v => setUserForm(f => ({ ...f, store_id: v === NONE ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Nenhuma</SelectItem>
+                {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </CrudDialog>
 
@@ -592,10 +742,10 @@ export default function Configuracoes() {
           </div>
           <div>
             <Label>Categoria Pai</Label>
-            <Select value={catForm.parent_id} onValueChange={v => setCatForm(f => ({ ...f, parent_id: v }))}>
+            <Select value={catForm.parent_id || NONE} onValueChange={v => setCatForm(f => ({ ...f, parent_id: v === NONE ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma (raiz)</SelectItem>
+                <SelectItem value={NONE}>Nenhuma (raiz)</SelectItem>
                 {parentCats(catForm.type).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -610,7 +760,12 @@ export default function Configuracoes() {
             <Label>Tipo</Label>
             <Select value={tagForm.type} onValueChange={v => setTagForm(f => ({ ...f, type: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="orcamento">Orçamento</SelectItem><SelectItem value="pedido">Pedido</SelectItem><SelectItem value="geral">Geral</SelectItem></SelectContent>
+              <SelectContent>
+                <SelectItem value="orcamento">Orçamento</SelectItem>
+                <SelectItem value="pedido">Pedido</SelectItem>
+                <SelectItem value="cliente">Cliente</SelectItem>
+                <SelectItem value="geral">Geral</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div><Label>Cor</Label><Input type="color" value={tagForm.color} onChange={e => setTagForm(f => ({ ...f, color: e.target.value }))} className="h-9" /></div>
@@ -629,10 +784,10 @@ export default function Configuracoes() {
         <div><Label>Nome *</Label><Input value={tplForm.name} onChange={e => setTplForm(f => ({ ...f, name: e.target.value }))} /></div>
         <div>
           <Label>Loja (opcional)</Label>
-          <Select value={tplForm.store_id} onValueChange={v => setTplForm(f => ({ ...f, store_id: v }))}>
+          <Select value={tplForm.store_id || NONE} onValueChange={v => setTplForm(f => ({ ...f, store_id: v === NONE ? '' : v }))}>
             <SelectTrigger><SelectValue placeholder="Todas as lojas" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as lojas</SelectItem>
+              <SelectItem value={NONE}>Todas as lojas</SelectItem>
               {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -663,9 +818,9 @@ export default function Configuracoes() {
           <Select value={ruleForm.approver_role} onValueChange={v => setRuleForm(f => ({ ...f, approver_role: v }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="gerente_loja">Gerente de Loja</SelectItem>
-              <SelectItem value="diretoria">Diretoria</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

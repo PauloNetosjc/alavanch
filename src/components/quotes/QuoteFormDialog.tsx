@@ -46,6 +46,7 @@ import { Loader2, Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { maskPhone } from '@/lib/masks';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
+import { TagSelector } from '@/components/ui/tag-selector';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
@@ -74,6 +75,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [clients, setClients] = useState<Tables<'clients'>[]>([]);
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -101,6 +103,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         urgency: editQuote?.urgency ?? 'normal',
         notes: editQuote?.notes ?? '',
       });
+      setSelectedTags(editQuote?.tags ?? []);
       loadData();
     }
   }, [open, editQuote]);
@@ -147,6 +150,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             expiry_date: data.expiry_date || null,
             urgency: data.urgency || 'normal',
             notes: data.notes || null,
+            tags: selectedTags.length > 0 ? selectedTags : null,
           })
           .eq('id', editQuote.id);
         if (error) throw error;
@@ -167,6 +171,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             urgency: data.urgency || 'normal',
             notes: data.notes || null,
             status: 'novo_lead',
+            tags: selectedTags.length > 0 ? selectedTags : null,
           });
         if (error) throw error;
         toast.success('Orçamento criado');
@@ -376,6 +381,11 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                   )}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tags</h3>
+              <TagSelector value={selectedTags} onChange={setSelectedTags} types={['orcamento']} />
             </div>
 
             <FormField
