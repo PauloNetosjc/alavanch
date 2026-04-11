@@ -167,7 +167,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     setNotesValue(order.internal_comments ?? '');
     setPipelineStages((stagesRes.data as PipelineStage[]) ?? []);
 
-    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes] = await Promise.all([
+    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes, templatesRes] = await Promise.all([
       supabase.from('contracts').select('*').eq('order_id', id).order('created_at', { ascending: false }),
       supabase.from('financial_entries').select('*').eq('order_id', id).order('due_date'),
       supabase.from('occurrences').select('*').eq('order_id', id).order('created_at', { ascending: false }),
@@ -175,8 +175,10 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
       supabase.from('promob_imports').select('*').eq('order_id', id).order('created_at', { ascending: false }),
       supabase.from('timeline_events').select('*').eq('entity_id', id).eq('entity_type', 'order').order('created_at', { ascending: false }),
       supabase.from('attachments').select('*').eq('entity_id', id).eq('entity_type', 'order').order('created_at', { ascending: false }),
+      supabase.from('contract_templates').select('*').eq('active', true).order('name'),
     ]);
     setContracts(contractsRes.data ?? []);
+    setContractTemplates(templatesRes.data ?? []);
     setFinancialEntries(financialRes.data ?? []);
     setOccurrences(occurrencesRes.data ?? []);
     const envs = envsRes.data ?? [];
