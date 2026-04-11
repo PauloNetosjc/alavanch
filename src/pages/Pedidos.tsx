@@ -785,16 +785,17 @@ function InfoItem({ icon: Icon, label, value, mono }: { icon: React.ElementType;
   );
 }
 
-function StatusSelect({ icon, label, value, options, onChange }: {
+function StatusSelect({ icon, label, value, options, onChange, color }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
+  color?: string;
 }) {
-  const s = statusLabels[value] ?? { label: value, color: '' };
+  const bgStyle = color ? { backgroundColor: color + '15', borderColor: color + '40' } : {};
   return (
-    <div className={`rounded-lg border p-3 space-y-2 ${s.color || 'bg-muted/30'}`}>
+    <div className="rounded-lg border p-3 space-y-2" style={bgStyle}>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon} {label}
       </div>
