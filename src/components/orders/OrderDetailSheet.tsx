@@ -27,6 +27,7 @@ import {
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
   Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
+  CheckCircle2, Archive, XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { maskPhone, maskCpf } from '@/lib/masks';
@@ -799,6 +800,70 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                   )}
                 </TabsContent>
               </Tabs>
+
+              {/* ====== ACTION BUTTONS ====== */}
+              {isAdmin && selectedOrder.assembly_status !== 'concluido' && selectedOrder.assembly_status !== 'cancelado' && selectedOrder.assembly_status !== 'arquivado' && (
+                <div className="mt-6 pt-4 border-t border-border/60 space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ações do Pedido</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(() => {
+                      // Check if all pipeline stages are at final stage
+                      const pipelineTypes = ['contrato', 'revisao', 'montagem', 'financeiro', 'pos_montagem'] as const;
+                      const allComplete = pipelineTypes.every(pt => {
+                        const field = PIPELINE_FIELDS[pt];
+                        const currentStatus = selectedOrder[field];
+                        const finalStage = stagesForPipeline(pt).find(s => s.is_final);
+                        return finalStage ? currentStatus === finalStage.name : false;
+                      });
+
+                      const handleAction = async (action: 'concluido' | 'arquivado' | 'cancelado') => {
+                        const labels: Record<string, string> = { concluido: 'concluir', arquivado: 'arquivar', cancelado: 'cancelar' };
+                        if (!confirm(`Tem certeza que deseja ${labels[action]} este pedido?`)) return;
+                        const { error } = await supabase.from('orders').update({ assembly_status: action } as any).eq('id', selectedOrder.id);
+                        if (error) { toast.error('Erro ao atualizar pedido'); return; }
+                        await supabase.from('timeline_events').insert({
+                          entity_type: 'order',
+                          entity_id: selectedOrder.id,
+                          event_type: 'order_' + action,
+                          description: `Pedido ${action === 'concluido' ? 'concluído' : action === 'arquivado' ? 'arquivado' : 'cancelado'}`,
+                          metadata: { pipeline: 'montagem', field: 'assembly_status' },
+                        });
+                        toast.success(`Pedido ${action === 'concluido' ? 'concluído' : action === 'arquivado' ? 'arquivado' : 'cancelado'} com sucesso`);
+                        onOpenChange(false);
+                        onOrderUpdated?.();
+                      };
+
+                      return (
+                        <>
+                          <Button
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={!allComplete}
+                            onClick={() => handleAction('concluido')}
+                            title={!allComplete ? 'Todas as etapas precisam estar concluídas' : 'Concluir pedido'}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Concluir Pedido
+                          </Button>
+                          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleAction('arquivado')}>
+                            <Archive className="h-4 w-4" />
+                            Arquivar
+                          </Button>
+                          <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => handleAction('cancelado')}>
+                            <XCircle className="h-4 w-4" />
+                            Cancelar Pedido
+                          </Button>
+                          {!allComplete && (
+                            <p className="w-full text-xs text-muted-foreground">
+                              Para concluir o pedido, todas as etapas (contrato, revisão, montagem, financeiro e pós-montagem) precisam estar no estágio final.
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </ScrollArea>
           ) : null}
         </SheetContent>
