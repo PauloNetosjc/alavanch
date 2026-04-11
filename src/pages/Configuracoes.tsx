@@ -713,6 +713,48 @@ export default function Configuracoes() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ─── Pipelines ─── */}
+        <TabsContent value="pipelines">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Estágios dos Pipelines</h2>
+              <Button onClick={() => openPipeForm()}><Plus className="h-4 w-4 mr-2" />Novo Estágio</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Configure os estágios de cada pipeline/departamento. Eles serão usados nos Kanbans e na Visão 360° dos pedidos.</p>
+            {PIPELINE_TYPES.map(pt => {
+              const ptStages = pipelineStages.filter(s => s.pipeline_type === pt.value && s.active !== false);
+              return (
+                <Card key={pt.value} className="border-border/60">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <GitBranch className="h-4 w-4 text-primary" />{pt.label}
+                      <Badge variant="secondary" className="text-[10px]">{ptStages.length} estágios</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {ptStages.length === 0 && <p className="text-xs text-muted-foreground py-2 text-center">Nenhum estágio</p>}
+                    {ptStages.map(s => (
+                      <div key={s.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
+                          <span className="font-medium">{s.name}</span>
+                          <span className="text-[10px] text-muted-foreground">#{s.display_order}</span>
+                          {s.is_initial && <Badge variant="outline" className="text-[9px] h-4">Inicial</Badge>}
+                          {s.is_final && <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-600">Final</Badge>}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openPipeForm(s)}><Pencil className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deletePipe(s.id)}><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ─── Dialogs ─── */}
