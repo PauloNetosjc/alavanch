@@ -271,6 +271,106 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     }
   };
 
+  // ─── Contract CRUD ───
+  const openNewContract = (templateId?: string) => {
+    setEditingContract(null);
+    const tpl = templateId ? contractTemplates.find(t => t.id === templateId) : null;
+    let content = tpl?.content ?? '';
+    if (selectedOrder && content) {
+      content = content
+        .replace(/\{\{cliente\}\}/gi, selectedOrder.clients?.name ?? '')
+        .replace(/\{\{cpf\}\}/gi, selectedOrder.clients?.cpf ?? '')
+        .replace(/\{\{valor\}\}/gi, `R$ ${(selectedOrder.final_value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+        .replace(/\{\{data\}\}/gi, selectedOrder.order_date ? new Date(selectedOrder.order_date + 'T00:00').toLocaleDateString('pt-BR') : '')
+        .replace(/\{\{codigo\}\}/gi, selectedOrder.code)
+        .replace(/\{\{endereco\}\}/gi, selectedOrder.clients?.delivery_address ?? '');
+    }
+    setContractContent(content);
+    setContractNotes('');
+    setContractFooter('');
+    setContractFormOpen(true);
+    setViewingContract(null);
+  };
+
+  const openEditContract = (c: DbTables<'contracts'>) => {
+    setEditingContract(c);
+    setContractContent(c.content ?? '');
+    setContractNotes(c.notes ?? '');
+    setContractFooter(c.footer_notes ?? '');
+    setContractFormOpen(true);
+    setViewingContract(null);
+  };
+
+  const saveContract = async () => {
+    if (!selectedOrder) return;
+    setContractSaving(true);
+    if (editingContract) {
+      const { error } = await supabase.from('contracts').update({
+        content: contractContent, notes: contractNotes, footer_notes: contractFooter,
+      } as any).eq('id', editingContract.id);
+      if (error) toast.error('Erro ao atualizar contrato');
+      else {
+        toast.success('Contrato atualizado');
+        await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_updated', description: `Contrato v${editingContract.version} atualizado`, metadata: { pipeline: 'contrato' } });
+      }
+    } else {
+      const nextVersion = contracts.length > 0 ? Math.max(...contracts.map(c => c.version ?? 1)) + 1 : 1;
+      const { error } = await supabase.from('contracts').insert({
+        order_id: selectedOrder.id, store_id: selectedOrder.store_id, version: nextVersion,
+        content: contractContent, notes: contractNotes, footer_notes: contractFooter, status: 'rascunho',
+      });
+      if (error) toast.error('Erro ao criar contrato');
+      else {
+        toast.success('Contrato criado');
+        await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_created', description: `Contrato v${nextVersion} criado`, metadata: { pipeline: 'contrato' } });
+      }
+    }
+    setContractSaving(false);
+    setContractFormOpen(false);
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const updateContractStatus = async (contract: DbTables<'contracts'>, newStatus: string) => {
+    if (!selectedOrder) return;
+    const updates: Record<string, any> = { status: newStatus };
+    if (newStatus === 'enviado') updates.sent_at = new Date().toISOString();
+    if (newStatus === 'assinado') updates.signed_at = new Date().toISOString();
+    const { error } = await supabase.from('contracts').update(updates).eq('id', contract.id);
+    if (error) { toast.error('Erro ao atualizar status'); return; }
+    toast.success(`Status: ${newStatus}`);
+    await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_status_changed', description: `Contrato v${contract.version}: ${contract.status} → ${newStatus}`, metadata: { pipeline: 'contrato' } });
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const generateSignatureLink = async (contract: DbTables<'contracts'>) => {
+    const link = `${window.location.origin}/assinar/${contract.id}`;
+    const { error } = await supabase.from('contracts').update({ signature_link: link } as any).eq('id', contract.id);
+    if (error) { toast.error('Erro ao gerar link'); return; }
+    navigator.clipboard.writeText(link);
+    toast.success('Link copiado!');
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder!.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const sendContractByEmail = (contract: DbTables<'contracts'>) => {
+    if (!selectedOrder?.clients?.email) { toast.error('Cliente sem e-mail cadastrado'); return; }
+    const subject = encodeURIComponent(`Contrato - Pedido ${selectedOrder.code}`);
+    const body = encodeURIComponent(`Olá ${selectedOrder.clients.name},\n\nSegue o contrato referente ao pedido ${selectedOrder.code}.\n\n${contract.signature_link ? `Link para assinatura: ${contract.signature_link}` : ''}\n\nAtenciosamente.`);
+    window.open(`mailto:${selectedOrder.clients.email}?subject=${subject}&body=${body}`);
+  };
+
+  const deleteContract = async (contract: DbTables<'contracts'>) => {
+    if (!selectedOrder || !confirm('Excluir este contrato?')) return;
+    const { error } = await supabase.from('contracts').delete().eq('id', contract.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Contrato excluído');
+    await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_deleted', description: `Contrato v${contract.version} excluído`, metadata: { pipeline: 'contrato' } });
+    setContracts(prev => prev.filter(c => c.id !== contract.id));
+    if (viewingContract?.id === contract.id) setViewingContract(null);
+  };
+
   const fmt = (v: number | null | undefined) =>
     v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
