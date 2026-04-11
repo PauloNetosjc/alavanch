@@ -63,6 +63,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   const [userRole, setUserRole] = useState<string | null>(null);
   const [discountBlocked, setDiscountBlocked] = useState(false);
   const [discountWarning, setDiscountWarning] = useState<string | null>(null);
+  const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
 
   // Load approval rules and user role
   useEffect(() => {
@@ -113,8 +114,7 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
     }
   }, [open, quote]);
 
-  // Track which discount field was last edited
-  const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+  // (lastDiscountEdit already declared above)
 
   // Recalculate final value whenever inputs change
   useEffect(() => {
