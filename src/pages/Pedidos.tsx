@@ -125,7 +125,12 @@ export default function Pedidos() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    // Fetch pipeline stages
+    supabase.from('pipeline_stages').select('*').eq('active', true).order('display_order')
+      .then(({ data }) => setPipelineStages((data as PipelineStage[]) ?? []));
+  }, []);
 
   const openDetail = async (order: OrderWithRelations) => {
     setSelectedOrder(order);
