@@ -23,7 +23,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Eye, FileText, CheckSquare, Wrench,
+  Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
   Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
@@ -49,9 +49,11 @@ interface PipelineStage {
   is_final: boolean;
 }
 
-const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status'> = {
+const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'production_status' | 'delivery_status'> = {
   contrato: 'contract_status',
   revisao: 'revision_status',
+  producao: 'production_status',
+  entrega: 'delivery_status',
   montagem: 'assembly_status',
   financeiro: 'financial_status',
   pos_montagem: 'post_assembly_status',
@@ -60,6 +62,8 @@ const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'a
 const PIPELINE_ICONS: Record<string, React.ReactNode> = {
   contrato: <FileText className="h-4 w-4" />,
   revisao: <CheckSquare className="h-4 w-4" />,
+  producao: <Factory className="h-4 w-4" />,
+  entrega: <Truck className="h-4 w-4" />,
   montagem: <Wrench className="h-4 w-4" />,
   financeiro: <DollarSign className="h-4 w-4" />,
   pos_montagem: <Wrench className="h-4 w-4" />,
@@ -68,6 +72,8 @@ const PIPELINE_ICONS: Record<string, React.ReactNode> = {
 const PIPELINE_LABELS: Record<string, string> = {
   contrato: 'Contrato',
   revisao: 'Revisão',
+  producao: 'Produção',
+  entrega: 'Entrega',
   montagem: 'Montagem',
   financeiro: 'Financeiro',
   pos_montagem: 'Pós-montagem',
@@ -82,6 +88,8 @@ const OCCURRENCE_STATUS_OPTIONS = [
 const TAB_PIPELINE_MAP: Record<string, string[]> = {
   contrato: ['contrato', 'contract_status'],
   revisao: ['revisao', 'revision_status'],
+  producao: ['producao', 'production_status'],
+  entrega: ['entrega', 'delivery_status'],
   montagem: ['montagem', 'assembly_status'],
   financeiro: ['financeiro', 'financial_status'],
   'pos-montagem': ['pos_montagem', 'post_assembly_status'],
@@ -192,7 +200,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     }
   }, [open, orderId, loadDetail]);
 
-  const handleStatusChange = async (field: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'occurrence_status', value: string) => {
+  const handleStatusChange = async (field: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'production_status' | 'delivery_status' | 'occurrence_status', value: string) => {
     if (!selectedOrder || !isAdmin) return;
     const prev = selectedOrder[field];
     setSelectedOrder({ ...selectedOrder, [field]: value } as OrderWithRelations);

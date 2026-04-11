@@ -15,6 +15,8 @@ import Revisao from "@/pages/Revisao";
 import Financeiro from "@/pages/Financeiro";
 import FinanceiroKanban from "@/pages/FinanceiroKanban";
 import Montagem from "@/pages/Montagem";
+import Entrega from "@/pages/Entrega";
+import AcompanhamentoProd from "@/pages/AcompanhamentoProd";
 import PosMontagem from "@/pages/PosMontagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Relatorios from "@/pages/Relatorios";
@@ -65,6 +67,8 @@ const App = () => (
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/contratos" element={<Contratos />} />
               <Route path="/revisao" element={<Revisao />} />
+              <Route path="/acompanhamento-producao" element={<AcompanhamentoProd />} />
+              <Route path="/entrega" element={<Entrega />} />
               <Route path="/financeiro" element={<FinanceiroKanban />} />
               <Route path="/montagem" element={<Montagem />} />
               <Route path="/pos-montagem" element={<PosMontagem />} />

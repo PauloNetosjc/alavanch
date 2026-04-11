@@ -38,7 +38,7 @@ interface OrderCard {
 
 interface DepartmentKanbanProps {
   pipelineType: string;
-  statusField: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status';
+  statusField: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status' | 'production_status' | 'delivery_status';
   title: string;
   subtitle: string;
 }
