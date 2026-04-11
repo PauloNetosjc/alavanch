@@ -190,7 +190,7 @@ export default function Configuracoes() {
 
   useEffect(() => {
     fetchStores(); fetchProfiles(); fetchUserRoles(); fetchAccounts(); fetchCategories();
-    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules(); fetchPipelines();
+    fetchTags(); fetchOrigins(); fetchPayments(); fetchTemplates(); fetchRules(); fetchPipelines(); fetchClientsList();
   }, []);
 
   const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
