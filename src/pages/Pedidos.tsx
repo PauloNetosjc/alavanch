@@ -21,7 +21,7 @@ import {
   Search, ShoppingCart, Eye, FileText, CheckSquare, Wrench,
   DollarSign, AlertTriangle, Calendar, User, Store, CreditCard, Loader2,
   Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
-  Phone, Mail, MapPin, Hash, ArrowRightLeft, Info,
+  Phone, Mail, MapPin, Hash, ArrowRightLeft, Info, Trash2,
 } from 'lucide-react';
 import { maskPhone, maskCpf } from '@/lib/masks';
 import { DateRangeFilter } from '@/components/ui/date-range-filter';
@@ -307,11 +307,23 @@ export default function Pedidos() {
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent className="w-full sm:max-w-3xl p-0 flex flex-col">
           <SheetHeader className="px-6 pt-6 pb-3">
-            <SheetTitle className="font-display flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              {selectedOrder?.code ?? 'Pedido'}
-              <span className="text-sm font-normal text-muted-foreground ml-2">Visão 360°</span>
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="font-display flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                {selectedOrder?.code ?? 'Pedido'}
+                <span className="text-sm font-normal text-muted-foreground ml-2">Visão 360°</span>
+              </SheetTitle>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={async () => {
+                if (!selectedOrder || !confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) return;
+                const { error } = await supabase.from('orders').delete().eq('id', selectedOrder.id);
+                if (error) { toast.error('Erro ao excluir pedido'); return; }
+                toast.success('Pedido excluído');
+                setDetailOpen(false);
+                fetchOrders();
+              }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </SheetHeader>
 
           {detailLoading ? (
