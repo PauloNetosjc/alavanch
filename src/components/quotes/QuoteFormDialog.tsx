@@ -46,6 +46,7 @@ import { Loader2, Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { maskPhone } from '@/lib/masks';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
+import { TagSelector } from '@/components/ui/tag-selector';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
