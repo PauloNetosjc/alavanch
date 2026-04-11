@@ -10,7 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Clientes from "@/pages/Clientes";
 import Orcamentos from "@/pages/Orcamentos";
 import Pedidos from "@/pages/Pedidos";
-import Contratos from "@/pages/Contratos";
+
 import Revisao from "@/pages/Revisao";
 import Financeiro from "@/pages/Financeiro";
 import FinanceiroKanban from "@/pages/FinanceiroKanban";
@@ -65,7 +65,7 @@ const App = () => (
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/orcamentos" element={<Orcamentos />} />
               <Route path="/pedidos" element={<Pedidos />} />
-              <Route path="/contratos" element={<Contratos />} />
+              
               <Route path="/revisao" element={<Revisao />} />
               <Route path="/acompanhamento-producao" element={<AcompanhamentoProd />} />
               <Route path="/entrega" element={<Entrega />} />
