@@ -807,11 +807,11 @@ export default function Configuracoes() {
         </div>
       </CrudDialog>
 
-      {/* User creation dialog */}
-      <CrudDialog open={userOpen} onClose={() => setUserOpen(false)} title="Novo Usuário" onSave={saveUser} saving={userSaving}>
-        <div><Label>Nome completo *</Label><Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} /></div>
-        <div><Label>E-mail *</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} /></div>
-        <div><Label>Senha *</Label><Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 6 caracteres" /></div>
+      {/* User creation/editing dialog */}
+      <CrudDialog open={userOpen} onClose={() => { setUserOpen(false); setEditUserId(null); }} title={editUserId ? 'Editar Usuário' : 'Novo Usuário'} onSave={saveUser} saving={userSaving}>
+        <div><Label>Nome completo {!editUserId && '*'}</Label><Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} /></div>
+        <div><Label>E-mail {!editUserId && '*'}</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder={editUserId ? 'Deixe em branco para manter o atual' : ''} /></div>
+        <div><Label>Senha {!editUserId && '*'}</Label><Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder={editUserId ? 'Deixe em branco para manter a atual' : 'Mínimo 6 caracteres'} /></div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Cargo</Label>
