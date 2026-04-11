@@ -78,6 +78,7 @@ export default function Configuracoes() {
   const [userOpen, setUserOpen] = useState(false);
   const [userSaving, setUserSaving] = useState(false);
   const [userForm, setUserForm] = useState({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+  const [editUserId, setEditUserId] = useState<string | null>(null);
   // Role edit
   const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
   const [roleEditValue, setRoleEditValue] = useState('');
@@ -188,33 +189,77 @@ export default function Configuracoes() {
     setStoreOpen(false); fetchStores();
   };
 
-  // ─── User creation ───
+  // ─── User creation / editing ───
+  const openUserForm = (profile?: Profile) => {
+    if (profile) {
+      setEditUserId(profile.user_id);
+      setUserForm({
+        email: '', // Can't retrieve email from profile, user fills if changing
+        password: '',
+        full_name: profile.full_name ?? '',
+        role: userRoles[profile.user_id] ?? 'atendente',
+        store_id: profile.store_id ?? '',
+      });
+    } else {
+      setEditUserId(null);
+      setUserForm({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
+    }
+    setUserOpen(true);
+  };
+
   const saveUser = async () => {
-    if (!userForm.email || !userForm.password || !userForm.full_name) { toast.error('Preencha todos os campos obrigatórios'); return; }
-    if (userForm.password.length < 6) { toast.error('Senha deve ter no mínimo 6 caracteres'); return; }
     setUserSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await supabase.functions.invoke('create-user', {
-        body: {
-          email: userForm.email,
-          password: userForm.password,
-          full_name: userForm.full_name,
-          role: userForm.role,
-          store_id: userForm.store_id || null,
-        },
-      });
-      if (resp.error || resp.data?.error) {
-        toast.error(resp.data?.error || 'Erro ao criar usuário');
-        setUserSaving(false);
-        return;
+      if (editUserId) {
+        // Update existing user via edge function
+        const body: Record<string, unknown> = { user_id: editUserId };
+        if (userForm.full_name) body.full_name = userForm.full_name;
+        if (userForm.email) body.email = userForm.email;
+        if (userForm.password) body.password = userForm.password;
+        if (userForm.role) body.role = userForm.role;
+        body.store_id = userForm.store_id || null;
+
+        const resp = await supabase.functions.invoke('update-user', { body });
+        if (resp.error || resp.data?.error) {
+          toast.error(resp.data?.error || 'Erro ao atualizar usuário');
+          setUserSaving(false);
+          return;
+        }
+        toast.success('Usuário atualizado com sucesso');
+      } else {
+        // Create new user
+        if (!userForm.email || !userForm.password || !userForm.full_name) {
+          toast.error('Preencha todos os campos obrigatórios');
+          setUserSaving(false);
+          return;
+        }
+        if (userForm.password.length < 6) {
+          toast.error('Senha deve ter no mínimo 6 caracteres');
+          setUserSaving(false);
+          return;
+        }
+        const resp = await supabase.functions.invoke('create-user', {
+          body: {
+            email: userForm.email,
+            password: userForm.password,
+            full_name: userForm.full_name,
+            role: userForm.role,
+            store_id: userForm.store_id || null,
+          },
+        });
+        if (resp.error || resp.data?.error) {
+          toast.error(resp.data?.error || 'Erro ao criar usuário');
+          setUserSaving(false);
+          return;
+        }
+        toast.success('Usuário criado com sucesso');
       }
-      toast.success('Usuário criado com sucesso');
       setUserOpen(false);
+      setEditUserId(null);
       setUserForm({ email: '', password: '', full_name: '', role: 'atendente', store_id: '' });
       fetchProfiles(); fetchUserRoles();
     } catch (e: any) {
-      toast.error(e.message || 'Erro ao criar usuário');
+      toast.error(e.message || 'Erro ao salvar usuário');
     }
     setUserSaving(false);
   };
