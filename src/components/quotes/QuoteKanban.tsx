@@ -123,9 +123,75 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
     setDraggedId(null);
     const quote = quotes.find(q => q.id === draggedId);
     if (!quote || quote.status === colId) return;
+
+    // Auto-convert to order when moving to "fechado"
+    if (colId === 'fechado') {
+      await convertQuoteToOrder(quote);
+      return;
+    }
+
     setQuotes(prev => prev.map(q => q.id === draggedId ? { ...q, status: colId } : q));
     const { error } = await supabase.from('quotes').update({ status: colId }).eq('id', draggedId);
     if (error) setQuotes(prev => prev.map(q => q.id === draggedId ? { ...q, status: quote.status } : q));
+  };
+
+  const convertQuoteToOrder = async (quote: QuoteWithClient) => {
+    if (!quote.final_value || quote.final_value <= 0) {
+      toast.error('Defina valores na calculadora antes de converter para pedido');
+      return;
+    }
+    try {
+      // Load installments for snapshot
+      const { data: instData } = await supabase.from('quote_installments').select('*').eq('quote_id', quote.id).order('number');
+
+      const year = new Date().getFullYear();
+      const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).ilike('code', `PED-${year}%`);
+      const num = (count ?? 0) + 1;
+      const orderCode = `PED-${year}-${String(num).padStart(4, '0')}`;
+
+      const snapshot = {
+        quote_code: quote.code,
+        quote_id: quote.id,
+        total_value: quote.total_value,
+        discount_percent: quote.discount_percent,
+        discount_value: quote.discount_value,
+        interest_percent: quote.interest_percent,
+        surcharge: quote.surcharge,
+        final_value: quote.final_value,
+        urgency: quote.urgency,
+        origin: quote.origin,
+        installments: (instData ?? []).map(i => ({ number: i.number, value: i.value, due_date: i.due_date, payment_method: i.payment_method })),
+        converted_at: new Date().toISOString(),
+      };
+
+      const { data: initialStages } = await supabase.from('pipeline_stages').select('pipeline_type, name').eq('is_initial', true).eq('active', true);
+      const getInitial = (pt: string) => initialStages?.find(s => s.pipeline_type === pt)?.name ?? 'pendente';
+
+      const { error } = await supabase.from('orders').insert({
+        code: orderCode,
+        client_id: quote.client_id!,
+        quote_id: quote.id,
+        store_id: quote.store_id,
+        seller_id: quote.seller_id,
+        total_value: quote.total_value,
+        discount_percent: quote.discount_percent,
+        discount_value: quote.discount_value,
+        final_value: quote.final_value,
+        snapshot,
+        contract_status: getInitial('contrato'),
+        revision_status: getInitial('revisao'),
+        assembly_status: getInitial('montagem'),
+        financial_status: getInitial('financeiro'),
+        post_assembly_status: getInitial('pos_montagem'),
+      });
+      if (error) throw error;
+
+      await supabase.from('quotes').update({ status: 'fechado' }).eq('id', quote.id);
+      setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: 'fechado' } : q));
+      toast.success(`Pedido ${orderCode} criado com sucesso!`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao converter orçamento em pedido');
+    }
   };
 
   const clearFilters = () => {
