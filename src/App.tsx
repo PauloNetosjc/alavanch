@@ -64,11 +64,12 @@ const App = () => (
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/contratos" element={<Contratos />} />
               <Route path="/revisao" element={<Revisao />} />
-              <Route path="/financeiro" element={<Financeiro />} />
+              <Route path="/financeiro" element={<FinanceiroKanban />} />
               <Route path="/montagem" element={<Montagem />} />
               <Route path="/pos-montagem" element={<PosMontagem />} />
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/administracao" element={<Configuracoes />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
