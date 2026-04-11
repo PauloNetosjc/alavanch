@@ -142,6 +142,25 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
       toast.error('Defina valores na calculadora antes de converter para pedido');
       return;
     }
+
+    // Validate discount rules before allowing order creation
+    const effectiveDiscount = Number(quote.discount_percent ?? 0);
+    if (effectiveDiscount > 0) {
+      const { data: rules } = await supabase.from('approval_rules').select('*').eq('active', true);
+      if (rules && rules.length > 0) {
+        const { data: userRoles } = await supabase.from('user_roles').select('role').eq('user_id', user?.id ?? '');
+        const currentRole = userRoles?.[0]?.role ?? '';
+
+        const violated = rules.find(r => r.max_percent != null && effectiveDiscount > Number(r.max_percent));
+        if (violated) {
+          const isApprover = currentRole === violated.approver_role || currentRole === 'admin' || currentRole === 'diretoria';
+          if (!isApprover) {
+            toast.error(`Desconto de ${effectiveDiscount.toFixed(1)}% excede o limite de ${violated.max_percent}%. Não é possível criar o pedido sem aprovação.`);
+            return;
+          }
+        }
+      }
+    }
     try {
       // Load installments for snapshot
       const { data: instData } = await supabase.from('quote_installments').select('*').eq('quote_id', quote.id).order('number');
