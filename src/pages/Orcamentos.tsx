@@ -61,7 +61,10 @@ export default function Orcamentos() {
   const fmt = (v: number | null) =>
     v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
 
+  const ARCHIVED_Q = ['declinado', 'arquivado'];
   const filteredList = listQuotes.filter(q => {
+    // Hide archived/declined from this page
+    if (ARCHIVED_Q.includes(q.status)) return false;
     if (search.trim()) {
       const s = search.toLowerCase();
       if (!(q.code.toLowerCase().includes(s) || q.clients?.name?.toLowerCase().includes(s) || q.clients?.phone?.includes(s))) return false;
