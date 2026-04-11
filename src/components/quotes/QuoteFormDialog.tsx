@@ -149,6 +149,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             expiry_date: data.expiry_date || null,
             urgency: data.urgency || 'normal',
             notes: data.notes || null,
+            tags: selectedTags.length > 0 ? selectedTags : null,
           })
           .eq('id', editQuote.id);
         if (error) throw error;
@@ -169,6 +170,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             urgency: data.urgency || 'normal',
             notes: data.notes || null,
             status: 'novo_lead',
+            tags: selectedTags.length > 0 ? selectedTags : null,
           });
         if (error) throw error;
         toast.success('Orçamento criado');
