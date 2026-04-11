@@ -519,7 +519,7 @@ export default function Configuracoes() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Usuários e Perfis</h2>
-              <Button onClick={() => setUserOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
+              <Button onClick={() => openUserForm()}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
             </div>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
@@ -533,26 +533,11 @@ export default function Configuracoes() {
                       <TableCell className="font-medium">{p.full_name ?? '—'}</TableCell>
                       <TableCell>{stores.find(s => s.id === p.store_id)?.name ?? '—'}</TableCell>
                       <TableCell>
-                        {roleEditUserId === p.user_id ? (
-                          <div className="flex items-center gap-2">
-                            <Select value={roleEditValue} onValueChange={setRoleEditValue}>
-                              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" className="h-7 text-xs" onClick={saveRoleEdit} disabled={roleEditSaving}>OK</Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setRoleEditUserId(null)}>✕</Button>
-                          </div>
-                        ) : (
-                          <Badge variant="outline">{ROLE_LABELS[userRoles[p.user_id]] ?? userRoles[p.user_id] ?? 'Sem cargo'}</Badge>
-                        )}
+                        <Badge variant="outline">{ROLE_LABELS[userRoles[p.user_id]] ?? userRoles[p.user_id] ?? 'Sem cargo'}</Badge>
                       </TableCell>
                       <TableCell>{fmtDate(p.created_at)}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => { setRoleEditUserId(p.user_id); setRoleEditValue(userRoles[p.user_id] ?? 'atendente'); }}>
+                        <Button size="sm" variant="ghost" onClick={() => openUserForm(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
