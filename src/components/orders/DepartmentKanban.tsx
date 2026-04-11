@@ -116,7 +116,7 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
       {stages.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <p className="text-sm">Nenhum estágio configurado para este pipeline.</p>
-          <p className="text-xs mt-1">Vá em Configurações → Pipelines para criar os estágios.</p>
+          <p className="text-xs mt-1">Vá em Administração → Pipelines para criar os estágios.</p>
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
