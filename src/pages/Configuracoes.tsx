@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -943,6 +944,27 @@ export default function Configuracoes() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div>
+          <Label className="mb-2 block">Cargos afetados (vazio = todos)</Label>
+          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            {Object.entries(ROLE_LABELS).map(([k, v]) => (
+              <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={ruleForm.affected_roles.includes(k)}
+                  onCheckedChange={(checked) => {
+                    setRuleForm(f => ({
+                      ...f,
+                      affected_roles: checked
+                        ? [...f.affected_roles, k]
+                        : f.affected_roles.filter(r => r !== k)
+                    }));
+                  }}
+                />
+                {v}
+              </label>
+            ))}
+          </div>
         </div>
         <div><Label>Descrição</Label><Input value={ruleForm.description} onChange={e => setRuleForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Desconto acima de 10% precisa de aprovação" /></div>
       </CrudDialog>
