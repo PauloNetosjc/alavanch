@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Search, Users, Eye, Pencil, Loader2 } from 'lucide-react';
+import { Plus, Search, Users, Eye, Pencil, Loader2, Trash2 } from 'lucide-react';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables } from '@/integrations/supabase/types';
@@ -162,6 +163,21 @@ export default function Clientes() {
                             onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+                              const { error } = await supabase.from('clients').delete().eq('id', client.id);
+                              if (error) { toast.error('Erro ao excluir cliente'); return; }
+                              toast.success('Cliente excluído');
+                              fetchClients();
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>

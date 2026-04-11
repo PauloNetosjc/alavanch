@@ -25,7 +25,7 @@ const menuItems = [
   { title: 'Pós-montagem', url: '/pos-montagem', icon: PackageCheck },
   { title: 'Ocorrências', url: '/ocorrencias', icon: AlertTriangle },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-  { title: 'Configurações', url: '/configuracoes', icon: Settings },
+  { title: 'Administração', url: '/administracao', icon: Settings },
 ];
 
 export function AppSidebar() {
