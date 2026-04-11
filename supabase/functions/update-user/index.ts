@@ -20,14 +20,21 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Verify caller is admin
-    const authHeader = req.headers.get("Authorization")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", caller.id).eq("role", "admin").maybeSingle();
+    // Decode JWT to get caller ID without server round-trip
+    const token = authHeader.replace("Bearer ", "");
+    let callerId: string;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      callerId = payload.sub;
+      if (!callerId) throw new Error("no sub");
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", callerId).eq("role", "admin").maybeSingle();
     if (!roleCheck) return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: corsHeaders });
 
     const { user_id, email, password, full_name, role, store_id } = await req.json();
