@@ -433,6 +433,8 @@ export default function Configuracoes() {
   const PIPELINE_TYPES = [
     { value: 'contrato', label: 'Contrato' },
     { value: 'revisao', label: 'Revisão' },
+    { value: 'producao', label: 'Produção' },
+    { value: 'entrega', label: 'Entrega' },
     { value: 'montagem', label: 'Montagem' },
     { value: 'financeiro', label: 'Financeiro' },
     { value: 'pos_montagem', label: 'Pós-montagem' },
