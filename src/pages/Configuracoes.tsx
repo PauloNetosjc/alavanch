@@ -757,6 +757,11 @@ export default function Configuracoes() {
             })}
           </div>
         </TabsContent>
+
+        {/* ─── Financeiro ─── */}
+        <TabsContent value="financeiro">
+          <Financeiro />
+        </TabsContent>
       </Tabs>
 
       {/* ─── Dialogs ─── */}
