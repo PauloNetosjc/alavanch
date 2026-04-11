@@ -95,6 +95,26 @@ export default function Pedidos() {
   const [importTargetEnvId, setImportTargetEnvId] = useState<string | null>(null);
   const [expandedEnv, setExpandedEnv] = useState<string | null>(null);
 
+  // Dynamic pipeline stages
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+
+  const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
+  const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
+  const stageColor = (type: string, value: string | null) => {
+    const stage = stagesForPipeline(type).find(s => s.name === value);
+    return stage?.color ?? '#6b7280';
+  };
+
+  const getStatusBadge = (status: string | null, pipelineType?: string) => {
+    if (!status) return <Badge variant="outline" className="text-[10px]">—</Badge>;
+    const color = pipelineType ? stageColor(pipelineType, status) : '#6b7280';
+    return (
+      <Badge variant="outline" className="text-[10px]" style={{ backgroundColor: color + '20', color: color, borderColor: color + '40' }}>
+        {status}
+      </Badge>
+    );
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     const { data } = await supabase
