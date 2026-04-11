@@ -75,6 +75,7 @@ const OCCURRENCE_STATUS_OPTIONS = [
 ];
 
 export default function Pedidos() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
