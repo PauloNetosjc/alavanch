@@ -127,7 +127,7 @@ export default function Configuracoes() {
 
   // Approval rules
   const [rules, setRules] = useState<any[]>([]);
-  const [ruleForm, setRuleForm] = useState({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '' });
+  const [ruleForm, setRuleForm] = useState({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '', affected_roles: [] as string[] });
   const [ruleOpen, setRuleOpen] = useState(false);
   const [editRule, setEditRule] = useState<any>(null);
   const [ruleSaving, setRuleSaving] = useState(false);
@@ -412,13 +412,13 @@ export default function Configuracoes() {
 
   // ─── Rule handlers ───
   const openRuleForm = (r?: any) => {
-    if (r) { setEditRule(r); setRuleForm({ rule_type: r.rule_type, max_percent: String(r.max_percent ?? ''), approver_role: r.approver_role, description: r.description ?? '' }); }
-    else { setEditRule(null); setRuleForm({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '' }); }
+    if (r) { setEditRule(r); setRuleForm({ rule_type: r.rule_type, max_percent: String(r.max_percent ?? ''), approver_role: r.approver_role, description: r.description ?? '', affected_roles: r.affected_roles ?? [] }); }
+    else { setEditRule(null); setRuleForm({ rule_type: 'desconto', max_percent: '', approver_role: 'gerente_loja', description: '', affected_roles: [] }); }
     setRuleOpen(true);
   };
   const saveRule = async () => {
     setRuleSaving(true);
-    const payload = { rule_type: ruleForm.rule_type, max_percent: parseFloat(ruleForm.max_percent) || 0, approver_role: ruleForm.approver_role, description: ruleForm.description || null };
+    const payload = { rule_type: ruleForm.rule_type, max_percent: parseFloat(ruleForm.max_percent) || 0, approver_role: ruleForm.approver_role, description: ruleForm.description || null, affected_roles: ruleForm.affected_roles };
     const { error } = editRule
       ? await supabase.from('approval_rules').update(payload).eq('id', editRule.id)
       : await supabase.from('approval_rules').insert(payload);
@@ -727,15 +727,16 @@ export default function Configuracoes() {
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader><TableRow className="bg-muted/50">
-                  <TableHead>Tipo</TableHead><TableHead>Limite %</TableHead><TableHead>Aprovador</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Tipo</TableHead><TableHead>Limite %</TableHead><TableHead>Aprovador</TableHead><TableHead>Cargos afetados</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {rules.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma regra</TableCell></TableRow>}
+                  {rules.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma regra</TableCell></TableRow>}
                   {rules.map(r => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium capitalize">{r.rule_type}</TableCell>
                       <TableCell>{r.max_percent}%</TableCell>
                       <TableCell><Badge variant="outline">{ROLE_LABELS[r.approver_role] ?? r.approver_role}</Badge></TableCell>
+                      <TableCell className="flex flex-wrap gap-1">{(r.affected_roles?.length > 0) ? r.affected_roles.map((ar: string) => <Badge key={ar} variant="secondary" className="text-[10px]">{ROLE_LABELS[ar] ?? ar}</Badge>) : <span className="text-muted-foreground text-xs">Todos</span>}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.description ?? '—'}</TableCell>
                       <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openRuleForm(r)}><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
                     </TableRow>
