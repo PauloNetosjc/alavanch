@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,11 @@ import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
   Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2, DollarSign,
+  Eye, Search, Loader2,
 } from 'lucide-react';
 import Financeiro from '@/pages/Financeiro';
+import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
+import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type BankAccount = DBTables<'bank_accounts'>;
