@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_rules: {
+        Row: {
+          active: boolean | null
+          approver_role: string
+          created_at: string
+          description: string | null
+          id: string
+          max_percent: number | null
+          rule_type: string
+        }
+        Insert: {
+          active?: boolean | null
+          approver_role?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_percent?: number | null
+          rule_type?: string
+        }
+        Update: {
+          active?: boolean | null
+          approver_role?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_percent?: number | null
+          rule_type?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
@@ -135,6 +165,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clients_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_templates: {
+        Row: {
+          active: boolean | null
+          content: string | null
+          created_at: string
+          id: string
+          name: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -588,6 +656,48 @@ export type Database = {
           },
         ]
       }
+      origins_config: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -897,6 +1007,33 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tags_config: {
+        Row: {
+          active: boolean | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+        }
+        Update: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
         }
         Relationships: []
       }
