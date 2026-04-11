@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { maskPhone } from '@/lib/masks';
-import type { Tables } from '@/integrations/supabase/types';
+import { Plus, Settings2, Trash2, GripVertical } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PipelineStage {
   id: string;
@@ -12,6 +19,7 @@ interface PipelineStage {
   is_initial: boolean;
   is_final: boolean;
   active: boolean;
+  pipeline_type: string;
 }
 
 interface OrderCard {
@@ -20,22 +28,38 @@ interface OrderCard {
   client_name: string;
   client_phone: string | null;
   final_value: number | null;
-  status: string; // The current stage name for this pipeline
+  status: string;
   order_date: string;
 }
 
 interface DepartmentKanbanProps {
-  pipelineType: string; // 'contrato', 'revisao', 'montagem', 'financeiro', 'pos_montagem'
+  pipelineType: string;
   statusField: 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status';
   title: string;
   subtitle: string;
 }
 
 export function DepartmentKanban({ pipelineType, statusField, title, subtitle }: DepartmentKanbanProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [orders, setOrders] = useState<OrderCard[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Admin stage management
+  const [stageDialogOpen, setStageDialogOpen] = useState(false);
+  const [editingStage, setEditingStage] = useState<PipelineStage | null>(null);
+  const [stageForm, setStageForm] = useState({ name: '', display_order: '', color: '#6b7280', is_initial: false, is_final: false });
+  const [stageSaving, setStageSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin')
+        .then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
+    }
+  }, [user]);
 
   const fetchStages = useCallback(async () => {
     const { data } = await supabase
@@ -67,11 +91,8 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
 
   useEffect(() => { fetchStages(); fetchOrders(); }, [fetchStages, fetchOrders]);
 
-  // Map old status values to stage names for backward compat
   const resolveStatus = (status: string) => {
-    // If status matches a stage name exactly, use it
     if (stages.find(s => s.name.toLowerCase() === status.toLowerCase())) return status;
-    // Map legacy values
     const legacyMap: Record<string, string> = {
       'pendente': stages.find(s => s.is_initial)?.name ?? stages[0]?.name ?? 'Pendente',
       'em_andamento': stages.find(s => !s.is_initial && !s.is_final)?.name ?? stages[1]?.name ?? 'Em andamento',
@@ -87,18 +108,13 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
     if (!draggedId) return;
     setDragOverCol(null);
     setDraggedId(null);
-
     const order = orders.find(o => o.id === draggedId);
     if (!order || resolveStatus(order.status) === stageName) return;
-
-    // Optimistic update
     setOrders(prev => prev.map(o => o.id === draggedId ? { ...o, status: stageName } : o));
-
     const updateObj: Record<string, string> = {};
     updateObj[statusField] = stageName;
     const { error } = await supabase.from('orders').update(updateObj as any).eq('id', draggedId);
     if (error) {
-      // Rollback
       setOrders(prev => prev.map(o => o.id === draggedId ? { ...o, status: order.status } : o));
     }
   };
@@ -106,17 +122,101 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const formatCurrency = (v: number | null) =>
     v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '';
 
+  const openCardDetail = (orderId: string) => {
+    navigate(`/pedidos?order=${orderId}`);
+  };
+
+  // ─── Admin stage CRUD ───
+  const openNewStage = () => {
+    setEditingStage(null);
+    const maxOrder = stages.length > 0 ? Math.max(...stages.map(s => s.display_order)) + 1 : 0;
+    setStageForm({ name: '', display_order: String(maxOrder), color: '#6b7280', is_initial: false, is_final: false });
+    setStageDialogOpen(true);
+  };
+
+  const openEditStage = (stage: PipelineStage) => {
+    setEditingStage(stage);
+    setStageForm({
+      name: stage.name,
+      display_order: String(stage.display_order),
+      color: stage.color,
+      is_initial: stage.is_initial,
+      is_final: stage.is_final,
+    });
+    setStageDialogOpen(true);
+  };
+
+  const saveStage = async () => {
+    if (!stageForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setStageSaving(true);
+    const payload = {
+      pipeline_type: pipelineType,
+      name: stageForm.name.trim(),
+      display_order: parseInt(stageForm.display_order) || 0,
+      color: stageForm.color,
+      is_initial: stageForm.is_initial,
+      is_final: stageForm.is_final,
+      active: true,
+    };
+
+    const oldName = editingStage?.name;
+    const { error } = editingStage
+      ? await supabase.from('pipeline_stages').update(payload).eq('id', editingStage.id)
+      : await supabase.from('pipeline_stages').insert(payload);
+    
+    if (error) { toast.error('Erro ao salvar estágio'); setStageSaving(false); return; }
+
+    // If renamed, update all orders that had the old stage name
+    if (editingStage && oldName && oldName !== stageForm.name.trim()) {
+      const updateObj: Record<string, string> = {};
+      updateObj[statusField] = stageForm.name.trim();
+      await supabase.from('orders').update(updateObj as any).eq(statusField, oldName);
+    }
+
+    toast.success(editingStage ? 'Estágio atualizado' : 'Estágio criado');
+    setStageDialogOpen(false);
+    setStageSaving(false);
+    fetchStages();
+    fetchOrders();
+  };
+
+  const deleteStage = async (stage: PipelineStage) => {
+    if (!confirm(`Excluir o estágio "${stage.name}"? Os pedidos neste estágio serão movidos para o primeiro estágio.`)) return;
+    
+    // Move orders to first stage
+    const firstStage = stages.find(s => s.id !== stage.id && s.is_initial) ?? stages.find(s => s.id !== stage.id);
+    if (firstStage) {
+      const updateObj: Record<string, string> = {};
+      updateObj[statusField] = firstStage.name;
+      await supabase.from('orders').update(updateObj as any).eq(statusField, stage.name);
+    }
+
+    await supabase.from('pipeline_stages').delete().eq('id', stage.id);
+    toast.success('Estágio removido');
+    fetchStages();
+    fetchOrders();
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-semibold text-foreground">{title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-semibold text-foreground">{title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+        </div>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={openNewStage}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Estágio
+          </Button>
+        )}
       </div>
 
       {stages.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <p className="text-sm">Nenhum estágio configurado para este pipeline.</p>
-          <p className="text-xs mt-1">Vá em Administração → Pipelines para criar os estágios.</p>
+          <p className="text-xs mt-1">
+            {isAdmin ? 'Clique em "Novo Estágio" para criar o primeiro.' : 'Vá em Administração → Pipelines para criar os estágios.'}
+          </p>
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
@@ -126,7 +226,7 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
             return (
               <div
                 key={stage.id}
-                className="min-w-[250px] max-w-[250px] flex-shrink-0"
+                className="min-w-[260px] max-w-[260px] flex-shrink-0"
                 onDragOver={(e) => { e.preventDefault(); setDragOverCol(stage.name); }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={() => handleDrop(stage.name)}
@@ -135,6 +235,16 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stage.name}</span>
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-auto">{items.length}</Badge>
+                  {isAdmin && (
+                    <div className="flex gap-0.5">
+                      <button onClick={() => openEditStage(stage)} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5" title="Editar estágio">
+                        <Settings2 className="h-3 w-3" />
+                      </button>
+                      <button onClick={() => deleteStage(stage)} className="text-muted-foreground/50 hover:text-destructive transition-colors p-0.5" title="Remover estágio">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className={`space-y-2 min-h-[120px] rounded-lg p-2 transition-colors ${isOver ? 'bg-primary/10 ring-2 ring-primary/30' : 'bg-muted/30'}`}>
                   {items.length === 0 ? (
@@ -145,7 +255,8 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
                         key={o.id}
                         draggable
                         onDragStart={() => setDraggedId(o.id)}
-                        className={`bg-card border border-border/60 rounded-lg p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow ${draggedId === o.id ? 'opacity-50' : ''}`}
+                        onClick={() => openCardDetail(o.id)}
+                        className={`bg-card border border-border/60 rounded-lg p-3 cursor-pointer active:cursor-grabbing shadow-sm hover:shadow-md hover:border-primary/30 transition-all ${draggedId === o.id ? 'opacity-50' : ''}`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <span className="text-[11px] font-mono text-muted-foreground">{o.code}</span>
@@ -171,6 +282,44 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
           })}
         </div>
       )}
+
+      {/* Admin Stage Dialog */}
+      <Dialog open={stageDialogOpen} onOpenChange={setStageDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingStage ? 'Editar Estágio' : 'Novo Estágio'}</DialogTitle>
+            <DialogDescription className="sr-only">Gerenciar estágio do pipeline</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={stageForm.name} onChange={e => setStageForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Em andamento" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Ordem</Label>
+                <Input type="number" value={stageForm.display_order} onChange={e => setStageForm(f => ({ ...f, display_order: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Cor</Label>
+                <Input type="color" value={stageForm.color} onChange={e => setStageForm(f => ({ ...f, color: e.target.value }))} className="h-9" />
+              </div>
+              <div className="flex flex-col gap-2 pt-5">
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={stageForm.is_initial} onChange={e => setStageForm(f => ({ ...f, is_initial: e.target.checked }))} /> Inicial
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={stageForm.is_final} onChange={e => setStageForm(f => ({ ...f, is_final: e.target.checked }))} /> Final
+                </label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStageDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={saveStage} disabled={stageSaving}>{stageSaving ? 'Salvando…' : 'Salvar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

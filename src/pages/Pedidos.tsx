@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ const OCCURRENCE_STATUS_OPTIONS = [
 ];
 
 export default function Pedidos() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
@@ -127,10 +129,21 @@ export default function Pedidos() {
 
   useEffect(() => {
     fetchOrders();
-    // Fetch pipeline stages
     supabase.from('pipeline_stages').select('*').eq('active', true).order('display_order')
       .then(({ data }) => setPipelineStages((data as PipelineStage[]) ?? []));
   }, []);
+
+  // Auto-open order from URL param (e.g. ?order=<id>)
+  useEffect(() => {
+    const orderId = searchParams.get('order');
+    if (orderId && orders.length > 0 && !detailOpen) {
+      const found = orders.find(o => o.id === orderId);
+      if (found) {
+        openDetail(found);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [orders, searchParams]);
 
   const openDetail = async (order: OrderWithRelations) => {
     setSelectedOrder(order);

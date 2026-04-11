@@ -174,6 +174,15 @@ export function QuoteDetailSheet({
         converted_at: new Date().toISOString(),
       };
 
+      // Fetch initial stages for all pipelines
+      const { data: initialStages } = await supabase
+        .from('pipeline_stages')
+        .select('pipeline_type, name')
+        .eq('is_initial', true)
+        .eq('active', true);
+      
+      const getInitial = (pt: string) => initialStages?.find(s => s.pipeline_type === pt)?.name ?? 'pendente';
+
       const { error } = await supabase.from('orders').insert({
         code: orderCode,
         client_id: quote.client_id!,
@@ -185,6 +194,11 @@ export function QuoteDetailSheet({
         discount_value: quote.discount_value,
         final_value: quote.final_value,
         snapshot,
+        contract_status: getInitial('contrato'),
+        revision_status: getInitial('revisao'),
+        assembly_status: getInitial('montagem'),
+        financial_status: getInitial('financeiro'),
+        post_assembly_status: getInitial('pos_montagem'),
       });
       if (error) throw error;
 
