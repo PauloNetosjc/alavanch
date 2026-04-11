@@ -830,6 +830,73 @@ export default function Configuracoes() {
         <TabsContent value="financeiro">
           <Financeiro />
         </TabsContent>
+
+        {/* ─── Clientes ─── */}
+        <TabsContent value="clientes">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar por nome, CPF, telefone ou e-mail..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">{filteredClients.length} cliente{filteredClients.length !== 1 ? 's' : ''}</Badge>
+                <Button size="sm" onClick={() => setClientFormOpen(true)}><Plus className="h-4 w-4 mr-1" />Novo Cliente</Button>
+              </div>
+            </div>
+            <Card className="border-border/60">
+              <CardContent className="pt-4">
+                {clientsLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">{clientSearch ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>CPF</TableHead>
+                          <TableHead>Telefone</TableHead>
+                          <TableHead>E-mail</TableHead>
+                          <TableHead className="w-[100px] text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredClients.map(client => (
+                          <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setDetailClientItem(client); setDetailClientOpen(true); }}>
+                            <TableCell className="font-medium">{client.name}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{client.cpf || '—'}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{client.phone || '—'}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{client.email || '—'}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setDetailClientItem(client); setDetailClientOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setEditClientItem(client); setClientFormOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={async e => {
+                                  e.stopPropagation();
+                                  if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+                                  const { error } = await supabase.from('clients').delete().eq('id', client.id);
+                                  if (error) { toast.error('Erro ao excluir cliente'); return; }
+                                  toast.success('Cliente excluído'); fetchClientsList();
+                                }}><Trash2 className="h-4 w-4" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          <ClientFormDialog open={clientFormOpen} onOpenChange={open => { setClientFormOpen(open); if (!open) setEditClientItem(null); }} onSuccess={fetchClientsList} editClient={editClientItem} />
+          <ClientDetailSheet open={detailClientOpen} onOpenChange={setDetailClientOpen} client={detailClientItem} />
+        </TabsContent>
       </Tabs>
 
       {/* ─── Dialogs ─── */}
