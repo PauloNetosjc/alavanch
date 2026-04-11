@@ -13,6 +13,7 @@ import Pedidos from "@/pages/Pedidos";
 import Contratos from "@/pages/Contratos";
 import Revisao from "@/pages/Revisao";
 import Financeiro from "@/pages/Financeiro";
+import FinanceiroKanban from "@/pages/FinanceiroKanban";
 import Montagem from "@/pages/Montagem";
 import PosMontagem from "@/pages/PosMontagem";
 import Ocorrencias from "@/pages/Ocorrencias";
