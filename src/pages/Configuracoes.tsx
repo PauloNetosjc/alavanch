@@ -908,6 +908,29 @@ export default function Configuracoes() {
         </div>
         <div><Label>Descrição</Label><Input value={ruleForm.description} onChange={e => setRuleForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Desconto acima de 10% precisa de aprovação" /></div>
       </CrudDialog>
+
+      <CrudDialog open={pipeOpen} onClose={() => setPipeOpen(false)} title={editPipe ? 'Editar Estágio' : 'Novo Estágio'} onSave={savePipe} saving={pipeSaving}>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Pipeline *</Label>
+            <Select value={pipeForm.pipeline_type} onValueChange={v => setPipeForm(f => ({ ...f, pipeline_type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PIPELINE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Nome *</Label><Input value={pipeForm.name} onChange={e => setPipeForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Em andamento" /></div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label>Ordem</Label><Input type="number" value={pipeForm.display_order} onChange={e => setPipeForm(f => ({ ...f, display_order: e.target.value }))} /></div>
+          <div><Label>Cor</Label><Input type="color" value={pipeForm.color} onChange={e => setPipeForm(f => ({ ...f, color: e.target.value }))} className="h-9" /></div>
+          <div className="flex flex-col gap-2 pt-5">
+            <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={pipeForm.is_initial} onChange={e => setPipeForm(f => ({ ...f, is_initial: e.target.checked }))} /> Inicial</label>
+            <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={pipeForm.is_final} onChange={e => setPipeForm(f => ({ ...f, is_final: e.target.checked }))} /> Final</label>
+          </div>
+        </div>
+      </CrudDialog>
     </div>
   );
 }
