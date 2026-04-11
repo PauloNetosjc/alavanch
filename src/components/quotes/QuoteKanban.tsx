@@ -14,6 +14,8 @@ import { maskPhone } from '@/lib/masks';
 import { Filter, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
+const NONE = '__none__';
+
 interface QuoteWithClient extends Tables<'quotes'> {
   clients: { name: string; phone: string | null } | null;
 }
@@ -53,8 +55,11 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
+  // Tags config
+  const [tagsConfig, setTagsConfig] = useState<{ id: string; name: string; color: string }[]>([]);
+
   // Filter state
-  const [stores, setStores] = useState<Tables<'stores'>[]>([]);
+  const [storesList, setStoresList] = useState<Tables<'stores'>[]>([]);
   const [sellers, setSellers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [filterStore, setFilterStore] = useState('');
   const [filterSeller, setFilterSeller] = useState('');
@@ -74,19 +79,20 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
   }, []);
 
   const fetchFilterData = useCallback(async () => {
-    const [storesRes, sellersRes] = await Promise.all([
+    const [storesRes, sellersRes, tagsRes] = await Promise.all([
       supabase.from('stores').select('*').eq('active', true).order('name'),
       supabase.from('profiles').select('id, full_name').order('full_name'),
+      supabase.from('tags_config').select('id, name, color').order('name'),
     ]);
-    setStores(storesRes.data ?? []);
+    setStoresList(storesRes.data ?? []);
     setSellers(sellersRes.data ?? []);
+    setTagsConfig((tagsRes.data ?? []).map(t => ({ id: t.id, name: t.name, color: t.color ?? '#6b7280' })));
   }, []);
 
   useEffect(() => { fetchQuotes(); }, [fetchQuotes, refreshKey]);
   useEffect(() => { fetchFilterData(); }, [fetchFilterData]);
 
   const filtered = quotes.filter(q => {
-    // Text search
     if (search.trim()) {
       const s = search.toLowerCase();
       const matchText = q.code.toLowerCase().includes(s) ||
@@ -95,7 +101,6 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
         q.origin?.toLowerCase().includes(s);
       if (!matchText) return false;
     }
-    // Filters
     if (filterStore && q.store_id !== filterStore) return false;
     if (filterSeller && q.seller_id !== filterSeller) return false;
     if (filterUrgency && q.urgency !== filterUrgency) return false;
@@ -131,6 +136,8 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
   const formatCurrency = (v: number | null) =>
     v ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '';
 
+  const getTagName = (tagId: string) => tagsConfig.find(t => t.name === tagId || t.id === tagId);
+
   return (
     <div className="space-y-3">
       {/* Filter bar */}
@@ -157,30 +164,30 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
             <div className="space-y-2">
               <div className="space-y-1">
                 <Label className="text-xs">Loja</Label>
-                <Select value={filterStore} onValueChange={setFilterStore}>
+                <Select value={filterStore || NONE} onValueChange={v => setFilterStore(v === NONE ? '' : v)}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
-                    {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    <SelectItem value={NONE}>Todas</SelectItem>
+                    {storesList.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Vendedor</Label>
-                <Select value={filterSeller} onValueChange={setFilterSeller}>
+                <Select value={filterSeller || NONE} onValueChange={v => setFilterSeller(v === NONE ? '' : v)}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value={NONE}>Todos</SelectItem>
                     {sellers.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name ?? 'Sem nome'}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Urgência</Label>
-                <Select value={filterUrgency} onValueChange={setFilterUrgency}>
+                <Select value={filterUrgency || NONE} onValueChange={v => setFilterUrgency(v === NONE ? '' : v)}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value={NONE}>Todas</SelectItem>
                     <SelectItem value="baixa">Baixa</SelectItem>
                     <SelectItem value="normal">Normal</SelectItem>
                     <SelectItem value="alta">Alta</SelectItem>
@@ -247,6 +254,19 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
                       <p className="text-sm font-medium text-foreground truncate">{q.clients?.name ?? '—'}</p>
                       {q.clients?.phone && (
                         <p className="text-xs text-muted-foreground mt-0.5">{maskPhone(q.clients.phone)}</p>
+                      )}
+                      {/* Tags */}
+                      {q.tags && q.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {q.tags.map((tag, i) => {
+                            const cfg = getTagName(tag);
+                            return (
+                              <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-full border" style={cfg ? { backgroundColor: cfg.color + '20', color: cfg.color, borderColor: cfg.color + '40' } : {}}>
+                                {cfg?.name ?? tag}
+                              </span>
+                            );
+                          })}
+                        </div>
                       )}
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                         {q.final_value ? (
