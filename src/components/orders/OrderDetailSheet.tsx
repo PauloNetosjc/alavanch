@@ -123,6 +123,16 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const [notesValue, setNotesValue] = useState('');
   const [editingFactoryDate, setEditingFactoryDate] = useState(false);
 
+  // Contract management state
+  const [contractTemplates, setContractTemplates] = useState<DbTables<'contract_templates'>[]>([]);
+  const [contractFormOpen, setContractFormOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<DbTables<'contracts'> | null>(null);
+  const [contractContent, setContractContent] = useState('');
+  const [contractNotes, setContractNotes] = useState('');
+  const [contractFooter, setContractFooter] = useState('');
+  const [contractSaving, setContractSaving] = useState(false);
+  const [viewingContract, setViewingContract] = useState<DbTables<'contracts'> | null>(null);
+
   const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
   const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
   const stageColor = (type: string, value: string | null) => {
