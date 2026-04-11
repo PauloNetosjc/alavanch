@@ -33,29 +33,45 @@ interface OrderWithRelations extends DbTables<'orders'> {
   stores: { name: string } | null;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'concluido', label: 'Concluído' },
-];
+// Pipeline stages loaded from DB
+interface PipelineStage {
+  id: string;
+  pipeline_type: string;
+  name: string;
+  display_order: number;
+  color: string;
+  is_initial: boolean;
+  is_final: boolean;
+}
+
+const PIPELINE_FIELDS: Record<string, 'contract_status' | 'revision_status' | 'assembly_status' | 'financial_status' | 'post_assembly_status'> = {
+  contrato: 'contract_status',
+  revisao: 'revision_status',
+  montagem: 'assembly_status',
+  financeiro: 'financial_status',
+  pos_montagem: 'post_assembly_status',
+};
+
+const PIPELINE_ICONS: Record<string, React.ReactNode> = {
+  contrato: <FileText className="h-4 w-4" />,
+  revisao: <CheckSquare className="h-4 w-4" />,
+  montagem: <Wrench className="h-4 w-4" />,
+  financeiro: <DollarSign className="h-4 w-4" />,
+  pos_montagem: <Wrench className="h-4 w-4" />,
+};
+
+const PIPELINE_LABELS: Record<string, string> = {
+  contrato: 'Contrato',
+  revisao: 'Revisão',
+  montagem: 'Montagem',
+  financeiro: 'Financeiro',
+  pos_montagem: 'Pós-montagem',
+};
 
 const OCCURRENCE_STATUS_OPTIONS = [
   { value: 'sem_ocorrencias', label: 'Sem ocorrências' },
   { value: 'com_ocorrencias', label: 'Com ocorrências' },
 ];
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-  em_andamento: { label: 'Em andamento', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-  concluido: { label: 'Concluído', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-  sem_ocorrencias: { label: 'Sem ocorrências', color: 'bg-muted text-muted-foreground' },
-  com_ocorrencias: { label: 'Com ocorrências', color: 'bg-red-100 text-red-800 border-red-300' },
-};
-
-const getStatusBadge = (status: string | null) => {
-  const s = statusLabels[status ?? 'pendente'] ?? { label: status ?? '—', color: '' };
-  return <Badge variant="outline" className={`text-[10px] ${s.color}`}>{s.label}</Badge>;
-};
 
 export default function Pedidos() {
   const [search, setSearch] = useState('');
