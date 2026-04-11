@@ -1,7 +1,7 @@
 import {
-  LayoutDashboard, FileText, Users, ShoppingCart, FileSignature,
-  ClipboardCheck, DollarSign, Wrench, PackageCheck, AlertTriangle,
-  BarChart3, Settings, LogOut, TreePine, Archive
+  LayoutDashboard, FileText, ShoppingCart,
+  ClipboardCheck, Factory, Truck, Wrench, PackageCheck, DollarSign,
+  AlertTriangle, BarChart3, Settings, LogOut, TreePine, Archive, Users
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -12,28 +12,40 @@ import {
   SidebarHeader, useSidebar,
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, adminOnly: true },
   { title: 'Orçamentos', url: '/orcamentos', icon: FileText },
-  { title: 'Clientes', url: '/clientes', icon: Users },
   { title: 'Pedidos', url: '/pedidos', icon: ShoppingCart },
-  { title: 'Contratos', url: '/contratos', icon: FileSignature },
   { title: 'Revisão', url: '/revisao', icon: ClipboardCheck },
-  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
+  { title: 'Acomp. Produção', url: '/acompanhamento-producao', icon: Factory },
+  { title: 'Entrega', url: '/entrega', icon: Truck },
   { title: 'Montagem', url: '/montagem', icon: Wrench },
   { title: 'Pós-montagem', url: '/pos-montagem', icon: PackageCheck },
+  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Ocorrências', url: '/ocorrencias', icon: AlertTriangle },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Arquivo', url: '/arquivo', icon: Archive },
-  { title: 'Administração', url: '/administracao', icon: Settings },
+  { title: 'Administração', url: '/administracao', icon: Settings, adminOnly: true },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('user_roles').select('role').eq('user_id', user.id).then(({ data }) => {
+      setIsAdmin(data?.some(r => r.role === 'admin') ?? false);
+    });
+  }, [user]);
+
+  const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <Sidebar collapsible="icon">
@@ -61,7 +73,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <NavLink
