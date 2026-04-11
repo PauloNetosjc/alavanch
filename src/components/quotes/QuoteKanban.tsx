@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,7 @@ interface QuoteKanbanProps {
 
 export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKey }: QuoteKanbanProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState<QuoteWithClient[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -139,6 +141,25 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
     if (!quote.final_value || quote.final_value <= 0) {
       toast.error('Defina valores na calculadora antes de converter para pedido');
       return;
+    }
+
+    // Validate discount rules before allowing order creation
+    const effectiveDiscount = Number(quote.discount_percent ?? 0);
+    if (effectiveDiscount > 0) {
+      const { data: rules } = await supabase.from('approval_rules').select('*').eq('active', true);
+      if (rules && rules.length > 0) {
+        const { data: userRoles } = await supabase.from('user_roles').select('role').eq('user_id', user?.id ?? '');
+        const currentRole = userRoles?.[0]?.role ?? '';
+
+        const violated = rules.find(r => r.max_percent != null && effectiveDiscount > Number(r.max_percent));
+        if (violated) {
+          const isApprover = currentRole === violated.approver_role || currentRole === 'admin' || currentRole === 'diretoria';
+          if (!isApprover) {
+            toast.error(`Desconto de ${effectiveDiscount.toFixed(1)}% excede o limite de ${violated.max_percent}%. Não é possível criar o pedido sem aprovação.`);
+            return;
+          }
+        }
+      }
     }
     try {
       // Load installments for snapshot
