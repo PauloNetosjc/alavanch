@@ -750,21 +750,136 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== CONTRATO ====== */}
                 <TabsContent value="contrato" className="mt-4 space-y-4">
-                  {contracts.length === 0 ? (
-                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
+                  <StatusSelect icon={<FileText className="h-4 w-4" />} label="Status do Contrato" value={selectedOrder.contract_status ?? 'Pendente'} options={stageOptions('contrato')} onChange={v => handleStatusChange('contract_status', v)} color={stageColor('contrato', selectedOrder.contract_status)} disabled={!isAdmin} />
+
+                  {/* Contract form */}
+                  {contractFormOpen ? (
+                    <Card className="border-border/60">
+                      <CardContent className="p-4 space-y-3">
+                        <h4 className="text-sm font-semibold">{editingContract ? `Editar Contrato v${editingContract.version}` : 'Novo Contrato'}</h4>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground block mb-1">Conteúdo do contrato</label>
+                          <Textarea value={contractContent} onChange={e => setContractContent(e.target.value)} rows={12} className="font-mono text-xs" placeholder="Digite o conteúdo do contrato..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Observações internas</label>
+                            <Textarea value={contractNotes} onChange={e => setContractNotes(e.target.value)} rows={3} className="text-xs" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Notas de rodapé</label>
+                            <Textarea value={contractFooter} onChange={e => setContractFooter(e.target.value)} rows={3} className="text-xs" />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setContractFormOpen(false)}>Cancelar</Button>
+                          <Button size="sm" onClick={saveContract} disabled={contractSaving}>
+                            {contractSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Salvar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {contractTemplates.length > 0 ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" />Novo Contrato</Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2" align="start">
+                            <button className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted" onClick={() => openNewContract()}>Em branco</button>
+                            <Separator className="my-1" />
+                            <p className="text-[10px] text-muted-foreground px-3 py-1 uppercase tracking-wider">Templates</p>
+                            {contractTemplates.map(t => (
+                              <button key={t.id} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted" onClick={() => openNewContract(t.id)}>{t.name}</button>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => openNewContract()}><Plus className="h-3.5 w-3.5 mr-1" />Novo Contrato</Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Viewing contract content */}
+                  {viewingContract && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Contrato v{viewingContract.version} — Conteúdo</h4>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingContract(null)}>Fechar</Button>
+                        </div>
+                        <div className="bg-background rounded-lg p-4 border text-sm whitespace-pre-wrap font-mono text-xs max-h-96 overflow-y-auto">
+                          {viewingContract.content || <span className="text-muted-foreground italic">Sem conteúdo</span>}
+                        </div>
+                        {viewingContract.footer_notes && (
+                          <div className="border-t pt-2 text-xs text-muted-foreground whitespace-pre-wrap">{viewingContract.footer_notes}</div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Contract list */}
+                  {contracts.length === 0 && !contractFormOpen ? (
+                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado. Crie um usando o botão acima." />
                   ) : (
                     <div className="space-y-3">
                       {contracts.map(c => (
-                        <Card key={c.id} className="border-border/60">
+                        <Card key={c.id} className={`border-border/60 ${viewingContract?.id === c.id ? 'ring-2 ring-primary/30' : ''}`}>
                           <CardContent className="p-4 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium">Contrato v{c.version}</span>
-                              {getStatusBadge(c.status)}
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(c.status)}
+                              </div>
                             </div>
-                            {c.sent_at && <p className="text-xs text-muted-foreground">Enviado: {fmtDate(c.sent_at)}</p>}
-                            {c.signed_at && <p className="text-xs text-muted-foreground">Assinado: {fmtDate(c.signed_at)}</p>}
-                            {c.signature_link && <p className="text-xs text-muted-foreground">Link: <span className="font-mono">{c.signature_link}</span></p>}
-                            {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              {c.sent_at && <span>Enviado: {fmtDate(c.sent_at)}</span>}
+                              {c.signed_at && <span>Assinado: {fmtDate(c.signed_at)}</span>}
+                              {c.signature_link && <span>Link: <span className="font-mono text-[10px]">{c.signature_link.slice(0, 40)}...</span></span>}
+                            </div>
+                            {c.notes && <p className="text-xs text-muted-foreground bg-muted/20 rounded p-2">{c.notes}</p>}
+                            <div className="flex flex-wrap items-center gap-1 pt-1">
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setViewingContract(viewingContract?.id === c.id ? null : c)}>
+                                <Eye className="h-3 w-3 mr-1" />{viewingContract?.id === c.id ? 'Ocultar' : 'Visualizar'}
+                              </Button>
+                              {isAdmin && c.status === 'rascunho' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditContract(c)}>
+                                  <Pencil className="h-3 w-3 mr-1" />Editar
+                                </Button>
+                              )}
+                              {isAdmin && c.status === 'rascunho' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => updateContractStatus(c, 'enviado')}>
+                                  <Mail className="h-3 w-3 mr-1" />Marcar Enviado
+                                </Button>
+                              )}
+                              {isAdmin && c.status === 'enviado' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => updateContractStatus(c, 'assinado')}>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />Marcar Assinado
+                                </Button>
+                              )}
+                              {!c.signature_link && isAdmin && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => generateSignatureLink(c)}>
+                                  <Hash className="h-3 w-3 mr-1" />Gerar Link
+                                </Button>
+                              )}
+                              {c.signature_link && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { navigator.clipboard.writeText(c.signature_link!); toast.success('Link copiado'); }}>
+                                  <Hash className="h-3 w-3 mr-1" />Copiar Link
+                                </Button>
+                              )}
+                              {selectedOrder.clients?.email && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => sendContractByEmail(c)}>
+                                  <Mail className="h-3 w-3 mr-1" />Enviar e-mail
+                                </Button>
+                              )}
+                              {isAdmin && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteContract(c)}>
+                                  <Trash2 className="h-3 w-3 mr-1" />Excluir
+                                </Button>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
