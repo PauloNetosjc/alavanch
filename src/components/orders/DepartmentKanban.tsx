@@ -234,6 +234,18 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
     fetchOrders();
   };
 
+  const moveStage = async (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= stages.length) return;
+    const a = stages[index];
+    const b = stages[targetIndex];
+    await Promise.all([
+      supabase.from('pipeline_stages').update({ display_order: b.display_order }).eq('id', a.id),
+      supabase.from('pipeline_stages').update({ display_order: a.display_order }).eq('id', b.id),
+    ]);
+    fetchStages();
+  };
+
   const deleteStage = async (stage: PipelineStage) => {
     if (!confirm(`Excluir o estágio "${stage.name}"? Os pedidos neste estágio serão movidos para o primeiro estágio.`)) return;
     
