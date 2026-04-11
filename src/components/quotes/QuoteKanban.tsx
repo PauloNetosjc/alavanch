@@ -38,6 +38,9 @@ const COLUMNS = [
   { id: 'arquivado', title: 'Arquivado', dot: 'bg-muted-foreground/60' },
 ];
 
+// Statuses that go to the Arquivo page
+const ARCHIVED_STATUSES = ['declinado', 'arquivado'];
+
 const urgencyColors: Record<string, string> = {
   baixa: 'bg-muted text-muted-foreground',
   normal: '',
@@ -98,6 +101,8 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
   useEffect(() => { fetchFilterData(); }, [fetchFilterData]);
 
   const filtered = quotes.filter(q => {
+    // Hide archived/declined quotes - they appear in the Arquivo page
+    if (ARCHIVED_STATUSES.includes(q.status)) return false;
     if (search.trim()) {
       const s = search.toLowerCase();
       const matchText = q.code.toLowerCase().includes(s) ||

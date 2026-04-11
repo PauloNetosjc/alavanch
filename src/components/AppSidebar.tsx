@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, Users, ShoppingCart, FileSignature,
   ClipboardCheck, DollarSign, Wrench, PackageCheck, AlertTriangle,
-  BarChart3, Settings, LogOut, TreePine
+  BarChart3, Settings, LogOut, TreePine, Archive
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -25,6 +25,7 @@ const menuItems = [
   { title: 'Pós-montagem', url: '/pos-montagem', icon: PackageCheck },
   { title: 'Ocorrências', url: '/ocorrencias', icon: AlertTriangle },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
+  { title: 'Arquivo', url: '/arquivo', icon: Archive },
   { title: 'Administração', url: '/administracao', icon: Settings },
 ];
 

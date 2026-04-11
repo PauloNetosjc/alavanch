@@ -96,7 +96,10 @@ export default function Pedidos() {
     }
   }, [orders, searchParams]);
 
+  const ARCHIVED_O = ['cancelado', 'arquivado', 'concluido'];
   const filteredOrders = orders.filter(o => {
+    // Hide archived/cancelled/completed from this page
+    if (ARCHIVED_O.includes(o.assembly_status ?? '')) return false;
     if (search.trim()) {
       const s = search.toLowerCase();
       if (!(o.code.toLowerCase().includes(s) || o.clients?.name?.toLowerCase().includes(s) || o.clients?.phone?.includes(s))) return false;

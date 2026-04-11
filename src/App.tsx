@@ -19,6 +19,7 @@ import PosMontagem from "@/pages/PosMontagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Relatorios from "@/pages/Relatorios";
 import Configuracoes from "@/pages/Configuracoes";
+import Arquivo from "@/pages/Arquivo";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/administracao" element={<Configuracoes />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/arquivo" element={<Arquivo />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
