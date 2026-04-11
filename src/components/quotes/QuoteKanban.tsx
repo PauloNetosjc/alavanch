@@ -150,17 +150,22 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
 
     // Validate discount rules before allowing order creation
     const effectiveDiscount = Number(quote.discount_percent ?? 0);
-    if (effectiveDiscount > 0) {
-      const { data: rules } = await supabase.from('approval_rules').select('*').eq('active', true);
-      if (rules && rules.length > 0) {
-        const { data: userRoles } = await supabase.from('user_roles').select('role').eq('user_id', user?.id ?? '');
-        const currentRole = userRoles?.[0]?.role ?? '';
+    const { data: rules } = await supabase.from('approval_rules').select('*').eq('active', true).eq('rule_type', 'desconto');
+    if (rules && rules.length > 0) {
+      const { data: userRoles } = await supabase.from('user_roles').select('role').eq('user_id', user?.id ?? '');
+      const currentRole = userRoles?.[0]?.role ?? '';
 
-        const violated = rules.find(r => r.max_percent != null && effectiveDiscount > Number(r.max_percent));
-        if (violated) {
-          const isApprover = currentRole === violated.approver_role || currentRole === 'admin' || currentRole === 'diretoria';
+      for (const rule of rules) {
+        const maxPct = Number(rule.max_percent ?? 0);
+        if (effectiveDiscount > maxPct) {
+          // Check if rule applies to this user's role
+          const affectedRoles: string[] = (rule as any).affected_roles ?? [];
+          const ruleApplies = affectedRoles.length === 0 || affectedRoles.includes(currentRole);
+          if (!ruleApplies) continue;
+
+          const isApprover = currentRole === rule.approver_role || currentRole === 'admin' || currentRole === 'diretoria';
           if (!isApprover) {
-            toast.error(`Desconto de ${effectiveDiscount.toFixed(1)}% excede o limite de ${violated.max_percent}%. Não é possível criar o pedido sem aprovação.`);
+            toast.error(`Desconto de ${effectiveDiscount.toFixed(1)}% excede o limite de ${maxPct}%. Não é possível criar o pedido sem aprovação.`);
             return;
           }
         }
