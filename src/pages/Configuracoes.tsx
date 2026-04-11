@@ -382,6 +382,37 @@ export default function Configuracoes() {
     setRuleOpen(false); fetchRules();
   };
 
+  // ─── Pipeline handlers ───
+  const PIPELINE_TYPES = [
+    { value: 'contrato', label: 'Contrato' },
+    { value: 'revisao', label: 'Revisão' },
+    { value: 'montagem', label: 'Montagem' },
+    { value: 'financeiro', label: 'Financeiro' },
+    { value: 'pos_montagem', label: 'Pós-montagem' },
+  ];
+  const openPipeForm = (p?: any) => {
+    if (p) { setEditPipe(p); setPipeForm({ pipeline_type: p.pipeline_type, name: p.name, display_order: String(p.display_order), color: p.color ?? '#6b7280', is_initial: p.is_initial ?? false, is_final: p.is_final ?? false }); }
+    else { setEditPipe(null); setPipeForm({ pipeline_type: 'contrato', name: '', display_order: String(pipelineStages.length), color: '#6b7280', is_initial: false, is_final: false }); }
+    setPipeOpen(true);
+  };
+  const savePipe = async () => {
+    if (!pipeForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    setPipeSaving(true);
+    const payload = { pipeline_type: pipeForm.pipeline_type, name: pipeForm.name, display_order: parseInt(pipeForm.display_order) || 0, color: pipeForm.color, is_initial: pipeForm.is_initial, is_final: pipeForm.is_final } as any;
+    const { error } = editPipe
+      ? await supabase.from('pipeline_stages').update(payload).eq('id', editPipe.id)
+      : await supabase.from('pipeline_stages').insert(payload);
+    setPipeSaving(false);
+    if (error) { toast.error('Erro ao salvar estágio'); return; }
+    toast.success(editPipe ? 'Estágio atualizado' : 'Estágio criado');
+    setPipeOpen(false); fetchPipelines();
+  };
+  const deletePipe = async (id: string) => {
+    await supabase.from('pipeline_stages').update({ active: false } as any).eq('id', id);
+    toast.success('Estágio desativado');
+    fetchPipelines();
+  };
+
   const rootCats = categories.filter(c => !c.parent_id);
   const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
   const parentCats = (type: string) => categories.filter(c => !c.parent_id && c.type === type && (!editCat || c.id !== editCat.id));
