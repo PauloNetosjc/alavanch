@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { maskPhone } from '@/lib/masks';
-import { Plus, Settings2, Trash2, CalendarIcon } from 'lucide-react';
+import { Plus, Settings2, Trash2, CalendarIcon, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderDetailSheet } from '@/components/orders/OrderDetailSheet';
