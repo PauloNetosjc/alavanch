@@ -55,6 +55,7 @@ interface QuoteKanbanProps {
 
 export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKey }: QuoteKanbanProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState<QuoteWithClient[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
