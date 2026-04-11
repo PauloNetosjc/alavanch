@@ -25,7 +25,7 @@ import {
 import {
   Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
-  Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare,
+  Package, Upload, RotateCcw, Clock, Paperclip, Tag, MessageSquare, Plus,
   Phone, Mail, MapPin, Hash, ArrowRightLeft, Trash2, Pencil, History,
   CheckCircle2, Archive, XCircle,
 } from 'lucide-react';
@@ -123,6 +123,16 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const [notesValue, setNotesValue] = useState('');
   const [editingFactoryDate, setEditingFactoryDate] = useState(false);
 
+  // Contract management state
+  const [contractTemplates, setContractTemplates] = useState<DbTables<'contract_templates'>[]>([]);
+  const [contractFormOpen, setContractFormOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<DbTables<'contracts'> | null>(null);
+  const [contractContent, setContractContent] = useState('');
+  const [contractNotes, setContractNotes] = useState('');
+  const [contractFooter, setContractFooter] = useState('');
+  const [contractSaving, setContractSaving] = useState(false);
+  const [viewingContract, setViewingContract] = useState<DbTables<'contracts'> | null>(null);
+
   const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
   const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
   const stageColor = (type: string, value: string | null) => {
@@ -157,7 +167,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     setNotesValue(order.internal_comments ?? '');
     setPipelineStages((stagesRes.data as PipelineStage[]) ?? []);
 
-    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes] = await Promise.all([
+    const [contractsRes, financialRes, occurrencesRes, envsRes, importsRes, timelineRes, attachmentsRes, templatesRes] = await Promise.all([
       supabase.from('contracts').select('*').eq('order_id', id).order('created_at', { ascending: false }),
       supabase.from('financial_entries').select('*').eq('order_id', id).order('due_date'),
       supabase.from('occurrences').select('*').eq('order_id', id).order('created_at', { ascending: false }),
@@ -165,8 +175,10 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
       supabase.from('promob_imports').select('*').eq('order_id', id).order('created_at', { ascending: false }),
       supabase.from('timeline_events').select('*').eq('entity_id', id).eq('entity_type', 'order').order('created_at', { ascending: false }),
       supabase.from('attachments').select('*').eq('entity_id', id).eq('entity_type', 'order').order('created_at', { ascending: false }),
+      supabase.from('contract_templates').select('*').eq('active', true).order('name'),
     ]);
     setContracts(contractsRes.data ?? []);
+    setContractTemplates(templatesRes.data ?? []);
     setFinancialEntries(financialRes.data ?? []);
     setOccurrences(occurrencesRes.data ?? []);
     const envs = envsRes.data ?? [];
@@ -257,6 +269,106 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
         description: `Data de envio à fábrica alterada para ${fmtDate(dateStr)}`,
       });
     }
+  };
+
+  // ─── Contract CRUD ───
+  const openNewContract = (templateId?: string) => {
+    setEditingContract(null);
+    const tpl = templateId ? contractTemplates.find(t => t.id === templateId) : null;
+    let content = tpl?.content ?? '';
+    if (selectedOrder && content) {
+      content = content
+        .replace(/\{\{cliente\}\}/gi, selectedOrder.clients?.name ?? '')
+        .replace(/\{\{cpf\}\}/gi, selectedOrder.clients?.cpf ?? '')
+        .replace(/\{\{valor\}\}/gi, `R$ ${(selectedOrder.final_value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+        .replace(/\{\{data\}\}/gi, selectedOrder.order_date ? new Date(selectedOrder.order_date + 'T00:00').toLocaleDateString('pt-BR') : '')
+        .replace(/\{\{codigo\}\}/gi, selectedOrder.code)
+        .replace(/\{\{endereco\}\}/gi, selectedOrder.clients?.delivery_address ?? '');
+    }
+    setContractContent(content);
+    setContractNotes('');
+    setContractFooter('');
+    setContractFormOpen(true);
+    setViewingContract(null);
+  };
+
+  const openEditContract = (c: DbTables<'contracts'>) => {
+    setEditingContract(c);
+    setContractContent(c.content ?? '');
+    setContractNotes(c.notes ?? '');
+    setContractFooter(c.footer_notes ?? '');
+    setContractFormOpen(true);
+    setViewingContract(null);
+  };
+
+  const saveContract = async () => {
+    if (!selectedOrder) return;
+    setContractSaving(true);
+    if (editingContract) {
+      const { error } = await supabase.from('contracts').update({
+        content: contractContent, notes: contractNotes, footer_notes: contractFooter,
+      } as any).eq('id', editingContract.id);
+      if (error) toast.error('Erro ao atualizar contrato');
+      else {
+        toast.success('Contrato atualizado');
+        await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_updated', description: `Contrato v${editingContract.version} atualizado`, metadata: { pipeline: 'contrato' } });
+      }
+    } else {
+      const nextVersion = contracts.length > 0 ? Math.max(...contracts.map(c => c.version ?? 1)) + 1 : 1;
+      const { error } = await supabase.from('contracts').insert({
+        order_id: selectedOrder.id, store_id: selectedOrder.store_id, version: nextVersion,
+        content: contractContent, notes: contractNotes, footer_notes: contractFooter, status: 'rascunho',
+      });
+      if (error) toast.error('Erro ao criar contrato');
+      else {
+        toast.success('Contrato criado');
+        await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_created', description: `Contrato v${nextVersion} criado`, metadata: { pipeline: 'contrato' } });
+      }
+    }
+    setContractSaving(false);
+    setContractFormOpen(false);
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const updateContractStatus = async (contract: DbTables<'contracts'>, newStatus: string) => {
+    if (!selectedOrder) return;
+    const updates: Record<string, any> = { status: newStatus };
+    if (newStatus === 'enviado') updates.sent_at = new Date().toISOString();
+    if (newStatus === 'assinado') updates.signed_at = new Date().toISOString();
+    const { error } = await supabase.from('contracts').update(updates as any).eq('id', contract.id);
+    if (error) { toast.error('Erro ao atualizar status'); return; }
+    toast.success(`Status: ${newStatus}`);
+    await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_status_changed', description: `Contrato v${contract.version}: ${contract.status} → ${newStatus}`, metadata: { pipeline: 'contrato' } });
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const generateSignatureLink = async (contract: DbTables<'contracts'>) => {
+    const link = `${window.location.origin}/assinar/${contract.id}`;
+    const { error } = await supabase.from('contracts').update({ signature_link: link } as any).eq('id', contract.id);
+    if (error) { toast.error('Erro ao gerar link'); return; }
+    navigator.clipboard.writeText(link);
+    toast.success('Link copiado!');
+    const { data } = await supabase.from('contracts').select('*').eq('order_id', selectedOrder!.id).order('created_at', { ascending: false });
+    setContracts(data ?? []);
+  };
+
+  const sendContractByEmail = (contract: DbTables<'contracts'>) => {
+    if (!selectedOrder?.clients?.email) { toast.error('Cliente sem e-mail cadastrado'); return; }
+    const subject = encodeURIComponent(`Contrato - Pedido ${selectedOrder.code}`);
+    const body = encodeURIComponent(`Olá ${selectedOrder.clients.name},\n\nSegue o contrato referente ao pedido ${selectedOrder.code}.\n\n${contract.signature_link ? `Link para assinatura: ${contract.signature_link}` : ''}\n\nAtenciosamente.`);
+    window.open(`mailto:${selectedOrder.clients.email}?subject=${subject}&body=${body}`);
+  };
+
+  const deleteContract = async (contract: DbTables<'contracts'>) => {
+    if (!selectedOrder || !confirm('Excluir este contrato?')) return;
+    const { error } = await supabase.from('contracts').delete().eq('id', contract.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Contrato excluído');
+    await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_deleted', description: `Contrato v${contract.version} excluído`, metadata: { pipeline: 'contrato' } });
+    setContracts(prev => prev.filter(c => c.id !== contract.id));
+    if (viewingContract?.id === contract.id) setViewingContract(null);
   };
 
   const fmt = (v: number | null | undefined) =>
@@ -638,21 +750,136 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== CONTRATO ====== */}
                 <TabsContent value="contrato" className="mt-4 space-y-4">
-                  {contracts.length === 0 ? (
-                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado." />
+                  <StatusSelect icon={<FileText className="h-4 w-4" />} label="Status do Contrato" value={selectedOrder.contract_status ?? 'Pendente'} options={stageOptions('contrato')} onChange={v => handleStatusChange('contract_status', v)} color={stageColor('contrato', selectedOrder.contract_status)} disabled={!isAdmin} />
+
+                  {/* Contract form */}
+                  {contractFormOpen ? (
+                    <Card className="border-border/60">
+                      <CardContent className="p-4 space-y-3">
+                        <h4 className="text-sm font-semibold">{editingContract ? `Editar Contrato v${editingContract.version}` : 'Novo Contrato'}</h4>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground block mb-1">Conteúdo do contrato</label>
+                          <Textarea value={contractContent} onChange={e => setContractContent(e.target.value)} rows={12} className="font-mono text-xs" placeholder="Digite o conteúdo do contrato..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Observações internas</label>
+                            <Textarea value={contractNotes} onChange={e => setContractNotes(e.target.value)} rows={3} className="text-xs" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Notas de rodapé</label>
+                            <Textarea value={contractFooter} onChange={e => setContractFooter(e.target.value)} rows={3} className="text-xs" />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setContractFormOpen(false)}>Cancelar</Button>
+                          <Button size="sm" onClick={saveContract} disabled={contractSaving}>
+                            {contractSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Salvar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {contractTemplates.length > 0 ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" />Novo Contrato</Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2" align="start">
+                            <button className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted" onClick={() => openNewContract()}>Em branco</button>
+                            <Separator className="my-1" />
+                            <p className="text-[10px] text-muted-foreground px-3 py-1 uppercase tracking-wider">Templates</p>
+                            {contractTemplates.map(t => (
+                              <button key={t.id} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted" onClick={() => openNewContract(t.id)}>{t.name}</button>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => openNewContract()}><Plus className="h-3.5 w-3.5 mr-1" />Novo Contrato</Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Viewing contract content */}
+                  {viewingContract && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Contrato v{viewingContract.version} — Conteúdo</h4>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingContract(null)}>Fechar</Button>
+                        </div>
+                        <div className="bg-background rounded-lg p-4 border text-sm whitespace-pre-wrap font-mono text-xs max-h-96 overflow-y-auto">
+                          {viewingContract.content || <span className="text-muted-foreground italic">Sem conteúdo</span>}
+                        </div>
+                        {viewingContract.footer_notes && (
+                          <div className="border-t pt-2 text-xs text-muted-foreground whitespace-pre-wrap">{viewingContract.footer_notes}</div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Contract list */}
+                  {contracts.length === 0 && !contractFormOpen ? (
+                    <EmptyTab icon={<FileText className="h-8 w-8" />} text="Nenhum contrato vinculado. Crie um usando o botão acima." />
                   ) : (
                     <div className="space-y-3">
                       {contracts.map(c => (
-                        <Card key={c.id} className="border-border/60">
+                        <Card key={c.id} className={`border-border/60 ${viewingContract?.id === c.id ? 'ring-2 ring-primary/30' : ''}`}>
                           <CardContent className="p-4 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium">Contrato v{c.version}</span>
-                              {getStatusBadge(c.status)}
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(c.status)}
+                              </div>
                             </div>
-                            {c.sent_at && <p className="text-xs text-muted-foreground">Enviado: {fmtDate(c.sent_at)}</p>}
-                            {c.signed_at && <p className="text-xs text-muted-foreground">Assinado: {fmtDate(c.signed_at)}</p>}
-                            {c.signature_link && <p className="text-xs text-muted-foreground">Link: <span className="font-mono">{c.signature_link}</span></p>}
-                            {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              {c.sent_at && <span>Enviado: {fmtDate(c.sent_at)}</span>}
+                              {c.signed_at && <span>Assinado: {fmtDate(c.signed_at)}</span>}
+                              {c.signature_link && <span>Link: <span className="font-mono text-[10px]">{c.signature_link.slice(0, 40)}...</span></span>}
+                            </div>
+                            {c.notes && <p className="text-xs text-muted-foreground bg-muted/20 rounded p-2">{c.notes}</p>}
+                            <div className="flex flex-wrap items-center gap-1 pt-1">
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setViewingContract(viewingContract?.id === c.id ? null : c)}>
+                                <Eye className="h-3 w-3 mr-1" />{viewingContract?.id === c.id ? 'Ocultar' : 'Visualizar'}
+                              </Button>
+                              {isAdmin && c.status === 'rascunho' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditContract(c)}>
+                                  <Pencil className="h-3 w-3 mr-1" />Editar
+                                </Button>
+                              )}
+                              {isAdmin && c.status === 'rascunho' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => updateContractStatus(c, 'enviado')}>
+                                  <Mail className="h-3 w-3 mr-1" />Marcar Enviado
+                                </Button>
+                              )}
+                              {isAdmin && c.status === 'enviado' && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => updateContractStatus(c, 'assinado')}>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />Marcar Assinado
+                                </Button>
+                              )}
+                              {!c.signature_link && isAdmin && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => generateSignatureLink(c)}>
+                                  <Hash className="h-3 w-3 mr-1" />Gerar Link
+                                </Button>
+                              )}
+                              {c.signature_link && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { navigator.clipboard.writeText(c.signature_link!); toast.success('Link copiado'); }}>
+                                  <Hash className="h-3 w-3 mr-1" />Copiar Link
+                                </Button>
+                              )}
+                              {selectedOrder.clients?.email && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => sendContractByEmail(c)}>
+                                  <Mail className="h-3 w-3 mr-1" />Enviar e-mail
+                                </Button>
+                              )}
+                              {isAdmin && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteContract(c)}>
+                                  <Trash2 className="h-3 w-3 mr-1" />Excluir
+                                </Button>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
