@@ -89,6 +89,7 @@ export type Database = {
           bank: string | null
           created_at: string
           id: string
+          last_check_date: string | null
           name: string
         }
         Insert: {
@@ -99,6 +100,7 @@ export type Database = {
           bank?: string | null
           created_at?: string
           id?: string
+          last_check_date?: string | null
           name: string
         }
         Update: {
@@ -109,6 +111,7 @@ export type Database = {
           bank?: string | null
           created_at?: string
           id?: string
+          last_check_date?: string | null
           name?: string
         }
         Relationships: []
@@ -128,6 +131,7 @@ export type Database = {
           phone: string | null
           phone_secondary: string | null
           store_id: string | null
+          tags: string[] | null
           updated_at: string
         }
         Insert: {
@@ -144,6 +148,7 @@ export type Database = {
           phone?: string | null
           phone_secondary?: string | null
           store_id?: string | null
+          tags?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -160,6 +165,7 @@ export type Database = {
           phone?: string | null
           phone_secondary?: string | null
           store_id?: string | null
+          tags?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -1114,6 +1120,9 @@ export type Database = {
         | "financeiro"
         | "montagem"
         | "pos_venda"
+        | "projetista"
+        | "conferente"
+        | "atendente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1250,6 +1259,9 @@ export const Constants = {
         "financeiro",
         "montagem",
         "pos_venda",
+        "projetista",
+        "conferente",
+        "atendente",
       ],
     },
   },
