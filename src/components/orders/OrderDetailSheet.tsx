@@ -22,6 +22,8 @@ import { Calendar } from '@/components/ui/calendar';
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
@@ -132,6 +134,13 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const [contractFooter, setContractFooter] = useState('');
   const [contractSaving, setContractSaving] = useState(false);
   const [viewingContract, setViewingContract] = useState<DbTables<'contracts'> | null>(null);
+
+  // Environment / attachment / occurrence inline state
+  const [envFormOpen, setEnvFormOpen] = useState(false);
+  const [envForm, setEnvForm] = useState({ name: '', description: '', value: '' });
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [occFormOpen, setOccFormOpen] = useState(false);
+  const [occForm, setOccForm] = useState({ type: 'Defeito', priority: 'media', description: '', deadline: '' });
 
   const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
   const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
@@ -369,6 +378,108 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     await supabase.from('timeline_events').insert({ entity_type: 'order', entity_id: selectedOrder.id, event_type: 'contract_deleted', description: `Contrato v${contract.version} excluído`, metadata: { pipeline: 'contrato' } });
     setContracts(prev => prev.filter(c => c.id !== contract.id));
     if (viewingContract?.id === contract.id) setViewingContract(null);
+  };
+
+  // ─── Environment manual CRUD ───
+  const saveEnvironment = async () => {
+    if (!selectedOrder) return;
+    if (!envForm.name.trim()) { toast.error('Informe o nome do ambiente'); return; }
+    const value = parseFloat(envForm.value.replace(',', '.')) || 0;
+    const { error } = await supabase.from('order_environments').insert({
+      order_id: selectedOrder.id,
+      name: envForm.name.trim(),
+      description: envForm.description || null,
+      value,
+    });
+    if (error) { toast.error('Erro ao criar ambiente'); return; }
+    toast.success('Ambiente criado');
+    setEnvFormOpen(false);
+    setEnvForm({ name: '', description: '', value: '' });
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'environment_created', description: `Ambiente "${envForm.name}" criado`,
+    });
+    loadDetail(selectedOrder.id);
+  };
+
+  const deleteEnvironment = async (env: DbTables<'order_environments'>) => {
+    if (!selectedOrder || !confirm(`Excluir ambiente "${env.name}"?`)) return;
+    const { error } = await supabase.from('order_environments').delete().eq('id', env.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Ambiente excluído');
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'environment_deleted', description: `Ambiente "${env.name}" excluído`,
+    });
+    loadDetail(selectedOrder.id);
+  };
+
+  // ─── Attachment upload ───
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedOrder) return;
+    setUploadingAttachment(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) { toast.error('Sessão expirada'); setUploadingAttachment(false); return; }
+
+    const path = `${selectedOrder.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const { error: upErr } = await supabase.storage.from('order-attachments').upload(path, file);
+    if (upErr) { toast.error('Erro no upload: ' + upErr.message); setUploadingAttachment(false); return; }
+
+    const { data: urlData } = await supabase.storage.from('order-attachments').createSignedUrl(path, 60 * 60 * 24 * 365);
+    const { error: dbErr } = await supabase.from('attachments').insert({
+      entity_type: 'order',
+      entity_id: selectedOrder.id,
+      file_name: file.name,
+      file_url: urlData?.signedUrl ?? path,
+      file_type: file.type,
+      file_size: file.size,
+      uploaded_by: userId,
+    });
+    if (dbErr) { toast.error('Erro ao salvar anexo'); setUploadingAttachment(false); return; }
+    toast.success('Anexo enviado');
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'attachment_uploaded', description: `Anexo "${file.name}" adicionado`, user_id: userId,
+    });
+    setUploadingAttachment(false);
+    e.target.value = '';
+    loadDetail(selectedOrder.id);
+  };
+
+  const deleteAttachment = async (att: DbTables<'attachments'>) => {
+    if (!selectedOrder || !confirm('Excluir este anexo?')) return;
+    const { error } = await supabase.from('attachments').delete().eq('id', att.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Anexo excluído');
+    loadDetail(selectedOrder.id);
+  };
+
+  // ─── Occurrence inline ───
+  const saveOccurrenceInline = async () => {
+    if (!selectedOrder) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from('occurrences').insert({
+      order_id: selectedOrder.id,
+      client_id: selectedOrder.client_id,
+      type: occForm.type,
+      priority: occForm.priority,
+      description: occForm.description || null,
+      status: 'aberta',
+      deadline: occForm.deadline || null,
+    });
+    if (error) { toast.error('Erro ao criar ocorrência: ' + error.message); return; }
+    await supabase.from('orders').update({ occurrence_status: 'com_ocorrencias' } as any).eq('id', selectedOrder.id);
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'occurrence_created', description: `Ocorrência aberta: ${occForm.type}`,
+      user_id: userData.user?.id,
+    });
+    toast.success('Ocorrência registrada');
+    setOccFormOpen(false);
+    setOccForm({ type: 'Defeito', priority: 'media', description: '', deadline: '' });
+    loadDetail(selectedOrder.id);
   };
 
   const fmt = (v: number | null | undefined) =>
@@ -632,7 +743,10 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                 {/* ====== AMBIENTES ====== */}
                 <TabsContent value="ambientes" className="mt-4 space-y-3">
                   {isAdmin && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEnvFormOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" /> Novo Ambiente
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => { setImportTargetEnvId(null); setImportDialogOpen(true); }}>
                         <Upload className="h-4 w-4 mr-1" /> Importar arquivo Promob
                       </Button>
@@ -657,7 +771,14 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                                   <Badge variant="secondary" className="text-[10px]">{items.length} itens</Badge>
                                   {envImport && <span className="text-[10px] text-muted-foreground">• {fmtDate(envImport.created_at)}</span>}
                                 </div>
-                                <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
+                                  {isAdmin && (
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); deleteEnvironment(env); }}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
 
                               {isExpanded && (
@@ -952,6 +1073,11 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== OCORRÊNCIAS ====== */}
                 <TabsContent value="ocorrencias" className="mt-4">
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" variant="outline" onClick={() => setOccFormOpen(true)}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Ocorrência
+                    </Button>
+                  </div>
                   {occurrences.length === 0 ? (
                     <EmptyTab icon={<AlertTriangle className="h-8 w-8" />} text="Nenhuma ocorrência registrada." />
                   ) : (
@@ -1013,6 +1139,17 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== ANEXOS ====== */}
                 <TabsContent value="anexos" className="mt-4">
+                  <div className="flex justify-end mb-3">
+                    <label>
+                      <input type="file" className="hidden" onChange={handleAttachmentUpload} disabled={uploadingAttachment} />
+                      <Button size="sm" variant="outline" disabled={uploadingAttachment} asChild>
+                        <span className="cursor-pointer">
+                          {uploadingAttachment ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                          Enviar Anexo
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
                   {attachments.length === 0 ? (
                     <EmptyTab icon={<Paperclip className="h-8 w-8" />} text="Nenhum anexo vinculado a este pedido." />
                   ) : (
@@ -1026,9 +1163,16 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                               <p className="text-[10px] text-muted-foreground">{a.file_type} {a.file_size ? `• ${(a.file_size / 1024).toFixed(1)} KB` : ''} • {fmtDate(a.created_at)}</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
-                            <a href={a.file_url} target="_blank" rel="noopener noreferrer">Abrir</a>
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                              <a href={a.file_url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                            </Button>
+                            {isAdmin && (
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteAttachment(a)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1113,6 +1257,77 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
           onImportComplete={() => { if (selectedOrder) loadDetail(selectedOrder.id); }}
         />
       )}
+
+      {/* New Environment Dialog */}
+      <Dialog open={envFormOpen} onOpenChange={setEnvFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Novo Ambiente</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+              <Input value={envForm.name} onChange={e => setEnvForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Cozinha, Dormitório..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
+              <Textarea rows={2} value={envForm.description} onChange={e => setEnvForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor (R$)</label>
+              <Input value={envForm.value} onChange={e => setEnvForm(f => ({ ...f, value: e.target.value }))} placeholder="0,00" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEnvFormOpen(false)}>Cancelar</Button>
+            <Button onClick={saveEnvironment}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Occurrence Dialog */}
+      <Dialog open={occFormOpen} onOpenChange={setOccFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova Ocorrência</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tipo</label>
+                <Select value={occForm.type} onValueChange={v => setOccForm(f => ({ ...f, type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Defeito', 'Avaria de transporte', 'Atraso', 'Reclamação', 'Garantia', 'Retrabalho', 'Outros'].map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+                <Select value={occForm.priority} onValueChange={v => setOccForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="baixa">Baixa</SelectItem>
+                    <SelectItem value="media">Média</SelectItem>
+                    <SelectItem value="alta">Alta</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Prazo</label>
+              <Input type="date" value={occForm.deadline} onChange={e => setOccForm(f => ({ ...f, deadline: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
+              <Textarea rows={3} value={occForm.description} onChange={e => setOccForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOccFormOpen(false)}>Cancelar</Button>
+            <Button onClick={saveOccurrenceInline}>Registrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
