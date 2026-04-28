@@ -278,8 +278,8 @@ export function parsePromobTxt(content: string): PromobParseResult {
 
   const environments = Array.from(envMap.values());
   for (const env of environments) {
-    // Total do ambiente usa o CUSTO FÁBRICA, que é o que o "Total =" do TXT do Promob soma
-    env.total = env.items.reduce((s, it) => s + it.factoryPrice * it.quantity, 0);
+    // Total do ambiente usa o CUSTO LOJA, que é o que o "Total =" do TXT do Promob soma
+    env.total = env.items.reduce((s, it) => s + it.storePrice * it.quantity, 0);
   }
 
   const fileTotal = extractTotal(lines);
