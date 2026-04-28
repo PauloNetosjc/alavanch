@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart3, TrendingUp, Users, Activity, FileText } from 'lucide-react';
+import { TrendingUp, Users, Activity, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
 const COLORS = ['hsl(var(--primary))', '#a78b5f', '#7a5c3b', '#3f5b3b', '#c0a36c', '#5a7a4f'];
