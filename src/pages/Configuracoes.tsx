@@ -19,6 +19,7 @@ import {
   Eye, Search, Loader2, TrendingUp,
 } from 'lucide-react';
 import Financeiro from '@/pages/Financeiro';
+import { VplSettingsCard } from '@/components/settings/VplSettingsCard';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
