@@ -135,6 +135,13 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
   const [contractSaving, setContractSaving] = useState(false);
   const [viewingContract, setViewingContract] = useState<DbTables<'contracts'> | null>(null);
 
+  // Environment / attachment / occurrence inline state
+  const [envFormOpen, setEnvFormOpen] = useState(false);
+  const [envForm, setEnvForm] = useState({ name: '', description: '', value: '' });
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [occFormOpen, setOccFormOpen] = useState(false);
+  const [occForm, setOccForm] = useState({ type: 'Defeito', priority: 'media', description: '', deadline: '' });
+
   const stagesForPipeline = (type: string) => pipelineStages.filter(s => s.pipeline_type === type);
   const stageOptions = (type: string) => stagesForPipeline(type).map(s => ({ value: s.name, label: s.name }));
   const stageColor = (type: string, value: string | null) => {
