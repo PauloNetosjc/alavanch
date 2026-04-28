@@ -28,6 +28,12 @@ export interface PromobItem {
   cost: number;
   costB: number;
   costC: number;
+  /** Preço final (vai para o orçamento) - 4ª coluna numérica */
+  finalPrice: number;
+  /** Preço de fábrica (custo gerencial) - 5ª coluna numérica */
+  factoryPrice: number;
+  /** Custo extra (ex.: montagem/material) - 6ª coluna numérica, quando presente */
+  extraCost: number;
   category: string;
   finish: string;
   projectRef: string;
@@ -115,9 +121,10 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   const width = parseDim(numericParts[0] || '');
   const height = parseDim(numericParts[1] || '');
   const depth = parseDim(numericParts[2] || '');
-  const costA = parseNum(numericParts[3] || '0');
-  const costB = parseNum(numericParts[4] || '0');
-  const costC = parseNum(numericParts[5] || '0');
+  // Layout Promob: L  A  P  PREÇO_FINAL  PREÇO_FÁBRICA  [CUSTO_EXTRA]
+  const finalPrice = parseNum(numericParts[3] || '0');
+  const factoryPrice = parseNum(numericParts[4] || '0');
+  const extraCost = parseNum(numericParts[5] || '0');
 
   if (projetoIdx >= 0) {
     const projPart = parts[projetoIdx];
@@ -148,9 +155,14 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
       width,
       height,
       depth,
-      cost: costA,
-      costB,
-      costC,
+      // cost = preço final (vai para o orçamento do cliente)
+      cost: finalPrice,
+      // mantém campos legados para compatibilidade com código existente
+      costB: factoryPrice,
+      costC: extraCost,
+      finalPrice,
+      factoryPrice,
+      extraCost,
       category,
       finish,
       projectRef,
@@ -210,7 +222,8 @@ export function parsePromobTxt(content: string): PromobParseResult {
 
   const environments = Array.from(envMap.values());
   for (const env of environments) {
-    env.total = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+    // Total do ambiente usa o PREÇO DE FÁBRICA, que é o que o "Total =" do TXT do Promob soma
+    env.total = env.items.reduce((s, it) => s + it.factoryPrice * it.quantity, 0);
   }
 
   const fileTotal = extractTotal(lines);
