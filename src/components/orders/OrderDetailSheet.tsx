@@ -1073,6 +1073,11 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== OCORRÊNCIAS ====== */}
                 <TabsContent value="ocorrencias" className="mt-4">
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" variant="outline" onClick={() => setOccFormOpen(true)}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Ocorrência
+                    </Button>
+                  </div>
                   {occurrences.length === 0 ? (
                     <EmptyTab icon={<AlertTriangle className="h-8 w-8" />} text="Nenhuma ocorrência registrada." />
                   ) : (
@@ -1134,6 +1139,17 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
 
                 {/* ====== ANEXOS ====== */}
                 <TabsContent value="anexos" className="mt-4">
+                  <div className="flex justify-end mb-3">
+                    <label>
+                      <input type="file" className="hidden" onChange={handleAttachmentUpload} disabled={uploadingAttachment} />
+                      <Button size="sm" variant="outline" disabled={uploadingAttachment} asChild>
+                        <span className="cursor-pointer">
+                          {uploadingAttachment ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                          Enviar Anexo
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
                   {attachments.length === 0 ? (
                     <EmptyTab icon={<Paperclip className="h-8 w-8" />} text="Nenhum anexo vinculado a este pedido." />
                   ) : (
@@ -1147,9 +1163,16 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                               <p className="text-[10px] text-muted-foreground">{a.file_type} {a.file_size ? `• ${(a.file_size / 1024).toFixed(1)} KB` : ''} • {fmtDate(a.created_at)}</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
-                            <a href={a.file_url} target="_blank" rel="noopener noreferrer">Abrir</a>
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                              <a href={a.file_url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                            </Button>
+                            {isAdmin && (
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteAttachment(a)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
