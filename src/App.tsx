@@ -20,6 +20,7 @@ import AcompanhamentoProd from "@/pages/AcompanhamentoProd";
 import PosMontagem from "@/pages/PosMontagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Relatorios from "@/pages/Relatorios";
+import Radar from "@/pages/Radar";
 import Configuracoes from "@/pages/Configuracoes";
 import Arquivo from "@/pages/Arquivo";
 import NotFound from "@/pages/NotFound";
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/pos-montagem" element={<PosMontagem />} />
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/radar" element={<Radar />} />
               <Route path="/administracao" element={<Configuracoes />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/arquivo" element={<Arquivo />} />
