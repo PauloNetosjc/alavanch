@@ -380,6 +380,108 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
     if (viewingContract?.id === contract.id) setViewingContract(null);
   };
 
+  // ─── Environment manual CRUD ───
+  const saveEnvironment = async () => {
+    if (!selectedOrder) return;
+    if (!envForm.name.trim()) { toast.error('Informe o nome do ambiente'); return; }
+    const value = parseFloat(envForm.value.replace(',', '.')) || 0;
+    const { error } = await supabase.from('order_environments').insert({
+      order_id: selectedOrder.id,
+      name: envForm.name.trim(),
+      description: envForm.description || null,
+      value,
+    });
+    if (error) { toast.error('Erro ao criar ambiente'); return; }
+    toast.success('Ambiente criado');
+    setEnvFormOpen(false);
+    setEnvForm({ name: '', description: '', value: '' });
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'environment_created', description: `Ambiente "${envForm.name}" criado`,
+    });
+    loadDetail(selectedOrder.id);
+  };
+
+  const deleteEnvironment = async (env: DbTables<'order_environments'>) => {
+    if (!selectedOrder || !confirm(`Excluir ambiente "${env.name}"?`)) return;
+    const { error } = await supabase.from('order_environments').delete().eq('id', env.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Ambiente excluído');
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'environment_deleted', description: `Ambiente "${env.name}" excluído`,
+    });
+    loadDetail(selectedOrder.id);
+  };
+
+  // ─── Attachment upload ───
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedOrder) return;
+    setUploadingAttachment(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) { toast.error('Sessão expirada'); setUploadingAttachment(false); return; }
+
+    const path = `${selectedOrder.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const { error: upErr } = await supabase.storage.from('order-attachments').upload(path, file);
+    if (upErr) { toast.error('Erro no upload: ' + upErr.message); setUploadingAttachment(false); return; }
+
+    const { data: urlData } = await supabase.storage.from('order-attachments').createSignedUrl(path, 60 * 60 * 24 * 365);
+    const { error: dbErr } = await supabase.from('attachments').insert({
+      entity_type: 'order',
+      entity_id: selectedOrder.id,
+      file_name: file.name,
+      file_url: urlData?.signedUrl ?? path,
+      file_type: file.type,
+      file_size: file.size,
+      uploaded_by: userId,
+    });
+    if (dbErr) { toast.error('Erro ao salvar anexo'); setUploadingAttachment(false); return; }
+    toast.success('Anexo enviado');
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'attachment_uploaded', description: `Anexo "${file.name}" adicionado`, user_id: userId,
+    });
+    setUploadingAttachment(false);
+    e.target.value = '';
+    loadDetail(selectedOrder.id);
+  };
+
+  const deleteAttachment = async (att: DbTables<'attachments'>) => {
+    if (!selectedOrder || !confirm('Excluir este anexo?')) return;
+    const { error } = await supabase.from('attachments').delete().eq('id', att.id);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Anexo excluído');
+    loadDetail(selectedOrder.id);
+  };
+
+  // ─── Occurrence inline ───
+  const saveOccurrenceInline = async () => {
+    if (!selectedOrder) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from('occurrences').insert({
+      order_id: selectedOrder.id,
+      client_id: selectedOrder.client_id,
+      type: occForm.type,
+      priority: occForm.priority,
+      description: occForm.description || null,
+      status: 'aberta',
+      deadline: occForm.deadline || null,
+    });
+    if (error) { toast.error('Erro ao criar ocorrência: ' + error.message); return; }
+    await supabase.from('orders').update({ occurrence_status: 'com_ocorrencias' } as any).eq('id', selectedOrder.id);
+    await supabase.from('timeline_events').insert({
+      entity_type: 'order', entity_id: selectedOrder.id,
+      event_type: 'occurrence_created', description: `Ocorrência aberta: ${occForm.type}`,
+      user_id: userData.user?.id,
+    });
+    toast.success('Ocorrência registrada');
+    setOccFormOpen(false);
+    setOccForm({ type: 'Defeito', priority: 'media', description: '', deadline: '' });
+    loadDetail(selectedOrder.id);
+  };
+
   const fmt = (v: number | null | undefined) =>
     v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
