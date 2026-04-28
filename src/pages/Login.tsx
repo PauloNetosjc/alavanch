@@ -1,72 +1,111 @@
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { TreePine, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Login() {
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(email, password);
-      toast.success('Login realizado com sucesso');
-    } catch {
-      toast.error('E-mail ou senha inválidos');
+      if (mode === "login") {
+        await signIn(email, password);
+        navigate("/dashboard");
+      } else {
+        await signUp(email, password, nome);
+        toast.success("Cadastro realizado! Verifique seu e-mail.");
+        setMode("login");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md shadow-lg border-border/50">
-        <CardHeader className="text-center pb-2 pt-8">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-4">
-            <TreePine className="h-7 w-7 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm surface-card" style={{ padding: 32 }}>
+        <div className="flex items-center gap-2.5 mb-8">
+          <div
+            className="w-7 h-7 rounded-md flex items-center justify-center"
+            style={{ background: "#1A1A1A", border: "0.5px solid #333" }}
+          >
+            <span className="text-[11px] font-medium text-white">P</span>
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Forest Decor</h1>
-          <p className="text-sm text-muted-foreground mt-1">Acesse o sistema de gestão</p>
-        </CardHeader>
-        <CardContent className="pt-4 pb-8 px-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+          <div>
+            <div className="text-[13px] font-medium tracking-[0.02em]">Planejados Pro</div>
+            <div className="text-[9px] uppercase text-muted-foreground tracking-[0.12em]">Sistema</div>
+          </div>
+        </div>
+
+        <h1 className="mb-1">{mode === "login" ? "Entrar" : "Criar conta"}</h1>
+        <p className="text-[12px] text-muted-foreground mb-6">
+          {mode === "login" ? "Acesse seu painel" : "Crie sua conta administrativa"}
+        </p>
+
+        <form onSubmit={submit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label className="kpi-label block mb-1.5">Nome</label>
+              <input
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
                 required
+                className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
+                style={{ border: "0.5px solid hsl(var(--border-strong))" }}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Entrar
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          )}
+          <div>
+            <label className="kpi-label block mb-1.5">E-mail</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
+              style={{ border: "0.5px solid hsl(var(--border-strong))" }}
+            />
+          </div>
+          <div>
+            <label className="kpi-label block mb-1.5">Senha</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
+              style={{ border: "0.5px solid hsl(var(--border-strong))" }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-9 rounded-md text-[12px] font-medium text-white transition-colors"
+            style={{ background: loading ? "#555" : "#1A1A1A" }}
+          >
+            {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
+          </button>
+        </form>
+
+        <button
+          onClick={() => setMode(mode === "login" ? "signup" : "login")}
+          className="w-full text-center mt-4 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {mode === "login" ? "Não tem conta? Criar conta" : "Já tem conta? Entrar"}
+        </button>
+      </div>
     </div>
   );
 }

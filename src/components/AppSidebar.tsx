@@ -1,216 +1,158 @@
-import { LogOut } from 'lucide-react';
-import { NavLink } from '@/components/NavLink';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { NavLink, useLocation } from "react-router-dom";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
-  SidebarHeader, useSidebar,
-} from '@/components/ui/sidebar';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+  LayoutDashboard,
+  Trophy,
+  BarChart3,
+  Users,
+  MessageSquare,
+  Briefcase,
+  Clock,
+  Wrench,
+  Hammer,
+  AlertTriangle,
+  Settings,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-type Item = { title: string; url: string; adminOnly?: boolean };
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }> };
+type Section = { label: string; items: Item[]; roles?: string[] };
 
-const sections: { label: string; items: Item[] }[] = [
+const sections: Section[] = [
   {
-    label: 'Principal',
+    label: "Visão Geral",
     items: [
-      { title: 'Dashboard', url: '/', adminOnly: true },
-      { title: 'Orçamentos', url: '/orcamentos' },
-      { title: 'Pedidos', url: '/pedidos' },
+      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+      { label: "Ranking / Metas", path: "/ranking", icon: Trophy },
+      { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
     ],
   },
   {
-    label: 'Operação',
+    label: "Gestão",
     items: [
-      { title: 'Revisão', url: '/revisao' },
-      { title: 'Acomp. Produção', url: '/acompanhamento-producao' },
-      { title: 'Entrega', url: '/entrega' },
-      { title: 'Montagem', url: '/montagem' },
-      { title: 'Pós-montagem', url: '/pos-montagem' },
-      { title: 'Radar de Prazos', url: '/radar' },
-      { title: 'Ocorrências', url: '/ocorrencias' },
+      { label: "Clientes", path: "/clientes", icon: Users },
+      { label: "CRM / Leads", path: "/leads", icon: MessageSquare },
+      { label: "Comercial", path: "/comercial", icon: Briefcase },
+      { label: "Radar de Prazos", path: "/radar", icon: Clock },
+      { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
   {
-    label: 'Gestão',
+    label: "Operação",
     items: [
-      { title: 'Financeiro', url: '/financeiro' },
-      { title: 'Relatórios', url: '/relatorios' },
-      { title: 'Arquivo', url: '/arquivo' },
-      { title: 'Administração', url: '/administracao', adminOnly: true },
+      { label: "Montagem", path: "/montagem", icon: Hammer },
+      { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },
     ],
+  },
+  {
+    label: "Config",
+    items: [{ label: "Administração", path: "/administracao", icon: Settings }],
   },
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
-  const location = useLocation();
-  const { signOut, user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [openOccurrences, setOpenOccurrences] = useState(0);
-  const [profileName, setProfileName] = useState<string>('');
+  const { pathname } = useLocation();
+  const { user, signOut, profile, role } = useAuth();
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.from('user_roles').select('role').eq('user_id', user.id).then(({ data }) => {
-      setIsAdmin(data?.some(r => r.role === 'admin') ?? false);
-    });
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle().then(({ data }) => {
-      setProfileName((data as any)?.full_name ?? user.email ?? '');
-    });
-  }, [user]);
-
-  useEffect(() => {
-    const loadCount = async () => {
-      const { count } = await supabase
-        .from('occurrences')
-        .select('id', { count: 'exact', head: true })
-        .in('status', ['aberta', 'em_analise']);
-      setOpenOccurrences(count ?? 0);
-    };
-    loadCount();
-    const ch = supabase
-      .channel('sidebar-occurrences')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'occurrences' }, loadCount)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
-
-  const isActive = (url: string) =>
-    url === '/' ? location.pathname === '/' : location.pathname.startsWith(url);
+  const initials = (profile?.nome_completo || user?.email || "?")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <Sidebar collapsible="icon" style={{ background: '#0F0F0F' }}>
-      <SidebarHeader className="px-4 pt-4 pb-3" style={{ background: '#0F0F0F' }}>
+    <aside
+      className="w-[220px] shrink-0 flex flex-col h-screen sticky top-0"
+      style={{ background: "#0F0F0F", borderRight: "0.5px solid #222" }}
+    >
+      {/* Top: brand */}
+      <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-            style={{ background: '#1A1A1A', border: '0.5px solid #333' }}
+            className="w-7 h-7 rounded-md flex items-center justify-center"
+            style={{ background: "#1A1A1A", border: "0.5px solid #333" }}
           >
-            <span style={{ color: '#C9B99A', fontSize: 11, fontWeight: 500 }}>F</span>
+            <span className="text-[11px] font-medium text-white">P</span>
           </div>
-          {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em' }}>
-                Forest Decor
-              </span>
-              <span style={{ color: '#555555', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                Sistema
-              </span>
+          <div className="leading-tight">
+            <div className="text-[13px] font-medium text-white tracking-[0.02em]">
+              Planejados Pro
             </div>
-          )}
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent style={{ background: '#0F0F0F' }} className="pt-2">
-        {sections.map((section) => {
-          const visible = section.items.filter((i) => !i.adminOnly || isAdmin);
-          if (visible.length === 0) return null;
-          return (
-            <SidebarGroup key={section.label} className="px-0 py-1">
-              {!collapsed && (
-                <SidebarGroupLabel
-                  style={{
-                    color: '#444444',
-                    fontSize: 9,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    padding: '12px 24px 6px',
-                    height: 'auto',
-                  }}
-                >
-                  {section.label}
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {visible.map((item) => {
-                    const active = isActive(item.url);
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild tooltip={item.title} className="hover:bg-transparent">
-                          <NavLink
-                            to={item.url}
-                            end={item.url === '/'}
-                            className="group flex items-center gap-2.5 rounded-md transition-colors"
-                            style={{
-                              padding: '7px 16px',
-                              margin: '0 8px',
-                              fontSize: 12.5,
-                              fontWeight: 400,
-                              color: active ? '#FFFFFF' : '#888888',
-                              background: active ? '#1F1F1F' : 'transparent',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!active) {
-                                (e.currentTarget as HTMLElement).style.background = '#1A1A1A';
-                                (e.currentTarget as HTMLElement).style.color = '#CCCCCC';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!active) {
-                                (e.currentTarget as HTMLElement).style.background = 'transparent';
-                                (e.currentTarget as HTMLElement).style.color = '#888888';
-                              }
-                            }}
-                          >
-                            <span
-                              className="shrink-0"
-                              style={{
-                                width: 4,
-                                height: 4,
-                                borderRadius: '50%',
-                                background: active ? '#C9B99A' : '#444444',
-                              }}
-                            />
-                            {!collapsed && <span className="flex-1 truncate">{item.title}</span>}
-                            {!collapsed && item.url === '/ocorrencias' && openOccurrences > 0 && (
-                              <span
-                                style={{
-                                  background: '#1A1A1A',
-                                  color: '#C9B99A',
-                                  fontSize: 10,
-                                  padding: '1px 6px',
-                                  borderRadius: 20,
-                                  border: '0.5px solid #333',
-                                }}
-                              >
-                                {openOccurrences}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
-      </SidebarContent>
-
-      <SidebarFooter style={{ background: '#0F0F0F', borderTop: '0.5px solid #222' }} className="p-3">
-        {!collapsed && (
-          <div className="px-2 pb-2">
-            <div style={{ color: '#888888', fontSize: 11 }} className="truncate">{profileName}</div>
-            <div style={{ color: '#3A3A3A', fontSize: 10 }}>{isAdmin ? 'Administrador' : 'Usuário'}</div>
+            <div className="text-[9px] uppercase text-[#555] tracking-[0.12em] mt-0.5">
+              Sistema
+            </div>
           </div>
-        )}
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors"
-          style={{ color: '#555555', fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#CCCCCC')}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#555555')}
-        >
-          <LogOut className="h-3 w-3" />
-          {!collapsed && <span>Sair</span>}
-        </button>
-      </SidebarFooter>
-    </Sidebar>
+        </div>
+      </div>
+
+      {/* Sections */}
+      <nav className="flex-1 overflow-y-auto pb-4">
+        {sections.map((section) => (
+          <div key={section.label} className="mt-2">
+            <div
+              className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
+              style={{ color: "#444", letterSpacing: "0.12em" }}
+            >
+              {section.label}
+            </div>
+            <div className="px-2 flex flex-col gap-0.5">
+              {section.items.map((it) => {
+                const active = pathname.startsWith(it.path);
+                return (
+                  <NavLink
+                    key={it.path}
+                    to={it.path}
+                    className="group flex items-center gap-2.5 rounded-md transition-colors"
+                    style={{
+                      padding: "7px 14px",
+                      background: active ? "#1F1F1F" : "transparent",
+                      color: active ? "#FFFFFF" : "#888888",
+                      fontSize: "12.5px",
+                    }}
+                  >
+                    <span
+                      className="inline-block rounded-full"
+                      style={{
+                        width: 4,
+                        height: 4,
+                        background: active ? "#C9B99A" : "#444",
+                      }}
+                    />
+                    <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
+                    <span className="flex-1">{it.label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-4 pt-3 pb-4" style={{ borderTop: "0.5px solid #222" }}>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
+            style={{ background: "#C9B99A", color: "#1A1A1A" }}
+          >
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] text-[#CCC] truncate">
+              {profile?.nome_completo || user?.email}
+            </div>
+            <div className="text-[10px] text-[#555] uppercase tracking-wider">
+              {role || "—"}
+            </div>
+          </div>
+          <button
+            onClick={() => signOut()}
+            className="text-[10px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 }
