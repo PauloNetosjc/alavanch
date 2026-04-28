@@ -76,6 +76,8 @@ export default function PromobImportDialog({
     try {
       for (const env of parseResult.environments) {
         let envId: string;
+        const envValue = env.items.reduce((s, it) => s + ((it as any).finalPrice ?? it.cost) * it.quantity, 0);
+        const envFactoryCost = env.items.reduce((s, it) => s + ((it as any).factoryPrice ?? 0) * it.quantity, 0);
 
         if (mode === 'replace' && existingEnvironmentId) {
           // Delete old items first
@@ -83,7 +85,8 @@ export default function PromobImportDialog({
           // Update environment
           await supabase.from('order_environments').update({
             name: env.name,
-            value: env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0),
+            value: envValue,
+            factory_cost: envFactoryCost,
             description: `Importado do Promob - ${fileName}`,
           }).eq('id', existingEnvironmentId);
           envId = existingEnvironmentId;
@@ -92,7 +95,8 @@ export default function PromobImportDialog({
           const { data: newEnv, error: envError } = await supabase.from('order_environments').insert({
             order_id: orderId,
             name: env.name,
-            value: env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0),
+            value: envValue,
+            factory_cost: envFactoryCost,
             description: `Importado do Promob - ${fileName}`,
           }).select('id').single();
 
@@ -141,7 +145,10 @@ export default function PromobImportDialog({
             width: item.width,
             height: item.height,
             depth: item.depth,
-            cost: item.cost,
+            cost: (item as any).finalPrice ?? item.cost,
+            final_price: (item as any).finalPrice ?? item.cost,
+            factory_price: (item as any).factoryPrice ?? 0,
+            extra_cost: (item as any).extraCost ?? 0,
             category: item.category,
             finish: item.finish,
             project_ref: parseResult.header.projectId,
