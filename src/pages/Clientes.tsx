@@ -319,9 +319,3 @@ export default function Clientes() {
   );
 }
 
-// Adicionado para criar campo created_at na interface (se ainda não existir, será ignorado)
-declare module "@/components/clientes/ClienteFormDialog" {
-  interface ClienteRow {
-    created_at?: string;
-  }
-}

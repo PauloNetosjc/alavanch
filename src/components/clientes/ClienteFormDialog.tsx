@@ -20,6 +20,7 @@ export interface ClienteRow {
   data_nascimento: string | null;
   observacoes: string | null;
   ativo: boolean | null;
+  created_at?: string;
 }
 
 interface Props {
