@@ -17,6 +17,7 @@ export interface LeadRow {
   indicador: string | null;
   interesse: string[] | null;
   notas: string | null;
+  created_at?: string;
 }
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
   onSaved: () => void;
 }
 
-const STATUS = ["novo", "qualificado", "proposta", "negociacao", "convertido", "perdido"];
+const STATUS = ["novo", "em_contato", "orcamento", "negociacao", "fechado", "perdido"];
 
 export function LeadFormDialog({ open, onOpenChange, lead, onSaved }: Props) {
   const [form, setForm] = useState({
