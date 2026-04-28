@@ -580,6 +580,8 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                                 {fmt(env.items.reduce((s, it) => s + (it.finalPrice ?? it.cost) * it.quantity, 0))}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
+                                Loja: {fmt(env.items.reduce((s, it) => s + ((it as any).storePrice ?? 0) * it.quantity, 0))}
+                                {' · '}
                                 Fábrica: {fmt(env.items.reduce((s, it) => s + (it.factoryPrice ?? 0) * it.quantity, 0))}
                               </span>
                             </div>
