@@ -118,10 +118,7 @@ export function AppSidebar() {
                         background: active ? "#C9B99A" : "#444",
                       }}
                     />
-                    <it.icon
-                      className="w-3.5 h-3.5"
-                      style={{ color: active ? "#FFF" : "#666" }}
-                    />
+                    <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
                     <span className="flex-1">{it.label}</span>
                   </NavLink>
                 );
