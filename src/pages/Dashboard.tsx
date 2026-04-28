@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
+import { LayoutDashboard } from "lucide-react";
 import { KpiCard } from "@/components/KpiCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
