@@ -91,9 +91,16 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
       .from('orders')
-      .select('id, code, ' + statusField + ', final_value, order_date, clients(name, phone)')
+      .select('id, code, ' + statusField + ', final_value, order_date, assembly_date, inspection_date, factory_send_date, assembler_id, clients(name, phone), assembler:profiles!orders_assembler_id_fkey(full_name)')
       .order('created_at', { ascending: false });
     if (data) {
+      // Fallback: if join fails because no FK, fetch profile names separately
+      const assemblerIds = Array.from(new Set((data as any[]).map(o => o.assembler_id).filter(Boolean)));
+      let nameMap: Record<string, string> = {};
+      if (assemblerIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('user_id, full_name').in('user_id', assemblerIds as string[]);
+        nameMap = Object.fromEntries((profs ?? []).map((p: any) => [p.user_id, p.full_name]));
+      }
       setOrders(data.map((o: any) => ({
         id: o.id,
         code: o.code,
@@ -102,6 +109,10 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
         final_value: o.final_value,
         status: o[statusField] ?? 'pendente',
         order_date: o.order_date,
+        assembly_date: o.assembly_date ?? null,
+        inspection_date: o.inspection_date ?? null,
+        factory_send_date: o.factory_send_date ?? null,
+        assembler_name: o.assembler_id ? (nameMap[o.assembler_id] ?? null) : null,
       })));
     }
   }, [statusField]);
