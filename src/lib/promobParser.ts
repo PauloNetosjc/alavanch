@@ -28,11 +28,15 @@ export interface PromobItem {
   cost: number;
   costB: number;
   costC: number;
-  /** Preço final (vai para o orçamento) - 4ª coluna numérica */
-  finalPrice: number;
-  /** Preço de fábrica (custo gerencial) - 5ª coluna numérica */
+  /** Custo cliente (vai para o orçamento) */
+  clientPrice: number;
+  /** Custo loja (gerencial, não exibido no orçamento) */
+  storePrice: number;
+  /** Custo fábrica (gerencial, não exibido no orçamento) */
   factoryPrice: number;
-  /** Custo extra (ex.: montagem/material) - 6ª coluna numérica, quando presente */
+  /** @deprecated mantido para compatibilidade — alias de clientPrice */
+  finalPrice: number;
+  /** @deprecated mantido para compatibilidade — alias de storePrice */
   extraCost: number;
   category: string;
   finish: string;
@@ -113,49 +117,67 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   let category = '';
   let finish = '';
 
-  // Slice between description area and Projeto anchor.
-  // Some Promob exports separate columns by single spaces inside a "part",
-  // so we re-tokenize the middle slice by ANY whitespace and split numeric
-  // from non-numeric tokens.
+  // Layout (da esquerda → direita):
+  //   código  qtd  descrição...  L  A  P  custo_cliente  custo_loja  custo_fábrica  "Projeto - AMB - CLI"  categoria  cor
+  // Estratégia ROBUSTA: ler de TRÁS para FRENTE a partir do anchor "Projeto - ...".
+  // Tomamos os ÚLTIMOS 6 tokens numéricos antes do anchor:
+  //   [-6] L   [-5] A   [-4] P   [-3] custo_cliente   [-2] custo_loja   [-1] custo_fábrica
+  // Isso evita confundir números que façam parte do nome/descrição do produto.
   const numEnd = projetoIdx > 0 ? projetoIdx : parts.length;
   const middleRaw = parts.slice(2, numEnd).join(' ');
   const tokens = middleRaw.split(/\s+/).filter(Boolean);
 
-  // Layout Promob: <descrição com palavras>  L  A  P  PREÇO_FINAL  PREÇO_FÁBRICA  [CUSTO_EXTRA]
-  // Estratégia: pegar os ÚLTIMOS 5 ou 6 tokens numéricos como dimensões+preços,
-  // e tudo antes vira descrição.
+  // Pega o maior sufixo de tokens numéricos consecutivos no final
   let lastNumericIdx = tokens.length - 1;
   while (lastNumericIdx >= 0 && !isNumeric(tokens[lastNumericIdx])) lastNumericIdx--;
-
-  // Conta quantos números consecutivos no fim
   let firstNumericIdx = lastNumericIdx;
   while (firstNumericIdx > 0 && isNumeric(tokens[firstNumericIdx - 1])) firstNumericIdx--;
 
-  const numericTail = tokens.slice(firstNumericIdx, lastNumericIdx + 1);
-  const description = tokens.slice(0, firstNumericIdx).join(' ').trim();
+  let numericTail = tokens.slice(firstNumericIdx, lastNumericIdx + 1);
 
-  // Esperamos 5 (L,A,P,Final,Fábrica) ou 6 (+Extra) números no fim
+  // Limita aos ÚLTIMOS 6 números (L, A, P, custo cliente, custo loja, custo fábrica).
+  // Se o sufixo numérico tiver mais que 6 tokens, os excedentes pertencem à descrição.
+  let descExtra: string[] = [];
+  if (numericTail.length > 6) {
+    descExtra = numericTail.slice(0, numericTail.length - 6);
+    numericTail = numericTail.slice(numericTail.length - 6);
+  }
+
+  const description = [
+    ...tokens.slice(0, firstNumericIdx),
+    ...descExtra,
+  ].join(' ').trim();
+
   let width: number | null = null;
   let height: number | null = null;
   let depth: number | null = null;
-  let finalPrice = 0;
+  let clientPrice = 0;
+  let storePrice = 0;
   let factoryPrice = 0;
-  let extraCost = 0;
 
-  if (numericTail.length >= 5) {
-    width = parseDim(numericTail[0]);
-    height = parseDim(numericTail[1]);
-    depth = parseDim(numericTail[2]);
-    finalPrice = parseNum(numericTail[3]);
+  if (numericTail.length === 6) {
+    width        = parseDim(numericTail[0]);
+    height       = parseDim(numericTail[1]);
+    depth        = parseDim(numericTail[2]);
+    clientPrice  = parseNum(numericTail[3]);
+    storePrice   = parseNum(numericTail[4]);
+    factoryPrice = parseNum(numericTail[5]);
+  } else if (numericTail.length === 5) {
+    // Sem custo loja → assume cliente e fábrica, loja = média/0
+    width        = parseDim(numericTail[0]);
+    height       = parseDim(numericTail[1]);
+    depth        = parseDim(numericTail[2]);
+    clientPrice  = parseNum(numericTail[3]);
     factoryPrice = parseNum(numericTail[4]);
-    extraCost = parseNum(numericTail[5] || '0');
+    storePrice   = 0;
   } else {
-    // fallback: usa o que tiver
-    width = parseDim(numericTail[0] || '');
-    height = parseDim(numericTail[1] || '');
-    depth = parseDim(numericTail[2] || '');
-    finalPrice = parseNum(numericTail[3] || '0');
-    factoryPrice = parseNum(numericTail[4] || '0');
+    // fallback defensivo
+    width        = parseDim(numericTail[0] || '');
+    height       = parseDim(numericTail[1] || '');
+    depth        = parseDim(numericTail[2] || '');
+    clientPrice  = parseNum(numericTail[3] || '0');
+    storePrice   = parseNum(numericTail[4] || '0');
+    factoryPrice = parseNum(numericTail[5] || '0');
   }
 
   if (projetoIdx >= 0) {
@@ -187,14 +209,16 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
       width,
       height,
       depth,
-      // cost = preço final (vai para o orçamento do cliente)
-      cost: finalPrice,
-      // mantém campos legados para compatibilidade com código existente
-      costB: factoryPrice,
-      costC: extraCost,
-      finalPrice,
+      // cost = custo cliente (vai para o orçamento)
+      cost: clientPrice,
+      // legados — manter compatibilidade
+      costB: storePrice,
+      costC: factoryPrice,
+      clientPrice,
+      storePrice,
       factoryPrice,
-      extraCost,
+      finalPrice: clientPrice,
+      extraCost: storePrice,
       category,
       finish,
       projectRef,
@@ -254,7 +278,7 @@ export function parsePromobTxt(content: string): PromobParseResult {
 
   const environments = Array.from(envMap.values());
   for (const env of environments) {
-    // Total do ambiente usa o PREÇO DE FÁBRICA, que é o que o "Total =" do TXT do Promob soma
+    // Total do ambiente usa o CUSTO FÁBRICA, que é o que o "Total =" do TXT do Promob soma
     env.total = env.items.reduce((s, it) => s + it.factoryPrice * it.quantity, 0);
   }
 
