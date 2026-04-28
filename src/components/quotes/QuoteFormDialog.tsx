@@ -42,11 +42,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Plus, Check, ChevronsUpDown, Upload, FileText, X, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { maskPhone } from '@/lib/masks';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { TagSelector } from '@/components/ui/tag-selector';
+import { parsePromobTxt, type PromobParseResult } from '@/lib/promobParser';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
@@ -76,6 +79,9 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [manualEnvs, setManualEnvs] = useState<Array<{ name: string; value: string; description: string }>>([]);
+  const [promob, setPromob] = useState<{ result: PromobParseResult; fileName: string } | null>(null);
+  const [parsingPromob, setParsingPromob] = useState(false);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -104,6 +110,8 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         notes: editQuote?.notes ?? '',
       });
       setSelectedTags(editQuote?.tags ?? []);
+      setManualEnvs([]);
+      setPromob(null);
       loadData();
     }
   }, [open, editQuote]);
@@ -135,6 +143,38 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
     return `ORC-${year}-${String(num).padStart(4, '0')}`;
   };
 
+  const handlePromobFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsingPromob(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const result = parsePromobTxt(ev.target?.result as string);
+        if (result.environments.length === 0) {
+          toast.error('Nenhum ambiente encontrado no arquivo.');
+        } else {
+          setPromob({ result, fileName: file.name });
+          toast.success(`${result.environments.length} ambiente(s) detectado(s)`);
+        }
+      } catch {
+        toast.error('Erro ao processar o arquivo Promob.');
+      } finally {
+        setParsingPromob(false);
+      }
+    };
+    reader.onerror = () => { setParsingPromob(false); toast.error('Falha ao ler o arquivo.'); };
+    reader.readAsText(file, 'latin1');
+    e.target.value = '';
+  };
+
+  const addManualEnv = () => setManualEnvs(prev => [...prev, { name: '', value: '', description: '' }]);
+  const updateManualEnv = (i: number, key: 'name' | 'value' | 'description', val: string) =>
+    setManualEnvs(prev => prev.map((e, idx) => idx === i ? { ...e, [key]: val } : e));
+  const removeManualEnv = (i: number) => setManualEnvs(prev => prev.filter((_, idx) => idx !== i));
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
   const onSubmit = async (data: QuoteFormData) => {
     setSaving(true);
     try {
@@ -157,7 +197,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         toast.success('Orçamento atualizado');
       } else {
         const code = await generateCode();
-        const { error } = await supabase
+        const { data: created, error } = await supabase
           .from('quotes')
           .insert({
             code,
@@ -172,8 +212,96 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             notes: data.notes || null,
             status: 'novo_lead',
             tags: selectedTags.length > 0 ? selectedTags : null,
-          });
+          })
+          .select('id')
+          .single();
         if (error) throw error;
+
+        const quoteId = created.id;
+
+        // Insert Promob environments + items
+        if (promob) {
+          let totalFromPromob = 0;
+          for (const env of promob.result.environments) {
+            const envValue = env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+            const envCost = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+            totalFromPromob += envValue;
+
+            const { data: newEnv, error: envErr } = await supabase
+              .from('quote_environments')
+              .insert({
+                quote_id: quoteId,
+                name: env.name,
+                value: envValue,
+                cost: envCost,
+                description: `Importado do Promob - ${promob.fileName}`,
+              })
+              .select('id')
+              .single();
+            if (envErr) throw envErr;
+
+            const { data: importRec } = await supabase.from('promob_imports').insert({
+              quote_id: quoteId,
+              quote_environment_id: newEnv.id,
+              project_id: promob.result.header.projectId,
+              promob_version: promob.result.header.promobVersion,
+              store_name: promob.result.header.storeName,
+              client_name: promob.result.header.clientName,
+              address: promob.result.header.address,
+              neighborhood: promob.result.header.neighborhood,
+              phone: promob.result.header.phone,
+              cpf: promob.result.header.cpf,
+              delivery_address: promob.result.header.deliveryAddress,
+              raw_content: promob.result.rawContent,
+              status: 'imported',
+              version: 1,
+              created_by: user?.id,
+            }).select('id').single();
+
+            if (env.items.length > 0) {
+              await supabase.from('quote_items').insert(env.items.map(item => ({
+                environment_id: newEnv.id,
+                import_id: importRec?.id,
+                index_num: item.index,
+                quantity: item.quantity,
+                description: item.description,
+                width: item.width,
+                height: item.height,
+                depth: item.depth,
+                cost: item.cost,
+                category: item.category,
+                finish: item.finish,
+                project_ref: promob.result.header.projectId,
+              })));
+            }
+          }
+
+          // Update quote totals
+          await supabase.from('quotes').update({
+            total_value: totalFromPromob,
+            final_value: totalFromPromob,
+          }).eq('id', quoteId);
+        }
+
+        // Insert manual environments
+        const manualValid = manualEnvs.filter(e => e.name.trim());
+        if (manualValid.length > 0) {
+          await supabase.from('quote_environments').insert(manualValid.map(e => ({
+            quote_id: quoteId,
+            name: e.name.trim(),
+            value: parseFloat(e.value) || 0,
+            description: e.description || null,
+          })));
+
+          if (!promob) {
+            const sum = manualValid.reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+            await supabase.from('quotes').update({
+              total_value: sum,
+              final_value: sum,
+            }).eq('id', quoteId);
+          }
+        }
+
         toast.success('Orçamento criado');
       }
 
@@ -387,6 +515,108 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tags</h3>
               <TagSelector value={selectedTags} onChange={setSelectedTags} types={['orcamento']} />
             </div>
+
+            {!editQuote && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Ambientes do Projeto
+                </h3>
+
+                {/* Promob upload */}
+                <Card className="border-dashed border-border/70">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Importar do Promob (.txt)</span>
+                      </div>
+                      {promob && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setPromob(null)}>
+                          <X className="h-3.5 w-3.5 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+
+                    {!promob ? (
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept=".txt,.xml"
+                          onChange={handlePromobFile}
+                          className="hidden"
+                          disabled={parsingPromob}
+                        />
+                        <div className="border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/30 transition-colors">
+                          {parsingPromob ? (
+                            <Loader2 className="h-5 w-5 mx-auto animate-spin text-primary" />
+                          ) : (
+                            <>
+                              <Upload className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">Clique para selecionar o arquivo exportado do Promob</p>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-mono">{promob.fileName}</span>
+                        </div>
+                        {promob.result.environments.map((env, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm bg-muted/40 rounded px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <Package className="h-3.5 w-3.5 text-primary" />
+                              <span className="font-medium">{env.name}</span>
+                              <Badge variant="secondary" className="text-[10px]">{env.items.length} itens</Badge>
+                            </div>
+                            <span className="font-semibold text-xs">
+                              {fmt(env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0))}
+                            </span>
+                          </div>
+                        ))}
+                        {promob.result.warnings.length > 0 && (
+                          <p className="text-[11px] text-amber-600">{promob.result.warnings[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Manual envs */}
+                <div className="space-y-2">
+                  {manualEnvs.map((env, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                      <Input
+                        className="col-span-5"
+                        placeholder="Nome do ambiente"
+                        value={env.name}
+                        onChange={(e) => updateManualEnv(i, 'name', e.target.value)}
+                      />
+                      <Input
+                        className="col-span-3"
+                        type="number"
+                        step="0.01"
+                        placeholder="Valor (R$)"
+                        value={env.value}
+                        onChange={(e) => updateManualEnv(i, 'value', e.target.value)}
+                      />
+                      <Input
+                        className="col-span-3"
+                        placeholder="Descrição"
+                        value={env.description}
+                        onChange={(e) => updateManualEnv(i, 'description', e.target.value)}
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => removeManualEnv(i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addManualEnv}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar ambiente manual
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <FormField
               control={form.control}

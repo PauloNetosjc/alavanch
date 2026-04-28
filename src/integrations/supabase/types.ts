@@ -880,10 +880,12 @@ export type Database = {
           id: string
           import_date: string | null
           neighborhood: string | null
-          order_id: string
+          order_id: string | null
           phone: string | null
           project_id: string | null
           promob_version: string | null
+          quote_environment_id: string | null
+          quote_id: string | null
           raw_content: string | null
           status: string | null
           store_name: string | null
@@ -900,10 +902,12 @@ export type Database = {
           id?: string
           import_date?: string | null
           neighborhood?: string | null
-          order_id: string
+          order_id?: string | null
           phone?: string | null
           project_id?: string | null
           promob_version?: string | null
+          quote_environment_id?: string | null
+          quote_id?: string | null
           raw_content?: string | null
           status?: string | null
           store_name?: string | null
@@ -920,10 +924,12 @@ export type Database = {
           id?: string
           import_date?: string | null
           neighborhood?: string | null
-          order_id?: string
+          order_id?: string | null
           phone?: string | null
           project_id?: string | null
           promob_version?: string | null
+          quote_environment_id?: string | null
+          quote_id?: string | null
           raw_content?: string | null
           status?: string | null
           store_name?: string | null
@@ -1021,6 +1027,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quote_items: {
+        Row: {
+          category: string | null
+          cost: number | null
+          created_at: string
+          depth: number | null
+          description: string
+          environment_id: string
+          finish: string | null
+          height: number | null
+          id: string
+          import_id: string | null
+          index_num: number | null
+          project_ref: string | null
+          quantity: number | null
+          width: number | null
+        }
+        Insert: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          depth?: number | null
+          description: string
+          environment_id: string
+          finish?: string | null
+          height?: number | null
+          id?: string
+          import_id?: string | null
+          index_num?: number | null
+          project_ref?: string | null
+          quantity?: number | null
+          width?: number | null
+        }
+        Update: {
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          depth?: number | null
+          description?: string
+          environment_id?: string
+          finish?: string | null
+          height?: number | null
+          id?: string
+          import_id?: string | null
+          index_num?: number | null
+          project_ref?: string | null
+          quantity?: number | null
+          width?: number | null
+        }
+        Relationships: []
       }
       quotes: {
         Row: {
