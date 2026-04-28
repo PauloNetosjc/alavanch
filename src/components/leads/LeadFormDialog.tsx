@@ -17,6 +17,7 @@ export interface LeadRow {
   indicador: string | null;
   interesse: string[] | null;
   notas: string | null;
+  created_at?: string;
 }
 
 interface Props {
