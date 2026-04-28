@@ -392,14 +392,28 @@ export function QuoteDetailSheet({
                 </Button>
               </div>
               {quote.status !== 'fechado' && quote.status !== 'declinado' && quote.status !== 'arquivado' && (
-                <Button onClick={handleConvertToOrder} disabled={converting}>
-                  {converting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <ArrowRightCircle className="h-4 w-4 mr-2" />
+                <>
+                  {(quote as { approval_status?: string }).approval_status === 'aguardando' && (
+                    <div className="flex items-center gap-2 rounded-md border border-purple-300 bg-purple-50 px-3 py-2 text-xs text-purple-800">
+                      <ShieldAlert className="h-4 w-4" />
+                      Aguardando aprovação do administrador (desconto acima do limite).
+                    </div>
                   )}
-                  Converter em Pedido
-                </Button>
+                  <Button
+                    onClick={handleConvertToOrder}
+                    disabled={converting || (quote as { approval_status?: string }).approval_status === 'aguardando'}
+                    title={(quote as { approval_status?: string }).approval_status === 'aguardando'
+                      ? 'Desconto acima do limite — aguardando aprovação do administrador'
+                      : undefined}
+                  >
+                    {converting ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <ArrowRightCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Converter em Pedido
+                  </Button>
+                </>
               )}
             </div>
           </div>
