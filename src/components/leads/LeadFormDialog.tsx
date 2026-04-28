@@ -26,7 +26,7 @@ interface Props {
   onSaved: () => void;
 }
 
-const STATUS = ["novo", "qualificado", "proposta", "negociacao", "convertido", "perdido"];
+const STATUS = ["novo", "em_contato", "orcamento", "negociacao", "fechado", "perdido"];
 
 export function LeadFormDialog({ open, onOpenChange, lead, onSaved }: Props) {
   const [form, setForm] = useState({
