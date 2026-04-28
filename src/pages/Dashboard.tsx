@@ -175,6 +175,25 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema Forest Decor</p>
       </div>
 
+      {pendingApprovals > 0 && (
+        <Card className="border-purple-300 bg-purple-50">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="h-5 w-5 text-purple-700" />
+              <div>
+                <p className="text-sm font-medium text-purple-900">
+                  {pendingApprovals} orçamento{pendingApprovals > 1 ? 's' : ''} aguardando aprovação de desconto
+                </p>
+                <p className="text-xs text-purple-700/80">Revise e libere a conversão em pedido em Administração → Aprovações.</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="border-purple-400 text-purple-800 hover:bg-purple-100" onClick={() => navigate('/administracao')}>
+              Revisar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(stat => (
