@@ -870,6 +870,150 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                   )}
                 </TabsContent>
 
+                {/* ====== CUSTOS (Gerencial) ====== */}
+                <TabsContent value="custos" className="mt-4 space-y-4">
+                  {(() => {
+                    const allItems = Object.values(envItems).flat();
+                    const sumCli = allItems.reduce((s, it) => s + Number(it.final_price ?? it.cost ?? 0) * (it.quantity ?? 1), 0);
+                    const sumLoja = allItems.reduce((s, it) => s + Number(it.extra_cost ?? 0) * (it.quantity ?? 1), 0);
+                    const sumFab = allItems.reduce((s, it) => s + Number(it.factory_price ?? 0) * (it.quantity ?? 1), 0);
+                    const margemLoja = sumCli > 0 ? ((sumCli - sumLoja) / sumCli) * 100 : 0;
+                    const margemFab = sumCli > 0 ? ((sumCli - sumFab) / sumCli) * 100 : 0;
+                    const pctLoja = sumCli > 0 ? (sumLoja / sumCli) * 100 : 0;
+                    const pctFab = sumCli > 0 ? (sumFab / sumCli) * 100 : 0;
+                    const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                    if (allItems.length === 0) {
+                      return (
+                        <Card className="border-dashed border-border/60">
+                          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                            Nenhum item importado. Importe um arquivo Promob na aba Ambientes para visualizar os custos.
+                          </CardContent>
+                        </Card>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {/* Cards de totais */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <Card className="border-primary/30 bg-primary/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                <DollarSign className="h-3.5 w-3.5" /> Custo Cliente (Orçamento)
+                              </div>
+                              <p className="text-2xl font-semibold">{fmt(sumCli)}</p>
+                              <p className="text-[11px] text-muted-foreground mt-1">Base 100% — valor cobrado</p>
+                            </CardContent>
+                          </Card>
+                          <Card className="border-amber-500/30 bg-amber-500/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                <Store className="h-3.5 w-3.5" /> Custo Loja
+                              </div>
+                              <p className="text-2xl font-semibold">{fmt(sumLoja)}</p>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                {pctLoja.toFixed(1)}% do cliente · margem {margemLoja.toFixed(1)}%
+                              </p>
+                            </CardContent>
+                          </Card>
+                          <Card className="border-emerald-600/30 bg-emerald-600/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                <Factory className="h-3.5 w-3.5" /> Custo Fábrica
+                              </div>
+                              <p className="text-2xl font-semibold">{fmt(sumFab)}</p>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                {pctFab.toFixed(1)}% do cliente · margem {margemFab.toFixed(1)}%
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        {/* Barra comparativa */}
+                        <Card className="border-border/60">
+                          <CardContent className="p-4 space-y-3">
+                            <h4 className="text-sm font-semibold">Composição de custos vs. preço cliente</h4>
+                            <div className="space-y-2">
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="text-muted-foreground">Custo Loja</span>
+                                  <span className="font-medium">{pctLoja.toFixed(1)}%</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                  <div className="h-full bg-amber-500" style={{ width: `${Math.min(pctLoja, 100)}%` }} />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="text-muted-foreground">Custo Fábrica</span>
+                                  <span className="font-medium">{pctFab.toFixed(1)}%</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                  <div className="h-full bg-emerald-600" style={{ width: `${Math.min(pctFab, 100)}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Detalhamento por ambiente */}
+                        <Card className="border-border/60">
+                          <CardContent className="p-0">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-xs">Ambiente</TableHead>
+                                  <TableHead className="text-xs text-right">Itens</TableHead>
+                                  <TableHead className="text-xs text-right">Cliente</TableHead>
+                                  <TableHead className="text-xs text-right">Loja</TableHead>
+                                  <TableHead className="text-xs text-right">Fábrica</TableHead>
+                                  <TableHead className="text-xs text-right">Margem Loja</TableHead>
+                                  <TableHead className="text-xs text-right">Margem Fábrica</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {environments.map(env => {
+                                  const its = envItems[env.id] ?? [];
+                                  const c = its.reduce((s, it) => s + Number(it.final_price ?? it.cost ?? 0) * (it.quantity ?? 1), 0);
+                                  const l = its.reduce((s, it) => s + Number(it.extra_cost ?? 0) * (it.quantity ?? 1), 0);
+                                  const f = its.reduce((s, it) => s + Number(it.factory_price ?? 0) * (it.quantity ?? 1), 0);
+                                  const ml = c > 0 ? ((c - l) / c) * 100 : 0;
+                                  const mf = c > 0 ? ((c - f) / c) * 100 : 0;
+                                  return (
+                                    <TableRow key={env.id}>
+                                      <TableCell className="text-xs font-medium">{env.name}</TableCell>
+                                      <TableCell className="text-xs text-right">{its.length}</TableCell>
+                                      <TableCell className="text-xs text-right">{fmt(c)}</TableCell>
+                                      <TableCell className="text-xs text-right text-amber-600">{fmt(l)}</TableCell>
+                                      <TableCell className="text-xs text-right text-emerald-700">{fmt(f)}</TableCell>
+                                      <TableCell className="text-xs text-right">{ml.toFixed(1)}%</TableCell>
+                                      <TableCell className="text-xs text-right">{mf.toFixed(1)}%</TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                                <TableRow className="bg-muted/40 font-semibold">
+                                  <TableCell className="text-xs">Total</TableCell>
+                                  <TableCell className="text-xs text-right">{allItems.length}</TableCell>
+                                  <TableCell className="text-xs text-right">{fmt(sumCli)}</TableCell>
+                                  <TableCell className="text-xs text-right text-amber-600">{fmt(sumLoja)}</TableCell>
+                                  <TableCell className="text-xs text-right text-emerald-700">{fmt(sumFab)}</TableCell>
+                                  <TableCell className="text-xs text-right">{margemLoja.toFixed(1)}%</TableCell>
+                                  <TableCell className="text-xs text-right">{margemFab.toFixed(1)}%</TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </Card>
+
+                        <p className="text-[11px] text-muted-foreground">
+                          Valores calculados a partir dos itens importados do Promob. Apenas o <span className="font-medium">Custo Cliente</span> aparece no orçamento; Loja e Fábrica são gerenciais.
+                        </p>
+                      </>
+                    );
+                  })()}
+                </TabsContent>
+
                 {/* ====== CONTRATO ====== */}
                 <TabsContent value="contrato" className="mt-4 space-y-4">
                   <StatusSelect icon={<FileText className="h-4 w-4" />} label="Status do Contrato" value={selectedOrder.contract_status ?? 'Pendente'} options={stageOptions('contrato')} onChange={v => handleStatusChange('contract_status', v)} color={stageColor('contrato', selectedOrder.contract_status)} disabled={!isAdmin} />
