@@ -1,1 +1,4 @@
 project_id = "qxvivlffarwskhcaptia"
+
+[functions.describe-ambiente]
+verify_jwt = false

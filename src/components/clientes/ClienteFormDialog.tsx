@@ -27,8 +27,9 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   cliente?: ClienteRow | null;
-  onSaved: () => void;
+  onSaved: (created?: { id: string; nome: string }) => void;
 }
+
 
 const empty = {
   nome: "",
@@ -83,19 +84,23 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
       data_nascimento: form.data_nascimento || null,
       observacoes: form.observacoes || null,
     };
-    const { error } = cliente
-      ? await supabase.from("clientes").update(payload).eq("id", cliente.id)
-      : await supabase.from("clientes").insert(payload);
+    let createdId: string | undefined;
+    let createdNome: string | undefined;
+    if (cliente) {
+      const { error } = await supabase.from("clientes").update(payload).eq("id", cliente.id);
+      if (error) { setSaving(false); toast.error(error.message); return; }
+    } else {
+      const { data, error } = await supabase.from("clientes").insert(payload).select("id, nome").single();
+      if (error) { setSaving(false); toast.error(error.message); return; }
+      createdId = data?.id; createdNome = data?.nome;
+    }
 
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
     toast.success(cliente ? "Cliente atualizado" : "Cliente criado");
-    onSaved();
+    onSaved(createdId && createdNome ? { id: createdId, nome: createdNome } : undefined);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
