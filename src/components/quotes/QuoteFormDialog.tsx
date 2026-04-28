@@ -42,11 +42,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Plus, Check, ChevronsUpDown, Upload, FileText, X, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { maskPhone } from '@/lib/masks';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { TagSelector } from '@/components/ui/tag-selector';
+import { parsePromobTxt, type PromobParseResult } from '@/lib/promobParser';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Tables } from '@/integrations/supabase/types';
 
 const quoteSchema = z.object({
