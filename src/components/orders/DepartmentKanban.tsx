@@ -34,6 +34,10 @@ interface OrderCard {
   final_value: number | null;
   status: string;
   order_date: string;
+  assembly_date: string | null;
+  inspection_date: string | null;
+  factory_send_date: string | null;
+  assembler_name: string | null;
 }
 
 interface DepartmentKanbanProps {
