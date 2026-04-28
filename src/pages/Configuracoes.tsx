@@ -515,6 +515,7 @@ export default function Configuracoes() {
           <TabsTrigger value="aprovacoes"><Shield className="h-3.5 w-3.5 mr-1.5" />Aprovações</TabsTrigger>
           <TabsTrigger value="pipelines"><GitBranch className="h-3.5 w-3.5 mr-1.5" />Pipelines</TabsTrigger>
           <TabsTrigger value="financeiro"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Financeiro</TabsTrigger>
+          <TabsTrigger value="vpl"><TrendingUp className="h-3.5 w-3.5 mr-1.5" />VPL</TabsTrigger>
           <TabsTrigger value="clientes"><Users className="h-3.5 w-3.5 mr-1.5" />Clientes</TabsTrigger>
         </TabsList>
 
