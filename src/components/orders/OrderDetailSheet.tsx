@@ -570,6 +570,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                   <TabsTrigger value="resumo" className="text-xs">Resumo</TabsTrigger>
                   <TabsTrigger value="cliente" className="text-xs">Cliente</TabsTrigger>
                   <TabsTrigger value="ambientes" className="text-xs">Ambientes</TabsTrigger>
+                  <TabsTrigger value="custos" className="text-xs">Custos</TabsTrigger>
                   <TabsTrigger value="contrato" className="text-xs">Contrato</TabsTrigger>
                   <TabsTrigger value="financeiro" className="text-xs">Financeiro</TabsTrigger>
                   <TabsTrigger value="revisao" className="text-xs">Revisão</TabsTrigger>
