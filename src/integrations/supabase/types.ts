@@ -614,6 +614,7 @@ export type Database = {
           snapshot: Json | null
           store_id: string | null
           tags: string[] | null
+          total_cost: number | null
           total_value: number | null
           updated_at: string
         }
@@ -644,6 +645,7 @@ export type Database = {
           snapshot?: Json | null
           store_id?: string | null
           tags?: string[] | null
+          total_cost?: number | null
           total_value?: number | null
           updated_at?: string
         }
@@ -674,6 +676,7 @@ export type Database = {
           snapshot?: Json | null
           store_id?: string | null
           tags?: string[] | null
+          total_cost?: number | null
           total_value?: number | null
           updated_at?: string
         }
@@ -993,6 +996,7 @@ export type Database = {
           store_id: string | null
           surcharge: number | null
           tags: string[] | null
+          total_cost: number | null
           total_value: number | null
           updated_at: string
           urgency: string | null
@@ -1018,6 +1022,7 @@ export type Database = {
           store_id?: string | null
           surcharge?: number | null
           tags?: string[] | null
+          total_cost?: number | null
           total_value?: number | null
           updated_at?: string
           urgency?: string | null
@@ -1043,6 +1048,7 @@ export type Database = {
           store_id?: string | null
           surcharge?: number | null
           tags?: string[] | null
+          total_cost?: number | null
           total_value?: number | null
           updated_at?: string
           urgency?: string | null
