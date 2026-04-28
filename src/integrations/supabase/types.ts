@@ -330,10 +330,16 @@ export type Database = {
           due_date: string | null
           id: string
           installment_number: number | null
+          notes: string | null
           order_id: string | null
           paid_date: string | null
           paid_value: number | null
           payment_method: string | null
+          reconciled: boolean | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          recurring: boolean | null
+          source: string | null
           status: string | null
           surcharge: number | null
           type: string
@@ -349,10 +355,16 @@ export type Database = {
           due_date?: string | null
           id?: string
           installment_number?: number | null
+          notes?: string | null
           order_id?: string | null
           paid_date?: string | null
           paid_value?: number | null
           payment_method?: string | null
+          reconciled?: boolean | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          recurring?: boolean | null
+          source?: string | null
           status?: string | null
           surcharge?: number | null
           type: string
@@ -368,10 +380,16 @@ export type Database = {
           due_date?: string | null
           id?: string
           installment_number?: number | null
+          notes?: string | null
           order_id?: string | null
           paid_date?: string | null
           paid_value?: number | null
           payment_method?: string | null
+          reconciled?: boolean | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          recurring?: boolean | null
+          source?: string | null
           status?: string | null
           surcharge?: number | null
           type?: string
@@ -430,12 +448,14 @@ export type Database = {
         Row: {
           client_id: string
           closed_at: string | null
+          code: string | null
           created_at: string
           deadline: string | null
           description: string | null
           id: string
           opened_at: string
           order_id: string
+          photo_url: string | null
           priority: string | null
           responsible_id: string | null
           solution: string | null
@@ -446,12 +466,14 @@ export type Database = {
         Insert: {
           client_id: string
           closed_at?: string | null
+          code?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           id?: string
           opened_at?: string
           order_id: string
+          photo_url?: string | null
           priority?: string | null
           responsible_id?: string | null
           solution?: string | null
@@ -462,12 +484,14 @@ export type Database = {
         Update: {
           client_id?: string
           closed_at?: string | null
+          code?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           id?: string
           opened_at?: string
           order_id?: string
+          photo_url?: string | null
           priority?: string | null
           responsible_id?: string | null
           solution?: string | null
@@ -588,6 +612,12 @@ export type Database = {
       }
       orders: {
         Row: {
+          approval_reason: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          assembler_id: string | null
+          assembly_date: string | null
           assembly_status: string | null
           client_id: string
           code: string
@@ -602,6 +632,8 @@ export type Database = {
           final_value: number | null
           financial_status: string | null
           id: string
+          inspection_date: string | null
+          installments_generated: boolean | null
           internal_comments: string | null
           npv_value: number | null
           occurrence_status: string | null
@@ -619,6 +651,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_reason?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assembler_id?: string | null
+          assembly_date?: string | null
           assembly_status?: string | null
           client_id: string
           code: string
@@ -633,6 +671,8 @@ export type Database = {
           final_value?: number | null
           financial_status?: string | null
           id?: string
+          inspection_date?: string | null
+          installments_generated?: boolean | null
           internal_comments?: string | null
           npv_value?: number | null
           occurrence_status?: string | null
@@ -650,6 +690,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_reason?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assembler_id?: string | null
+          assembly_date?: string | null
           assembly_status?: string | null
           client_id?: string
           code?: string
@@ -664,6 +710,8 @@ export type Database = {
           final_value?: number | null
           financial_status?: string | null
           id?: string
+          inspection_date?: string | null
+          installments_generated?: boolean | null
           internal_comments?: string | null
           npv_value?: number | null
           occurrence_status?: string | null
@@ -976,6 +1024,11 @@ export type Database = {
       }
       quotes: {
         Row: {
+          approval_reason: string | null
+          approval_requested_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           client_id: string | null
           code: string
           created_at: string
@@ -1002,6 +1055,11 @@ export type Database = {
           urgency: string | null
         }
         Insert: {
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           client_id?: string | null
           code: string
           created_at?: string
@@ -1028,6 +1086,11 @@ export type Database = {
           urgency?: string | null
         }
         Update: {
+          approval_reason?: string | null
+          approval_requested_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           client_id?: string | null
           code?: string
           created_at?: string
