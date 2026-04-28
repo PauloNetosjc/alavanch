@@ -200,6 +200,84 @@ export async function convertQuoteToOrder(quote: QuoteLite, installments: Instal
     throw new Error(error?.message ?? 'Erro ao criar pedido');
   }
 
+  // ===== Copiar Ambientes / Itens / Imports do orçamento para o pedido =====
+  try {
+    const { data: qEnvs } = await supabase
+      .from('quote_environments')
+      .select('*')
+      .eq('quote_id', quote.id);
+
+    if (qEnvs && qEnvs.length > 0) {
+      // Mapeamento quote_env_id -> order_env_id (necessário para vincular itens/imports)
+      const envIdMap: Record<string, string> = {};
+
+      for (const qe of qEnvs) {
+        const { data: newEnv, error: envErr } = await supabase
+          .from('order_environments')
+          .insert({
+            order_id: orderRow.id,
+            name: qe.name,
+            description: qe.description ?? null,
+            value: Number(qe.value ?? 0),
+            factory_cost: Number((qe as { factory_cost?: number }).factory_cost ?? 0),
+          })
+          .select('id')
+          .single();
+        if (envErr || !newEnv) continue;
+        envIdMap[qe.id] = newEnv.id;
+      }
+
+      // Copia itens
+      const qEnvIds = qEnvs.map(e => e.id);
+      const { data: qItems } = await supabase
+        .from('quote_items')
+        .select('*')
+        .in('environment_id', qEnvIds);
+
+      if (qItems && qItems.length > 0) {
+        const itemsToInsert = qItems
+          .filter(it => envIdMap[it.environment_id])
+          .map(it => ({
+            environment_id: envIdMap[it.environment_id],
+            index_num: it.index_num ?? null,
+            quantity: it.quantity ?? 1,
+            description: it.description,
+            width: it.width ?? null,
+            height: it.height ?? null,
+            depth: it.depth ?? null,
+            cost: Number(it.cost ?? 0),
+            final_price: Number((it as { final_price?: number }).final_price ?? it.cost ?? 0),
+            factory_price: Number((it as { factory_price?: number }).factory_price ?? 0),
+            extra_cost: Number((it as { extra_cost?: number }).extra_cost ?? 0),
+            category: it.category ?? null,
+            finish: it.finish ?? null,
+            project_ref: it.project_ref ?? null,
+          }));
+        if (itemsToInsert.length > 0) {
+          await supabase.from('order_items').insert(itemsToInsert);
+        }
+      }
+
+      // Re-associa promob_imports do orçamento ao pedido (mantém quote_id como histórico)
+      const { data: qImports } = await supabase
+        .from('promob_imports')
+        .select('*')
+        .eq('quote_id', quote.id);
+      if (qImports && qImports.length > 0) {
+        for (const imp of qImports) {
+          const newEnvId = imp.quote_environment_id ? envIdMap[imp.quote_environment_id] : null;
+          await supabase
+            .from('promob_imports')
+            .update({ order_id: orderRow.id, environment_id: newEnvId })
+            .eq('id', imp.id);
+        }
+      }
+    }
+  } catch (copyErr) {
+    // Não bloqueia a conversão; apenas loga
+    console.error('Erro ao copiar ambientes/itens do orçamento:', copyErr);
+  }
+
   // Auto-generate Contas a Receber from quote installments
   if (installments.length > 0) {
     await generateReceivablesFromInstallments(
