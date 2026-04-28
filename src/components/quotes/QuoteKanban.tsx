@@ -16,6 +16,11 @@ import { maskPhone } from '@/lib/masks';
 import { toast } from 'sonner';
 import { Filter, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import {
+  checkDiscountApproval,
+  requestQuoteApproval,
+  convertQuoteToOrder as convertQuoteToOrderHelper,
+} from '@/lib/orderConversion';
 
 const NONE = '__none__';
 
@@ -148,78 +153,28 @@ export function QuoteKanban({ search, onEdit, onOpenCalc, onCardClick, refreshKe
       return;
     }
 
-    // Validate discount rules before allowing order creation
-    const effectiveDiscount = Number(quote.discount_percent ?? 0);
-    const { data: rules } = await supabase.from('approval_rules').select('*').eq('active', true).eq('rule_type', 'desconto');
-    if (rules && rules.length > 0) {
-      const { data: userRoles } = await supabase.from('user_roles').select('role').eq('user_id', user?.id ?? '');
-      const currentRole = userRoles?.[0]?.role ?? '';
-
-      for (const rule of rules) {
-        const maxPct = Number(rule.max_percent ?? 0);
-        if (effectiveDiscount > maxPct) {
-          // Check if rule applies to this user's role
-          const affectedRoles: string[] = (rule as any).affected_roles ?? [];
-          const ruleApplies = affectedRoles.length === 0 || affectedRoles.includes(currentRole);
-          if (!ruleApplies) continue;
-
-          const isApprover = currentRole === rule.approver_role || currentRole === 'admin' || currentRole === 'diretoria';
-          if (!isApprover) {
-            toast.error(`Desconto de ${effectiveDiscount.toFixed(1)}% excede o limite de ${maxPct}%. Não é possível criar o pedido sem aprovação.`);
-            return;
-          }
-        }
+    // Approval check
+    if (user?.id) {
+      const check = await checkDiscountApproval(quote, user.id);
+      if (check.requiresApproval) {
+        await requestQuoteApproval(
+          quote.id,
+          `Desconto de ${check.appliedPct?.toFixed(1)}% excede limite de ${check.ruleMaxPct}%`,
+        );
+        setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, approval_status: 'aguardando' } as QuoteWithClient : q));
+        toast.warning('Desconto acima do limite — orçamento enviado para aprovação do administrador');
+        return;
       }
     }
+
     try {
-      // Load installments for snapshot
       const { data: instData } = await supabase.from('quote_installments').select('*').eq('quote_id', quote.id).order('number');
-
-      const year = new Date().getFullYear();
-      const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).ilike('code', `PED-${year}%`);
-      const num = (count ?? 0) + 1;
-      const orderCode = `PED-${year}-${String(num).padStart(4, '0')}`;
-
-      const snapshot = {
-        quote_code: quote.code,
-        quote_id: quote.id,
-        total_value: quote.total_value,
-        discount_percent: quote.discount_percent,
-        discount_value: quote.discount_value,
-        interest_percent: quote.interest_percent,
-        surcharge: quote.surcharge,
-        final_value: quote.final_value,
-        urgency: quote.urgency,
-        origin: quote.origin,
-        installments: (instData ?? []).map(i => ({ number: i.number, value: i.value, due_date: i.due_date, payment_method: i.payment_method })),
-        converted_at: new Date().toISOString(),
-      };
-
-      const { data: initialStages } = await supabase.from('pipeline_stages').select('pipeline_type, name').eq('is_initial', true).eq('active', true);
-      const getInitial = (pt: string) => initialStages?.find(s => s.pipeline_type === pt)?.name ?? 'pendente';
-
-      const { error } = await supabase.from('orders').insert({
-        code: orderCode,
-        client_id: quote.client_id!,
-        quote_id: quote.id,
-        store_id: quote.store_id,
-        seller_id: quote.seller_id,
-        total_value: quote.total_value,
-        discount_percent: quote.discount_percent,
-        discount_value: quote.discount_value,
-        final_value: quote.final_value,
-        snapshot,
-        contract_status: getInitial('contrato'),
-        revision_status: getInitial('revisao'),
-        assembly_status: getInitial('montagem'),
-        financial_status: getInitial('financeiro'),
-        post_assembly_status: getInitial('pos_montagem'),
-      });
-      if (error) throw error;
-
-      await supabase.from('quotes').update({ status: 'fechado' }).eq('id', quote.id);
+      const installments = (instData ?? []).map(i => ({
+        number: i.number, value: Number(i.value), due_date: i.due_date, payment_method: i.payment_method,
+      }));
+      const orderCode = await convertQuoteToOrderHelper(quote, installments);
       setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: 'fechado' } : q));
-      toast.success(`Pedido ${orderCode} criado com sucesso!`);
+      toast.success(`Pedido ${orderCode} criado e parcelas geradas no Financeiro`);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao converter orçamento em pedido');
     }

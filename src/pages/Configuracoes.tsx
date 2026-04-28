@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Financeiro from '@/pages/Financeiro';
 import { VplSettingsCard } from '@/components/settings/VplSettingsCard';
+import { ApprovalsPanel } from '@/components/settings/ApprovalsPanel';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
@@ -756,6 +757,7 @@ export default function Configuracoes() {
         {/* ─── Regras de Aprovação ─── */}
         <TabsContent value="aprovacoes">
           <div className="space-y-4">
+            <ApprovalsPanel />
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Regras de Aprovação</h2>
               <Button onClick={() => openRuleForm()}><Plus className="h-4 w-4 mr-2" />Nova Regra</Button>

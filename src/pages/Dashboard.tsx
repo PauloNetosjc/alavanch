@@ -5,8 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import {
   FileText, ShoppingCart, FileSignature,
   DollarSign, Wrench, AlertTriangle, TrendingUp,
-  Loader2, Users, Target, BarChart3,
+  Loader2, Users, Target, BarChart3, ShieldAlert,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -30,8 +32,10 @@ interface KPI {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<KPI[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
   const [pipelineData, setPipelineData] = useState<{ name: string; count: number }[]>([]);
   const [revenueData, setRevenueData] = useState<{ month: string; valor: number }[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<{ code: string; client: string; value: number; status: string }[]>([]);
@@ -42,13 +46,14 @@ export default function Dashboard() {
   const loadDashboard = async () => {
     setLoading(true);
 
-    const [quotesRes, ordersRes, contractsRes, occurrencesRes, financialRes, profilesRes] = await Promise.all([
-      supabase.from('quotes').select('id, status, final_value, total_value, code, created_at, seller_id, clients(name)'),
-      supabase.from('orders').select('id, final_value, created_at'),
+    const [quotesRes, ordersRes, contractsRes, occurrencesRes, financialRes, profilesRes, approvalsRes] = await Promise.all([
+      supabase.from('quotes').select('id, status, final_value, total_value, code, created_at, seller_id, approval_status, clients(name)'),
+      supabase.from('orders').select('id, final_value, created_at, contract_status, snapshot'),
       supabase.from('contracts').select('id, status'),
       supabase.from('occurrences').select('id, status'),
-      supabase.from('financial_entries').select('id, value, type, status, due_date, paid_date'),
+      supabase.from('financial_entries').select('id, value, type, status, due_date, paid_date, order_id'),
       supabase.from('profiles').select('user_id, full_name'),
+      supabase.from('quotes').select('id', { count: 'exact', head: true }).eq('approval_status', 'aguardando'),
     ]);
 
     const quotes = quotesRes.data ?? [];
@@ -59,21 +64,25 @@ export default function Dashboard() {
     const profiles = profilesRes.data ?? [];
 
     const profileMap = new Map(profiles.map(p => [p.user_id, p.full_name ?? 'Sem nome']));
+    setPendingApprovals(approvalsRes.count ?? 0);
 
     // KPI calculations
     const openQuotes = quotes.filter(q => !['fechado', 'declinado', 'arquivado'].includes(q.status)).length;
     const closedQuotes = quotes.filter(q => q.status === 'fechado').length;
     const conversionRate = quotes.length > 0 ? Math.round((closedQuotes / quotes.length) * 100) : 0;
+    // Active orders = not archived/cancelled (orders table has no status field, so use snapshot/contract)
     const activeOrders = orders.length;
-    const pendingContracts = contractsList.filter(c => c.status !== 'assinado').length;
+    // Contratos pendentes = contracts in 'pendente' status OR orders whose contract_status indicates pending
+    const pendingContracts = contractsList.filter(c => c.status === 'pendente' || c.status === 'rascunho').length
+      + orders.filter(o => o.contract_status && ['pendente', 'aguardando', 'em_elaboracao'].includes(o.contract_status as string)).length;
     const openOccurrences = occurrencesList.filter(o => o.status === 'aberta').length;
 
-    // Revenue this month
+    // Revenue this month: sum final_value from orders created this month (excluding cancelled/archived)
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const paidThisMonth = financial
-      .filter(f => f.type === 'receita' && f.status === 'pago' && f.paid_date && f.paid_date >= monthStart);
-    const monthRevenue = paidThisMonth.reduce((s, f) => s + (f.value ?? 0), 0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthRevenue = orders
+      .filter(o => new Date(o.created_at) >= monthStart)
+      .reduce((s, o) => s + (o.final_value ?? 0), 0);
 
     // Average ticket (closed quotes with value)
     const closedWithValue = quotes.filter(q => q.status === 'fechado' && (q.final_value ?? 0) > 0);
@@ -81,9 +90,10 @@ export default function Dashboard() {
       ? closedWithValue.reduce((s, q) => s + (q.final_value ?? 0), 0) / closedWithValue.length
       : 0;
 
-    // Revenue pending
+    // A Receber: parcelas pendentes (status pendente) de pedidos ativos
+    const activeOrderIds = new Set(orders.map(o => o.id));
     const pendingRevenue = financial
-      .filter(f => f.type === 'receita' && f.status !== 'pago')
+      .filter(f => f.type === 'receita' && f.status === 'pendente' && (!f.order_id || activeOrderIds.has(f.order_id)))
       .reduce((s, f) => s + (f.value ?? 0), 0);
 
     const totalOrderValue = orders.reduce((s, o) => s + (o.final_value ?? 0), 0);
@@ -164,6 +174,25 @@ export default function Dashboard() {
         <h1 className="text-2xl font-display font-semibold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema Forest Decor</p>
       </div>
+
+      {pendingApprovals > 0 && (
+        <Card className="border-purple-300 bg-purple-50">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="h-5 w-5 text-purple-700" />
+              <div>
+                <p className="text-sm font-medium text-purple-900">
+                  {pendingApprovals} orçamento{pendingApprovals > 1 ? 's' : ''} aguardando aprovação de desconto
+                </p>
+                <p className="text-xs text-purple-700/80">Revise e libere a conversão em pedido em Administração → Aprovações.</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="border-purple-400 text-purple-800 hover:bg-purple-100" onClick={() => navigate('/administracao')}>
+              Revisar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
