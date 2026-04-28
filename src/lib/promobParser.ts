@@ -28,6 +28,12 @@ export interface PromobItem {
   cost: number;
   costB: number;
   costC: number;
+  /** Preço final (vai para o orçamento) - 4ª coluna numérica */
+  finalPrice: number;
+  /** Preço de fábrica (custo gerencial) - 5ª coluna numérica */
+  factoryPrice: number;
+  /** Custo extra (ex.: montagem/material) - 6ª coluna numérica, quando presente */
+  extraCost: number;
   category: string;
   finish: string;
   projectRef: string;
@@ -91,7 +97,6 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   if (isNaN(indexNum)) return null;
 
   const quantity = parseInt(parts[1]) || 1;
-  const description = parts[2] || '';
 
   // Find the part containing "Projeto -"
   let projetoIdx = -1;
@@ -108,16 +113,50 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   let category = '';
   let finish = '';
 
-  // Numeric parts are between description (index 2) and Projeto anchor
+  // Slice between description area and Projeto anchor.
+  // Some Promob exports separate columns by single spaces inside a "part",
+  // so we re-tokenize the middle slice by ANY whitespace and split numeric
+  // from non-numeric tokens.
   const numEnd = projetoIdx > 0 ? projetoIdx : parts.length;
-  const numericParts = parts.slice(3, numEnd).filter(p => isNumeric(p));
+  const middleRaw = parts.slice(2, numEnd).join(' ');
+  const tokens = middleRaw.split(/\s+/).filter(Boolean);
 
-  const width = parseDim(numericParts[0] || '');
-  const height = parseDim(numericParts[1] || '');
-  const depth = parseDim(numericParts[2] || '');
-  const costA = parseNum(numericParts[3] || '0');
-  const costB = parseNum(numericParts[4] || '0');
-  const costC = parseNum(numericParts[5] || '0');
+  // Layout Promob: <descrição com palavras>  L  A  P  PREÇO_FINAL  PREÇO_FÁBRICA  [CUSTO_EXTRA]
+  // Estratégia: pegar os ÚLTIMOS 5 ou 6 tokens numéricos como dimensões+preços,
+  // e tudo antes vira descrição.
+  let lastNumericIdx = tokens.length - 1;
+  while (lastNumericIdx >= 0 && !isNumeric(tokens[lastNumericIdx])) lastNumericIdx--;
+
+  // Conta quantos números consecutivos no fim
+  let firstNumericIdx = lastNumericIdx;
+  while (firstNumericIdx > 0 && isNumeric(tokens[firstNumericIdx - 1])) firstNumericIdx--;
+
+  const numericTail = tokens.slice(firstNumericIdx, lastNumericIdx + 1);
+  const description = tokens.slice(0, firstNumericIdx).join(' ').trim();
+
+  // Esperamos 5 (L,A,P,Final,Fábrica) ou 6 (+Extra) números no fim
+  let width: number | null = null;
+  let height: number | null = null;
+  let depth: number | null = null;
+  let finalPrice = 0;
+  let factoryPrice = 0;
+  let extraCost = 0;
+
+  if (numericTail.length >= 5) {
+    width = parseDim(numericTail[0]);
+    height = parseDim(numericTail[1]);
+    depth = parseDim(numericTail[2]);
+    finalPrice = parseNum(numericTail[3]);
+    factoryPrice = parseNum(numericTail[4]);
+    extraCost = parseNum(numericTail[5] || '0');
+  } else {
+    // fallback: usa o que tiver
+    width = parseDim(numericTail[0] || '');
+    height = parseDim(numericTail[1] || '');
+    depth = parseDim(numericTail[2] || '');
+    finalPrice = parseNum(numericTail[3] || '0');
+    factoryPrice = parseNum(numericTail[4] || '0');
+  }
 
   if (projetoIdx >= 0) {
     const projPart = parts[projetoIdx];
@@ -148,9 +187,14 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
       width,
       height,
       depth,
-      cost: costA,
-      costB,
-      costC,
+      // cost = preço final (vai para o orçamento do cliente)
+      cost: finalPrice,
+      // mantém campos legados para compatibilidade com código existente
+      costB: factoryPrice,
+      costC: extraCost,
+      finalPrice,
+      factoryPrice,
+      extraCost,
       category,
       finish,
       projectRef,
@@ -210,7 +254,8 @@ export function parsePromobTxt(content: string): PromobParseResult {
 
   const environments = Array.from(envMap.values());
   for (const env of environments) {
-    env.total = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+    // Total do ambiente usa o PREÇO DE FÁBRICA, que é o que o "Total =" do TXT do Promob soma
+    env.total = env.items.reduce((s, it) => s + it.factoryPrice * it.quantity, 0);
   }
 
   const fileTotal = extractTotal(lines);
