@@ -575,9 +575,14 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                               <span className="font-medium">{env.name}</span>
                               <Badge variant="secondary" className="text-[10px]">{env.items.length} itens</Badge>
                             </div>
-                            <span className="font-semibold text-xs">
-                              {fmt(env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0))}
-                            </span>
+                            <div className="flex flex-col items-end">
+                              <span className="font-semibold text-xs">
+                                {fmt(env.items.reduce((s, it) => s + (it.finalPrice ?? it.cost) * it.quantity, 0))}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                Fábrica: {fmt(env.items.reduce((s, it) => s + (it.factoryPrice ?? 0) * it.quantity, 0))}
+                              </span>
+                            </div>
                           </div>
                         ))}
                         {promob.result.warnings.length > 0 && (
