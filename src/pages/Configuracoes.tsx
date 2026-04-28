@@ -832,6 +832,11 @@ export default function Configuracoes() {
           <Financeiro />
         </TabsContent>
 
+        {/* ─── VPL / Rentabilidade ─── */}
+        <TabsContent value="vpl">
+          <VplSettingsCard />
+        </TabsContent>
+
         {/* ─── Clientes ─── */}
         <TabsContent value="clientes">
           <div className="space-y-4">
