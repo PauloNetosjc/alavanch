@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  checkDiscountApproval,
+  requestQuoteApproval,
+  convertQuoteToOrder as convertQuoteToOrderHelper,
+} from '@/lib/orderConversion';
 import {
   Sheet,
   SheetContent,
@@ -23,6 +29,7 @@ import {
   FileText,
   Loader2,
   CreditCard,
+  ShieldAlert,
 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -95,6 +102,7 @@ export function QuoteDetailSheet({
   onRefresh,
 }: QuoteDetailSheetProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [quote, setQuote] = useState<QuoteDetail | null>(null);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [converting, setConverting] = useState(false);
@@ -140,72 +148,28 @@ export function QuoteDetailSheet({
 
     setConverting(true);
     try {
-      // Generate order code
-      const year = new Date().getFullYear();
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .ilike('code', `PED-${year}%`);
-      const num = (count ?? 0) + 1;
-      const orderCode = `PED-${year}-${String(num).padStart(4, '0')}`;
+      // Approval check
+      if (user?.id) {
+        const check = await checkDiscountApproval(quote, user.id);
+        if (check.requiresApproval) {
+          await requestQuoteApproval(
+            quote.id,
+            `Desconto de ${check.appliedPct?.toFixed(1)}% excede limite de ${check.ruleMaxPct}%`,
+          );
+          toast.warning('Desconto acima do limite — orçamento enviado para aprovação do administrador');
+          onOpenChange(false);
+          onRefresh();
+          return;
+        }
+      }
 
-      // Build snapshot
-      const snapshot = {
-        quote_code: quote.code,
-        quote_id: quote.id,
-        client: quote.clients,
-        store: quote.stores,
-        total_value: quote.total_value,
-        discount_percent: quote.discount_percent,
-        discount_value: quote.discount_value,
-        interest_percent: quote.interest_percent,
-        surcharge: quote.surcharge,
-        final_value: quote.final_value,
-        urgency: quote.urgency,
-        origin: quote.origin,
-        focal_point: quote.focal_point,
-        notes: quote.notes,
-        installments: installments.map(i => ({
-          number: i.number,
-          value: i.value,
-          due_date: i.due_date,
-          payment_method: i.payment_method,
+      const orderCode = await convertQuoteToOrderHelper(
+        quote,
+        installments.map(i => ({
+          number: i.number, value: Number(i.value), due_date: i.due_date, payment_method: i.payment_method,
         })),
-        converted_at: new Date().toISOString(),
-      };
-
-      // Fetch initial stages for all pipelines
-      const { data: initialStages } = await supabase
-        .from('pipeline_stages')
-        .select('pipeline_type, name')
-        .eq('is_initial', true)
-        .eq('active', true);
-      
-      const getInitial = (pt: string) => initialStages?.find(s => s.pipeline_type === pt)?.name ?? 'pendente';
-
-      const { error } = await supabase.from('orders').insert({
-        code: orderCode,
-        client_id: quote.client_id!,
-        quote_id: quote.id,
-        store_id: quote.store_id,
-        seller_id: quote.seller_id,
-        total_value: quote.total_value,
-        discount_percent: quote.discount_percent,
-        discount_value: quote.discount_value,
-        final_value: quote.final_value,
-        snapshot,
-        contract_status: getInitial('contrato'),
-        revision_status: getInitial('revisao'),
-        assembly_status: getInitial('montagem'),
-        financial_status: getInitial('financeiro'),
-        post_assembly_status: getInitial('pos_montagem'),
-      });
-      if (error) throw error;
-
-      // Update quote status to "fechado"
-      await supabase.from('quotes').update({ status: 'fechado' }).eq('id', quote.id);
-
-      toast.success(`Pedido ${orderCode} criado com sucesso!`);
+      );
+      toast.success(`Pedido ${orderCode} criado e parcelas geradas no Financeiro`);
       onOpenChange(false);
       onRefresh();
       navigate('/pedidos');
