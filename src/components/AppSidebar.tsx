@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, ShoppingCart,
   ClipboardCheck, Factory, Truck, Wrench, PackageCheck, DollarSign,
-  AlertTriangle, BarChart3, Settings, LogOut, TreePine, Archive, Users
+  AlertTriangle, BarChart3, Settings, LogOut, TreePine, Archive, Users, Radar
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -14,6 +14,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, adminOnly: true },
@@ -25,6 +26,7 @@ const menuItems = [
   { title: 'Montagem', url: '/montagem', icon: Wrench },
   { title: 'Pós-montagem', url: '/pos-montagem', icon: PackageCheck },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
+  { title: 'Radar de Prazos', url: '/radar', icon: Radar },
   { title: 'Ocorrências', url: '/ocorrencias', icon: AlertTriangle },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Arquivo', url: '/arquivo', icon: Archive },
@@ -37,6 +39,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [openOccurrences, setOpenOccurrences] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -44,6 +47,22 @@ export function AppSidebar() {
       setIsAdmin(data?.some(r => r.role === 'admin') ?? false);
     });
   }, [user]);
+
+  useEffect(() => {
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from('occurrences')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['aberta', 'em_analise']);
+      setOpenOccurrences(count ?? 0);
+    };
+    loadCount();
+    const ch = supabase
+      .channel('sidebar-occurrences')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'occurrences' }, loadCount)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const visibleItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
@@ -83,7 +102,10 @@ export function AppSidebar() {
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span className="flex-1">{item.title}</span>}
+                      {!collapsed && item.url === '/ocorrencias' && openOccurrences > 0 && (
+                        <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[10px]">{openOccurrences}</Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
