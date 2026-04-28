@@ -91,7 +91,7 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
       .from('orders')
-      .select('id, code, ' + statusField + ', final_value, order_date, assembly_date, inspection_date, factory_send_date, assembler_id, clients(name, phone), assembler:profiles!orders_assembler_id_fkey(full_name)')
+      .select('id, code, ' + statusField + ', final_value, order_date, assembly_date, inspection_date, factory_send_date, assembler_id, clients(name, phone)')
       .order('created_at', { ascending: false });
     if (data) {
       // Fallback: if join fails because no FK, fetch profile names separately
@@ -350,10 +350,30 @@ export function DepartmentKanban({ pipelineType, statusField, title, subtitle }:
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <span className="text-[11px] font-mono text-muted-foreground">{o.code}</span>
+                          {(() => {
+                            const dateStr = pipelineType === 'montagem' ? o.assembly_date
+                              : pipelineType === 'pos_montagem' ? o.inspection_date
+                              : pipelineType === 'producao' ? o.factory_send_date
+                              : null;
+                            if (!dateStr) return null;
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const d = new Date(dateStr + 'T00:00');
+                            const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+                            let label = ''; let cls = '';
+                            if (diff < 0) { label = `Atrasado ${Math.abs(diff)}d`; cls = 'bg-destructive/15 text-destructive border-destructive/30'; }
+                            else if (diff === 0) { label = 'Hoje'; cls = 'bg-amber-500/15 text-amber-700 border-amber-500/30'; }
+                            else if (diff <= 3) { label = `${diff}d`; cls = 'bg-amber-500/10 text-amber-700 border-amber-500/20'; }
+                            else if (diff <= 7) { label = `${diff}d`; cls = 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20'; }
+                            else { label = `${diff}d`; cls = 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'; }
+                            return <span className={`text-[10px] px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>;
+                          })()}
                         </div>
                         <p className="text-sm font-medium text-foreground truncate">{o.client_name}</p>
                         {o.client_phone && (
                           <p className="text-xs text-muted-foreground mt-0.5">{maskPhone(o.client_phone)}</p>
+                        )}
+                        {pipelineType === 'montagem' && o.assembler_name && (
+                          <p className="text-[11px] text-muted-foreground mt-1 truncate">👷 {o.assembler_name}</p>
                         )}
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                           {o.final_value ? (
