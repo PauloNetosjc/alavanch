@@ -97,7 +97,6 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   if (isNaN(indexNum)) return null;
 
   const quantity = parseInt(parts[1]) || 1;
-  const description = parts[2] || '';
 
   // Find the part containing "Projeto -"
   let projetoIdx = -1;
@@ -114,17 +113,50 @@ function parseItemLine(line: string): { item: PromobItem; envName: string; envCl
   let category = '';
   let finish = '';
 
-  // Numeric parts are between description (index 2) and Projeto anchor
+  // Slice between description area and Projeto anchor.
+  // Some Promob exports separate columns by single spaces inside a "part",
+  // so we re-tokenize the middle slice by ANY whitespace and split numeric
+  // from non-numeric tokens.
   const numEnd = projetoIdx > 0 ? projetoIdx : parts.length;
-  const numericParts = parts.slice(3, numEnd).filter(p => isNumeric(p));
+  const middleRaw = parts.slice(2, numEnd).join(' ');
+  const tokens = middleRaw.split(/\s+/).filter(Boolean);
 
-  const width = parseDim(numericParts[0] || '');
-  const height = parseDim(numericParts[1] || '');
-  const depth = parseDim(numericParts[2] || '');
-  // Layout Promob: L  A  P  PREÇO_FINAL  PREÇO_FÁBRICA  [CUSTO_EXTRA]
-  const finalPrice = parseNum(numericParts[3] || '0');
-  const factoryPrice = parseNum(numericParts[4] || '0');
-  const extraCost = parseNum(numericParts[5] || '0');
+  // Layout Promob: <descrição com palavras>  L  A  P  PREÇO_FINAL  PREÇO_FÁBRICA  [CUSTO_EXTRA]
+  // Estratégia: pegar os ÚLTIMOS 5 ou 6 tokens numéricos como dimensões+preços,
+  // e tudo antes vira descrição.
+  let lastNumericIdx = tokens.length - 1;
+  while (lastNumericIdx >= 0 && !isNumeric(tokens[lastNumericIdx])) lastNumericIdx--;
+
+  // Conta quantos números consecutivos no fim
+  let firstNumericIdx = lastNumericIdx;
+  while (firstNumericIdx > 0 && isNumeric(tokens[firstNumericIdx - 1])) firstNumericIdx--;
+
+  const numericTail = tokens.slice(firstNumericIdx, lastNumericIdx + 1);
+  const description = tokens.slice(0, firstNumericIdx).join(' ').trim();
+
+  // Esperamos 5 (L,A,P,Final,Fábrica) ou 6 (+Extra) números no fim
+  let width: number | null = null;
+  let height: number | null = null;
+  let depth: number | null = null;
+  let finalPrice = 0;
+  let factoryPrice = 0;
+  let extraCost = 0;
+
+  if (numericTail.length >= 5) {
+    width = parseDim(numericTail[0]);
+    height = parseDim(numericTail[1]);
+    depth = parseDim(numericTail[2]);
+    finalPrice = parseNum(numericTail[3]);
+    factoryPrice = parseNum(numericTail[4]);
+    extraCost = parseNum(numericTail[5] || '0');
+  } else {
+    // fallback: usa o que tiver
+    width = parseDim(numericTail[0] || '');
+    height = parseDim(numericTail[1] || '');
+    depth = parseDim(numericTail[2] || '');
+    finalPrice = parseNum(numericTail[3] || '0');
+    factoryPrice = parseNum(numericTail[4] || '0');
+  }
 
   if (projetoIdx >= 0) {
     const projPart = parts[projetoIdx];
