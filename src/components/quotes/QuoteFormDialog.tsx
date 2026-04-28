@@ -516,6 +516,108 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
               <TagSelector value={selectedTags} onChange={setSelectedTags} types={['orcamento']} />
             </div>
 
+            {!editQuote && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Ambientes do Projeto
+                </h3>
+
+                {/* Promob upload */}
+                <Card className="border-dashed border-border/70">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Importar do Promob (.txt)</span>
+                      </div>
+                      {promob && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setPromob(null)}>
+                          <X className="h-3.5 w-3.5 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+
+                    {!promob ? (
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept=".txt,.xml"
+                          onChange={handlePromobFile}
+                          className="hidden"
+                          disabled={parsingPromob}
+                        />
+                        <div className="border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/30 transition-colors">
+                          {parsingPromob ? (
+                            <Loader2 className="h-5 w-5 mx-auto animate-spin text-primary" />
+                          ) : (
+                            <>
+                              <Upload className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">Clique para selecionar o arquivo exportado do Promob</p>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-mono">{promob.fileName}</span>
+                        </div>
+                        {promob.result.environments.map((env, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm bg-muted/40 rounded px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <Package className="h-3.5 w-3.5 text-primary" />
+                              <span className="font-medium">{env.name}</span>
+                              <Badge variant="secondary" className="text-[10px]">{env.items.length} itens</Badge>
+                            </div>
+                            <span className="font-semibold text-xs">
+                              {fmt(env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0))}
+                            </span>
+                          </div>
+                        ))}
+                        {promob.result.warnings.length > 0 && (
+                          <p className="text-[11px] text-amber-600">{promob.result.warnings[0]}</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Manual envs */}
+                <div className="space-y-2">
+                  {manualEnvs.map((env, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                      <Input
+                        className="col-span-5"
+                        placeholder="Nome do ambiente"
+                        value={env.name}
+                        onChange={(e) => updateManualEnv(i, 'name', e.target.value)}
+                      />
+                      <Input
+                        className="col-span-3"
+                        type="number"
+                        step="0.01"
+                        placeholder="Valor (R$)"
+                        value={env.value}
+                        onChange={(e) => updateManualEnv(i, 'value', e.target.value)}
+                      />
+                      <Input
+                        className="col-span-3"
+                        placeholder="Descrição"
+                        value={env.description}
+                        onChange={(e) => updateManualEnv(i, 'description', e.target.value)}
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => removeManualEnv(i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addManualEnv}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar ambiente manual
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="notes"
