@@ -1257,6 +1257,77 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
           onImportComplete={() => { if (selectedOrder) loadDetail(selectedOrder.id); }}
         />
       )}
+
+      {/* New Environment Dialog */}
+      <Dialog open={envFormOpen} onOpenChange={setEnvFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Novo Ambiente</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+              <Input value={envForm.name} onChange={e => setEnvForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Cozinha, Dormitório..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
+              <Textarea rows={2} value={envForm.description} onChange={e => setEnvForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor (R$)</label>
+              <Input value={envForm.value} onChange={e => setEnvForm(f => ({ ...f, value: e.target.value }))} placeholder="0,00" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEnvFormOpen(false)}>Cancelar</Button>
+            <Button onClick={saveEnvironment}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Occurrence Dialog */}
+      <Dialog open={occFormOpen} onOpenChange={setOccFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova Ocorrência</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tipo</label>
+                <Select value={occForm.type} onValueChange={v => setOccForm(f => ({ ...f, type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Defeito', 'Avaria de transporte', 'Atraso', 'Reclamação', 'Garantia', 'Retrabalho', 'Outros'].map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+                <Select value={occForm.priority} onValueChange={v => setOccForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="baixa">Baixa</SelectItem>
+                    <SelectItem value="media">Média</SelectItem>
+                    <SelectItem value="alta">Alta</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Prazo</label>
+              <Input type="date" value={occForm.deadline} onChange={e => setOccForm(f => ({ ...f, deadline: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
+              <Textarea rows={3} value={occForm.description} onChange={e => setOccForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOccFormOpen(false)}>Cancelar</Button>
+            <Button onClick={saveOccurrenceInline}>Registrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
