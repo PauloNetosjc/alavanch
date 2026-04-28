@@ -18,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calculator, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Calculator, Plus, Trash2, Loader2, TrendingUp, Info } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertTriangle } from 'lucide-react';
+import { calculateNPV, calculateMargins, fmtBRL } from '@/lib/financial';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ApprovalRule {
   id: string;
@@ -64,16 +66,24 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   const [discountBlocked, setDiscountBlocked] = useState(false);
   const [discountWarning, setDiscountWarning] = useState<string | null>(null);
   const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+  const [discountRateMonthly, setDiscountRateMonthly] = useState<number>(1.5);
+  const [vplAlertThreshold, setVplAlertThreshold] = useState<number>(15);
+  const [totalCost, setTotalCost] = useState<number>(0);
 
   // Load approval rules and user role
   useEffect(() => {
     const loadRulesAndRole = async () => {
-      const [rulesRes, roleRes] = await Promise.all([
+      const [rulesRes, roleRes, settingsRes] = await Promise.all([
         supabase.from('approval_rules').select('*').eq('active', true).eq('rule_type', 'desconto'),
         user ? supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from('financial_settings').select('*').limit(1).maybeSingle(),
       ]);
       setApprovalRules((rulesRes.data as ApprovalRule[]) ?? []);
       setUserRole(roleRes.data?.role ?? null);
+      const s = settingsRes.data as { default_discount_rate_monthly?: number; vpl_alert_threshold?: number } | null;
+      if (s) {
+        setVplAlertThreshold(Number(s.vpl_alert_threshold ?? 15));
+      }
     };
     if (open) loadRulesAndRole();
   }, [open, user]);
@@ -114,6 +124,8 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
       setInterestPercent(quote.interest_percent ?? 0);
       setSurcharge(quote.surcharge ?? 0);
       setBaseDate(new Date().toISOString().split('T')[0]);
+      setDiscountRateMonthly(Number((quote as Tables<'quotes'> & { discount_rate_monthly?: number }).discount_rate_monthly ?? 1.5));
+      setTotalCost(Number((quote as Tables<'quotes'> & { total_cost?: number }).total_cost ?? 0));
       loadInstallments(quote.id);
     }
   }, [open, quote]);
@@ -253,7 +265,10 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
           interest_percent: interestPercent,
           surcharge,
           final_value: finalValue,
-        })
+          npv_value: npv,
+          discount_rate_monthly: discountRateMonthly,
+          total_cost: totalCost,
+        } as never)
         .eq('id', quote.id);
       if (qError) throw qError;
 
@@ -284,6 +299,24 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   };
 
   const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+  // ===== VPL & Margens =====
+  const npv = calculateNPV(installments, baseDate, discountRateMonthly);
+  const margins = calculateMargins({ finalValue, npv, totalCost });
+
+  const marginColor =
+    margins.realMarginPct >= vplAlertThreshold
+      ? 'text-emerald-600'
+      : margins.realMarginPct >= vplAlertThreshold / 2
+        ? 'text-amber-600'
+        : 'text-destructive';
+
+  const marginBg =
+    margins.realMarginPct >= vplAlertThreshold
+      ? 'bg-emerald-50 border-emerald-200'
+      : margins.realMarginPct >= vplAlertThreshold / 2
+        ? 'bg-amber-50 border-amber-200'
+        : 'bg-destructive/10 border-destructive/30';
 
   if (!quote) return null;
 
