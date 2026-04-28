@@ -8,6 +8,9 @@ import { AppLayout } from "@/components/AppLayout";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 import Placeholder from "@/pages/Placeholder";
+import Dashboard from "@/pages/Dashboard";
+import Clientes from "@/pages/Clientes";
+import Leads from "@/pages/Leads";
 
 const queryClient = new QueryClient();
 
@@ -42,11 +45,11 @@ const App = () => (
             <Route path="/login" element={<LoginRoute />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Placeholder title="Dashboard" subtitle="Visão geral do sistema" />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/ranking" element={<Placeholder title="Ranking / Metas" />} />
               <Route path="/relatorios" element={<Placeholder title="Relatórios" />} />
-              <Route path="/clientes" element={<Placeholder title="Clientes" subtitle="Gerencie todos os seus clientes" />} />
-              <Route path="/leads" element={<Placeholder title="Gestão de Leads" subtitle="Acompanhe e gerencie seus leads em tempo real" />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/leads" element={<Leads />} />
               <Route path="/comercial" element={<Placeholder title="Comercial" subtitle="Gestão de orçamentos e vendas" />} />
               <Route path="/comercial/novo" element={<Placeholder title="Novo Orçamento" />} />
               <Route path="/radar" element={<Placeholder title="Radar de Prazos" subtitle="Acompanhamento de datas críticas" />} />
