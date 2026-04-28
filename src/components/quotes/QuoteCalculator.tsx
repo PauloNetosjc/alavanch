@@ -18,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calculator, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Calculator, Plus, Trash2, Loader2, TrendingUp, Info } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertTriangle } from 'lucide-react';
+import { calculateNPV, calculateMargins, fmtBRL } from '@/lib/financial';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ApprovalRule {
   id: string;
@@ -64,16 +66,24 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   const [discountBlocked, setDiscountBlocked] = useState(false);
   const [discountWarning, setDiscountWarning] = useState<string | null>(null);
   const [lastDiscountEdit, setLastDiscountEdit] = useState<'percent' | 'value'>('percent');
+  const [discountRateMonthly, setDiscountRateMonthly] = useState<number>(1.5);
+  const [vplAlertThreshold, setVplAlertThreshold] = useState<number>(15);
+  const [totalCost, setTotalCost] = useState<number>(0);
 
   // Load approval rules and user role
   useEffect(() => {
     const loadRulesAndRole = async () => {
-      const [rulesRes, roleRes] = await Promise.all([
+      const [rulesRes, roleRes, settingsRes] = await Promise.all([
         supabase.from('approval_rules').select('*').eq('active', true).eq('rule_type', 'desconto'),
         user ? supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from('financial_settings').select('*').limit(1).maybeSingle(),
       ]);
       setApprovalRules((rulesRes.data as ApprovalRule[]) ?? []);
       setUserRole(roleRes.data?.role ?? null);
+      const s = settingsRes.data as { default_discount_rate_monthly?: number; vpl_alert_threshold?: number } | null;
+      if (s) {
+        setVplAlertThreshold(Number(s.vpl_alert_threshold ?? 15));
+      }
     };
     if (open) loadRulesAndRole();
   }, [open, user]);
@@ -114,6 +124,8 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
       setInterestPercent(quote.interest_percent ?? 0);
       setSurcharge(quote.surcharge ?? 0);
       setBaseDate(new Date().toISOString().split('T')[0]);
+      setDiscountRateMonthly(Number((quote as Tables<'quotes'> & { discount_rate_monthly?: number }).discount_rate_monthly ?? 1.5));
+      setTotalCost(Number((quote as Tables<'quotes'> & { total_cost?: number }).total_cost ?? 0));
       loadInstallments(quote.id);
     }
   }, [open, quote]);
@@ -253,7 +265,10 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
           interest_percent: interestPercent,
           surcharge,
           final_value: finalValue,
-        })
+          npv_value: npv,
+          discount_rate_monthly: discountRateMonthly,
+          total_cost: totalCost,
+        } as never)
         .eq('id', quote.id);
       if (qError) throw qError;
 
@@ -284,6 +299,24 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
   };
 
   const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+  // ===== VPL & Margens =====
+  const npv = calculateNPV(installments, baseDate, discountRateMonthly);
+  const margins = calculateMargins({ finalValue, npv, totalCost });
+
+  const marginColor =
+    margins.realMarginPct >= vplAlertThreshold
+      ? 'text-emerald-600'
+      : margins.realMarginPct >= vplAlertThreshold / 2
+        ? 'text-amber-600'
+        : 'text-destructive';
+
+  const marginBg =
+    margins.realMarginPct >= vplAlertThreshold
+      ? 'bg-emerald-50 border-emerald-200'
+      : margins.realMarginPct >= vplAlertThreshold / 2
+        ? 'bg-amber-50 border-amber-200'
+        : 'bg-destructive/10 border-destructive/30';
 
   if (!quote) return null;
 
@@ -466,6 +499,106 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
                 )}
               </div>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Análise de Rentabilidade (VPL) */}
+          <div className={`rounded-lg border p-4 space-y-3 ${marginBg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Análise de Rentabilidade (VPL)</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs">
+                        O <strong>VPL</strong> (Valor Presente Líquido) desconta os juros embutidos em parcelamentos longos,
+                        mostrando o valor real que sua loja receberá. A <strong>margem real</strong> usa o VPL — não o valor nominal —
+                        revelando o lucro verdadeiro da venda.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs whitespace-nowrap">Taxa desc. mensal</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="w-20 h-8 text-xs"
+                  value={discountRateMonthly || ''}
+                  onChange={(e) => setDiscountRateMonthly(Number(e.target.value))}
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Valor Nominal</div>
+                <div className="font-semibold">{fmtBRL(finalValue)}</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">VPL (valor presente)</div>
+                <div className="font-semibold text-primary">{fmtBRL(npv)}</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Custo financeiro embutido</div>
+                <div className="font-semibold">
+                  {fmtBRL(margins.financialCost)}{' '}
+                  <span className="text-xs text-muted-foreground">({margins.financialCostPct.toFixed(1)}%)</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="bg-border/40" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Custo dos ambientes (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="h-9"
+                  value={totalCost || ''}
+                  onChange={(e) => setTotalCost(Number(e.target.value))}
+                  placeholder="Custo de fábrica"
+                />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Lucro nominal</div>
+                <div className="font-semibold">
+                  {fmtBRL(margins.grossProfit)}{' '}
+                  <span className="text-xs text-muted-foreground">({margins.grossMarginPct.toFixed(1)}%)</span>
+                </div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Lucro real (VPL − custo)</div>
+                <div className={`font-bold text-base ${marginColor}`}>
+                  {fmtBRL(margins.realProfit)}{' '}
+                  <span className="text-xs">({margins.realMarginPct.toFixed(1)}%)</span>
+                  {margins.realMarginPct < vplAlertThreshold && totalCost > 0 && (
+                    <AlertTriangle className="inline h-3.5 w-3.5 ml-1" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {totalCost > 0 && margins.realMarginPct < vplAlertThreshold && (
+              <div className="text-xs flex items-start gap-1.5 pt-1">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>
+                  Margem real abaixo do limite mínimo configurado ({vplAlertThreshold.toFixed(1)}%).
+                  Considere reduzir desconto, encurtar parcelamento ou rever custo.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

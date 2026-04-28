@@ -16,9 +16,10 @@ import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
   Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2, DollarSign,
-  Eye, Search, Loader2,
+  Eye, Search, Loader2, TrendingUp,
 } from 'lucide-react';
 import Financeiro from '@/pages/Financeiro';
+import { VplSettingsCard } from '@/components/settings/VplSettingsCard';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
@@ -515,6 +516,7 @@ export default function Configuracoes() {
           <TabsTrigger value="aprovacoes"><Shield className="h-3.5 w-3.5 mr-1.5" />Aprovações</TabsTrigger>
           <TabsTrigger value="pipelines"><GitBranch className="h-3.5 w-3.5 mr-1.5" />Pipelines</TabsTrigger>
           <TabsTrigger value="financeiro"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Financeiro</TabsTrigger>
+          <TabsTrigger value="vpl"><TrendingUp className="h-3.5 w-3.5 mr-1.5" />VPL</TabsTrigger>
           <TabsTrigger value="clientes"><Users className="h-3.5 w-3.5 mr-1.5" />Clientes</TabsTrigger>
         </TabsList>
 
@@ -829,6 +831,11 @@ export default function Configuracoes() {
         {/* ─── Financeiro ─── */}
         <TabsContent value="financeiro">
           <Financeiro />
+        </TabsContent>
+
+        {/* ─── VPL / Rentabilidade ─── */}
+        <TabsContent value="vpl">
+          <VplSettingsCard />
         </TabsContent>
 
         {/* ─── Clientes ─── */}
