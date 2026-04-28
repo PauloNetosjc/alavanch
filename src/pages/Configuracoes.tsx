@@ -16,7 +16,7 @@ import { maskCnpj, maskPhone } from '@/lib/masks';
 import {
   Store, Users, Shield, Tags, CreditCard, Landmark, FileText,
   Plus, Pencil, FolderTree, ChevronRight, GitBranch, Trash2, DollarSign,
-  Eye, Search, Loader2,
+  Eye, Search, Loader2, TrendingUp,
 } from 'lucide-react';
 import Financeiro from '@/pages/Financeiro';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
