@@ -223,8 +223,10 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         if (promob) {
           let totalFromPromob = 0;
           for (const env of promob.result.environments) {
-            const envValue = env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
-            const envCost = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+            // value = soma do PREÇO FINAL (vai para o orçamento do cliente)
+            // factory_cost = soma do PREÇO DE FÁBRICA (custo gerencial interno)
+            const envValue = env.items.reduce((s, it) => s + (it.finalPrice ?? it.cost) * it.quantity, 0);
+            const envFactoryCost = env.items.reduce((s, it) => s + (it.factoryPrice ?? 0) * it.quantity, 0);
             totalFromPromob += envValue;
 
             const { data: newEnv, error: envErr } = await supabase
@@ -233,7 +235,8 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                 quote_id: quoteId,
                 name: env.name,
                 value: envValue,
-                cost: envCost,
+                cost: envFactoryCost,
+                factory_cost: envFactoryCost,
                 description: `Importado do Promob - ${promob.fileName}`,
               })
               .select('id')
@@ -268,7 +271,10 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
                 width: item.width,
                 height: item.height,
                 depth: item.depth,
-                cost: item.cost,
+                cost: item.finalPrice ?? item.cost,
+                final_price: item.finalPrice ?? item.cost,
+                factory_price: item.factoryPrice ?? 0,
+                extra_cost: item.extraCost ?? 0,
                 category: item.category,
                 finish: item.finish,
                 project_ref: promob.result.header.projectId,
