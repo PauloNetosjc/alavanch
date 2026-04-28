@@ -13,8 +13,9 @@ export default {
       },
     },
     fontFamily: {
-      display: ['Playfair Display', 'serif'],
-      body: ['DM Sans', 'sans-serif'],
+      display: ['Geist', 'system-ui', 'sans-serif'],
+      body: ['Geist', 'system-ui', 'sans-serif'],
+      mono: ['Geist Mono', 'ui-monospace', 'monospace'],
     },
     extend: {
       colors: {
