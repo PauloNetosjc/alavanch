@@ -520,6 +520,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          factory_cost: number | null
           id: string
           name: string
           order_id: string
@@ -528,6 +529,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          factory_cost?: number | null
           id?: string
           name: string
           order_id: string
@@ -536,6 +538,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          factory_cost?: number | null
           id?: string
           name?: string
           order_id?: string
@@ -559,6 +562,9 @@ export type Database = {
           depth: number | null
           description: string
           environment_id: string
+          extra_cost: number | null
+          factory_price: number | null
+          final_price: number | null
           finish: string | null
           height: number | null
           id: string
@@ -575,6 +581,9 @@ export type Database = {
           depth?: number | null
           description: string
           environment_id: string
+          extra_cost?: number | null
+          factory_price?: number | null
+          final_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
@@ -591,6 +600,9 @@ export type Database = {
           depth?: number | null
           description?: string
           environment_id?: string
+          extra_cost?: number | null
+          factory_price?: number | null
+          final_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
@@ -957,6 +969,7 @@ export type Database = {
           cost: number | null
           created_at: string
           description: string | null
+          factory_cost: number | null
           id: string
           name: string
           quote_id: string
@@ -966,6 +979,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           description?: string | null
+          factory_cost?: number | null
           id?: string
           name: string
           quote_id: string
@@ -975,6 +989,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           description?: string | null
+          factory_cost?: number | null
           id?: string
           name?: string
           quote_id?: string
@@ -1036,6 +1051,9 @@ export type Database = {
           depth: number | null
           description: string
           environment_id: string
+          extra_cost: number | null
+          factory_price: number | null
+          final_price: number | null
           finish: string | null
           height: number | null
           id: string
@@ -1052,6 +1070,9 @@ export type Database = {
           depth?: number | null
           description: string
           environment_id: string
+          extra_cost?: number | null
+          factory_price?: number | null
+          final_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
@@ -1068,6 +1089,9 @@ export type Database = {
           depth?: number | null
           description?: string
           environment_id?: string
+          extra_cost?: number | null
+          factory_price?: number | null
+          final_price?: number | null
           finish?: string | null
           height?: number | null
           id?: string
