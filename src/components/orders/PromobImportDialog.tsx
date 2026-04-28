@@ -283,7 +283,14 @@ export default function PromobImportDialog({
                     </h4>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">{env.items.length} itens</Badge>
-                      <span className="text-sm font-semibold">{fmt(env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0))}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-semibold">
+                          {fmt(env.items.reduce((s, it) => s + ((it as any).finalPrice ?? it.cost) * it.quantity, 0))}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Fábrica: {fmt(env.items.reduce((s, it) => s + ((it as any).factoryPrice ?? 0) * it.quantity, 0))}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -296,7 +303,8 @@ export default function PromobImportDialog({
                             <TableHead className="text-xs w-[40px]">Qtd</TableHead>
                             <TableHead className="text-xs">Descrição</TableHead>
                             <TableHead className="text-xs w-[80px]">Medidas</TableHead>
-                            <TableHead className="text-xs w-[80px]">Custo</TableHead>
+                            <TableHead className="text-xs w-[90px]">Preço Final</TableHead>
+                            <TableHead className="text-xs w-[90px]">Preço Fábrica</TableHead>
                             <TableHead className="text-xs w-[80px]">Acabamento</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -309,7 +317,8 @@ export default function PromobImportDialog({
                               <TableCell className="text-xs text-muted-foreground">
                                 {[item.width, item.height, item.depth].filter(Boolean).join(' × ') || '—'}
                               </TableCell>
-                              <TableCell className="text-xs">{fmt(item.cost)}</TableCell>
+                              <TableCell className="text-xs font-medium">{fmt((item as any).finalPrice ?? item.cost)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{fmt((item as any).factoryPrice ?? 0)}</TableCell>
                               <TableCell className="text-xs text-muted-foreground">{item.finish || '—'}</TableCell>
                             </TableRow>
                           ))}
