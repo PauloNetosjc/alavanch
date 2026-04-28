@@ -1001,15 +1001,13 @@ export default function ComercialNovo() {
       <ClienteFormDialog
         open={openCliente}
         onOpenChange={setOpenCliente}
-        onSaved={async () => {
-          const { data } = await supabase.from("clientes").select("id, nome").order("created_at", { ascending: false }).limit(1);
-          if (data?.[0]) {
-            const all = await supabase.from("clientes").select("id, nome").order("nome");
-            setClientes((all.data ?? []) as Cliente[]);
-            setClienteId(data[0].id);
-          }
+        onSaved={async (created) => {
+          const all = await supabase.from("clientes").select("id, nome").order("nome");
+          setClientes((all.data ?? []) as Cliente[]);
+          if (created) setClienteId(created.id);
         }}
       />
+
       <NovoParceiroDialog
         open={openParceiro}
         onOpenChange={setOpenParceiro}
