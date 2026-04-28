@@ -22,6 +22,8 @@ import { Calendar } from '@/components/ui/calendar';
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Eye, FileText, CheckSquare, Wrench, Factory, Truck,
   DollarSign, AlertTriangle, Calendar as CalendarIcon, User, Store, CreditCard, Loader2,
