@@ -16,6 +16,11 @@ import { maskPhone } from '@/lib/masks';
 import { toast } from 'sonner';
 import { Filter, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import {
+  checkDiscountApproval,
+  requestQuoteApproval,
+  convertQuoteToOrder as convertQuoteToOrderHelper,
+} from '@/lib/orderConversion';
 
 const NONE = '__none__';
 
