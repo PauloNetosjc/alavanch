@@ -743,7 +743,10 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                 {/* ====== AMBIENTES ====== */}
                 <TabsContent value="ambientes" className="mt-4 space-y-3">
                   {isAdmin && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEnvFormOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" /> Novo Ambiente
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => { setImportTargetEnvId(null); setImportDialogOpen(true); }}>
                         <Upload className="h-4 w-4 mr-1" /> Importar arquivo Promob
                       </Button>
@@ -768,7 +771,14 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, isAdmin, onOrder
                                   <Badge variant="secondary" className="text-[10px]">{items.length} itens</Badge>
                                   {envImport && <span className="text-[10px] text-muted-foreground">• {fmtDate(envImport.created_at)}</span>}
                                 </div>
-                                <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-primary">{fmt(env.value)}</span>
+                                  {isAdmin && (
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); deleteEnvironment(env); }}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
 
                               {isExpanded && (
