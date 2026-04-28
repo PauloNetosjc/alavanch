@@ -6,49 +6,28 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Clientes from "@/pages/Clientes";
-import Orcamentos from "@/pages/Orcamentos";
-import Pedidos from "@/pages/Pedidos";
-
-import Revisao from "@/pages/Revisao";
-import Financeiro from "@/pages/Financeiro";
-import FinanceiroKanban from "@/pages/FinanceiroKanban";
-import Montagem from "@/pages/Montagem";
-import Entrega from "@/pages/Entrega";
-import AcompanhamentoProd from "@/pages/AcompanhamentoProd";
-import PosMontagem from "@/pages/PosMontagem";
-import Ocorrencias from "@/pages/Ocorrencias";
-import Relatorios from "@/pages/Relatorios";
-import Radar from "@/pages/Radar";
-import Configuracoes from "@/pages/Configuracoes";
-import Arquivo from "@/pages/Arquivo";
 import NotFound from "@/pages/NotFound";
+import Placeholder from "@/pages/Placeholder";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground text-sm">Carregando...</div>
+        <div className="text-[12px] text-muted-foreground animate-pulse">Carregando…</div>
       </div>
     );
   }
-
   if (!user) return <Navigate to="/login" replace />;
-
-  return (
-    <AppLayout />
-  );
+  return <AppLayout />;
 }
 
 function LoginRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <Login />;
 }
 
@@ -62,24 +41,19 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route element={<ProtectedRoutes />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/orcamentos" element={<Orcamentos />} />
-              <Route path="/pedidos" element={<Pedidos />} />
-              
-              <Route path="/revisao" element={<Revisao />} />
-              <Route path="/acompanhamento-producao" element={<AcompanhamentoProd />} />
-              <Route path="/entrega" element={<Entrega />} />
-              <Route path="/financeiro" element={<Financeiro />} />
-              <Route path="/financeiro-kanban" element={<FinanceiroKanban />} />
-              <Route path="/montagem" element={<Montagem />} />
-              <Route path="/pos-montagem" element={<PosMontagem />} />
-              <Route path="/ocorrencias" element={<Ocorrencias />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/radar" element={<Radar />} />
-              <Route path="/administracao" element={<Configuracoes />} />
-              <Route path="/configuracoes" element={<Configuracoes />} />
-              <Route path="/arquivo" element={<Arquivo />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Placeholder title="Dashboard" subtitle="Visão geral do sistema" />} />
+              <Route path="/ranking" element={<Placeholder title="Ranking / Metas" />} />
+              <Route path="/relatorios" element={<Placeholder title="Relatórios" />} />
+              <Route path="/clientes" element={<Placeholder title="Clientes" subtitle="Gerencie todos os seus clientes" />} />
+              <Route path="/leads" element={<Placeholder title="Gestão de Leads" subtitle="Acompanhe e gerencie seus leads em tempo real" />} />
+              <Route path="/comercial" element={<Placeholder title="Comercial" subtitle="Gestão de orçamentos e vendas" />} />
+              <Route path="/comercial/novo" element={<Placeholder title="Novo Orçamento" />} />
+              <Route path="/radar" element={<Placeholder title="Radar de Prazos" subtitle="Acompanhamento de datas críticas" />} />
+              <Route path="/assistencia" element={<Placeholder title="Assistência Técnica" />} />
+              <Route path="/montagem" element={<Placeholder title="Meus Chamados" subtitle="App do montador" />} />
+              <Route path="/ocorrencias" element={<Placeholder title="Ocorrências" />} />
+              <Route path="/administracao" element={<Placeholder title="Administração" subtitle="Gerenciamento completo do sistema" />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
