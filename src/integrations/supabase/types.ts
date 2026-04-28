@@ -402,6 +402,30 @@ export type Database = {
           },
         ]
       }
+      financial_settings: {
+        Row: {
+          created_at: string
+          default_discount_rate_monthly: number
+          id: string
+          updated_at: string
+          vpl_alert_threshold: number
+        }
+        Insert: {
+          created_at?: string
+          default_discount_rate_monthly?: number
+          id?: string
+          updated_at?: string
+          vpl_alert_threshold?: number
+        }
+        Update: {
+          created_at?: string
+          default_discount_rate_monthly?: number
+          id?: string
+          updated_at?: string
+          vpl_alert_threshold?: number
+        }
+        Relationships: []
+      }
       occurrences: {
         Row: {
           client_id: string
@@ -572,12 +596,14 @@ export type Database = {
           created_at: string
           delivery_status: string | null
           discount_percent: number | null
+          discount_rate_monthly: number | null
           discount_value: number | null
           factory_send_date: string | null
           final_value: number | null
           financial_status: string | null
           id: string
           internal_comments: string | null
+          npv_value: number | null
           occurrence_status: string | null
           order_date: string
           post_assembly_status: string | null
@@ -600,12 +626,14 @@ export type Database = {
           created_at?: string
           delivery_status?: string | null
           discount_percent?: number | null
+          discount_rate_monthly?: number | null
           discount_value?: number | null
           factory_send_date?: string | null
           final_value?: number | null
           financial_status?: string | null
           id?: string
           internal_comments?: string | null
+          npv_value?: number | null
           occurrence_status?: string | null
           order_date?: string
           post_assembly_status?: string | null
@@ -628,12 +656,14 @@ export type Database = {
           created_at?: string
           delivery_status?: string | null
           discount_percent?: number | null
+          discount_rate_monthly?: number | null
           discount_value?: number | null
           factory_send_date?: string | null
           final_value?: number | null
           financial_status?: string | null
           id?: string
           internal_comments?: string | null
+          npv_value?: number | null
           occurrence_status?: string | null
           order_date?: string
           post_assembly_status?: string | null
@@ -867,6 +897,7 @@ export type Database = {
       }
       quote_environments: {
         Row: {
+          cost: number | null
           created_at: string
           description: string | null
           id: string
@@ -875,6 +906,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          cost?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -883,6 +915,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          cost?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -944,6 +977,7 @@ export type Database = {
           code: string
           created_at: string
           discount_percent: number | null
+          discount_rate_monthly: number | null
           discount_value: number | null
           expiry_date: string | null
           final_value: number | null
@@ -951,6 +985,7 @@ export type Database = {
           id: string
           interest_percent: number | null
           notes: string | null
+          npv_value: number | null
           origin: string | null
           seller_id: string | null
           start_date: string | null
@@ -967,6 +1002,7 @@ export type Database = {
           code: string
           created_at?: string
           discount_percent?: number | null
+          discount_rate_monthly?: number | null
           discount_value?: number | null
           expiry_date?: string | null
           final_value?: number | null
@@ -974,6 +1010,7 @@ export type Database = {
           id?: string
           interest_percent?: number | null
           notes?: string | null
+          npv_value?: number | null
           origin?: string | null
           seller_id?: string | null
           start_date?: string | null
@@ -990,6 +1027,7 @@ export type Database = {
           code?: string
           created_at?: string
           discount_percent?: number | null
+          discount_rate_monthly?: number | null
           discount_value?: number | null
           expiry_date?: string | null
           final_value?: number | null
@@ -997,6 +1035,7 @@ export type Database = {
           id?: string
           interest_percent?: number | null
           notes?: string | null
+          npv_value?: number | null
           origin?: string | null
           seller_id?: string | null
           start_date?: string | null
