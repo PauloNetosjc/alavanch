@@ -79,6 +79,9 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
   const [stores, setStores] = useState<Tables<'stores'>[]>([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [manualEnvs, setManualEnvs] = useState<Array<{ name: string; value: string; description: string }>>([]);
+  const [promob, setPromob] = useState<{ result: PromobParseResult; fileName: string } | null>(null);
+  const [parsingPromob, setParsingPromob] = useState(false);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
@@ -107,6 +110,8 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         notes: editQuote?.notes ?? '',
       });
       setSelectedTags(editQuote?.tags ?? []);
+      setManualEnvs([]);
+      setPromob(null);
       loadData();
     }
   }, [open, editQuote]);
@@ -138,6 +143,38 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
     return `ORC-${year}-${String(num).padStart(4, '0')}`;
   };
 
+  const handlePromobFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsingPromob(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const result = parsePromobTxt(ev.target?.result as string);
+        if (result.environments.length === 0) {
+          toast.error('Nenhum ambiente encontrado no arquivo.');
+        } else {
+          setPromob({ result, fileName: file.name });
+          toast.success(`${result.environments.length} ambiente(s) detectado(s)`);
+        }
+      } catch {
+        toast.error('Erro ao processar o arquivo Promob.');
+      } finally {
+        setParsingPromob(false);
+      }
+    };
+    reader.onerror = () => { setParsingPromob(false); toast.error('Falha ao ler o arquivo.'); };
+    reader.readAsText(file, 'latin1');
+    e.target.value = '';
+  };
+
+  const addManualEnv = () => setManualEnvs(prev => [...prev, { name: '', value: '', description: '' }]);
+  const updateManualEnv = (i: number, key: 'name' | 'value' | 'description', val: string) =>
+    setManualEnvs(prev => prev.map((e, idx) => idx === i ? { ...e, [key]: val } : e));
+  const removeManualEnv = (i: number) => setManualEnvs(prev => prev.filter((_, idx) => idx !== i));
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
   const onSubmit = async (data: QuoteFormData) => {
     setSaving(true);
     try {
@@ -160,7 +197,7 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
         toast.success('Orçamento atualizado');
       } else {
         const code = await generateCode();
-        const { error } = await supabase
+        const { data: created, error } = await supabase
           .from('quotes')
           .insert({
             code,
@@ -175,8 +212,96 @@ export function QuoteFormDialog({ open, onOpenChange, onSuccess, editQuote }: Qu
             notes: data.notes || null,
             status: 'novo_lead',
             tags: selectedTags.length > 0 ? selectedTags : null,
-          });
+          })
+          .select('id')
+          .single();
         if (error) throw error;
+
+        const quoteId = created.id;
+
+        // Insert Promob environments + items
+        if (promob) {
+          let totalFromPromob = 0;
+          for (const env of promob.result.environments) {
+            const envValue = env.total || env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+            const envCost = env.items.reduce((s, it) => s + it.cost * it.quantity, 0);
+            totalFromPromob += envValue;
+
+            const { data: newEnv, error: envErr } = await supabase
+              .from('quote_environments')
+              .insert({
+                quote_id: quoteId,
+                name: env.name,
+                value: envValue,
+                cost: envCost,
+                description: `Importado do Promob - ${promob.fileName}`,
+              })
+              .select('id')
+              .single();
+            if (envErr) throw envErr;
+
+            const { data: importRec } = await supabase.from('promob_imports').insert({
+              quote_id: quoteId,
+              quote_environment_id: newEnv.id,
+              project_id: promob.result.header.projectId,
+              promob_version: promob.result.header.promobVersion,
+              store_name: promob.result.header.storeName,
+              client_name: promob.result.header.clientName,
+              address: promob.result.header.address,
+              neighborhood: promob.result.header.neighborhood,
+              phone: promob.result.header.phone,
+              cpf: promob.result.header.cpf,
+              delivery_address: promob.result.header.deliveryAddress,
+              raw_content: promob.result.rawContent,
+              status: 'imported',
+              version: 1,
+              created_by: user?.id,
+            }).select('id').single();
+
+            if (env.items.length > 0) {
+              await supabase.from('quote_items').insert(env.items.map(item => ({
+                environment_id: newEnv.id,
+                import_id: importRec?.id,
+                index_num: item.index,
+                quantity: item.quantity,
+                description: item.description,
+                width: item.width,
+                height: item.height,
+                depth: item.depth,
+                cost: item.cost,
+                category: item.category,
+                finish: item.finish,
+                project_ref: promob.result.header.projectId,
+              })));
+            }
+          }
+
+          // Update quote totals
+          await supabase.from('quotes').update({
+            total_value: totalFromPromob,
+            final_value: totalFromPromob,
+          }).eq('id', quoteId);
+        }
+
+        // Insert manual environments
+        const manualValid = manualEnvs.filter(e => e.name.trim());
+        if (manualValid.length > 0) {
+          await supabase.from('quote_environments').insert(manualValid.map(e => ({
+            quote_id: quoteId,
+            name: e.name.trim(),
+            value: parseFloat(e.value) || 0,
+            description: e.description || null,
+          })));
+
+          if (!promob) {
+            const sum = manualValid.reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+            await supabase.from('quotes').update({
+              total_value: sum,
+              final_value: sum,
+            }).eq('id', quoteId);
+          }
+        }
+
         toast.success('Orçamento criado');
       }
 
