@@ -501,6 +501,106 @@ export function QuoteCalculator({ open, onOpenChange, quote, onSuccess }: QuoteC
             </div>
           </div>
 
+          <Separator />
+
+          {/* Análise de Rentabilidade (VPL) */}
+          <div className={`rounded-lg border p-4 space-y-3 ${marginBg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Análise de Rentabilidade (VPL)</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs">
+                        O <strong>VPL</strong> (Valor Presente Líquido) desconta os juros embutidos em parcelamentos longos,
+                        mostrando o valor real que sua loja receberá. A <strong>margem real</strong> usa o VPL — não o valor nominal —
+                        revelando o lucro verdadeiro da venda.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs whitespace-nowrap">Taxa desc. mensal</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="w-20 h-8 text-xs"
+                  value={discountRateMonthly || ''}
+                  onChange={(e) => setDiscountRateMonthly(Number(e.target.value))}
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Valor Nominal</div>
+                <div className="font-semibold">{fmtBRL(finalValue)}</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">VPL (valor presente)</div>
+                <div className="font-semibold text-primary">{fmtBRL(npv)}</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Custo financeiro embutido</div>
+                <div className="font-semibold">
+                  {fmtBRL(margins.financialCost)}{' '}
+                  <span className="text-xs text-muted-foreground">({margins.financialCostPct.toFixed(1)}%)</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="bg-border/40" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Custo dos ambientes (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="h-9"
+                  value={totalCost || ''}
+                  onChange={(e) => setTotalCost(Number(e.target.value))}
+                  placeholder="Custo de fábrica"
+                />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Lucro nominal</div>
+                <div className="font-semibold">
+                  {fmtBRL(margins.grossProfit)}{' '}
+                  <span className="text-xs text-muted-foreground">({margins.grossMarginPct.toFixed(1)}%)</span>
+                </div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs text-muted-foreground">Lucro real (VPL − custo)</div>
+                <div className={`font-bold text-base ${marginColor}`}>
+                  {fmtBRL(margins.realProfit)}{' '}
+                  <span className="text-xs">({margins.realMarginPct.toFixed(1)}%)</span>
+                  {margins.realMarginPct < vplAlertThreshold && totalCost > 0 && (
+                    <AlertTriangle className="inline h-3.5 w-3.5 ml-1" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {totalCost > 0 && margins.realMarginPct < vplAlertThreshold && (
+              <div className="text-xs flex items-start gap-1.5 pt-1">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>
+                  Margem real abaixo do limite mínimo configurado ({vplAlertThreshold.toFixed(1)}%).
+                  Considere reduzir desconto, encurtar parcelamento ou rever custo.
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
