@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
+import { LayoutDashboard } from "lucide-react";
 import { KpiCard } from "@/components/KpiCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -92,7 +93,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="Dashboard" subtitle="Visão geral do sistema" />
+        <PageHeader icon={LayoutDashboard} iconVariant="blue" title="Dashboard" subtitle="Visão geral do sistema" />
         <div className="grid grid-cols-4 gap-3 mb-6">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-24" />
@@ -107,7 +108,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Visão geral do sistema" />
+      <PageHeader icon={LayoutDashboard} iconVariant="blue" title="Dashboard" subtitle="Visão geral do sistema" />
 
       <div className="grid grid-cols-4 gap-3 mb-6">
         <KpiCard label="Clientes" value={stats.totalClientes} hint="cadastrados" />
