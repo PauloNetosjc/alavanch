@@ -8,11 +8,11 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b border-border bg-card px-4 shrink-0">
+          <header className="h-14 flex items-center border-b border-border bg-background px-6 shrink-0" style={{ borderBottomWidth: '0.5px' }}>
             <SidebarTrigger className="mr-4" />
             <div className="flex-1" />
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-6 bg-background">
             <Outlet />
           </main>
         </div>
