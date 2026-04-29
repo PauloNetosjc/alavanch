@@ -548,7 +548,7 @@ export default function ComercialNovo() {
           const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
           // preço cliente sugerido (markup do sistema = soma dos custo_cliente)
           const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
-          const markup = custo > 0 ? ((preco - custo) / custo) * 100 : 0;
+          const markup = custo > 0 ? preco / custo : 0;
           const descricao = await aiDescribe(env.name, itens);
           return {
             id: uid(),
