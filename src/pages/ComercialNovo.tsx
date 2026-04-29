@@ -611,7 +611,7 @@ export default function ComercialNovo() {
     setAmbientes((prev) => prev.filter((a) => a.id !== id));
 
   /* --------------------------------- finish ------------------------------- */
-  const finish = async () => {
+  const finish = async (goToNegociacao = false) => {
     setSaving(true);
     const year = new Date().getFullYear();
     const { count } = await supabase
