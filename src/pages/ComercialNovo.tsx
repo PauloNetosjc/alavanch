@@ -41,7 +41,7 @@ type Ambiente = {
   prazo_dias: number | null;
   custo_aquisicao: number;   // custo total do ambiente (fábrica/aquisição)
   preco_sugerido: number;    // valor cliente
-  markup: number;            // %
+  markup: number;            // multiplicador (ex: 2 = 2x o custo)
   itens: Item[];
   manual?: boolean;
 };
@@ -597,13 +597,13 @@ export default function ComercialNovo() {
     setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   };
 
-  // sync: change markup -> recompute preço; change preço -> recompute markup
+  // sync: markup é multiplicador (ex: 2 => preço = 2 * custo)
   const onChangeMarkup = (a: Ambiente, markup: number) => {
-    const preco = a.custo_aquisicao * (1 + markup / 100);
+    const preco = a.custo_aquisicao * markup;
     updateAmbiente(a.id, { markup, preco_sugerido: Number(preco.toFixed(2)) });
   };
   const onChangePreco = (a: Ambiente, preco: number) => {
-    const markup = a.custo_aquisicao > 0 ? ((preco - a.custo_aquisicao) / a.custo_aquisicao) * 100 : 0;
+    const markup = a.custo_aquisicao > 0 ? preco / a.custo_aquisicao : 0;
     updateAmbiente(a.id, { preco_sugerido: preco, markup: Number(markup.toFixed(2)) });
   };
 
@@ -981,7 +981,7 @@ export default function ComercialNovo() {
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
-                      <th className="text-center px-2 py-3 w-[110px]">Markup %</th>
+                      <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
@@ -1165,7 +1165,7 @@ export default function ComercialNovo() {
         onSave={(id, itens) => {
           const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
           const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
-          const markup = custo > 0 ? ((preco - custo) / custo) * 100 : 0;
+          const markup = custo > 0 ? preco / custo : 0;
           updateAmbiente(id, {
             itens,
             custo_aquisicao: Number(custo.toFixed(2)),
