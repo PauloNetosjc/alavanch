@@ -44,8 +44,18 @@ Deno.serve(async (req) => {
       .from("user_roles").select("user_id").eq("role", "admin");
     const adminIds = (admins ?? []).map((a) => a.user_id);
     if (adminIds.length === 0) {
-      return new Response(JSON.stringify({ ok: false, error: "Nenhum admin cadastrado" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Fallback: sem admins cadastrados, valida contra o próprio usuário (modo bootstrap).
+      const probe = createClient(url, anon);
+      const { data: signed, error } = await probe.auth.signInWithPassword({
+        email: requester.email!, password,
+      });
+      if (!error && signed?.user) {
+        return new Response(JSON.stringify({ ok: true, admin_email: requester.email, bootstrap: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: false, error: "Senha inválida" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
