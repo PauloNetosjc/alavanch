@@ -14,6 +14,7 @@ import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialDetalhe from "@/pages/ComercialDetalhe";
+import ComercialNegociacao from "@/pages/ComercialNegociacao";
 
 const queryClient = new QueryClient();
 
