@@ -683,7 +683,8 @@ export default function ComercialNovo() {
 
     setSaving(false);
     toast.success(`Orçamento ${codigo} criado`);
-    navigate(`/comercial/${orc.id}`);
+    if (goToNegociacao) navigate(`/comercial/${orc.id}/negociacao`);
+    else navigate(`/comercial/${orc.id}`);
   };
 
   /* ------------------------------ summary side ---------------------------- */
