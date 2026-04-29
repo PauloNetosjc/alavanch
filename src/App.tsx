@@ -56,7 +56,8 @@ const App = () => (
               <Route path="/leads" element={<Leads />} />
               <Route path="/comercial" element={<Comercial />} />
               <Route path="/comercial/novo" element={<ComercialNovo />} />
-              <Route path="/comercial/:id" element={<ComercialDetalhe />} />
+             <Route path="/comercial/:id" element={<ComercialDetalhe />} />
+             <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
               <Route path="/radar" element={<Placeholder title="Radar de Prazos" subtitle="Acompanhamento de datas críticas" />} />
               <Route path="/assistencia" element={<Placeholder title="Assistência Técnica" />} />
               <Route path="/montagem" element={<Placeholder title="Meus Chamados" subtitle="App do montador" />} />
