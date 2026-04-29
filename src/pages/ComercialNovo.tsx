@@ -1162,6 +1162,17 @@ export default function ComercialNovo() {
         open={!!ambDetail}
         onOpenChange={(v) => !v && setAmbDetail(null)}
         ambiente={ambDetail}
+        onSave={(id, itens) => {
+          const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+          const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+          const markup = custo > 0 ? ((preco - custo) / custo) * 100 : 0;
+          updateAmbiente(id, {
+            itens,
+            custo_aquisicao: Number(custo.toFixed(2)),
+            preco_sugerido: Number(preco.toFixed(2)),
+            markup: Number(markup.toFixed(2)),
+          });
+        }}
       />
     </div>
   );
