@@ -240,47 +240,179 @@ function AmbienteEditDialog({
 /* --------------------------- Detalhamento dialog -------------------------- */
 
 function DetalhamentoDialog({
-  open, onOpenChange, ambiente,
-}: { open: boolean; onOpenChange: (v: boolean) => void; ambiente: Ambiente | null }) {
+  open, onOpenChange, ambiente, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  ambiente: Ambiente | null;
+  onSave: (id: string, itens: Item[]) => void;
+}) {
+  const [itens, setItens] = useState<Item[]>([]);
+  const [novoDesc, setNovoDesc] = useState("");
+  const [novoQtd, setNovoQtd] = useState<number>(1);
+  const [novoCusto, setNovoCusto] = useState<number>(0);
+  const [novoVenda, setNovoVenda] = useState<number>(0);
+
+  useEffect(() => {
+    if (ambiente) setItens(ambiente.itens.map((i) => ({ ...i })));
+  }, [ambiente?.id, open]);
+
   if (!ambiente) return null;
-  const subtotal = ambiente.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
-  const frete = Math.max(0, ambiente.custo_aquisicao - subtotal);
+
+  const updateItem = (idx: number, patch: Partial<Item>) => {
+    setItens((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  };
+  const removeItem = (idx: number) => {
+    setItens((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const addItem = () => {
+    if (!novoDesc.trim()) return;
+    setItens((prev) => [
+      ...prev,
+      {
+        descricao: novoDesc.trim(),
+        quantidade: novoQtd || 1,
+        custo_cliente: novoVenda || 0,
+        custo_loja: novoCusto || 0,
+        custo_fabrica: novoCusto || 0,
+        cor: null,
+        categoria: null,
+        codigo: null,
+      },
+    ]);
+    setNovoDesc(""); setNovoQtd(1); setNovoCusto(0); setNovoVenda(0);
+  };
+
+  const totalCusto = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+  const totalVenda = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+
+  const salvar = () => {
+    onSave(ambiente.id, itens);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="uppercase tracking-tight">
             Detalhamento: {ambiente.nome}
           </DialogTitle>
         </DialogHeader>
+
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
-          {ambiente.itens.length === 0 ? (
+          <div className="grid grid-cols-12 text-[11px] uppercase tracking-wider text-muted-foreground pb-2 border-b border-border">
+            <div className="col-span-6">Descrição</div>
+            <div className="col-span-1 text-center">Qtd</div>
+            <div className="col-span-2 text-right">Custo</div>
+            <div className="col-span-2 text-right">Venda</div>
+            <div className="col-span-1"></div>
+          </div>
+
+          {itens.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-[13px]">
-              Nenhum item importado
+              Nenhum item
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {ambiente.itens.map((it, idx) => (
-                <div key={idx} className="grid grid-cols-12 py-2.5 items-center text-[13px]">
-                  <div className="col-span-7 truncate">{it.descricao}</div>
-                  <div className="col-span-3 text-center text-mono text-muted-foreground">
-                    {it.quantidade}
+              {itens.map((it, idx) => (
+                <div key={idx} className="grid grid-cols-12 py-2 items-center text-[13px] gap-1">
+                  <div className="col-span-6">
+                    <Input
+                      value={it.descricao}
+                      onChange={(e) => updateItem(idx, { descricao: e.target.value })}
+                      className="h-8 text-[13px]"
+                    />
                   </div>
-                  <div className="col-span-2 text-right text-mono">{fmtBrl(it.custo_loja)}</div>
+                  <div className="col-span-1">
+                    <Input
+                      type="number" min={1}
+                      value={it.quantidade}
+                      onChange={(e) => updateItem(idx, { quantidade: Number(e.target.value) || 0 })}
+                      className="h-8 text-[13px] text-center"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number" step="0.01"
+                      value={it.custo_loja}
+                      onChange={(e) => updateItem(idx, {
+                        custo_loja: Number(e.target.value) || 0,
+                        custo_fabrica: Number(e.target.value) || 0,
+                      })}
+                      className="h-8 text-[13px] text-right"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number" step="0.01"
+                      value={it.custo_cliente}
+                      onChange={(e) => updateItem(idx, { custo_cliente: Number(e.target.value) || 0 })}
+                      className="h-8 text-[13px] text-right"
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(idx)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-        <DialogFooter className="border-t border-border pt-3 flex items-center justify-between sm:justify-between">
-          <div className="text-[13px] text-muted-foreground">
-            <span className="text-foreground text-mono">{fmtBrl(subtotal)}</span>
-            {frete > 0 && (
-              <> + <span className="text-mono">{fmtBrl(frete)}</span> frete = <span className="text-foreground text-mono font-medium">{fmtBrl(ambiente.custo_aquisicao)}</span></>
-            )}
+
+          {/* Adicionar novo item */}
+          <div className="mt-4 pt-3 border-t border-border">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+              Adicionar item
+            </div>
+            <div className="grid grid-cols-12 gap-1 items-center">
+              <Input
+                placeholder="Descrição"
+                value={novoDesc}
+                onChange={(e) => setNovoDesc(e.target.value)}
+                className="col-span-6 h-9 text-[13px]"
+              />
+              <Input
+                type="number" min={1} placeholder="Qtd"
+                value={novoQtd || ""}
+                onChange={(e) => setNovoQtd(Number(e.target.value) || 0)}
+                className="col-span-1 h-9 text-[13px] text-center"
+              />
+              <Input
+                type="number" step="0.01" placeholder="Custo"
+                value={novoCusto || ""}
+                onChange={(e) => setNovoCusto(Number(e.target.value) || 0)}
+                className="col-span-2 h-9 text-[13px] text-right"
+              />
+              <Input
+                type="number" step="0.01" placeholder="Venda"
+                value={novoVenda || ""}
+                onChange={(e) => setNovoVenda(Number(e.target.value) || 0)}
+                className="col-span-2 h-9 text-[13px] text-right"
+              />
+              <Button size="icon" className="col-span-1 h-9 w-full" onClick={addItem}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <Button onClick={() => onOpenChange(false)}>Concluir</Button>
+        </div>
+
+        <DialogFooter className="border-t border-border pt-3 flex items-center justify-between sm:justify-between gap-4">
+          <div className="text-[13px] flex items-center gap-6">
+            <div>
+              <span className="text-muted-foreground">Custo: </span>
+              <span className="text-foreground text-mono font-medium">{fmtBrl(totalCusto)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Venda: </span>
+              <span className="text-foreground text-mono font-semibold">{fmtBrl(totalVenda)}</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={salvar}>Salvar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
