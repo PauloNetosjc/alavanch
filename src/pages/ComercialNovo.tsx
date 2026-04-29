@@ -272,6 +272,9 @@ function DetalhamentoDialog({
       {
         descricao: novoDesc.trim(),
         quantidade: novoQtd || 1,
+        largura: null,
+        altura: null,
+        profundidade: null,
         custo_cliente: novoVenda || 0,
         custo_loja: novoCusto || 0,
         custo_fabrica: novoCusto || 0,
