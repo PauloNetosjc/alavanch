@@ -14,6 +14,7 @@ import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialDetalhe from "@/pages/ComercialDetalhe";
+import ComercialNegociacao from "@/pages/ComercialNegociacao";
 
 const queryClient = new QueryClient();
 
@@ -55,7 +56,8 @@ const App = () => (
               <Route path="/leads" element={<Leads />} />
               <Route path="/comercial" element={<Comercial />} />
               <Route path="/comercial/novo" element={<ComercialNovo />} />
-              <Route path="/comercial/:id" element={<ComercialDetalhe />} />
+             <Route path="/comercial/:id" element={<ComercialDetalhe />} />
+             <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
               <Route path="/radar" element={<Placeholder title="Radar de Prazos" subtitle="Acompanhamento de datas críticas" />} />
               <Route path="/assistencia" element={<Placeholder title="Assistência Técnica" />} />
               <Route path="/montagem" element={<Placeholder title="Meus Chamados" subtitle="App do montador" />} />

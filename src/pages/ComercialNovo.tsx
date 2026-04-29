@@ -611,7 +611,7 @@ export default function ComercialNovo() {
     setAmbientes((prev) => prev.filter((a) => a.id !== id));
 
   /* --------------------------------- finish ------------------------------- */
-  const finish = async () => {
+  const finish = async (goToNegociacao = false) => {
     setSaving(true);
     const year = new Date().getFullYear();
     const { count } = await supabase
@@ -683,7 +683,8 @@ export default function ComercialNovo() {
 
     setSaving(false);
     toast.success(`Orçamento ${codigo} criado`);
-    navigate(`/comercial/${orc.id}`);
+    if (goToNegociacao) navigate(`/comercial/${orc.id}/negociacao`);
+    else navigate(`/comercial/${orc.id}`);
   };
 
   /* ------------------------------ summary side ---------------------------- */
@@ -1059,57 +1060,127 @@ export default function ComercialNovo() {
 
         {/* ============================ STEP 3 ============================ */}
         {step === 3 && (
-          <div className="surface-card p-6 space-y-6">
-            <div>
-              <h1 className="text-[22px] font-semibold">Resumo do Orçamento</h1>
-              <p className="text-[13px] text-muted-foreground mt-1">Revise e crie o orçamento</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-[13px]">
-              <div className="text-muted-foreground">Cliente</div>
-              <div className="text-right font-medium">{cliente?.nome ?? "—"}</div>
-
-              <div className="text-muted-foreground">Projeto</div>
-              <div className="text-right">{nomeProjeto || "—"}</div>
-
-              <div className="text-muted-foreground">Parceiro</div>
-              <div className="text-right">
-                {parceiro ? `${parceiro.nome} (${parceiroPerc}%)` : "—"}
+          <>
+            <div className="surface-card p-6 space-y-5">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: "#E8F4ED", border: "1px solid #D2E8DB" }}
+                >
+                  <FileText className="w-6 h-6" style={{ color: "#3F8B5C" }} />
+                </div>
+                <div>
+                  <h1 className="text-[26px] font-semibold leading-none">Resumo do Orçamento</h1>
+                  <p className="text-[13px] text-muted-foreground mt-1.5">
+                    Confirme os dados antes de salvar ou definir o pagamento
+                  </p>
+                </div>
               </div>
 
-              <div className="text-muted-foreground">Projetista</div>
-              <div className="text-right">{projetistaNome || "—"}</div>
-
-              <div className="text-muted-foreground">Consultor</div>
-              <div className="text-right">{consultor?.nome_completo ?? "—"}</div>
-
-              <div className="text-muted-foreground">Ambientes / Itens</div>
-              <div className="text-right">
-                {ambientes.length} / {ambientes.reduce((s, a) => s + a.itens.length, 0)}
+              {/* Nome do projeto */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Nome do Projeto</div>
+                <div className="bg-[#EAF2FB] border border-[#D6E4F5] rounded-md px-4 py-3 text-[15px] font-semibold uppercase">
+                  {nomeProjeto || "—"}
+                </div>
               </div>
-            </div>
 
-            <div className="border-t border-border pt-4 space-y-2 text-[14px]">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal ambientes</span>
-                <span className="text-mono text-foreground">{fmtBrl(subtotalAmbientes)}</span>
+              {/* Cliente */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Cliente</div>
+                <div className="bg-[#EAF2FB] border border-[#D6E4F5] rounded-md px-4 py-3 text-[15px] font-semibold uppercase">
+                  {cliente?.nome || "—"}
+                </div>
               </div>
-              {acrescimoParceiro > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Acréscimo parceiro ({parceiroPerc}%)</span>
-                  <span className="text-mono text-foreground">{fmtBrl(acrescimoParceiro)}</span>
+
+              {/* Indicador */}
+              {parceiro && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Indicador</div>
+                  <div className="bg-[#FDECEC] border border-[#F5D6D6] rounded-md px-4 py-3">
+                    <div className="text-[15px] font-semibold">{parceiro.nome}</div>
+                    <div className="text-[12px] text-muted-foreground mt-0.5">
+                      Ind: <span className="font-semibold text-foreground">{parceiroPerc.toFixed(2)}%</span>
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className="flex justify-between text-[16px] font-semibold pt-2 border-t border-border">
-                <span>Total</span>
-                <span className="text-mono">{fmtBrl(total)}</span>
+
+              {/* Projetista */}
+              {projetistaNome && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Projetista</div>
+                  <div className="bg-[#E8F4ED] border border-[#D2E8DB] rounded-md px-4 py-3 text-[15px] font-medium">
+                    {projetistaNome}
+                  </div>
+                </div>
+              )}
+
+              {/* Consultor */}
+              {consultor && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Consultor</div>
+                  <div className="bg-[#FBF3DF] border border-[#F3E5BF] rounded-md px-4 py-3 text-[15px] font-medium">
+                    {consultor.nome_completo ?? "—"}
+                  </div>
+                </div>
+              )}
+
+              {/* Ambientes */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                  Ambientes ({ambientes.length})
+                </div>
+                <div className="space-y-2">
+                  {ambientes.map((a) => (
+                    <div
+                      key={a.id}
+                      className="border border-border rounded-md px-4 py-3 hover:bg-muted/20"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="text-[15px] font-semibold">{a.nome}</div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[13px] font-semibold text-[#2D6BE5]">
+                            {a.markup.toFixed(2)}x
+                          </span>
+                          <span className="text-[15px] font-semibold text-mono">
+                            {fmtBrl(a.preco_sugerido)}
+                          </span>
+                        </div>
+                      </div>
+                      {a.descricao && (
+                        <div className="text-[12px] text-muted-foreground mt-1.5">
+                          <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Totais */}
+              <div className="border-t border-border pt-4 space-y-2 text-[14px]">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-mono font-medium">{fmtBrl(subtotalAmbientes)}</span>
+                </div>
+                {acrescimoParceiro > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ind</span>
+                    <span className="text-mono font-medium text-[#2D6BE5]">+ {fmtBrl(acrescimoParceiro)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[18px] font-semibold pt-2 border-t border-border">
+                  <span>Total</span>
+                  <span className="text-mono">{fmtBrl(total)}</span>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* ============================ Footer nav ============================ */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <Button
             variant="outline"
             onClick={() => step === 1 ? navigate("/comercial") : setStep(step - 1)}
@@ -1125,9 +1196,24 @@ export default function ComercialNovo() {
               Avançar <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           ) : (
-            <Button onClick={finish} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">
-              {saving ? "Criando…" : "Criar Orçamento"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => finish(false)}
+                disabled={saving}
+                className="bg-[#2D6BE5] hover:bg-[#2459C9]"
+              >
+                <FileText className="w-4 h-4 mr-1.5" />
+                {saving ? "Salvando…" : "Salvar Orçamento"}
+              </Button>
+              <Button
+                onClick={() => finish(true)}
+                disabled={saving}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Check className="w-4 h-4 mr-1.5" />
+                Definir Pagamento
+              </Button>
+            </div>
           )}
         </div>
       </div>
