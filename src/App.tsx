@@ -16,6 +16,10 @@ import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialDetalhe from "@/pages/ComercialDetalhe";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
+import RadarPrazos from "@/pages/RadarPrazos";
+import Assistencia from "@/pages/Assistencia";
+import Montagem from "@/pages/Montagem";
+import Ocorrencias from "@/pages/Ocorrencias";
 
 const queryClient = new QueryClient();
 
@@ -59,10 +63,10 @@ const App = () => (
               <Route path="/comercial/novo" element={<ComercialNovo />} />
              <Route path="/comercial/:id" element={<ComercialDetalhe />} />
              <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
-              <Route path="/radar" element={<Placeholder title="Radar de Prazos" subtitle="Acompanhamento de datas críticas" />} />
-              <Route path="/assistencia" element={<Placeholder title="Assistência Técnica" />} />
-              <Route path="/montagem" element={<Placeholder title="Meus Chamados" subtitle="App do montador" />} />
-              <Route path="/ocorrencias" element={<Placeholder title="Ocorrências" />} />
+              <Route path="/radar" element={<RadarPrazos />} />
+              <Route path="/assistencia" element={<Assistencia />} />
+              <Route path="/montagem" element={<Montagem />} />
+              <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
             </Route>
             <Route path="*" element={<NotFound />} />
