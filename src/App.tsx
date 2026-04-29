@@ -20,6 +20,8 @@ import RadarPrazos from "@/pages/RadarPrazos";
 import Assistencia from "@/pages/Assistencia";
 import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
+import Ranking from "@/pages/Ranking";
+import Relatorios from "@/pages/Relatorios";
 
 const queryClient = new QueryClient();
 
@@ -55,8 +57,8 @@ const App = () => (
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/ranking" element={<Placeholder title="Ranking / Metas" />} />
-              <Route path="/relatorios" element={<Placeholder title="Relatórios" />} />
+              <Route path="/ranking" element={<Ranking />} />
+              <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/comercial" element={<Comercial />} />
