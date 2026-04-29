@@ -100,7 +100,7 @@ export default function Assistencia() {
             <div className="space-y-3">
               <div>
                 <Label className="text-[11px]">Cliente *</Label>
-                <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+                <Select value={form.cliente_id || undefined} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -109,7 +109,7 @@ export default function Assistencia() {
               </div>
               <div>
                 <Label className="text-[11px]">Pedido relacionado</Label>
-                <Select value={form.pedido_id} onValueChange={(v) => setForm({ ...form, pedido_id: v })}>
+                <Select value={form.pedido_id || undefined} onValueChange={(v) => setForm({ ...form, pedido_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Opcional..." /></SelectTrigger>
                   <SelectContent>
                     {pedidos.map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo}</SelectItem>)}
