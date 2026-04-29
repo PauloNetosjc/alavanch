@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, MoreHorizontal,
+  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -363,11 +363,12 @@ export default function Comercial() {
                     </TableCell>
                     <TableCell className="text-right">
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}`); }}
-                        className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-muted"
-                        aria-label="Ações"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                        aria-label="Negociação"
+                        title="Abrir negociação"
                       >
-                        <MoreHorizontal className="w-4 h-4" />
+                        <Calculator className="w-3.5 h-3.5" /> Negociar
                       </button>
                     </TableCell>
                   </TableRow>

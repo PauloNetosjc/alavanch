@@ -15,6 +15,7 @@ import Comercial from "@/pages/Comercial";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialDetalhe from "@/pages/ComercialDetalhe";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
+import Administracao from "@/pages/Administracao";
 
 const queryClient = new QueryClient();
 
@@ -62,7 +63,7 @@ const App = () => (
               <Route path="/assistencia" element={<Placeholder title="Assistência Técnica" />} />
               <Route path="/montagem" element={<Placeholder title="Meus Chamados" subtitle="App do montador" />} />
               <Route path="/ocorrencias" element={<Placeholder title="Ocorrências" />} />
-              <Route path="/administracao" element={<Placeholder title="Administração" subtitle="Gerenciamento completo do sistema" />} />
+              <Route path="/administracao" element={<Administracao />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
