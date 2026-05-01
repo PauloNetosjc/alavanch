@@ -745,6 +745,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          id: string
+          lida: boolean | null
+          link: string | null
+          mensagem: string | null
+          metadata: Json | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string | null
+          metadata?: Json | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string | null
+          metadata?: Json | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocorrencias: {
         Row: {
           cliente_id: string | null
@@ -997,48 +1033,234 @@ export type Database = {
           },
         ]
       }
+      pedido_chat: {
+        Row: {
+          created_at: string
+          id: string
+          mencionados: string[] | null
+          mensagem: string
+          pedido_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mencionados?: string[] | null
+          mensagem: string
+          pedido_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mencionados?: string[] | null
+          mensagem?: string
+          pedido_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pedido_documentos: {
+        Row: {
+          assinado_em: string | null
+          assinatura_cpf: string | null
+          assinatura_data_url: string | null
+          assinatura_nome: string | null
+          created_at: string
+          created_by: string | null
+          enviado_para_assinatura: boolean | null
+          id: string
+          mime_type: string | null
+          nome: string
+          pasta_id: string | null
+          pedido_id: string
+          signing_token: string | null
+          storage_path: string
+          tamanho: number | null
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data_url?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviado_para_assinatura?: boolean | null
+          id?: string
+          mime_type?: string | null
+          nome: string
+          pasta_id?: string | null
+          pedido_id: string
+          signing_token?: string | null
+          storage_path: string
+          tamanho?: number | null
+        }
+        Update: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data_url?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviado_para_assinatura?: boolean | null
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          pasta_id?: string | null
+          pedido_id?: string
+          signing_token?: string | null
+          storage_path?: string
+          tamanho?: number | null
+        }
+        Relationships: []
+      }
+      pedido_pastas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number | null
+          pedido_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          pedido_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          pedido_id?: string
+        }
+        Relationships: []
+      }
+      pedido_revisoes: {
+        Row: {
+          ambiente_id: string
+          aprovada: boolean | null
+          aprovada_em: string | null
+          created_at: string
+          created_by: string | null
+          diff: Json | null
+          id: string
+          parsed_data: Json | null
+          pedido_id: string
+          raw_content: string | null
+          valor_original: number | null
+          valor_revisado: number | null
+          variacao_perc: number | null
+          versao: number
+        }
+        Insert: {
+          ambiente_id: string
+          aprovada?: boolean | null
+          aprovada_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          diff?: Json | null
+          id?: string
+          parsed_data?: Json | null
+          pedido_id: string
+          raw_content?: string | null
+          valor_original?: number | null
+          valor_revisado?: number | null
+          variacao_perc?: number | null
+          versao?: number
+        }
+        Update: {
+          ambiente_id?: string
+          aprovada?: boolean | null
+          aprovada_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          diff?: Json | null
+          id?: string
+          parsed_data?: Json | null
+          pedido_id?: string
+          raw_content?: string | null
+          valor_original?: number | null
+          valor_revisado?: number | null
+          variacao_perc?: number | null
+          versao?: number
+        }
+        Relationships: []
+      }
       pedidos: {
         Row: {
           cliente_id: string
           codigo: string
           created_at: string
+          critico: boolean | null
+          data_chegada_material: string | null
           data_envio_fabrica: string | null
+          data_limite_finalizacao: string | null
+          data_medicao_tecnica: string | null
           data_montagem: string | null
           data_vistoria: string | null
           id: string
+          is_adendo: boolean | null
           loja_id: string | null
+          observacoes_venda: string | null
           orcamento_id: string | null
+          pedido_pai_id: string | null
           status: string
           updated_at: string
           valor_total: number | null
+          vip: boolean | null
+          workflow_estagio: string | null
+          workflow_iniciado_em: string | null
         }
         Insert: {
           cliente_id: string
           codigo: string
           created_at?: string
+          critico?: boolean | null
+          data_chegada_material?: string | null
           data_envio_fabrica?: string | null
+          data_limite_finalizacao?: string | null
+          data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
           id?: string
+          is_adendo?: boolean | null
           loja_id?: string | null
+          observacoes_venda?: string | null
           orcamento_id?: string | null
+          pedido_pai_id?: string | null
           status?: string
           updated_at?: string
           valor_total?: number | null
+          vip?: boolean | null
+          workflow_estagio?: string | null
+          workflow_iniciado_em?: string | null
         }
         Update: {
           cliente_id?: string
           codigo?: string
           created_at?: string
+          critico?: boolean | null
+          data_chegada_material?: string | null
           data_envio_fabrica?: string | null
+          data_limite_finalizacao?: string | null
+          data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
           id?: string
+          is_adendo?: boolean | null
           loja_id?: string | null
+          observacoes_venda?: string | null
           orcamento_id?: string | null
+          pedido_pai_id?: string | null
           status?: string
           updated_at?: string
           valor_total?: number | null
+          vip?: boolean | null
+          workflow_estagio?: string | null
+          workflow_iniciado_em?: string | null
         }
         Relationships: [
           {
