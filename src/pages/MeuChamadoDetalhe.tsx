@@ -71,14 +71,23 @@ const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> =
 const EVENT_LABEL: Record<string, string> = {
   criacao: "Chamado criado",
   material: "Material requisitado",
+  material_disponivel: "Material disponível",
   agendamento: "Agendamento",
-  checkin: "Check-in",
+  checkin: "Check-in realizado",
   checklist: "Checklist atualizado",
   foto: "Foto adicionada",
   anexo: "Anexo adicionado",
   assinatura: "Assinatura coletada",
+  enviado_conferencia: "Enviado para conferência",
+  conferencia_aprovada: "Conferência aprovada",
+  conferencia_reprovada: "Conferência reprovada",
   conclusao: "Chamado concluído",
   retorno_triagem: "Retornou à triagem",
+  status_change: "Status alterado",
+  tecnico_change: "Técnico alterado",
+  prioridade_change: "Prioridade alterada",
+  arquivamento: "Arquivado",
+  desarquivamento: "Desarquivado",
 };
 
 export default function MeuChamadoDetalhe() {
@@ -314,17 +323,21 @@ export default function MeuChamadoDetalhe() {
     const { error } = await supabase
       .from("assistencias")
       .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        arquivada: true,
-        motivo_nao_conclusao: null,
+        status: "conferencia",
       })
       .eq("id", a.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    await logAssistenciaEvent(a.id, "conclusao", "Chamado concluído com sucesso e arquivado");
-    await notifyAdmins("assistencia_concluida", "Chamado concluído", a.codigo || "");
-    toast.success("Chamado finalizado e arquivado!");
+    await logAssistenciaEvent(a.id, "enviado_conferencia", "Serviço finalizado pelo técnico — aguardando conferência do administrador");
+    const admins = await getAdminUserIds();
+    await notifyAssistencia({
+      assistenciaId: a.id,
+      userIds: admins,
+      tipo: "assistencia_conferencia",
+      titulo: "Chamado em conferência",
+      mensagem: `${a.codigo || ""} — aguardando aprovação do admin`,
+    });
+    toast.success("Enviado para conferência do admin!");
     setOpenConfirma(false);
     navigate("/meus-chamados");
   };
@@ -709,8 +722,8 @@ export default function MeuChamadoDetalhe() {
         </div>
       )}
 
-      {/* Botão flutuante */}
-      {a.status !== "concluida" && (
+      {/* Botão flutuante: oculto se já em conferência ou concluído */}
+      {a.status !== "concluida" && a.status !== "conferencia" && (
         <div className="fixed bottom-6 left-0 right-0 px-6 z-30">
           <div className="max-w-3xl mx-auto">
             {!hasCheckin ? (
@@ -736,6 +749,15 @@ export default function MeuChamadoDetalhe() {
         </div>
       )}
 
+      {/* Aviso quando em conferência */}
+      {a.status === "conferencia" && (
+        <div className="fixed bottom-6 left-0 right-0 px-6 z-30">
+          <div className="max-w-3xl mx-auto rounded-lg bg-purple-100 border border-purple-300 px-4 py-3 text-[13px] text-purple-900 text-center font-medium">
+            Aguardando conferência do administrador.
+          </div>
+        </div>
+      )}
+
       {/* Dialog: Confirma */}
       <Dialog open={openConfirma} onOpenChange={setOpenConfirma}>
         <DialogContent className="max-w-sm">
@@ -743,7 +765,7 @@ export default function MeuChamadoDetalhe() {
             <DialogTitle>Serviço concluído com sucesso?</DialogTitle>
           </DialogHeader>
           <p className="text-[13px] text-muted-foreground">
-            Confirme se o serviço foi finalizado conforme esperado.
+            Ao confirmar, o chamado será enviado ao administrador para conferência final.
           </p>
           <DialogFooter className="grid grid-cols-2 gap-2 mt-2">
             <Button
