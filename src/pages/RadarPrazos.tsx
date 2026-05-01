@@ -14,6 +14,9 @@ type Pedido = {
   data_envio_fabrica: string | null;
   data_montagem: string | null;
   data_vistoria: string | null;
+  data_medicao_tecnica: string | null;
+  data_chegada_material: string | null;
+  data_limite_finalizacao: string | null;
   cliente: { nome: string } | null;
 };
 
@@ -47,7 +50,7 @@ export default function RadarPrazos() {
     (async () => {
       const { data } = await supabase
         .from("pedidos")
-        .select("id, codigo, status, valor_total, data_envio_fabrica, data_montagem, data_vistoria, cliente:clientes(nome)")
+        .select("id, codigo, status, valor_total, data_envio_fabrica, data_montagem, data_vistoria, data_medicao_tecnica, data_chegada_material, data_limite_finalizacao, cliente:clientes(nome)")
         .order("data_montagem", { ascending: true, nullsFirst: false });
       setPedidos((data || []) as any);
       setLoading(false);

@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator,
+  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +24,8 @@ type OrcRow = {
   created_at: string;
   cliente_id: string | null;
   cliente?: { nome: string } | null;
+  pedido_id?: string | null;
+  contrato_status?: string | null;
 };
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; fg: string; dot: string }> = {
@@ -151,7 +153,22 @@ export default function Comercial() {
       .select("id, codigo, nome_projeto, status, total, created_at, cliente_id, cliente:clientes(nome)")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setRows((data ?? []) as unknown as OrcRow[]);
+    const orcs = (data ?? []) as any[];
+    // Buscar pedidos e contratos vinculados
+    const ids = orcs.map((o) => o.id);
+    if (ids.length > 0) {
+      const [{ data: peds }, { data: cts }] = await Promise.all([
+        supabase.from("pedidos").select("id, orcamento_id").in("orcamento_id", ids),
+        supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
+      ]);
+      const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
+      const ctMap = new Map((cts || []).map((c: any) => [c.orcamento_id, c.status]));
+      for (const o of orcs) {
+        o.pedido_id = pedMap.get(o.id) || null;
+        o.contrato_status = ctMap.get(o.id) || null;
+      }
+    }
+    setRows(orcs as unknown as OrcRow[]);
     setLoading(false);
   };
 
@@ -337,10 +354,20 @@ export default function Comercial() {
             <TableBody>
               {visibleRows.map((r) => {
                 const st = STATUS_LABEL[r.status] ?? STATUS_LABEL.negociacao;
+                const isVenda = !!r.pedido_id;
+                const assinaturaPendente = r.contrato_status === "aguardando_assinatura";
+                const onOpen = () => navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}`);
                 return (
-                  <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/comercial/${r.id}`)}>
+                  <TableRow key={r.id} className="cursor-pointer" onClick={onOpen}>
                     <TableCell>
-                      <div className="font-medium text-mono">{r.codigo}</div>
+                      <div className="font-medium text-mono flex items-center gap-1.5">
+                        {r.codigo}
+                        {assinaturaPendente && (
+                          <span title="Assinatura pendente" className="inline-flex items-center text-amber-600">
+                            <Clock className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[12px] text-muted-foreground">{fmtDate(r.created_at)}</div>
                     </TableCell>
                     <TableCell>
@@ -355,7 +382,7 @@ export default function Comercial() {
                         style={{ background: st.bg, color: st.fg }}
                       >
                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
-                        {st.label}
+                        {isVenda ? "VENDA" : st.label}
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-mono font-medium">
