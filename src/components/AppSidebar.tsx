@@ -11,6 +11,7 @@ import {
   Hammer,
   AlertTriangle,
   Settings,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -34,6 +35,7 @@ const sections: Section[] = [
       { label: "Comercial", path: "/comercial", icon: Briefcase },
       { label: "Radar de Prazos", path: "/radar", icon: Clock },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
+      { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
     ],
   },
   {

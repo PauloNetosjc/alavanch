@@ -18,6 +18,8 @@ import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
 import RadarPrazos from "@/pages/RadarPrazos";
 import Assistencia from "@/pages/Assistencia";
+import MeusChamados from "@/pages/MeusChamados";
+import MeuChamadoDetalhe from "@/pages/MeuChamadoDetalhe";
 import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
@@ -73,6 +75,8 @@ const App = () => (
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/assistencia" element={<Assistencia />} />
+              <Route path="/meus-chamados" element={<MeusChamados />} />
+              <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />
               <Route path="/montagem" element={<Montagem />} />
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
