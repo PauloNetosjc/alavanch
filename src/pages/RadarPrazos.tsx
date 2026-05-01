@@ -171,7 +171,7 @@ export default function RadarPrazos() {
                     <td className="py-2 px-2">
                       <button
                         className="p-1 hover:text-foreground text-muted-foreground"
-                        onClick={() => nav(`/comercial/${p.id}`)}
+                        onClick={() => nav(`/pedidos/${p.id}`)}
                         title="Detalhar"
                       >
                         <Eye className="w-3.5 h-3.5" />
