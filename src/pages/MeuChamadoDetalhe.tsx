@@ -765,7 +765,7 @@ export default function MeuChamadoDetalhe() {
             <DialogTitle>Serviço concluído com sucesso?</DialogTitle>
           </DialogHeader>
           <p className="text-[13px] text-muted-foreground">
-            Confirme se o serviço foi finalizado conforme esperado.
+            Ao confirmar, o chamado será enviado ao administrador para conferência final.
           </p>
           <DialogFooter className="grid grid-cols-2 gap-2 mt-2">
             <Button
