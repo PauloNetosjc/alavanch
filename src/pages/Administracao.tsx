@@ -192,7 +192,7 @@ function Usuarios() {
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "" });
+  const [form, setForm] = useState({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
 
   const load = async () => {
     const [p, r, l] = await Promise.all([
