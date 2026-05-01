@@ -122,6 +122,22 @@ export default function MeusChamados() {
     });
   }, [list, search, filterStatus]);
 
+  const buildExport = (): ChamadoExport[] =>
+    filtered.map((c) => ({
+      codigo: c.codigo || "",
+      cliente: c.cliente?.nome || "",
+      pedido: c.pedido?.codigo || "",
+      status: STATUS_LABELS[c.status || "triagem"]?.label || c.status || "",
+      prioridade: c.prioridade || "",
+      data_agendamento: c.data_agendamento
+        ? new Date(c.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
+        : "",
+      hora_agendamento: c.hora_agendamento?.slice(0, 5) || "",
+      tecnico: c.tecnico_nome || "",
+    }));
+
+  const exportLabel = `Filtro: ${filterStatus}${search ? ` • Busca: "${search}"` : ""}`;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -160,6 +176,29 @@ export default function MeusChamados() {
             <SelectItem value="arquivados">Arquivados</SelectItem>
           </SelectContent>
         </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2" disabled={filtered.length === 0}>
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportChamadosCSV(buildExport())}>
+              CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                exportChamadosPDF(buildExport(), {
+                  titulo: isAdmin ? "Chamados — Empresa" : "Meus Chamados",
+                  filtros: exportLabel,
+                })
+              }
+            >
+              PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Lista */}
