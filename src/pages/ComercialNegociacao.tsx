@@ -412,7 +412,10 @@ export default function ComercialNegociacao() {
   const [openResumo, setOpenResumo] = useState(false);
   const [openValidar, setOpenValidar] = useState(false);
   const [openClienteEdit, setOpenClienteEdit] = useState(false);
-  const [actionAfterValidate, setActionAfterValidate] = useState<"print" | "save" | null>(null);
+  const [actionAfterValidate, setActionAfterValidate] = useState<"print" | "save" | "confirmar" | null>(null);
+  const [openConfirmar, setOpenConfirmar] = useState(false);
+  const [tplContrato, setTplContrato] = useState<ContratoTemplate | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
 
   /* ----------------------------- load ----------------------------- */
   useEffect(() => {
