@@ -20,6 +20,7 @@ import RadarPrazos from "@/pages/RadarPrazos";
 import Assistencia from "@/pages/Assistencia";
 import MeusChamados from "@/pages/MeusChamados";
 import MeuChamadoDetalhe from "@/pages/MeuChamadoDetalhe";
+import ChecklistTemplates from "@/pages/ChecklistTemplates";
 import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/montagem" element={<Montagem />} />
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
+              <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

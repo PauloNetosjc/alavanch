@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,14 +13,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   FileText,
   Search,
   Filter,
   Calendar,
   AlertCircle,
   ChevronRight,
-  User as UserIcon,
+  Download,
 } from "lucide-react";
+import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 
 type Chamado = {
   id: string;
@@ -32,6 +40,7 @@ type Chamado = {
   arquivada: boolean | null;
   cliente: { nome: string } | null;
   pedido: { codigo: string } | null;
+  tecnico_nome?: string | null;
 };
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
@@ -70,7 +79,19 @@ export default function MeusChamados() {
       .order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("tecnico_id", user.id);
     const { data } = await q;
-    setList((data || []) as any);
+    const rows = (data || []) as any[];
+    // Buscar nomes dos técnicos para enriquecer (export)
+    const techIds = Array.from(new Set(rows.map((r) => r.tecnico_id).filter(Boolean)));
+    let techMap: Record<string, string> = {};
+    if (techIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .in("user_id", techIds);
+      (profs || []).forEach((p: any) => (techMap[p.user_id] = p.nome_completo));
+    }
+    rows.forEach((r) => (r.tecnico_nome = r.tecnico_id ? techMap[r.tecnico_id] || null : null));
+    setList(rows as any);
     setLoading(false);
   };
 
@@ -100,6 +121,22 @@ export default function MeusChamados() {
       );
     });
   }, [list, search, filterStatus]);
+
+  const buildExport = (): ChamadoExport[] =>
+    filtered.map((c) => ({
+      codigo: c.codigo || "",
+      cliente: c.cliente?.nome || "",
+      pedido: c.pedido?.codigo || "",
+      status: STATUS_LABELS[c.status || "triagem"]?.label || c.status || "",
+      prioridade: c.prioridade || "",
+      data_agendamento: c.data_agendamento
+        ? new Date(c.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
+        : "",
+      hora_agendamento: c.hora_agendamento?.slice(0, 5) || "",
+      tecnico: c.tecnico_nome || "",
+    }));
+
+  const exportLabel = `Filtro: ${filterStatus}${search ? ` • Busca: "${search}"` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -139,6 +176,29 @@ export default function MeusChamados() {
             <SelectItem value="arquivados">Arquivados</SelectItem>
           </SelectContent>
         </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2" disabled={filtered.length === 0}>
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportChamadosCSV(buildExport())}>
+              CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                exportChamadosPDF(buildExport(), {
+                  titulo: isAdmin ? "Chamados — Empresa" : "Meus Chamados",
+                  filtros: exportLabel,
+                })
+              }
+            >
+              PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Lista */}

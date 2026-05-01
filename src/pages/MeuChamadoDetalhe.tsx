@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -24,13 +31,19 @@ import {
   AlertCircle,
   PenTool,
   Image as ImageIcon,
+  History,
+  Paperclip,
+  ListChecks,
+  Trash2,
 } from "lucide-react";
+import { logAssistenciaEvent, notifyAssistencia, getAdminUserIds } from "@/lib/assistenciaEvents";
 
 type Detalhe = {
   id: string;
   codigo: string | null;
   status: string | null;
   prioridade: string | null;
+  tipo: string;
   descricao: string | null;
   data_agendamento: string | null;
   hora_agendamento: string | null;
@@ -41,6 +54,10 @@ type Detalhe = {
 };
 
 type Foto = { id: string; url: string; tipo: string };
+type ChecklistRow = { id: string; descricao: string; obrigatorio: boolean; concluido: boolean; ordem: number };
+type Anexo = { id: string; nome: string; url: string; mime_type: string | null; tamanho: number | null; created_at: string; checkin_id: string | null };
+type TimelineEvent = { id: string; tipo: string; descricao: string | null; created_at: string; usuario_id: string | null; metadata: any };
+type ChecklistTemplate = { id: string; nome: string; tipo_servico: string };
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
   triagem: { label: "Triagem", bg: "#fef3c7", fg: "#92400e" },
@@ -51,18 +68,38 @@ const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> =
   concluida: { label: "Concluído", bg: "#dcfce7", fg: "#166534" },
 };
 
+const EVENT_LABEL: Record<string, string> = {
+  criacao: "Chamado criado",
+  material: "Material requisitado",
+  agendamento: "Agendamento",
+  checkin: "Check-in",
+  checklist: "Checklist atualizado",
+  foto: "Foto adicionada",
+  anexo: "Anexo adicionado",
+  assinatura: "Assinatura coletada",
+  conclusao: "Chamado concluído",
+  retorno_triagem: "Retornou à triagem",
+};
+
 export default function MeuChamadoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const [a, setA] = useState<Detalhe | null>(null);
   const [fotos, setFotos] = useState<Foto[]>([]);
-  const [hasCheckin, setHasCheckin] = useState(false);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [checkin, setCheckin] = useState<{ id: string } | null>(null);
   const [hasAssinatura, setHasAssinatura] = useState(false);
-  const [tab, setTab] = useState<"servico" | "fotos">("servico");
+  const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
+  const [tab, setTab] = useState<"servico" | "fotos" | "anexos" | "timeline">("servico");
   const [loading, setLoading] = useState(true);
   const [openMotivo, setOpenMotivo] = useState(false);
   const [openConfirma, setOpenConfirma] = useState(false);
+  const [openTemplate, setOpenTemplate] = useState(false);
+  const [templateSel, setTemplateSel] = useState<string>("");
   const [motivo, setMotivo] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -72,33 +109,42 @@ export default function MeuChamadoDetalhe() {
     const { data } = await supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco,cep,cidade,estado), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, tipo, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco,cep,cidade,estado), pedido:pedidos(codigo)"
       )
       .eq("id", id)
       .maybeSingle();
     setA(data as any);
 
-    const { data: fts } = await supabase
-      .from("fotos_assistencia")
-      .select("id, url, tipo")
-      .eq("assistencia_id", id);
+    const [{ data: fts }, { data: anx }, { data: ck }, { data: as }, { data: cl }, { data: tl }, { data: tpls }] =
+      await Promise.all([
+        supabase.from("fotos_assistencia").select("id, url, tipo").eq("assistencia_id", id),
+        supabase.from("anexos_assistencia").select("*").eq("assistencia_id", id).order("created_at", { ascending: false }),
+        supabase.from("checkins").select("id").eq("assistencia_id", id).limit(1).maybeSingle(),
+        supabase.from("assinaturas").select("id").eq("assistencia_id", id).limit(1).maybeSingle(),
+        supabase.from("assistencia_checklist").select("id, descricao, obrigatorio, concluido, ordem").eq("assistencia_id", id).order("ordem"),
+        supabase.from("timeline_eventos").select("*").eq("entidade_tipo", "assistencia").eq("entidade_id", id).order("created_at", { ascending: false }),
+        supabase.from("checklist_templates").select("id, nome, tipo_servico").eq("ativo", true).order("ordem"),
+      ]);
+
     setFotos((fts || []) as any);
-
-    const { data: ck } = await supabase
-      .from("checkins")
-      .select("id")
-      .eq("assistencia_id", id)
-      .limit(1)
-      .maybeSingle();
-    setHasCheckin(!!ck);
-
-    const { data: as } = await supabase
-      .from("assinaturas")
-      .select("id")
-      .eq("assistencia_id", id)
-      .limit(1)
-      .maybeSingle();
+    setAnexos((anx || []) as any);
+    setCheckin((ck as any) || null);
     setHasAssinatura(!!as);
+    setChecklist((cl || []) as any);
+    setTimeline((tl || []) as any);
+    setTemplates((tpls || []) as any);
+
+    // Profiles para timeline
+    const userIds = Array.from(new Set((tl || []).map((t: any) => t.usuario_id).filter(Boolean)));
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .in("user_id", userIds);
+      const map: Record<string, string> = {};
+      (profs || []).forEach((p: any) => (map[p.user_id] = p.nome_completo));
+      setProfilesMap(map);
+    }
     setLoading(false);
   };
 
@@ -129,15 +175,39 @@ export default function MeuChamadoDetalhe() {
     );
   }
 
+  const notifyAdmins = async (tipo: string, titulo: string, mensagem?: string) => {
+    const admins = await getAdminUserIds();
+    await notifyAssistencia({
+      assistenciaId: a.id,
+      userIds: [...admins, a.tecnico_id || null],
+      tipo,
+      titulo,
+      mensagem,
+    });
+  };
+
   /* --- Ações --- */
   const fazerCheckin = async () => {
     setSaving(true);
-    const { error } = await supabase.from("checkins").insert({
-      assistencia_id: a.id,
-      montador_id: user!.id,
-    });
+    const { data: ins, error } = await supabase
+      .from("checkins")
+      .insert({ assistencia_id: a.id, montador_id: user!.id })
+      .select()
+      .maybeSingle();
     if (!error) {
       await supabase.from("assistencias").update({ status: "em_atendimento" }).eq("id", a.id);
+      await logAssistenciaEvent(a.id, "checkin", "Check-in realizado");
+      await notifyAdmins("assistencia_checkin", "Check-in realizado", a.codigo || "");
+      // Se ainda não há checklist e há template para o tipo, abrir seletor
+      if (checklist.length === 0) {
+        const t = templates.find((tp) => tp.tipo_servico.toLowerCase() === (a.tipo || "").toLowerCase());
+        if (t) {
+          setTemplateSel(t.id);
+          setOpenTemplate(true);
+        } else if (templates.length > 0) {
+          setOpenTemplate(true);
+        }
+      }
       toast.success("Check-in realizado com sucesso!");
       load();
     } else {
@@ -146,19 +216,55 @@ export default function MeuChamadoDetalhe() {
     setSaving(false);
   };
 
+  const aplicarTemplate = async () => {
+    if (!templateSel) return;
+    const { data: itens } = await supabase
+      .from("checklist_template_itens")
+      .select("id, descricao, obrigatorio, ordem")
+      .eq("template_id", templateSel)
+      .order("ordem");
+    if (!itens || itens.length === 0) {
+      toast.error("Modelo sem itens");
+      return;
+    }
+    await supabase.from("assistencia_checklist").insert(
+      itens.map((i: any) => ({
+        assistencia_id: a.id,
+        template_item_id: i.id,
+        descricao: i.descricao,
+        obrigatorio: i.obrigatorio,
+        ordem: i.ordem,
+      }))
+    );
+    await logAssistenciaEvent(a.id, "checklist", `Modelo de checklist aplicado (${itens.length} itens)`);
+    setOpenTemplate(false);
+    load();
+  };
+
+  const toggleChecklist = async (row: ChecklistRow) => {
+    const novo = !row.concluido;
+    await supabase
+      .from("assistencia_checklist")
+      .update({
+        concluido: novo,
+        concluido_em: novo ? new Date().toISOString() : null,
+        concluido_por: novo ? user!.id : null,
+      })
+      .eq("id", row.id);
+    await logAssistenciaEvent(a.id, "checklist", `${novo ? "✓" : "✗"} ${row.descricao}`);
+    load();
+  };
+
   const uploadFoto = async (file: File, tipo: "antes" | "depois") => {
     const path = `assistencias/${a.id}/${tipo}_${Date.now()}_${file.name}`;
-    const { error: upErr } = await supabase.storage
-      .from("order-attachments")
-      .upload(path, file);
+    const { error: upErr } = await supabase.storage.from("order-attachments").upload(path, file);
     if (upErr) {
       toast.error(upErr.message);
       return;
     }
     const { data: pub } = supabase.storage.from("order-attachments").getPublicUrl(path);
-    await supabase
-      .from("fotos_assistencia")
-      .insert({ assistencia_id: a.id, url: pub.publicUrl, tipo });
+    await supabase.from("fotos_assistencia").insert({ assistencia_id: a.id, url: pub.publicUrl, tipo });
+    await logAssistenciaEvent(a.id, "foto", `Foto "${tipo}" adicionada`);
     load();
   };
 
@@ -167,12 +273,38 @@ export default function MeuChamadoDetalhe() {
     load();
   };
 
+  const uploadAnexo = async (file: File) => {
+    const path = `assistencias/${a.id}/anexo_${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from("order-attachments").upload(path, file);
+    if (upErr) return toast.error(upErr.message);
+    const { data: pub } = supabase.storage.from("order-attachments").getPublicUrl(path);
+    await supabase.from("anexos_assistencia").insert({
+      assistencia_id: a.id,
+      checkin_id: checkin?.id || null,
+      nome: file.name,
+      url: pub.publicUrl,
+      storage_path: path,
+      mime_type: file.type,
+      tamanho: file.size,
+      uploaded_by: user!.id,
+    });
+    await logAssistenciaEvent(a.id, "anexo", `Anexo "${file.name}" adicionado`, { checkin_id: checkin?.id || null });
+    toast.success("Anexo adicionado");
+    load();
+  };
+
+  const removerAnexo = async (anId: string, nome: string) => {
+    await supabase.from("anexos_assistencia").delete().eq("id", anId);
+    await logAssistenciaEvent(a.id, "anexo", `Anexo "${nome}" removido`);
+    load();
+  };
+
   const coletarAssinatura = async () => {
-    // Assinatura simulada (em produção: canvas)
     await supabase.from("assinaturas").insert({
       assistencia_id: a.id,
       assinatura_base64: "data:placeholder",
     });
+    await logAssistenciaEvent(a.id, "assinatura", "Assinatura coletada");
     toast.success("Assinatura coletada!");
     load();
   };
@@ -190,6 +322,8 @@ export default function MeuChamadoDetalhe() {
       .eq("id", a.id);
     setSaving(false);
     if (error) return toast.error(error.message);
+    await logAssistenciaEvent(a.id, "conclusao", "Chamado concluído com sucesso e arquivado");
+    await notifyAdmins("assistencia_concluida", "Chamado concluído", a.codigo || "");
     toast.success("Chamado finalizado e arquivado!");
     setOpenConfirma(false);
     navigate("/meus-chamados");
@@ -210,11 +344,15 @@ export default function MeuChamadoDetalhe() {
       .eq("id", a.id);
     setSaving(false);
     if (error) return toast.error(error.message);
+    await logAssistenciaEvent(a.id, "retorno_triagem", `Retornou à triagem: ${motivo.trim()}`);
+    await notifyAdmins("assistencia_retorno_triagem", "Chamado retornou à triagem", motivo.trim());
     toast.success("Chamado retornado para triagem");
     setOpenMotivo(false);
     setOpenConfirma(false);
     navigate("/meus-chamados");
   };
+
+  const hasCheckin = !!checkin;
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-24">
@@ -239,29 +377,29 @@ export default function MeuChamadoDetalhe() {
         </span>
       </div>
 
-      {/* Tabs (somente após check-in) */}
-      {hasCheckin && (
-        <div className="flex gap-2">
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            { k: "servico", label: "Serviço" },
+            ...(hasCheckin ? ([{ k: "fotos", label: "Fotos" }] as const) : []),
+            { k: "anexos", label: `Anexos${anexos.length ? ` (${anexos.length})` : ""}` },
+            { k: "timeline", label: "Timeline" },
+          ] as const
+        ).map((t) => (
           <button
-            onClick={() => setTab("servico")}
+            key={t.k}
+            onClick={() => setTab(t.k as any)}
             className={`px-5 py-2 rounded-lg text-[13px] font-semibold ${
-              tab === "servico" ? "bg-[#5b5bf5] text-white" : "bg-muted text-muted-foreground"
+              tab === t.k ? "bg-[#5b5bf5] text-white" : "bg-muted text-muted-foreground"
             }`}
           >
-            Serviço
+            {t.label}
           </button>
-          <button
-            onClick={() => setTab("fotos")}
-            className={`px-5 py-2 rounded-lg text-[13px] font-semibold ${
-              tab === "fotos" ? "bg-[#5b5bf5] text-white" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            Fotos
-          </button>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {(!hasCheckin || tab === "servico") && (
+      {tab === "servico" && (
         <>
           {/* Dados do Cliente */}
           <div className="surface-card p-5 bg-blue-50/30 border border-blue-100">
@@ -311,6 +449,10 @@ export default function MeuChamadoDetalhe() {
               <div>
                 <div className="text-[11px] text-muted-foreground">Contrato</div>
                 <div className="text-[14px] font-medium">{a.pedido?.codigo || "—"}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-muted-foreground">Tipo</div>
+                <div className="text-[14px] font-medium">{a.tipo || "—"}</div>
               </div>
               <div>
                 <div className="text-[11px] text-muted-foreground">Data</div>
@@ -366,48 +508,80 @@ export default function MeuChamadoDetalhe() {
             </div>
           )}
 
-          {/* Checklist (após check-in) */}
+          {/* Checklist */}
           {hasCheckin && (
             <div className="surface-card p-5 bg-amber-50/40 border border-amber-200">
-              <div className="flex items-center gap-2 mb-4">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
-                <h3 className="text-[16px] font-bold">Checklist</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ListChecks className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-[16px] font-bold">Checklist</h3>
+                </div>
+                {checklist.length === 0 && templates.length > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => setOpenTemplate(true)}>
+                    Aplicar modelo
+                  </Button>
+                )}
               </div>
-              <div className="mb-3">
+
+              {checklist.length === 0 ? (
+                <div className="text-[12px] text-muted-foreground">
+                  Nenhum item de checklist. {templates.length > 0 ? "Aplique um modelo para iniciar." : ""}
+                </div>
+              ) : (
+                <div className="space-y-2 mb-4">
+                  {checklist.map((row) => (
+                    <button
+                      key={row.id}
+                      onClick={() => toggleChecklist(row)}
+                      className="w-full flex items-center justify-between text-left py-1.5"
+                    >
+                      <span className="inline-flex items-center gap-2 text-[13px]">
+                        <span
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[11px] ${
+                            row.concluido ? "bg-emerald-500" : row.obrigatorio ? "bg-red-500" : "bg-slate-300"
+                          }`}
+                        >
+                          {row.concluido ? "✓" : row.obrigatorio ? "!" : "·"}
+                        </span>
+                        <span className={row.concluido ? "text-emerald-700 line-through" : ""}>
+                          {row.descricao}
+                        </span>
+                      </span>
+                      {!row.obrigatorio && (
+                        <span className="text-[10px] uppercase text-muted-foreground">opcional</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-amber-200 pt-3">
                 <div className="text-[11px] uppercase font-semibold text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                   <Camera className="w-3.5 h-3.5" /> FOTOS (Obrigatórias)
                 </div>
                 <div className="space-y-2">
-                  <ChecklistItem
-                    ok={fotosAntes.length > 0}
-                    label="Foto Antes - Adicionar"
-                    count={fotosAntes.length}
-                    onClick={() => setTab("fotos")}
-                  />
-                  <ChecklistItem
-                    ok={fotosDepois.length > 0}
-                    label="Foto Depois - Adicionar"
-                    count={fotosDepois.length}
-                    onClick={() => setTab("fotos")}
-                  />
+                  <ChecklistItem ok={fotosAntes.length > 0} label="Foto Antes" count={fotosAntes.length} onClick={() => setTab("fotos")} />
+                  <ChecklistItem ok={fotosDepois.length > 0} label="Foto Depois" count={fotosDepois.length} onClick={() => setTab("fotos")} />
                 </div>
               </div>
-              <div className="mb-3">
+
+              <div className="mt-3">
                 <div className="text-[11px] uppercase font-semibold text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                   <PenTool className="w-3.5 h-3.5" /> ASSINATURA (Opcional)
                 </div>
                 <div className="text-[13px] inline-flex items-center gap-2">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[11px] ${hasAssinatura ? "bg-emerald-500" : "bg-blue-400"}`}>
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[11px] ${
+                      hasAssinatura ? "bg-emerald-500" : "bg-blue-400"
+                    }`}
+                  >
                     {hasAssinatura ? "✓" : "i"}
                   </span>
                   {hasAssinatura ? "Coletada" : "Pendente"}
                 </div>
               </div>
               {!hasAssinatura && (
-                <Button
-                  onClick={coletarAssinatura}
-                  className="w-full bg-[#5b5bf5] hover:bg-[#4a4ae0] mt-2"
-                >
+                <Button onClick={coletarAssinatura} className="w-full bg-[#5b5bf5] hover:bg-[#4a4ae0] mt-2">
                   <PenTool className="w-4 h-4 mr-2" />
                   Coletar Assinatura do Cliente
                 </Button>
@@ -418,7 +592,7 @@ export default function MeuChamadoDetalhe() {
       )}
 
       {/* Aba Fotos */}
-      {hasCheckin && tab === "fotos" && (
+      {tab === "fotos" && hasCheckin && (
         <>
           <FotoSection
             title="Fotos Antes"
@@ -435,6 +609,104 @@ export default function MeuChamadoDetalhe() {
             onRemove={removerFoto}
           />
         </>
+      )}
+
+      {/* Aba Anexos */}
+      {tab === "anexos" && (
+        <div className="surface-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Paperclip className="w-5 h-5 text-blue-600" />
+              <h3 className="text-[16px] font-bold">Anexos</h3>
+            </div>
+            <label className="px-4 py-2 rounded-md bg-[#5b5bf5] text-white text-[12px] font-semibold cursor-pointer hover:bg-[#4a4ae0] inline-flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Enviar arquivo
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadAnexo(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+          {hasCheckin && (
+            <div className="text-[11px] text-muted-foreground mb-3">
+              Novos anexos serão associados ao check-in atual.
+            </div>
+          )}
+          {anexos.length === 0 ? (
+            <div className="py-10 text-center text-[12px] text-muted-foreground">
+              Nenhum anexo adicionado.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {anexos.map((an) => (
+                <div key={an.id} className="flex items-center gap-3 p-2.5 rounded-md border border-border">
+                  <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <a
+                    href={an.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 text-[13px] truncate hover:underline"
+                  >
+                    {an.nome}
+                  </a>
+                  <span className="text-[11px] text-muted-foreground">
+                    {an.tamanho ? `${Math.round(an.tamanho / 1024)} KB` : ""}
+                  </span>
+                  {an.checkin_id && (
+                    <span className="text-[10px] uppercase font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                      Check-in
+                    </span>
+                  )}
+                  <button
+                    onClick={() => removerAnexo(an.id, an.nome)}
+                    className="text-muted-foreground hover:text-red-500"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Aba Timeline */}
+      {tab === "timeline" && (
+        <div className="surface-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <History className="w-5 h-5 text-blue-600" />
+            <h3 className="text-[16px] font-bold">Histórico Auditável</h3>
+          </div>
+          {timeline.length === 0 ? (
+            <div className="py-10 text-center text-[12px] text-muted-foreground">
+              Nenhum evento registrado.
+            </div>
+          ) : (
+            <div className="relative pl-6 border-l-2 border-border space-y-4">
+              {timeline.map((ev) => (
+                <div key={ev.id} className="relative">
+                  <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-[#5b5bf5] border-2 border-white" />
+                  <div className="text-[12px] text-muted-foreground">
+                    {new Date(ev.created_at).toLocaleString("pt-BR")} •{" "}
+                    {profilesMap[ev.usuario_id || ""] || "Sistema"}
+                  </div>
+                  <div className="text-[13px] font-semibold">
+                    {EVENT_LABEL[ev.tipo] || ev.tipo}
+                  </div>
+                  {ev.descricao && (
+                    <div className="text-[13px] text-foreground mt-0.5">{ev.descricao}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Botão flutuante */}
@@ -464,7 +736,7 @@ export default function MeuChamadoDetalhe() {
         </div>
       )}
 
-      {/* Dialog: Serviço concluído? */}
+      {/* Dialog: Confirma */}
       <Dialog open={openConfirma} onOpenChange={setOpenConfirma}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -517,6 +789,35 @@ export default function MeuChamadoDetalhe() {
               className="bg-red-500 hover:bg-red-600 text-white"
             >
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Aplicar template de checklist */}
+      <Dialog open={openTemplate} onOpenChange={setOpenTemplate}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aplicar modelo de checklist</DialogTitle>
+          </DialogHeader>
+          <Select value={templateSel} onValueChange={setTemplateSel}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um modelo" />
+            </SelectTrigger>
+            <SelectContent>
+              {templates.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.nome} ({t.tipo_servico})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setOpenTemplate(false)}>
+              Pular
+            </Button>
+            <Button onClick={aplicarTemplate} disabled={!templateSel}>
+              Aplicar
             </Button>
           </DialogFooter>
         </DialogContent>
