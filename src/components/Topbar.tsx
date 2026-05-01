@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { Search, Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 type Result = {
   id: string;
@@ -121,9 +122,7 @@ export function Topbar() {
         )}
       </div>
 
-      <button className="ml-4 w-9 h-9 rounded-md flex items-center justify-center hover:bg-secondary transition-colors">
-        <Bell className="w-4 h-4 text-muted-foreground" />
-      </button>
+      <NotificationsBell />
     </header>
   );
 }
