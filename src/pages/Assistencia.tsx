@@ -328,8 +328,15 @@ function KpiTile({
 
 /* ---------------- Chamado card ---------------- */
 function ChamadoCard({
-  a, onAtribuir, onChange,
-}: { a: Assistencia; onAtribuir: () => void; onChange: () => void }) {
+  a, onAtribuir, onHistorico, onConferencia, onVerDetalhes, onChange,
+}: {
+  a: Assistencia;
+  onAtribuir: () => void;
+  onHistorico: () => void;
+  onConferencia: () => void;
+  onVerDetalhes: () => void;
+  onChange: () => void;
+}) {
   const prio = PRIO_COLORS[(a.prioridade || "media").toLowerCase()] || PRIO_COLORS.media;
   const created = new Date(a.created_at);
   const createdStr = `${String(created.getDate()).padStart(2, "0")}/${String(created.getMonth() + 1).padStart(2, "0")}/${created.getFullYear()}, ${String(created.getHours()).padStart(2, "0")}:${String(created.getMinutes()).padStart(2, "0")}`;
