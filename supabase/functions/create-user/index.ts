@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", callerId).eq("role", "admin").maybeSingle();
     if (!roleCheck) return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: corsHeaders });
 
-    const { email, password, full_name, role, store_id } = await req.json();
+    const { email, password, full_name, role, store_id, telefone } = await req.json();
     if (!email || !password || !role) {
       return new Response(JSON.stringify({ error: "email, password and role are required" }), { status: 400, headers: corsHeaders });
     }
@@ -47,13 +47,17 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name },
+      user_metadata: { full_name, nome_completo: full_name },
     });
     if (createError) return new Response(JSON.stringify({ error: createError.message }), { status: 400, headers: corsHeaders });
 
-    // Update profile store_id if provided
-    if (store_id) {
-      await supabase.from("profiles").update({ store_id }).eq("user_id", newUser.user.id);
+    // Update profile (loja_id + telefone + nome)
+    const profileUpdate: Record<string, unknown> = {};
+    if (store_id) profileUpdate.loja_id = store_id;
+    if (telefone !== undefined) profileUpdate.telefone = telefone;
+    if (full_name) profileUpdate.nome_completo = full_name;
+    if (Object.keys(profileUpdate).length > 0) {
+      await supabase.from("profiles").update(profileUpdate).eq("user_id", newUser.user.id);
     }
 
     // Assign role
