@@ -917,3 +917,225 @@ function AtribuirDialog({
     </Dialog>
   );
 }
+
+/* ---------------- Dialog: Histórico Auditável ---------------- */
+const EVENT_LABEL_MAP: Record<string, string> = {
+  criacao: "Chamado criado",
+  material: "Material requisitado",
+  material_disponivel: "Material disponível",
+  agendamento: "Agendamento",
+  checkin: "Check-in realizado",
+  checklist: "Checklist atualizado",
+  foto: "Foto adicionada",
+  anexo: "Anexo adicionado",
+  assinatura: "Assinatura coletada",
+  enviado_conferencia: "Enviado para conferência",
+  conferencia_aprovada: "Conferência aprovada",
+  conferencia_reprovada: "Conferência reprovada",
+  conclusao: "Chamado concluído",
+  retorno_triagem: "Retornou à triagem",
+  status_change: "Status alterado",
+  tecnico_change: "Técnico alterado",
+  prioridade_change: "Prioridade alterada",
+  arquivamento: "Arquivado",
+  desarquivamento: "Desarquivado",
+};
+
+function HistoricoDialog({ assist, onClose }: { assist: Assistencia; onClose: () => void }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [profMap, setProfMap] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("timeline_eventos")
+        .select("*")
+        .eq("entidade_tipo", "assistencia")
+        .eq("entidade_id", assist.id)
+        .order("created_at", { ascending: false });
+      const evs = data || [];
+      setEvents(evs);
+      const ids = Array.from(new Set(evs.map((e: any) => e.usuario_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: ps } = await supabase
+          .from("profiles")
+          .select("user_id, nome_completo")
+          .in("user_id", ids);
+        const m: Record<string, string> = {};
+        (ps || []).forEach((p: any) => (m[p.user_id] = p.nome_completo));
+        setProfMap(m);
+      }
+      setLoading(false);
+    })();
+  }, [assist.id]);
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+              <History className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-[18px]">Histórico Auditável</DialogTitle>
+              <p className="text-[12px] text-muted-foreground">
+                {assist.codigo} — {assist.cliente?.nome}
+              </p>
+            </div>
+          </div>
+        </DialogHeader>
+        {loading ? (
+          <div className="py-10 text-center text-[12px] text-muted-foreground">Carregando…</div>
+        ) : events.length === 0 ? (
+          <div className="py-10 text-center text-[12px] text-muted-foreground">
+            Nenhum evento registrado.
+          </div>
+        ) : (
+          <div className="relative pl-6 border-l-2 border-border space-y-4 mt-2">
+            {events.map((ev) => (
+              <div key={ev.id} className="relative">
+                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-[#5b5bf5] border-2 border-white" />
+                <div className="text-[11px] text-muted-foreground">
+                  {new Date(ev.created_at).toLocaleString("pt-BR")} •{" "}
+                  {profMap[ev.usuario_id || ""] || "Sistema"}
+                </div>
+                <div className="text-[13px] font-semibold">
+                  {EVENT_LABEL_MAP[ev.tipo] || ev.tipo}
+                </div>
+                {ev.descricao && (
+                  <div className="text-[12px] text-foreground mt-0.5">{ev.descricao}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Dialog: Conferência (admin) ---------------- */
+function ConferenciaDialog({
+  assist, onClose, onSaved,
+}: { assist: Assistencia; onClose: () => void; onSaved: () => void }) {
+  const [motivoReprovacao, setMotivoReprovacao] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const aprovar = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from("assistencias")
+      .update({
+        status: "concluida",
+        concluida_em: new Date().toISOString(),
+        arquivada: true,
+        motivo_nao_conclusao: null,
+      })
+      .eq("id", assist.id);
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    await logAssistenciaEvent(assist.id, "conferencia_aprovada", "Conferência aprovada e chamado arquivado");
+    await logAssistenciaEvent(assist.id, "conclusao", "Chamado concluído com sucesso");
+    if (assist.tecnico_id) {
+      await notifyAssistencia({
+        assistenciaId: assist.id,
+        userIds: [assist.tecnico_id],
+        tipo: "assistencia_aprovada",
+        titulo: "Conferência aprovada",
+        mensagem: `${assist.codigo} foi aprovado e concluído`,
+      });
+    }
+    toast.success("Chamado aprovado e arquivado!");
+    onSaved();
+    onClose();
+  };
+
+  const reprovar = async () => {
+    if (!motivoReprovacao.trim()) return toast.error("Informe o motivo da reprovação");
+    setLoading(true);
+    const { error } = await supabase
+      .from("assistencias")
+      .update({ status: "em_atendimento" })
+      .eq("id", assist.id);
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    await logAssistenciaEvent(
+      assist.id,
+      "conferencia_reprovada",
+      `Reprovado pelo admin: ${motivoReprovacao.trim()}`
+    );
+    if (assist.tecnico_id) {
+      await notifyAssistencia({
+        assistenciaId: assist.id,
+        userIds: [assist.tecnico_id],
+        tipo: "assistencia_reprovada",
+        titulo: "Conferência reprovada",
+        mensagem: motivoReprovacao.trim(),
+      });
+    }
+    toast.success("Chamado retornado ao técnico");
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center">
+              <CheckSquare className="w-5 h-5 text-purple-700" />
+            </div>
+            <div>
+              <DialogTitle className="text-[18px]">Conferência do Chamado</DialogTitle>
+              <p className="text-[12px] text-muted-foreground">
+                {assist.codigo} — {assist.cliente?.nome}
+              </p>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <p className="text-[13px] text-muted-foreground">
+            Revise as fotos, checklist e assinatura no detalhe do chamado antes de aprovar.
+            Aprovar finaliza e arquiva o chamado. Reprovar devolve o serviço ao técnico para correção.
+          </p>
+          <div>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-red-600">
+              Motivo da reprovação (obrigatório se reprovar)
+            </Label>
+            <Textarea
+              rows={3}
+              value={motivoReprovacao}
+              onChange={(e) => setMotivoReprovacao(e.target.value)}
+              placeholder="Ex: Foto depois fora de foco; falta apertar parafuso X..."
+              className="mt-1.5"
+            />
+          </div>
+        </div>
+        <DialogFooter className="grid grid-cols-2 gap-2 mt-4">
+          <Button
+            onClick={reprovar}
+            disabled={loading}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            <ThumbsDown className="w-4 h-4 mr-2" />
+            Reprovar
+          </Button>
+          <Button
+            onClick={aprovar}
+            disabled={loading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <ThumbsUp className="w-4 h-4 mr-2" />
+            Aprovar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
