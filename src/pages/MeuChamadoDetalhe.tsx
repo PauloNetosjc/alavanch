@@ -49,7 +49,7 @@ type Detalhe = {
   hora_agendamento: string | null;
   observacoes: string | null;
   tecnico_id: string | null;
-  cliente: { nome: string; endereco: string | null; cep: string | null; cidade: string | null; estado: string | null } | null;
+  cliente: { nome: string; endereco_entrega: string | null; endereco_cobranca: string | null } | null;
   pedido: { codigo: string } | null;
 };
 
@@ -118,7 +118,7 @@ export default function MeuChamadoDetalhe() {
     const { data } = await supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, tipo, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco,cep,cidade,estado), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, tipo, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco_entrega,endereco_cobranca), pedido:pedidos(codigo)"
       )
       .eq("id", id)
       .maybeSingle();
@@ -161,16 +161,24 @@ export default function MeuChamadoDetalhe() {
     load();
   }, [id]);
 
-  if (loading || !a) {
+  if (loading) {
     return (
       <div className="p-12 text-center text-[12px] text-muted-foreground">Carregando…</div>
     );
   }
+  if (!a) {
+    return (
+      <div className="p-12 text-center text-[13px] text-muted-foreground space-y-3">
+        <div>Chamado não encontrado ou sem permissão de acesso.</div>
+        <Button variant="outline" onClick={() => navigate("/meus-chamados")}>
+          Voltar para Meus Chamados
+        </Button>
+      </div>
+    );
+  }
 
   const st = STATUS_LABELS[a.status || "triagem"] || STATUS_LABELS.triagem;
-  const enderecoFull = [a.cliente?.endereco, a.cliente?.cidade, a.cliente?.estado, a.cliente?.cep]
-    .filter(Boolean)
-    .join(", ");
+  const enderecoFull = a.cliente?.endereco_entrega || a.cliente?.endereco_cobranca || "";
   const fotosAbertura = fotos.filter((f) => f.tipo === "abertura");
   const fotosAntes = fotos.filter((f) => f.tipo === "antes");
   const fotosDepois = fotos.filter((f) => f.tipo === "depois");
