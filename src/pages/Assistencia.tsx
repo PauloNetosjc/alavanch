@@ -101,6 +101,7 @@ export default function Assistencia() {
       .select(
         "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
+      .eq("arquivada", false)
       .order("created_at", { ascending: false });
     const items = (data || []) as any[];
 
