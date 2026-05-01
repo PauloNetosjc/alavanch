@@ -297,6 +297,16 @@ export default function Assistencia() {
           onSaved={load}
         />
       )}
+      {openHistorico && (
+        <HistoricoDialog assist={openHistorico} onClose={() => setOpenHistorico(null)} />
+      )}
+      {openConferencia && (
+        <ConferenciaDialog
+          assist={openConferencia}
+          onClose={() => setOpenConferencia(null)}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }
