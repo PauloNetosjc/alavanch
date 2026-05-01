@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
-  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign,
+  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
+import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -125,22 +127,24 @@ function SenhaAdminDialog({
 /* ========================== RESUMO FINANCEIRO ========================== */
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, jurosCliente,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
+  jurosCliente: number;
 }) {
-  // estimativas
   const frete = totalProposta * 0.038;
   const comissaoLoja = totalProposta * 0.027;
   const montagem = totalProposta * 0.054;
   const impostos = totalProposta * 0.04;
   const outros = totalProposta * 0.01;
   const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
-  const totalVPL = totalProposta - parceiroValor;
+  const valorSemJuros = totalProposta - jurosCliente;
+  const totalVPL = valorSemJuros - parceiroValor;
   const lucro = totalVPL - totalCustos;
   const margem = totalProposta > 0 ? (lucro / totalProposta) * 100 : 0;
+  const markup = custoFabrica > 0 ? totalVPL / custoFabrica : 0;
 
   const Row = ({ label, valor, perc, color }: { label: string; valor: number; perc: number; color: string }) => (
     <div>
@@ -161,66 +165,70 @@ function ResumoFinanceiroDialog({
   const composicaoTotal = totalCustos > 0 ? totalCustos : 1;
   const pct = (v: number) => (v / composicaoTotal) * 100;
 
+  const Field = ({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) => (
+    <div>
+      <div className="text-[12px] text-muted-foreground">{label}</div>
+      <div className="text-[18px] font-semibold text-mono leading-tight" style={color ? { color } : {}}>
+        {value}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Resumo Financeiro</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-6 mt-2">
-          {/* Valores principais */}
+          {/* VALORES PRINCIPAIS */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valores Principais</div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Valor Inicial</div>
-              <div className="text-[20px] font-semibold text-mono">{fmtBrl(valorInicial)}</div>
-            </div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Descontos</div>
-              <div className="text-[18px] font-semibold text-rose-600 text-mono">
-                -{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Valor Total da Proposta</div>
-              <div className="text-[20px] font-semibold text-mono">{fmtBrl(totalProposta)}</div>
-            </div>
+            <Field label="Valor Inicial" value={fmtBrl(valorInicial)} />
+            <Field label="Descontos" color="#B83232"
+              value={<>-{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span></>}
+            />
+            <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
+            <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
+            <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
             {parceiroNome && (
-              <div>
-                <div className="text-[12px] text-muted-foreground">Indicador ({parceiroNome})</div>
-                <div className="text-[18px] font-semibold text-rose-600 text-mono">
-                  -{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span>
-                </div>
-              </div>
+              <Field label={`Indicador (${parceiroNome})`} color="#B83232"
+                value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
             )}
+            <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />
+            <div>
+              <div className="text-[12px] text-muted-foreground">Markup Médio</div>
+              <div className="text-[20px] font-semibold text-emerald-600">{markup.toFixed(2)}x</div>
+            </div>
+            <div className="border-t border-border pt-2">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Cálculo:</div>
+              <div className="text-[12px] text-muted-foreground">VPL ÷ Custo Base = Markup</div>
+              <div className="text-[12px] text-muted-foreground">{fmtBrl(totalVPL)} ÷ {fmtBrl(custoFabrica)} = {markup.toFixed(2)}x</div>
+            </div>
           </div>
 
-          {/* Composição de custos */}
+          {/* COMPOSIÇÃO DE CUSTOS */}
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
-            <Row label="Fábrica"      valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
-            <Row label="Frete"        valor={frete}        perc={pct(frete)}        color="#A855F7" />
+            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
+            <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" />
             <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" />
-            <Row label="Montagem"     valor={montagem}     perc={pct(montagem)}     color="#06B6D4" />
-            <Row label="Impostos Saída" valor={impostos}   perc={pct(impostos)}     color="#F97316" />
-            <Row label="Outros"       valor={outros}       perc={pct(outros)}       color="#94A3B8" />
+            <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" />
+            <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" />
+            <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" />
             <div className="border-t border-border pt-2 flex items-center justify-between text-[14px] font-semibold">
               <span>Total</span>
               <span className="text-mono">{fmtBrl(totalCustos)}</span>
             </div>
           </div>
 
-          {/* Resultado */}
+          {/* RESULTADO */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Resultado Estimado</div>
             <div className="flex flex-col items-center py-2">
-              <div
-                className="w-32 h-32 rounded-full flex items-center justify-center"
-                style={{
-                  background: `conic-gradient(#3F8B5C ${margem}%, #E5E7EB 0)`,
-                }}
-              >
+              <div className="w-32 h-32 rounded-full flex items-center justify-center"
+                style={{ background: `conic-gradient(#3F8B5C ${Math.max(0, margem)}%, #E5E7EB 0)` }}>
                 <div className="w-24 h-24 rounded-full bg-background flex flex-col items-center justify-center">
                   <div className="text-[20px] font-semibold">{margem.toFixed(1)}%</div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">margem</div>
@@ -318,7 +326,55 @@ function ValidarClienteDialog({
   );
 }
 
-/* ============================== MAIN ============================== */
+/* ========================== CONFIRMAR / GERAR CONTRATO ========================== */
+function ConfirmarPedidoDialog({
+  open, onOpenChange, observacoesPadrao, onConfirm, loading,
+}: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  observacoesPadrao: string;
+  onConfirm: (obs: string) => void;
+  loading: boolean;
+}) {
+  const [obs, setObs] = useState("");
+  useEffect(() => { if (open) setObs(observacoesPadrao || ""); }, [open, observacoesPadrao]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <div className="flex gap-3 items-start">
+          <div className="w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+            <ScrollText className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <DialogHeader className="p-0">
+              <DialogTitle>Gerar Contrato</DialogTitle>
+            </DialogHeader>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Adicione observações ou cláusulas extras que devem aparecer no final do contrato.
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Observações e informações adicionais</Label>
+          <Textarea
+            rows={8}
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Ex.: Prazo de entrega de 45 dias úteis após assinatura do caderno técnico…"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Estas observações aparecerão na seção "Observações e Informações Adicionais" do contrato.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onConfirm(obs)} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <FileText className="w-4 h-4 mr-1.5" /> {loading ? "Gerando…" : "Confirmar e Gerar Contrato"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export default function ComercialNegociacao() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -356,7 +412,10 @@ export default function ComercialNegociacao() {
   const [openResumo, setOpenResumo] = useState(false);
   const [openValidar, setOpenValidar] = useState(false);
   const [openClienteEdit, setOpenClienteEdit] = useState(false);
-  const [actionAfterValidate, setActionAfterValidate] = useState<"print" | "save" | null>(null);
+  const [actionAfterValidate, setActionAfterValidate] = useState<"print" | "save" | "confirmar" | null>(null);
+  const [openConfirmar, setOpenConfirmar] = useState(false);
+  const [tplContrato, setTplContrato] = useState<ContratoTemplate | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
 
   /* ----------------------------- load ----------------------------- */
   useEffect(() => {
@@ -415,6 +474,14 @@ export default function ComercialNegociacao() {
         setMeuLimite(max);
       }
 
+      // Template de contrato (loja atual ou padrão global)
+      const { data: tpls } = await supabase
+        .from("contratos_template")
+        .select("*")
+        .eq("ativo", true)
+        .order("loja_id", { nullsFirst: false });
+      setTplContrato((tpls?.[0] ?? null) as ContratoTemplate | null);
+
       setLoading(false);
     })();
   }, [id]);
@@ -435,6 +502,18 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
+  // Estimativa de juros do cliente: ~1.5% ao mês para parcelas > 1
+  const jurosCliente = useMemo(() => {
+    return pagamentos.reduce((s, p) => {
+      if (!p.parcelas || p.parcelas <= 1) return s;
+      const taxa = 0.015;
+      const principal = p.valor / p.parcelas;
+      // soma juros simples por parcela
+      let total = 0;
+      for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
+      return s + total;
+    }, 0);
+  }, [pagamentos]);
 
   /* ------------------------- handlers ------------------------- */
   const onPercChange = (v: number) => {
@@ -540,11 +619,95 @@ export default function ComercialNegociacao() {
   const confirmar = async () => {
     if (Math.abs(restante) > 0.01)
       return toast.error("Total dos pagamentos não bate com o valor da proposta");
-    const ok = await persist("aprovado");
-    if (ok) {
-      toast.success("Pedido confirmado!");
-      navigate(`/comercial/${id}`);
+    if (camposFaltando.length > 0) {
+      setActionAfterValidate("confirmar");
+      setOpenValidar(true);
+      return;
     }
+    setOpenConfirmar(true);
+  };
+
+  const gerarContrato = async (observacoes: string) => {
+    if (!orc || !id) return;
+    setConfirmando(true);
+    // garante que orçamento está atualizado e marcado como aprovado
+    const ok = await persist("aprovado");
+    if (!ok) { setConfirmando(false); return; }
+
+    // Buscar dados da loja para empresa
+    let empresa = { nome: "Planejados Pro", cnpj: "", endereco: "", telefone: "" };
+    if (orc.loja_id) {
+      const { data: loja } = await supabase.from("lojas").select("nome, cnpj, endereco, telefone").eq("id", orc.loja_id).maybeSingle();
+      if (loja) empresa = { nome: loja.nome, cnpj: loja.cnpj || "", endereco: loja.endereco || "", telefone: loja.telefone || "" };
+    }
+
+    // Gera número de contrato no formato 133/2026
+    const ano = new Date().getFullYear();
+    const { count } = await supabase.from("contratos").select("id", { count: "exact", head: true });
+    const numero = `${String((count ?? 0) + 1).padStart(3, "0")}/${ano}`;
+
+    // Snapshot dos ambientes com preços com desconto
+    const ambientesSnap = ambientes.map((a) => {
+      const precoBase = Number(a.preco_sugerido) || 0;
+      const fator = subtotalAmbientes > 0 ? precoBase / subtotalAmbientes : 0;
+      return {
+        nome: a.nome,
+        descricao: a.descricao,
+        preco_base: precoBase,
+        preco_final: totalProposta * fator,
+      };
+    });
+
+    // Cria contrato
+    const origin = window.location.origin;
+    const { data: created, error: e1 } = await supabase
+      .from("contratos")
+      .insert({
+        numero,
+        orcamento_id: id,
+        cliente_id: orc.cliente_id,
+        loja_id: orc.loja_id,
+        template_id: tplContrato?.id,
+        observacoes_adicionais: observacoes,
+        valor_total: totalProposta,
+        conteudo_snapshot: {
+          numero,
+          emitido_em: new Date().toISOString(),
+          empresa,
+          cliente,
+          ambientes: ambientesSnap,
+          subtotal: subtotalAmbientes,
+          desconto_perc: descPercAplicado,
+          desconto_valor: descValorAplicado,
+          total: totalProposta,
+          pagamentos,
+          observacoes_adicionais: observacoes,
+        } as any,
+      })
+      .select("id, signing_token, numero")
+      .single();
+
+    setConfirmando(false);
+    if (e1 || !created) { toast.error(e1?.message || "Erro ao criar contrato"); return; }
+
+    // Atualiza signing_url no snapshot
+    const signing_url = `${origin}/contrato/${created.signing_token}`;
+    await supabase.from("contratos").update({
+      conteudo_snapshot: {
+        ...(((await supabase.from("contratos").select("conteudo_snapshot").eq("id", created.id).single()).data?.conteudo_snapshot) as any),
+        signing_url,
+      } as any,
+    }).eq("id", created.id);
+
+    // Marca orçamento como confirmado e converte
+    await supabase.from("orcamentos").update({
+      status: "convertido",
+      confirmado_em: new Date().toISOString(),
+    }).eq("id", id);
+
+    setOpenConfirmar(false);
+    toast.success(`Contrato ${created.numero} gerado!`);
+    navigate(`/contratos/${created.id}`);
   };
 
   /* ------------------------- gerar proposta (HTML print) ------------------------- */
@@ -961,6 +1124,7 @@ export default function ComercialNegociacao() {
         totalProposta={totalProposta}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
+        jurosCliente={jurosCliente}
       />
       <ValidarClienteDialog
         open={openValidar} onOpenChange={setOpenValidar}
@@ -971,6 +1135,8 @@ export default function ComercialNegociacao() {
           if (actionAfterValidate === "save") {
             const ok = await persist();
             if (ok) toast.success("Orçamento salvo");
+          } else if (actionAfterValidate === "confirmar") {
+            setOpenConfirmar(true);
           } else {
             gerarProposta();
           }
@@ -980,6 +1146,12 @@ export default function ComercialNegociacao() {
         open={openClienteEdit} onOpenChange={setOpenClienteEdit}
         cliente={cliente}
         onSaved={() => { setOpenClienteEdit(false); reloadCliente(); }}
+      />
+      <ConfirmarPedidoDialog
+        open={openConfirmar} onOpenChange={setOpenConfirmar}
+        observacoesPadrao={tplContrato?.observacoes_padrao || ""}
+        onConfirm={gerarContrato}
+        loading={confirmando}
       />
     </div>
   );

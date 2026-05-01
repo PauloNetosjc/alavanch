@@ -22,6 +22,8 @@ import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
 import Relatorios from "@/pages/Relatorios";
+import ContratoAssinar from "@/pages/ContratoAssinar";
+import ContratoVisualizar from "@/pages/ContratoVisualizar";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
+            <Route path="/contrato/:token" element={<ContratoAssinar />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -65,6 +68,7 @@ const App = () => (
               <Route path="/comercial/novo" element={<ComercialNovo />} />
              <Route path="/comercial/:id" element={<ComercialDetalhe />} />
              <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
+              <Route path="/contratos/:id" element={<ContratoVisualizar />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/montagem" element={<Montagem />} />

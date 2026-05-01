@@ -340,6 +340,151 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos: {
+        Row: {
+          assinado_em: string | null
+          assinatura_cpf: string | null
+          assinatura_data_url: string | null
+          assinatura_ip: string | null
+          assinatura_nome: string | null
+          cliente_id: string | null
+          conteudo_snapshot: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          loja_id: string | null
+          numero: string
+          observacoes_adicionais: string | null
+          orcamento_id: string
+          signing_token: string
+          status: string
+          template_id: string | null
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data_url?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          cliente_id?: string | null
+          conteudo_snapshot?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          loja_id?: string | null
+          numero: string
+          observacoes_adicionais?: string | null
+          orcamento_id: string
+          signing_token?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data_url?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          cliente_id?: string | null
+          conteudo_snapshot?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          loja_id?: string | null
+          numero?: string
+          observacoes_adicionais?: string | null
+          orcamento_id?: string
+          signing_token?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos_template: {
+        Row: {
+          ativo: boolean | null
+          clausulas: string
+          created_at: string
+          id: string
+          loja_id: string | null
+          nome: string
+          observacoes_padrao: string | null
+          rodape: string | null
+          subtitulo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          clausulas?: string
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          observacoes_padrao?: string | null
+          rodape?: string | null
+          subtitulo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          clausulas?: string
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          observacoes_padrao?: string | null
+          rodape?: string | null
+          subtitulo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_template_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fotos_assistencia: {
         Row: {
           assistencia_id: string
@@ -677,6 +822,7 @@ export type Database = {
         Row: {
           cliente_id: string | null
           codigo: string
+          confirmado_em: string | null
           consultor_id: string | null
           created_at: string
           created_by: string | null
@@ -696,6 +842,7 @@ export type Database = {
         Insert: {
           cliente_id?: string | null
           codigo: string
+          confirmado_em?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -715,6 +862,7 @@ export type Database = {
         Update: {
           cliente_id?: string | null
           codigo?: string
+          confirmado_em?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
