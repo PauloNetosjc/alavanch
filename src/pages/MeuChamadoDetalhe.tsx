@@ -49,7 +49,7 @@ type Detalhe = {
   hora_agendamento: string | null;
   observacoes: string | null;
   tecnico_id: string | null;
-  cliente: { nome: string; endereco: string | null; cep: string | null; cidade: string | null; estado: string | null } | null;
+  cliente: { nome: string; endereco_entrega: string | null; endereco_cobranca: string | null } | null;
   pedido: { codigo: string } | null;
 };
 
