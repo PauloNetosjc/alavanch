@@ -168,9 +168,7 @@ export default function MeuChamadoDetalhe() {
   }
 
   const st = STATUS_LABELS[a.status || "triagem"] || STATUS_LABELS.triagem;
-  const enderecoFull = [a.cliente?.endereco, a.cliente?.cidade, a.cliente?.estado, a.cliente?.cep]
-    .filter(Boolean)
-    .join(", ");
+  const enderecoFull = a.cliente?.endereco_entrega || a.cliente?.endereco_cobranca || "";
   const fotosAbertura = fotos.filter((f) => f.tipo === "abertura");
   const fotosAntes = fotos.filter((f) => f.tipo === "antes");
   const fotosDepois = fotos.filter((f) => f.tipo === "depois");
