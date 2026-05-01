@@ -326,7 +326,55 @@ function ValidarClienteDialog({
   );
 }
 
-/* ============================== MAIN ============================== */
+/* ========================== CONFIRMAR / GERAR CONTRATO ========================== */
+function ConfirmarPedidoDialog({
+  open, onOpenChange, observacoesPadrao, onConfirm, loading,
+}: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  observacoesPadrao: string;
+  onConfirm: (obs: string) => void;
+  loading: boolean;
+}) {
+  const [obs, setObs] = useState("");
+  useEffect(() => { if (open) setObs(observacoesPadrao || ""); }, [open, observacoesPadrao]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <div className="flex gap-3 items-start">
+          <div className="w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+            <ScrollText className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <DialogHeader className="p-0">
+              <DialogTitle>Gerar Contrato</DialogTitle>
+            </DialogHeader>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Adicione observações ou cláusulas extras que devem aparecer no final do contrato.
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Observações e informações adicionais</Label>
+          <Textarea
+            rows={8}
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Ex.: Prazo de entrega de 45 dias úteis após assinatura do caderno técnico…"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Estas observações aparecerão na seção "Observações e Informações Adicionais" do contrato.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onConfirm(obs)} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <FileText className="w-4 h-4 mr-1.5" /> {loading ? "Gerando…" : "Confirmar e Gerar Contrato"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export default function ComercialNegociacao() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
