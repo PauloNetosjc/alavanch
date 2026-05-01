@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,14 +13,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   FileText,
   Search,
   Filter,
   Calendar,
   AlertCircle,
   ChevronRight,
-  User as UserIcon,
+  Download,
 } from "lucide-react";
+import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 
 type Chamado = {
   id: string;
@@ -32,6 +40,7 @@ type Chamado = {
   arquivada: boolean | null;
   cliente: { nome: string } | null;
   pedido: { codigo: string } | null;
+  tecnico_nome?: string | null;
 };
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
