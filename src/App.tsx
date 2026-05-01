@@ -22,6 +22,8 @@ import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
 import Relatorios from "@/pages/Relatorios";
+import ContratoAssinar from "@/pages/ContratoAssinar";
+import ContratoVisualizar from "@/pages/ContratoVisualizar";
 
 const queryClient = new QueryClient();
 
