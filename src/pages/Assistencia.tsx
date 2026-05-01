@@ -397,8 +397,17 @@ function ChamadoCard({
       </div>
 
       {/* Ações */}
-      <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
+      <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60 flex-wrap">
         <button
+          onClick={onHistorico}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:bg-muted"
+          title="Ver histórico auditável"
+        >
+          <History className="w-3.5 h-3.5" />
+          Histórico
+        </button>
+        <button
+          onClick={onVerDetalhes}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:bg-muted"
         >
           <Eye className="w-3.5 h-3.5" />
@@ -410,6 +419,15 @@ function ChamadoCard({
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold bg-[#dc2626] text-white hover:bg-[#b91c1c]"
           >
             Atribuir
+          </button>
+        )}
+        {a.status === "conferencia" && (
+          <button
+            onClick={onConferencia}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold bg-[#7c3aed] text-white hover:bg-[#6d28d9]"
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            Conferir
           </button>
         )}
       </div>
