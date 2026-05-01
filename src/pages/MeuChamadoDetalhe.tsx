@@ -323,17 +323,21 @@ export default function MeuChamadoDetalhe() {
     const { error } = await supabase
       .from("assistencias")
       .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        arquivada: true,
-        motivo_nao_conclusao: null,
+        status: "conferencia",
       })
       .eq("id", a.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    await logAssistenciaEvent(a.id, "conclusao", "Chamado concluído com sucesso e arquivado");
-    await notifyAdmins("assistencia_concluida", "Chamado concluído", a.codigo || "");
-    toast.success("Chamado finalizado e arquivado!");
+    await logAssistenciaEvent(a.id, "enviado_conferencia", "Serviço finalizado pelo técnico — aguardando conferência do administrador");
+    const admins = await getAdminUserIds();
+    await notifyAssistencia({
+      assistenciaId: a.id,
+      userIds: admins,
+      tipo: "assistencia_conferencia",
+      titulo: "Chamado em conferência",
+      mensagem: `${a.codigo || ""} — aguardando aprovação do admin`,
+    });
+    toast.success("Enviado para conferência do admin!");
     setOpenConfirma(false);
     navigate("/meus-chamados");
   };
