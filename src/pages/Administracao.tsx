@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { maskPhone } from "@/lib/masks";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -181,7 +182,7 @@ function RegrasDesconto() {
 }
 
 /* ============================== USUÁRIOS ============================== */
-type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean };
+type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null };
 type Loja = { id: string; nome: string };
 type UserRole = { user_id: string; role: string };
 
@@ -191,7 +192,7 @@ function Usuarios() {
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "" });
+  const [form, setForm] = useState({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
 
   const load = async () => {
     const [p, r, l] = await Promise.all([
@@ -210,12 +211,12 @@ function Usuarios() {
 
   const onCreate = () => {
     setEditing(null);
-    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "" });
+    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
     setOpen(true);
   };
   const onEdit = (p: Profile) => {
     setEditing(p);
-    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "" });
+    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "" });
     setOpen(true);
   };
 
@@ -226,7 +227,7 @@ function Usuarios() {
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id: form.loja_id || null }),
+          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id: form.loja_id || null, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao atualizar");
         toast.success("Usuário atualizado");
@@ -236,7 +237,7 @@ function Usuarios() {
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: form.loja_id || null }),
+          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: form.loja_id || null, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao criar");
         toast.success("Usuário criado");
@@ -292,6 +293,7 @@ function Usuarios() {
               </>
             )}
             <div><Label>Nome completo</Label><Input value={form.nome_completo} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} /></div>
+            <div><Label>Telefone (WhatsApp)</Label><Input placeholder="(11) 99999-9999" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} /></div>
             <div>
               <Label>Cargo</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
