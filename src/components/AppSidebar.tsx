@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Settings,
   FileText,
+  ListChecks,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -47,7 +48,10 @@ const sections: Section[] = [
   },
   {
     label: "Config",
-    items: [{ label: "Administração", path: "/administracao", icon: Settings }],
+    items: [
+      { label: "Administração", path: "/administracao", icon: Settings },
+      { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks },
+    ],
   },
 ];
 
