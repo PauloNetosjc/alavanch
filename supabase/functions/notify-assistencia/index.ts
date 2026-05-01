@@ -64,13 +64,45 @@ Deno.serve(async (req) => {
 
     // WhatsApp (genérico — POST com token)
     if (WHATS_URL && WHATS_TOKEN) {
-      // Buscar telefones dos profiles
       const { data: profs } = await supabase
         .from("profiles")
-        .select("user_id, nome_completo");
-      // O modelo de profile não tem telefone; este bloco fica como ponto de extensão.
-      // Aqui apenas registramos a tentativa (ainda não implementada por falta de campo).
-      results.push({ channel: "whatsapp", skipped: true, reason: "phone_field_missing" });
+        .select("user_id, nome_completo, telefone")
+        .in("user_id", user_ids);
+
+      const texto = `${titulo ? `*${titulo}*\n` : ""}${mensagem || ""}${
+        assistencia_id ? `\nChamado: ${assistencia_id}` : ""
+      }${tipo ? `\nTipo: ${tipo}` : ""}`;
+
+      for (const p of profs || []) {
+        const phoneRaw = (p as any).telefone as string | null;
+        if (!phoneRaw) {
+          results.push({ channel: "whatsapp", user_id: p.user_id, skipped: true, reason: "no_phone" });
+          continue;
+        }
+        // Normaliza: apenas dígitos
+        const phone = phoneRaw.replace(/\D/g, "");
+        if (!phone) {
+          results.push({ channel: "whatsapp", user_id: p.user_id, skipped: true, reason: "invalid_phone" });
+          continue;
+        }
+        try {
+          const r = await fetch(WHATS_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${WHATS_TOKEN}`,
+              "Client-Token": WHATS_TOKEN,
+            },
+            body: JSON.stringify({
+              phone,
+              message: texto,
+            }),
+          });
+          results.push({ channel: "whatsapp", to: phone, ok: r.ok, status: r.status });
+        } catch (e) {
+          results.push({ channel: "whatsapp", to: phone, ok: false, error: String(e) });
+        }
+      }
     } else {
       results.push({ channel: "whatsapp", skipped: true });
     }
