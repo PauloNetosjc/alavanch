@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
-  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign,
+  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
+import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
