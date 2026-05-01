@@ -39,7 +39,11 @@ import {
   FileText,
   User,
   Calendar,
+  History,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { logAssistenciaEvent, notifyAssistencia, getAdminUserIds } from "@/lib/assistenciaEvents";
