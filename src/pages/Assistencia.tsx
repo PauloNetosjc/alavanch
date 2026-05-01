@@ -816,7 +816,7 @@ function AtribuirDialog({
             Cancelar
           </Button>
           <Button onClick={submit} disabled={loading} className="bg-[#16a34a] hover:bg-[#15803d]">
-            {loading ? "Salvando…" : "Atribuir Técnico"}
+            {loading ? "Salvando…" : material ? "Confirmar Material" : "Atribuir Técnico"}
           </Button>
         </DialogFooter>
       </DialogContent>
