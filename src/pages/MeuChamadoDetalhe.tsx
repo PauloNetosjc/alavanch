@@ -134,7 +134,7 @@ export default function MeuChamadoDetalhe() {
     setSaving(true);
     const { error } = await supabase.from("checkins").insert({
       assistencia_id: a.id,
-      user_id: user!.id,
+      montador_id: user!.id,
     });
     if (!error) {
       await supabase.from("assistencias").update({ status: "em_atendimento" }).eq("id", a.id);
@@ -171,7 +171,7 @@ export default function MeuChamadoDetalhe() {
     // Assinatura simulada (em produção: canvas)
     await supabase.from("assinaturas").insert({
       assistencia_id: a.id,
-      url: "data:placeholder",
+      assinatura_base64: "data:placeholder",
     });
     toast.success("Assinatura coletada!");
     load();
