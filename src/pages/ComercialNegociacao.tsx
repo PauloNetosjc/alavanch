@@ -619,11 +619,95 @@ export default function ComercialNegociacao() {
   const confirmar = async () => {
     if (Math.abs(restante) > 0.01)
       return toast.error("Total dos pagamentos não bate com o valor da proposta");
-    const ok = await persist("aprovado");
-    if (ok) {
-      toast.success("Pedido confirmado!");
-      navigate(`/comercial/${id}`);
+    if (camposFaltando.length > 0) {
+      setActionAfterValidate("confirmar");
+      setOpenValidar(true);
+      return;
     }
+    setOpenConfirmar(true);
+  };
+
+  const gerarContrato = async (observacoes: string) => {
+    if (!orc || !id) return;
+    setConfirmando(true);
+    // garante que orçamento está atualizado e marcado como aprovado
+    const ok = await persist("aprovado");
+    if (!ok) { setConfirmando(false); return; }
+
+    // Buscar dados da loja para empresa
+    let empresa = { nome: "Planejados Pro", cnpj: "", endereco: "", telefone: "" };
+    if (orc.loja_id) {
+      const { data: loja } = await supabase.from("lojas").select("nome, cnpj, endereco, telefone").eq("id", orc.loja_id).maybeSingle();
+      if (loja) empresa = { nome: loja.nome, cnpj: loja.cnpj || "", endereco: loja.endereco || "", telefone: loja.telefone || "" };
+    }
+
+    // Gera número de contrato no formato 133/2026
+    const ano = new Date().getFullYear();
+    const { count } = await supabase.from("contratos").select("id", { count: "exact", head: true });
+    const numero = `${String((count ?? 0) + 1).padStart(3, "0")}/${ano}`;
+
+    // Snapshot dos ambientes com preços com desconto
+    const ambientesSnap = ambientes.map((a) => {
+      const precoBase = Number(a.preco_sugerido) || 0;
+      const fator = subtotalAmbientes > 0 ? precoBase / subtotalAmbientes : 0;
+      return {
+        nome: a.nome,
+        descricao: a.descricao,
+        preco_base: precoBase,
+        preco_final: totalProposta * fator,
+      };
+    });
+
+    // Cria contrato
+    const origin = window.location.origin;
+    const { data: created, error: e1 } = await supabase
+      .from("contratos")
+      .insert({
+        numero,
+        orcamento_id: id,
+        cliente_id: orc.cliente_id,
+        loja_id: orc.loja_id,
+        template_id: tplContrato?.id,
+        observacoes_adicionais: observacoes,
+        valor_total: totalProposta,
+        conteudo_snapshot: {
+          numero,
+          emitido_em: new Date().toISOString(),
+          empresa,
+          cliente,
+          ambientes: ambientesSnap,
+          subtotal: subtotalAmbientes,
+          desconto_perc: descPercAplicado,
+          desconto_valor: descValorAplicado,
+          total: totalProposta,
+          pagamentos,
+          observacoes_adicionais: observacoes,
+        } as any,
+      })
+      .select("id, signing_token, numero")
+      .single();
+
+    setConfirmando(false);
+    if (e1 || !created) { toast.error(e1?.message || "Erro ao criar contrato"); return; }
+
+    // Atualiza signing_url no snapshot
+    const signing_url = `${origin}/contrato/${created.signing_token}`;
+    await supabase.from("contratos").update({
+      conteudo_snapshot: {
+        ...(((await supabase.from("contratos").select("conteudo_snapshot").eq("id", created.id).single()).data?.conteudo_snapshot) as any),
+        signing_url,
+      } as any,
+    }).eq("id", created.id);
+
+    // Marca orçamento como confirmado e converte
+    await supabase.from("orcamentos").update({
+      status: "convertido",
+      confirmado_em: new Date().toISOString(),
+    }).eq("id", id);
+
+    setOpenConfirmar(false);
+    toast.success(`Contrato ${created.numero} gerado!`);
+    navigate(`/contratos/${created.id}`);
   };
 
   /* ------------------------- gerar proposta (HTML print) ------------------------- */
