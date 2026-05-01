@@ -293,6 +293,7 @@ function Usuarios() {
               </>
             )}
             <div><Label>Nome completo</Label><Input value={form.nome_completo} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} /></div>
+            <div><Label>Telefone (WhatsApp)</Label><Input placeholder="(11) 99999-9999" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} /></div>
             <div>
               <Label>Cargo</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
