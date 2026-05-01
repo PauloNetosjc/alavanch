@@ -161,9 +161,19 @@ export default function MeuChamadoDetalhe() {
     load();
   }, [id]);
 
-  if (loading || !a) {
+  if (loading) {
     return (
       <div className="p-12 text-center text-[12px] text-muted-foreground">Carregando…</div>
+    );
+  }
+  if (!a) {
+    return (
+      <div className="p-12 text-center text-[13px] text-muted-foreground space-y-3">
+        <div>Chamado não encontrado ou sem permissão de acesso.</div>
+        <Button variant="outline" onClick={() => navigate("/meus-chamados")}>
+          Voltar para Meus Chamados
+        </Button>
+      </div>
     );
   }
 
