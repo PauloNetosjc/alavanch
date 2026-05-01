@@ -56,6 +56,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
+            <Route path="/contrato/:token" element={<ContratoAssinar />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
