@@ -118,7 +118,7 @@ export default function MeuChamadoDetalhe() {
     const { data } = await supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, tipo, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco,cep,cidade,estado), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, tipo, descricao, data_agendamento, hora_agendamento, observacoes, tecnico_id, cliente:clientes(nome,endereco_entrega,endereco_cobranca), pedido:pedidos(codigo)"
       )
       .eq("id", id)
       .maybeSingle();
