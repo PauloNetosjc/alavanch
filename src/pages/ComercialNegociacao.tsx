@@ -1135,6 +1135,8 @@ export default function ComercialNegociacao() {
           if (actionAfterValidate === "save") {
             const ok = await persist();
             if (ok) toast.success("Orçamento salvo");
+          } else if (actionAfterValidate === "confirmar") {
+            setOpenConfirmar(true);
           } else {
             gerarProposta();
           }
@@ -1144,6 +1146,12 @@ export default function ComercialNegociacao() {
         open={openClienteEdit} onOpenChange={setOpenClienteEdit}
         cliente={cliente}
         onSaved={() => { setOpenClienteEdit(false); reloadCliente(); }}
+      />
+      <ConfirmarPedidoDialog
+        open={openConfirmar} onOpenChange={setOpenConfirmar}
+        observacoesPadrao={tplContrato?.observacoes_padrao || ""}
+        onConfirm={gerarContrato}
+        loading={confirmando}
       />
     </div>
   );
