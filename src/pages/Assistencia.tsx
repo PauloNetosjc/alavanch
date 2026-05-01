@@ -98,6 +98,9 @@ export default function Assistencia() {
   });
   const [openNova, setOpenNova] = useState(false);
   const [openAtribuir, setOpenAtribuir] = useState<Assistencia | null>(null);
+  const [openHistorico, setOpenHistorico] = useState<Assistencia | null>(null);
+  const [openConferencia, setOpenConferencia] = useState<Assistencia | null>(null);
+  const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
