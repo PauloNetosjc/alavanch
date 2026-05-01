@@ -24,6 +24,7 @@ import Ranking from "@/pages/Ranking";
 import Relatorios from "@/pages/Relatorios";
 import ContratoAssinar from "@/pages/ContratoAssinar";
 import ContratoVisualizar from "@/pages/ContratoVisualizar";
+import PedidoDetalhe from "@/pages/PedidoDetalhe";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
              <Route path="/comercial/:id" element={<ComercialDetalhe />} />
              <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
               <Route path="/contratos/:id" element={<ContratoVisualizar />} />
+              <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/montagem" element={<Montagem />} />
