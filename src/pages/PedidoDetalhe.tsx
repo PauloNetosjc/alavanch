@@ -108,12 +108,40 @@ export default function PedidoDetalhe() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
+  /* ----- sincroniza estágio do workflow conforme datas preenchidas ----- */
+  const computeWorkflowStage = (p: any): string => {
+    // Se foi cancelado/concluído manualmente, mantém
+    if (p.workflow_estagio === "concluido") return "concluido";
+    // Sem nenhuma data e sem início → aguardando
+    const hasAny = p.data_medicao_tecnica || p.data_envio_fabrica || p.data_chegada_material || p.data_montagem || p.data_limite_finalizacao;
+    if (!hasAny && !p.workflow_iniciado_em) return "aguardando";
+    // Avança progressivamente: cada data preenchida marca o estágio como concluído (passa pro próximo)
+    if (p.data_limite_finalizacao) return "concluido";
+    if (p.data_montagem) return "montagem";
+    if (p.data_chegada_material) return "entrega";
+    if (p.data_envio_fabrica) return "fabrica";
+    if (p.data_medicao_tecnica) return "revisao";
+    return "medicao";
+  };
+
   /* ----- atualizar pedido (datas, flags) ----- */
   const salvarPedido = async (patch: any) => {
     if (!id) return;
-    const { error } = await supabase.from("pedidos").update(patch).eq("id", id);
+    // Se a alteração envolve datas do cronograma, recalcula estágio do workflow
+    const dateKeys = ["data_medicao_tecnica", "data_envio_fabrica", "data_chegada_material", "data_montagem", "data_limite_finalizacao"];
+    const touchesDates = dateKeys.some((k) => k in patch);
+    let finalPatch = { ...patch };
+    if (touchesDates) {
+      const merged = { ...pedido, ...patch };
+      const novoEstagio = computeWorkflowStage(merged);
+      finalPatch.workflow_estagio = novoEstagio;
+      if (!pedido?.workflow_iniciado_em && novoEstagio !== "aguardando") {
+        finalPatch.workflow_iniciado_em = new Date().toISOString();
+      }
+    }
+    const { error } = await supabase.from("pedidos").update(finalPatch).eq("id", id);
     if (error) return toast.error(error.message);
-    setPedido((p: any) => ({ ...p, ...patch }));
+    setPedido((p: any) => ({ ...p, ...finalPatch }));
   };
 
   /* ----- iniciar workflow / kanban ----- */
