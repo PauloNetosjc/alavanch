@@ -211,12 +211,12 @@ function Usuarios() {
 
   const onCreate = () => {
     setEditing(null);
-    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "" });
+    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
     setOpen(true);
   };
   const onEdit = (p: Profile) => {
     setEditing(p);
-    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "" });
+    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "" });
     setOpen(true);
   };
 
