@@ -125,22 +125,24 @@ function SenhaAdminDialog({
 /* ========================== RESUMO FINANCEIRO ========================== */
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, jurosCliente,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
+  jurosCliente: number;
 }) {
-  // estimativas
   const frete = totalProposta * 0.038;
   const comissaoLoja = totalProposta * 0.027;
   const montagem = totalProposta * 0.054;
   const impostos = totalProposta * 0.04;
   const outros = totalProposta * 0.01;
   const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
-  const totalVPL = totalProposta - parceiroValor;
+  const valorSemJuros = totalProposta - jurosCliente;
+  const totalVPL = valorSemJuros - parceiroValor;
   const lucro = totalVPL - totalCustos;
   const margem = totalProposta > 0 ? (lucro / totalProposta) * 100 : 0;
+  const markup = custoFabrica > 0 ? totalVPL / custoFabrica : 0;
 
   const Row = ({ label, valor, perc, color }: { label: string; valor: number; perc: number; color: string }) => (
     <div>
@@ -161,66 +163,70 @@ function ResumoFinanceiroDialog({
   const composicaoTotal = totalCustos > 0 ? totalCustos : 1;
   const pct = (v: number) => (v / composicaoTotal) * 100;
 
+  const Field = ({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) => (
+    <div>
+      <div className="text-[12px] text-muted-foreground">{label}</div>
+      <div className="text-[18px] font-semibold text-mono leading-tight" style={color ? { color } : {}}>
+        {value}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Resumo Financeiro</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-6 mt-2">
-          {/* Valores principais */}
+          {/* VALORES PRINCIPAIS */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valores Principais</div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Valor Inicial</div>
-              <div className="text-[20px] font-semibold text-mono">{fmtBrl(valorInicial)}</div>
-            </div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Descontos</div>
-              <div className="text-[18px] font-semibold text-rose-600 text-mono">
-                -{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-[12px] text-muted-foreground">Valor Total da Proposta</div>
-              <div className="text-[20px] font-semibold text-mono">{fmtBrl(totalProposta)}</div>
-            </div>
+            <Field label="Valor Inicial" value={fmtBrl(valorInicial)} />
+            <Field label="Descontos" color="#B83232"
+              value={<>-{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span></>}
+            />
+            <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
+            <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
+            <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
             {parceiroNome && (
-              <div>
-                <div className="text-[12px] text-muted-foreground">Indicador ({parceiroNome})</div>
-                <div className="text-[18px] font-semibold text-rose-600 text-mono">
-                  -{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span>
-                </div>
-              </div>
+              <Field label={`Indicador (${parceiroNome})`} color="#B83232"
+                value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
             )}
+            <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />
+            <div>
+              <div className="text-[12px] text-muted-foreground">Markup Médio</div>
+              <div className="text-[20px] font-semibold text-emerald-600">{markup.toFixed(2)}x</div>
+            </div>
+            <div className="border-t border-border pt-2">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Cálculo:</div>
+              <div className="text-[12px] text-muted-foreground">VPL ÷ Custo Base = Markup</div>
+              <div className="text-[12px] text-muted-foreground">{fmtBrl(totalVPL)} ÷ {fmtBrl(custoFabrica)} = {markup.toFixed(2)}x</div>
+            </div>
           </div>
 
-          {/* Composição de custos */}
+          {/* COMPOSIÇÃO DE CUSTOS */}
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
-            <Row label="Fábrica"      valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
-            <Row label="Frete"        valor={frete}        perc={pct(frete)}        color="#A855F7" />
+            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
+            <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" />
             <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" />
-            <Row label="Montagem"     valor={montagem}     perc={pct(montagem)}     color="#06B6D4" />
-            <Row label="Impostos Saída" valor={impostos}   perc={pct(impostos)}     color="#F97316" />
-            <Row label="Outros"       valor={outros}       perc={pct(outros)}       color="#94A3B8" />
+            <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" />
+            <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" />
+            <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" />
             <div className="border-t border-border pt-2 flex items-center justify-between text-[14px] font-semibold">
               <span>Total</span>
               <span className="text-mono">{fmtBrl(totalCustos)}</span>
             </div>
           </div>
 
-          {/* Resultado */}
+          {/* RESULTADO */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Resultado Estimado</div>
             <div className="flex flex-col items-center py-2">
-              <div
-                className="w-32 h-32 rounded-full flex items-center justify-center"
-                style={{
-                  background: `conic-gradient(#3F8B5C ${margem}%, #E5E7EB 0)`,
-                }}
-              >
+              <div className="w-32 h-32 rounded-full flex items-center justify-center"
+                style={{ background: `conic-gradient(#3F8B5C ${Math.max(0, margem)}%, #E5E7EB 0)` }}>
                 <div className="w-24 h-24 rounded-full bg-background flex flex-col items-center justify-center">
                   <div className="text-[20px] font-semibold">{margem.toFixed(1)}%</div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">margem</div>
