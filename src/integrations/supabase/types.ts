@@ -1506,6 +1506,7 @@ export type Database = {
           id: string
           loja_id: string | null
           nome_completo: string | null
+          telefone: string | null
           updated_at: string
           user_id: string
         }
@@ -1516,6 +1517,7 @@ export type Database = {
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
+          telefone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1526,6 +1528,7 @@ export type Database = {
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
+          telefone?: string | null
           updated_at?: string
           user_id?: string
         }
