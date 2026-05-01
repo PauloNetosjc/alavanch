@@ -722,8 +722,8 @@ export default function MeuChamadoDetalhe() {
         </div>
       )}
 
-      {/* Botão flutuante */}
-      {a.status !== "concluida" && (
+      {/* Botão flutuante: oculto se já em conferência ou concluído */}
+      {a.status !== "concluida" && a.status !== "conferencia" && (
         <div className="fixed bottom-6 left-0 right-0 px-6 z-30">
           <div className="max-w-3xl mx-auto">
             {!hasCheckin ? (
@@ -745,6 +745,15 @@ export default function MeuChamadoDetalhe() {
                 Finalizar Serviço
               </Button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Aviso quando em conferência */}
+      {a.status === "conferencia" && (
+        <div className="fixed bottom-6 left-0 right-0 px-6 z-30">
+          <div className="max-w-3xl mx-auto rounded-lg bg-purple-100 border border-purple-300 px-4 py-3 text-[13px] text-purple-900 text-center font-medium">
+            Aguardando conferência do administrador.
           </div>
         </div>
       )}
