@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { logAssistenciaEvent, notifyAssistencia, getAdminUserIds } from "@/lib/assistenciaEvents";
 
 type Assistencia = {
   id: string;
@@ -444,6 +445,20 @@ function NovaAssistenciaDialog({
         }
       }
     }
+    if (ins) {
+      await logAssistenciaEvent(ins.id, "criacao", `Chamado ${codigo} criado`, {
+        prioridade,
+        pedido_id: pedidoId,
+      });
+      const admins = await getAdminUserIds();
+      await notifyAssistencia({
+        assistenciaId: ins.id,
+        userIds: admins,
+        tipo: "assistencia_triagem",
+        titulo: "Novo chamado em triagem",
+        mensagem: `${codigo} - ${ped?.cliente?.nome || ""}`,
+      });
+    }
     setLoading(false);
     toast.success("Assistência criada!");
     onCreated();
@@ -633,6 +648,33 @@ function AtribuirDialog({
       await supabase.from("materiais_assistencia").insert(
         materiais.map((m) => ({ assistencia_id: assist.id, ...m }))
       );
+    }
+    // Auditoria + notificações
+    if (material) {
+      await logAssistenciaEvent(assist.id, "material", `Aguardando ${materiais.length} material(is)`, { materiais });
+      const admins = await getAdminUserIds();
+      await notifyAssistencia({
+        assistenciaId: assist.id,
+        userIds: admins,
+        tipo: "assistencia_material",
+        titulo: "Chamado aguardando material",
+        mensagem: `${assist.codigo || ""} - ${assist.cliente?.nome || ""}`,
+      });
+    } else {
+      const tecNome = profiles.find((p) => p.user_id === tecnicoId)?.nome_completo || "técnico";
+      await logAssistenciaEvent(assist.id, "agendamento", `Atribuído a ${tecNome} em ${data}${hora ? " " + hora : ""}`, {
+        tecnico_id: tecnicoId,
+        data,
+        hora,
+      });
+      const admins = await getAdminUserIds();
+      await notifyAssistencia({
+        assistenciaId: assist.id,
+        userIds: [tecnicoId, ...admins],
+        tipo: "assistencia_agendada",
+        titulo: "Chamado agendado",
+        mensagem: `${assist.codigo || ""} - ${data}${hora ? " " + hora : ""}`,
+      });
     }
     setLoading(false);
     toast.success(material ? "Material registrado!" : "Técnico atribuído!");
