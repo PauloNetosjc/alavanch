@@ -98,8 +98,10 @@ export type Database = {
       }
       assistencias: {
         Row: {
+          arquivada: boolean
           cliente_id: string | null
           codigo: string | null
+          concluida_em: string | null
           created_at: string
           data_agendamento: string | null
           descricao: string | null
@@ -107,6 +109,7 @@ export type Database = {
           id: string
           loja_id: string | null
           material_necessario: boolean | null
+          motivo_nao_conclusao: string | null
           observacoes: string | null
           pedido_id: string | null
           prioridade: string | null
@@ -116,8 +119,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivada?: boolean
           cliente_id?: string | null
           codigo?: string | null
+          concluida_em?: string | null
           created_at?: string
           data_agendamento?: string | null
           descricao?: string | null
@@ -125,6 +130,7 @@ export type Database = {
           id?: string
           loja_id?: string | null
           material_necessario?: boolean | null
+          motivo_nao_conclusao?: string | null
           observacoes?: string | null
           pedido_id?: string | null
           prioridade?: string | null
@@ -134,8 +140,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivada?: boolean
           cliente_id?: string | null
           codigo?: string | null
+          concluida_em?: string | null
           created_at?: string
           data_agendamento?: string | null
           descricao?: string | null
@@ -143,6 +151,7 @@ export type Database = {
           id?: string
           loja_id?: string | null
           material_necessario?: boolean | null
+          motivo_nao_conclusao?: string | null
           observacoes?: string | null
           pedido_id?: string | null
           prioridade?: string | null

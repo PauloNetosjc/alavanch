@@ -101,6 +101,7 @@ export default function Assistencia() {
       .select(
         "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
+      .eq("arquivada", false)
       .order("created_at", { ascending: false });
     const items = (data || []) as any[];
 
@@ -569,6 +570,8 @@ function NovaAssistenciaDialog({
 }
 
 /* ---------------- Dialog: Atribuir Técnico ---------------- */
+type MaterialItem = { descricao: string; quantidade: number; origem: string };
+
 function AtribuirDialog({
   assist, profiles, onClose, onSaved,
 }: { assist: Assistencia; profiles: Profile[]; onClose: () => void; onSaved: () => void }) {
@@ -578,27 +581,61 @@ function AtribuirDialog({
   const [hora, setHora] = useState(assist.hora_agendamento?.slice(0, 5) || "");
   const [obs, setObs] = useState(assist.observacoes || "");
   const [loading, setLoading] = useState(false);
+  const [origem, setOrigem] = useState<"deposito" | "compra" | "fabrica">("deposito");
+  const [matDesc, setMatDesc] = useState("");
+  const [matQtd, setMatQtd] = useState<number>(1);
+  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("materiais_assistencia")
+      .select("descricao, quantidade, origem")
+      .eq("assistencia_id", assist.id)
+      .then(({ data }) => setMateriais((data || []) as any));
+  }, [assist.id]);
+
+  const addMaterial = () => {
+    if (!matDesc.trim()) return toast.error("Descreva o material");
+    setMateriais([...materiais, { descricao: matDesc.trim(), quantidade: matQtd || 1, origem }]);
+    setMatDesc("");
+    setMatQtd(1);
+  };
+
+  const removeMaterial = (i: number) => setMateriais(materiais.filter((_, x) => x !== i));
 
   const submit = async () => {
-    if (!tecnicoId) return toast.error("Selecione o técnico");
-    if (!data) return toast.error("Defina a data");
+    if (material) {
+      if (materiais.length === 0) return toast.error("Adicione ao menos um material");
+    } else {
+      if (!tecnicoId) return toast.error("Selecione o técnico");
+      if (!data) return toast.error("Defina a data");
+    }
     setLoading(true);
-    // Define o status: se precisa material → aguardando_material; senão → agendada
     const newStatus = material ? "aguardando_material" : "agendada";
     const { error } = await supabase
       .from("assistencias")
       .update({
         material_necessario: material,
-        tecnico_id: tecnicoId,
-        data_agendamento: data,
-        hora_agendamento: hora || null,
+        tecnico_id: material ? assist.tecnico_id : tecnicoId,
+        data_agendamento: material ? null : data,
+        hora_agendamento: material ? null : (hora || null),
         observacoes: obs,
         status: newStatus,
       })
       .eq("id", assist.id);
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    if (material && materiais.length > 0) {
+      // Resync: limpa e reinsere
+      await supabase.from("materiais_assistencia").delete().eq("assistencia_id", assist.id);
+      await supabase.from("materiais_assistencia").insert(
+        materiais.map((m) => ({ assistencia_id: assist.id, ...m }))
+      );
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Técnico atribuído!");
+    toast.success(material ? "Material registrado!" : "Técnico atribuído!");
     onSaved();
     onClose();
   };
@@ -655,43 +692,108 @@ function AtribuirDialog({
             </div>
           </div>
 
-          {/* Técnico + Data + Hora */}
-          <div className="rounded-xl border border-border p-4 bg-[#f8fafc] space-y-3">
-            <div>
+          {/* Materiais (quando precisa) */}
+          {material && (
+            <div className="rounded-xl border border-border p-4 bg-[#f8fafc] space-y-3">
               <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-emerald-600" />
-                Técnico Responsável
+                <Package className="w-3.5 h-3.5 text-emerald-600" />
+                Adicionar Material
               </Label>
-              <Select value={tecnicoId || undefined} onValueChange={setTecnicoId}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Selecione o técnico..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>
-                      {p.nome_completo || p.user_id}
-                    </SelectItem>
+              <div className="grid grid-cols-3 gap-2">
+                {(["deposito", "compra", "fabrica"] as const).map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => setOrigem(o)}
+                    className="py-2 rounded-lg text-[12px] font-semibold border-2 capitalize"
+                    style={{
+                      background: origem === o ? "#dcfce7" : "#fff",
+                      color: origem === o ? "#15803d" : "#64748b",
+                      borderColor: origem === o ? "#16a34a" : "hsl(var(--border))",
+                    }}
+                  >
+                    {o === "deposito" ? "Depósito" : o === "compra" ? "Compra" : "Fábrica"}
+                  </button>
+                ))}
+              </div>
+              <Input
+                placeholder="Ex: Polia 100mm, Corrente 420..."
+                value={matDesc}
+                onChange={(e) => setMatDesc(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  value={matQtd}
+                  onChange={(e) => setMatQtd(parseInt(e.target.value) || 1)}
+                  className="w-32"
+                  placeholder="Qtd"
+                />
+                <Button onClick={addMaterial} className="bg-[#5b5bf5] hover:bg-[#4a4ae0]">
+                  Adicionar
+                </Button>
+              </div>
+              {materiais.length > 0 && (
+                <div className="space-y-1.5 pt-2">
+                  {materiais.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px] bg-white rounded-md px-3 py-2 border border-border">
+                      <div>
+                        <span className="font-semibold">{m.descricao}</span>
+                        <span className="text-muted-foreground ml-2">x{m.quantidade} • {m.origem}</span>
+                      </div>
+                      <button onClick={() => removeMaterial(i)} className="text-red-500">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#5b5bf5]" />
-                  Data do Agendamento
-                </Label>
-                <Input type="date" value={data} onChange={(e) => setData(e.target.value)} className="mt-1.5" />
-              </div>
-              <div>
-                <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-amber-500" />
-                  Hora
-                </Label>
-                <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="mt-1.5" />
+                </div>
+              )}
+              <div className="text-[11px] text-amber-700 bg-amber-50 rounded-md p-2 border border-amber-200">
+                O agendamento será disponibilizado quando o material estiver disponível.
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Técnico + Data + Hora */}
+          {!material && (
+            <div className="rounded-xl border border-border p-4 bg-[#f8fafc] space-y-3">
+              <div>
+                <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-emerald-600" />
+                  Técnico Responsável
+                </Label>
+                <Select value={tecnicoId || undefined} onValueChange={setTecnicoId}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="Selecione o técnico..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((p) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>
+                        {p.nome_completo || p.user_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#5b5bf5]" />
+                    Data do Agendamento
+                  </Label>
+                  <Input type="date" value={data} onChange={(e) => setData(e.target.value)} className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    Hora
+                  </Label>
+                  <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="mt-1.5" />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Observações */}
           <div>
@@ -714,7 +816,7 @@ function AtribuirDialog({
             Cancelar
           </Button>
           <Button onClick={submit} disabled={loading} className="bg-[#16a34a] hover:bg-[#15803d]">
-            {loading ? "Salvando…" : "Atribuir Técnico"}
+            {loading ? "Salvando…" : material ? "Confirmar Material" : "Atribuir Técnico"}
           </Button>
         </DialogFooter>
       </DialogContent>
