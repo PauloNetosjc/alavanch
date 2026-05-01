@@ -71,14 +71,23 @@ const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> =
 const EVENT_LABEL: Record<string, string> = {
   criacao: "Chamado criado",
   material: "Material requisitado",
+  material_disponivel: "Material disponível",
   agendamento: "Agendamento",
-  checkin: "Check-in",
+  checkin: "Check-in realizado",
   checklist: "Checklist atualizado",
   foto: "Foto adicionada",
   anexo: "Anexo adicionado",
   assinatura: "Assinatura coletada",
+  enviado_conferencia: "Enviado para conferência",
+  conferencia_aprovada: "Conferência aprovada",
+  conferencia_reprovada: "Conferência reprovada",
   conclusao: "Chamado concluído",
   retorno_triagem: "Retornou à triagem",
+  status_change: "Status alterado",
+  tecnico_change: "Técnico alterado",
+  prioridade_change: "Prioridade alterada",
+  arquivamento: "Arquivado",
+  desarquivamento: "Desarquivado",
 };
 
 export default function MeuChamadoDetalhe() {
