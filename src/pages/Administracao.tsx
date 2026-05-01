@@ -227,7 +227,7 @@ function Usuarios() {
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id: form.loja_id || null }),
+          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id: form.loja_id || null, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao atualizar");
         toast.success("Usuário atualizado");
