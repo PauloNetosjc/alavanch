@@ -570,6 +570,8 @@ function NovaAssistenciaDialog({
 }
 
 /* ---------------- Dialog: Atribuir Técnico ---------------- */
+type MaterialItem = { descricao: string; quantidade: number; origem: string };
+
 function AtribuirDialog({
   assist, profiles, onClose, onSaved,
 }: { assist: Assistencia; profiles: Profile[]; onClose: () => void; onSaved: () => void }) {
@@ -579,27 +581,61 @@ function AtribuirDialog({
   const [hora, setHora] = useState(assist.hora_agendamento?.slice(0, 5) || "");
   const [obs, setObs] = useState(assist.observacoes || "");
   const [loading, setLoading] = useState(false);
+  const [origem, setOrigem] = useState<"deposito" | "compra" | "fabrica">("deposito");
+  const [matDesc, setMatDesc] = useState("");
+  const [matQtd, setMatQtd] = useState<number>(1);
+  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("materiais_assistencia")
+      .select("descricao, quantidade, origem")
+      .eq("assistencia_id", assist.id)
+      .then(({ data }) => setMateriais((data || []) as any));
+  }, [assist.id]);
+
+  const addMaterial = () => {
+    if (!matDesc.trim()) return toast.error("Descreva o material");
+    setMateriais([...materiais, { descricao: matDesc.trim(), quantidade: matQtd || 1, origem }]);
+    setMatDesc("");
+    setMatQtd(1);
+  };
+
+  const removeMaterial = (i: number) => setMateriais(materiais.filter((_, x) => x !== i));
 
   const submit = async () => {
-    if (!tecnicoId) return toast.error("Selecione o técnico");
-    if (!data) return toast.error("Defina a data");
+    if (material) {
+      if (materiais.length === 0) return toast.error("Adicione ao menos um material");
+    } else {
+      if (!tecnicoId) return toast.error("Selecione o técnico");
+      if (!data) return toast.error("Defina a data");
+    }
     setLoading(true);
-    // Define o status: se precisa material → aguardando_material; senão → agendada
     const newStatus = material ? "aguardando_material" : "agendada";
     const { error } = await supabase
       .from("assistencias")
       .update({
         material_necessario: material,
-        tecnico_id: tecnicoId,
-        data_agendamento: data,
-        hora_agendamento: hora || null,
+        tecnico_id: material ? assist.tecnico_id : tecnicoId,
+        data_agendamento: material ? null : data,
+        hora_agendamento: material ? null : (hora || null),
         observacoes: obs,
         status: newStatus,
       })
       .eq("id", assist.id);
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    if (material && materiais.length > 0) {
+      // Resync: limpa e reinsere
+      await supabase.from("materiais_assistencia").delete().eq("assistencia_id", assist.id);
+      await supabase.from("materiais_assistencia").insert(
+        materiais.map((m) => ({ assistencia_id: assist.id, ...m }))
+      );
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Técnico atribuído!");
+    toast.success(material ? "Material registrado!" : "Técnico atribuído!");
     onSaved();
     onClose();
   };
