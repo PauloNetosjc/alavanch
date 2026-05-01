@@ -474,6 +474,14 @@ export default function ComercialNegociacao() {
         setMeuLimite(max);
       }
 
+      // Template de contrato (loja atual ou padrão global)
+      const { data: tpls } = await supabase
+        .from("contratos_template")
+        .select("*")
+        .eq("ativo", true)
+        .order("loja_id", { nullsFirst: false });
+      setTplContrato((tpls?.[0] ?? null) as ContratoTemplate | null);
+
       setLoading(false);
     })();
   }, [id]);
