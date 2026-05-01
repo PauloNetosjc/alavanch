@@ -800,13 +800,19 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
   };
 
   const negociarAdendo = async (rev: any) => {
-    // Cria novo orçamento de adendo baseado no original
+    // Cria novo orçamento de adendo baseado no original, com a DIFERENÇA de valor
     if (!pedido.orcamento_id) return;
     const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
     if (!orc) return;
     const codigoBase = orc.codigo;
     const newCodigo = `${codigoBase}-ADD-${Date.now().toString().slice(-4)}`;
-    const valorAdendo = Math.max(0, Number(rev.valor_revisado || 0) - Number(rev.valor_original || 0));
+    const valorOriginal = Number(rev.valor_original || 0);
+    const valorRevisado = Number(rev.valor_revisado || 0);
+    const valorAdendo = Math.max(0, valorRevisado - valorOriginal);
+    // Busca nome do ambiente original p/ referência
+    const ambOrig = ambientes.find((a: any) => a.id === rev.ambiente_id);
+    const nomeAmbOrig = ambOrig?.nome || "Ambiente";
+
     const { data: novo, error } = await supabase.from("orcamentos").insert({
       codigo: newCodigo, cliente_id: orc.cliente_id, loja_id: orc.loja_id,
       nome_projeto: `[ADENDO de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
@@ -814,7 +820,18 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
       created_by: user?.id,
     }).select().maybeSingle();
     if (error || !novo) return toast.error(error?.message || "Erro");
-    toast.success("Adendo criado — abrindo negociação");
+
+    // Cria um ambiente no novo orçamento já com o valor da DIFERENÇA, justificando o acréscimo
+    await supabase.from("ambientes").insert({
+      orcamento_id: novo.id,
+      nome: `Acréscimo: ${nomeAmbOrig} (revisão v${rev.versao})`,
+      descricao: `Diferença gerada pela revisão do projeto.\nValor original: ${fmtBrl(valorOriginal)}\nValor revisado: ${fmtBrl(valorRevisado)}\nAcréscimo: ${fmtBrl(valorAdendo)}`,
+      preco_sugerido: valorAdendo,
+      custo_aquisicao: 0,
+      ordem: 0,
+    });
+
+    toast.success(`Adendo criado com diferença de ${fmtBrl(valorAdendo)}`);
     navigate(`/comercial/${novo.id}/negociacao`);
   };
 
