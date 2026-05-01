@@ -706,8 +706,13 @@ export default function ComercialNegociacao() {
     }).eq("id", id);
 
     setOpenConfirmar(false);
-    toast.success(`Contrato ${created.numero} gerado!`);
-    navigate(`/contratos/${created.id}`);
+    toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
+    // Tenta abrir direto na venda criada pelo trigger
+    setTimeout(async () => {
+      const { data: ped } = await supabase.from("pedidos").select("id").eq("orcamento_id", id).maybeSingle();
+      if (ped?.id) navigate(`/pedidos/${ped.id}`);
+      else navigate(`/contratos/${created.id}`);
+    }, 600);
   };
 
   /* ------------------------- gerar proposta (HTML print) ------------------------- */
