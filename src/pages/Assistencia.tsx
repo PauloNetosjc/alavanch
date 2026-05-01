@@ -268,7 +268,17 @@ export default function Assistencia() {
                     {items.length === 0 ? (
                       <div className="text-center py-6 text-[12px] text-muted-foreground">Nenhum chamado neste status.</div>
                     ) : (
-                      items.map((a) => <ChamadoCard key={a.id} a={a} onAtribuir={() => setOpenAtribuir(a)} onChange={load} />)
+                      items.map((a) => (
+                        <ChamadoCard
+                          key={a.id}
+                          a={a}
+                          onAtribuir={() => setOpenAtribuir(a)}
+                          onHistorico={() => setOpenHistorico(a)}
+                          onConferencia={() => setOpenConferencia(a)}
+                          onVerDetalhes={() => navigate(`/meus-chamados/${a.id}`)}
+                          onChange={load}
+                        />
+                      ))
                     )}
                   </div>
                 )}
