@@ -237,7 +237,7 @@ function Usuarios() {
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: form.loja_id || null }),
+          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: form.loja_id || null, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao criar");
         toast.success("Usuário criado");
