@@ -67,6 +67,60 @@ export type Database = {
           },
         ]
       }
+      anexos_assistencia: {
+        Row: {
+          assistencia_id: string
+          checkin_id: string | null
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome: string
+          storage_path: string | null
+          tamanho: number | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          assistencia_id: string
+          checkin_id?: string | null
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome: string
+          storage_path?: string | null
+          tamanho?: number | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          assistencia_id?: string
+          checkin_id?: string | null
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          storage_path?: string | null
+          tamanho?: number | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_assistencia_assistencia_id_fkey"
+            columns: ["assistencia_id"]
+            isOneToOne: false
+            referencedRelation: "assistencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_assistencia_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "checkins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           assinatura_base64: string
@@ -92,6 +146,60 @@ export type Database = {
             columns: ["assistencia_id"]
             isOneToOne: false
             referencedRelation: "assistencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistencia_checklist: {
+        Row: {
+          assistencia_id: string
+          concluido: boolean | null
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          descricao: string
+          id: string
+          obrigatorio: boolean | null
+          ordem: number | null
+          template_item_id: string | null
+        }
+        Insert: {
+          assistencia_id: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          template_item_id?: string | null
+        }
+        Update: {
+          assistencia_id?: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          template_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistencia_checklist_assistencia_id_fkey"
+            columns: ["assistencia_id"]
+            isOneToOne: false
+            referencedRelation: "assistencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistencia_checklist_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_itens"
             referencedColumns: ["id"]
           },
         ]
@@ -253,6 +361,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      checklist_template_itens: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          obrigatorio: boolean | null
+          ordem: number | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_itens_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          id: string
+          nome: string
+          ordem: number | null
+          tipo_servico: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          tipo_servico: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          tipo_servico?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       clientes: {
         Row: {
