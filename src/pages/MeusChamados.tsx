@@ -79,7 +79,19 @@ export default function MeusChamados() {
       .order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("tecnico_id", user.id);
     const { data } = await q;
-    setList((data || []) as any);
+    const rows = (data || []) as any[];
+    // Buscar nomes dos técnicos para enriquecer (export)
+    const techIds = Array.from(new Set(rows.map((r) => r.tecnico_id).filter(Boolean)));
+    let techMap: Record<string, string> = {};
+    if (techIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .in("user_id", techIds);
+      (profs || []).forEach((p: any) => (techMap[p.user_id] = p.nome_completo));
+    }
+    rows.forEach((r) => (r.tecnico_nome = r.tecnico_id ? techMap[r.tecnico_id] || null : null));
+    setList(rows as any);
     setLoading(false);
   };
 
