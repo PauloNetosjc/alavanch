@@ -981,6 +981,7 @@ export default function ComercialNegociacao() {
         totalProposta={totalProposta}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
+        jurosCliente={jurosCliente}
       />
       <ValidarClienteDialog
         open={openValidar} onOpenChange={setOpenValidar}
