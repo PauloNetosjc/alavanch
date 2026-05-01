@@ -31,8 +31,9 @@ export default function ContratoAssinar() {
         .maybeSingle();
       if (error || !c) { setLoading(false); return; }
       setContrato(c);
-      setNome(c.assinatura_nome || c.conteudo_snapshot?.cliente?.nome || "");
-      setCpf(c.assinatura_cpf || c.conteudo_snapshot?.cliente?.cpf_cnpj || "");
+      const snap = (c.conteudo_snapshot as any) || {};
+      setNome(c.assinatura_nome || snap?.cliente?.nome || "");
+      setCpf(c.assinatura_cpf || snap?.cliente?.cpf_cnpj || "");
       const { data: t } = await supabase
         .from("contratos_template")
         .select("*")
