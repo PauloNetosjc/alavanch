@@ -287,8 +287,41 @@ export default function PedidoDetalhe() {
               <Printer className="w-4 h-4 mr-1.5" /> Contrato
             </Button>
           ) : null}
+          <Button variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
+            disabled={criandoAdendo}
+            onClick={criarAdendo}>
+            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+          </Button>
         </div>
       </div>
+
+      {/* VÍNCULO DE ADENDO / PEDIDO PAI */}
+      {(pedidoPai || adendos.length > 0) && (
+        <section className="surface-card p-4 border-l-4 border-purple-400">
+          <div className="flex items-start gap-4 flex-wrap">
+            {pedidoPai && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Pedido original</div>
+                <Link to={`/pedidos/${pedidoPai.id}`} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple-700 hover:underline">
+                  <FileText className="w-4 h-4" /> {pedidoPai.codigo} · {fmtBrl(Number(pedidoPai.valor_total) || 0)}
+                </Link>
+              </div>
+            )}
+            {adendos.length > 0 && (
+              <div className="flex-1 min-w-[280px]">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Adendos vinculados ({adendos.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {adendos.map((a) => (
+                    <Link key={a.id} to={`/pedidos/${a.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 border border-purple-200 text-[12px] text-purple-700 hover:bg-purple-100">
+                      <Sparkles className="w-3.5 h-3.5" /> {a.codigo} · {fmtBrl(Number(a.valor_total) || 0)} <span className="text-muted-foreground">· {a.status}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* PIPELINES & ESTÁGIOS */}
       <PipelinesPanel pedido={pedido} />
