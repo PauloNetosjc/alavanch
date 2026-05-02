@@ -122,7 +122,7 @@ export default function Agenda() {
       <PageHeader
         title="Agenda Operacional"
         subtitle="Medições, revisões, entregas, montagens e tarefas internas"
-        icon={<CalendarDays className="w-5 h-5" />}
+        icon={CalendarDays}
         actions={
           <Button onClick={() => { setDefaultDate(undefined); setOpenNovo(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Novo evento
