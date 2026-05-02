@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, FileText, Pen, Eraser } from "lucide-react";
+import { CheckCircle2, FileText, Pen, Eraser, Camera, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
 
@@ -17,6 +17,10 @@ export default function ContratoAssinar() {
   const [cpf, setCpf] = useState("");
   const [aceito, setAceito] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docPreview, setDocPreview] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
@@ -34,65 +38,118 @@ export default function ContratoAssinar() {
       const snap = (c.conteudo_snapshot as any) || {};
       setNome(c.assinatura_nome || snap?.cliente?.nome || "");
       setCpf(c.assinatura_cpf || snap?.cliente?.cpf_cnpj || "");
-      const { data: t } = await supabase
-        .from("contratos_template")
-        .select("*")
-        .eq("id", c.template_id)
-        .maybeSingle();
-      setTpl(t as ContratoTemplate);
+      if (c.template_id) {
+        const { data: t } = await supabase
+          .from("contratos_template")
+          .select("*")
+          .eq("id", c.template_id)
+          .maybeSingle();
+        setTpl(t as ContratoTemplate);
+      }
       setLoading(false);
     })();
   }, [token]);
 
-  // Setup canvas drawing
+  // Setup canvas drawing — touch + mouse
   useEffect(() => {
     const cv = canvasRef.current;
-    if (!cv) return;
+    if (!cv || contrato?.status === "assinado") return;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
+    // Resize for crisp drawing
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    cv.width = Math.floor(rect.width * dpr);
+    cv.height = Math.floor(rect.height * dpr);
+    ctx.scale(dpr, dpr);
     ctx.strokeStyle = "#1A1A1A";
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     const pos = (e: PointerEvent) => {
       const r = cv.getBoundingClientRect();
-      return { x: ((e.clientX - r.left) * cv.width) / r.width, y: ((e.clientY - r.top) * cv.height) / r.height };
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
-    const down = (e: PointerEvent) => { drawing.current = true; hasDrawn.current = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const down = (e: PointerEvent) => {
+      e.preventDefault();
+      drawing.current = true; hasDrawn.current = true;
+      const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+      cv.setPointerCapture(e.pointerId);
+    };
     const move = (e: PointerEvent) => { if (!drawing.current) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
     const up = () => { drawing.current = false; };
     cv.addEventListener("pointerdown", down);
     cv.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    return () => { cv.removeEventListener("pointerdown", down); cv.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointerleave", up);
+    return () => {
+      cv.removeEventListener("pointerdown", down);
+      cv.removeEventListener("pointermove", move);
+      cv.removeEventListener("pointerup", up);
+      cv.removeEventListener("pointerleave", up);
+    };
   }, [contrato]);
 
   const limparAssinatura = () => {
     const cv = canvasRef.current; if (!cv) return;
-    cv.getContext("2d")?.clearRect(0, 0, cv.width, cv.height);
+    const ctx = cv.getContext("2d");
+    ctx?.clearRect(0, 0, cv.width, cv.height);
     hasDrawn.current = false;
+  };
+
+  const onSelfie = (f: File | null) => {
+    setSelfieFile(f);
+    setSelfiePreview(f ? URL.createObjectURL(f) : null);
+  };
+  const onDoc = (f: File | null) => {
+    setDocFile(f);
+    setDocPreview(f ? URL.createObjectURL(f) : null);
+  };
+
+  const uploadAnexo = async (file: File, suffix: string): Promise<string | null> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${contrato.id}/${suffix}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("contratos-assinatura").upload(path, file, { upsert: true });
+    if (error) { toast.error("Falha ao enviar " + suffix + ": " + error.message); return null; }
+    const { data } = supabase.storage.from("contratos-assinatura").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const assinar = async () => {
     if (!nome.trim()) return toast.error("Informe seu nome completo");
     if (!aceito) return toast.error("Aceite os termos do contrato");
     if (!hasDrawn.current) return toast.error("Faça sua assinatura no quadro");
+    if (!selfieFile) return toast.error("Anexe a selfie segurando o documento");
+    if (!docFile) return toast.error("Anexe a foto do documento (RG/CNH)");
     setSubmitting(true);
-    const dataUrl = canvasRef.current?.toDataURL("image/png") || "";
-    const { error } = await supabase
-      .from("contratos")
-      .update({
-        status: "assinado",
-        assinado_em: new Date().toISOString(),
-        assinatura_nome: nome,
-        assinatura_cpf: cpf,
-        assinatura_data_url: dataUrl,
-      })
-      .eq("signing_token", token!);
-    setSubmitting(false);
-    if (error) return toast.error(error.message);
-    toast.success("Contrato assinado com sucesso!");
-    const { data: refreshed } = await supabase.from("contratos").select("*").eq("signing_token", token!).maybeSingle();
-    setContrato(refreshed);
+    try {
+      const dataUrl = canvasRef.current?.toDataURL("image/png") || "";
+      const selfieUrl = await uploadAnexo(selfieFile, "selfie");
+      const documentoUrl = await uploadAnexo(docFile, "documento");
+      if (!selfieUrl || !documentoUrl) { setSubmitting(false); return; }
+
+      const { error } = await supabase
+        .from("contratos")
+        .update({
+          status: "assinado",
+          assinado_em: new Date().toISOString(),
+          assinatura_nome: nome,
+          assinatura_cpf: cpf,
+          assinatura_data_url: dataUrl,
+          metodo_assinatura: "digital",
+          selfie_url: selfieUrl,
+          documento_url: documentoUrl,
+        })
+        .eq("signing_token", token!);
+      if (error) throw error;
+      toast.success("Contrato assinado com sucesso!");
+      const { data: refreshed } = await supabase.from("contratos").select("*").eq("signing_token", token!).maybeSingle();
+      setContrato(refreshed);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao assinar");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const baixarPdf = () => {
@@ -132,7 +189,7 @@ export default function ContratoAssinar() {
               <div className="text-[12px] text-muted-foreground">{contrato.conteudo_snapshot?.empresa?.nome}</div>
             </div>
           </div>
-          <Button variant="outline" onClick={baixarPdf}><FileText className="w-4 h-4 mr-1.5" />Visualizar/Imprimir</Button>
+          {tpl && <Button variant="outline" onClick={baixarPdf}><FileText className="w-4 h-4 mr-1.5" />Visualizar/Imprimir</Button>}
         </div>
 
         {assinado ? (
@@ -152,9 +209,11 @@ export default function ContratoAssinar() {
                 <div><span className="text-muted-foreground">Cliente:</span> <b>{contrato.conteudo_snapshot?.cliente?.nome}</b></div>
                 <div><span className="text-muted-foreground">Valor:</span> <b>R$ {Number(contrato.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></div>
               </div>
-              <Button variant="outline" onClick={baixarPdf} className="w-full">
-                <FileText className="w-4 h-4 mr-1.5" /> Ler contrato completo
-              </Button>
+              {tpl && (
+                <Button variant="outline" onClick={baixarPdf} className="w-full">
+                  <FileText className="w-4 h-4 mr-1.5" /> Ler contrato completo
+                </Button>
+              )}
             </div>
 
             <div className="bg-background rounded-xl border p-6 space-y-4">
@@ -171,19 +230,31 @@ export default function ContratoAssinar() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><Pen className="w-3.5 h-3.5" /> Assinatura</Label>
+                <Label className="flex items-center gap-1.5"><Pen className="w-3.5 h-3.5" /> Assinatura *</Label>
                 <div className="border-2 border-dashed border-border rounded-lg bg-muted/20">
                   <canvas
                     ref={canvasRef}
-                    width={800}
-                    height={200}
-                    className="w-full h-[200px] touch-none cursor-crosshair"
+                    className="w-full h-[200px] touch-none cursor-crosshair block"
                   />
                 </div>
                 <div className="flex justify-end">
                   <Button variant="ghost" size="sm" onClick={limparAssinatura}>
                     <Eraser className="w-3.5 h-3.5 mr-1.5" /> Limpar
                   </Button>
+                </div>
+              </div>
+
+              {/* Selfie + documento */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5" /> Selfie segurando o documento *</Label>
+                  <Input type="file" accept="image/*" capture="user" onChange={(e) => onSelfie(e.target.files?.[0] || null)} />
+                  {selfiePreview && <img src={selfiePreview} alt="selfie" className="rounded-lg border max-h-40 object-cover" />}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5"><IdCard className="w-3.5 h-3.5" /> Foto do documento (RG/CNH) *</Label>
+                  <Input type="file" accept="image/*" capture="environment" onChange={(e) => onDoc(e.target.files?.[0] || null)} />
+                  {docPreview && <img src={docPreview} alt="documento" className="rounded-lg border max-h-40 object-cover" />}
                 </div>
               </div>
 
