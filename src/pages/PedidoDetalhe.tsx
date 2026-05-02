@@ -1087,28 +1087,32 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any
 function PipelinesPanel({ pedido }: { pedido: any }) {
   const [crmEstagios, setCrmEstagios] = useState<any[]>([]);
   const [crmEstagioAtual, setCrmEstagioAtual] = useState<any>(null);
+  const [opEstagios, setOpEstagios] = useState<any[]>([]);
+  const [opAtual, setOpAtual] = useState<any>(null);
 
   useEffect(() => {
-    if (!pedido?.orcamento_id) return;
+    if (!pedido) return;
     (async () => {
-      const { data: orc } = await supabase
-        .from("orcamentos")
-        .select("estagio_id")
-        .eq("id", pedido.orcamento_id)
-        .maybeSingle();
-      const { data: ests } = await supabase
-        .from("crm_estagios")
-        .select("id, nome, cor, ordem")
-        .eq("ativo", true)
-        .order("ordem");
-      setCrmEstagios(ests ?? []);
-      if (orc?.estagio_id) setCrmEstagioAtual((ests ?? []).find((e: any) => e.id === orc.estagio_id) ?? null);
+      const [{ data: orc }, { data: crm }, { data: ops }] = await Promise.all([
+        pedido.orcamento_id
+          ? supabase.from("orcamentos").select("estagio_id").eq("id", pedido.orcamento_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        supabase.from("crm_estagios").select("id, nome, cor, ordem").eq("ativo", true).order("ordem"),
+        supabase.from("pipeline_estagios").select("id, nome, cor, ordem").eq("pipeline", "operacional").eq("ativo", true).order("ordem"),
+      ]);
+      setCrmEstagios(crm ?? []);
+      setOpEstagios(ops ?? []);
+      if (orc?.estagio_id) setCrmEstagioAtual((crm ?? []).find((e: any) => e.id === orc.estagio_id) ?? null);
+      if (pedido.estagio_operacional_id) setOpAtual((ops ?? []).find((e: any) => e.id === pedido.estagio_operacional_id) ?? null);
     })();
-  }, [pedido?.orcamento_id]);
+  }, [pedido?.id, pedido?.estagio_operacional_id, pedido?.orcamento_id]);
 
-  // Estágio do workflow operacional (pipeline de produção)
-  const opLabel = WF_STAGES.find(s => s.key === pedido?.workflow_estagio)?.label
-    ?? (pedido?.workflow_estagio ? pedido.workflow_estagio.toUpperCase() : "AGUARDANDO");
+  const moverOp = async (novoId: string) => {
+    const { error } = await supabase.from("pedidos").update({ estagio_operacional_id: novoId }).eq("id", pedido.id);
+    if (error) return toast.error(error.message);
+    toast.success("Estágio operacional atualizado");
+    setOpAtual(opEstagios.find((e: any) => e.id === novoId) ?? null);
+  };
 
   return (
     <section className="surface-card p-5">
@@ -1141,9 +1145,26 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
         <div className="border rounded-lg p-3 bg-muted/20">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Operacional (Produção)</div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
-            <span className="font-semibold text-[14px]">{opLabel}</span>
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: opAtual?.cor || "#94a3b8" }} />
+            <span className="font-semibold text-[14px] truncate">{opAtual?.nome || "Não iniciado"}</span>
+            {opEstagios.length > 0 && (
+              <span className="ml-auto text-[11px] text-muted-foreground">
+                {opAtual ? `${opAtual.ordem}/${opEstagios.length}` : `0/${opEstagios.length}`}
+              </span>
+            )}
           </div>
+          {opEstagios.length > 0 && (
+            <select
+              value={opAtual?.id || ""}
+              onChange={(e) => moverOp(e.target.value)}
+              className="mt-2 w-full text-[12px] border border-border rounded px-2 py-1 bg-background"
+            >
+              <option value="" disabled>Selecione um estágio…</option>
+              {opEstagios.map((e: any) => (
+                <option key={e.id} value={e.id}>{e.ordem}. {e.nome}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
     </section>
