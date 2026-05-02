@@ -1104,7 +1104,7 @@ export default function ComercialNovo() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/30">
-                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={2}>Total</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto ? 2 : 1}>Total</td>
                       <td className="px-2 py-3 text-right text-mono font-semibold">{fmtBrl(subtotalAmbientes)}</td>
                       <td />
                     </tr>
