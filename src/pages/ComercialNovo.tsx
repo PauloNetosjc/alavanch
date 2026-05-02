@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
 import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Cliente = { id: string; nome: string };
 type Parceiro = { id: string; nome: string; percentual_padrao: number };
@@ -427,6 +428,8 @@ function DetalhamentoDialog({
 
 export default function ComercialNovo() {
   const navigate = useNavigate();
+  const { role } = usePermissions();
+  const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -452,6 +455,8 @@ export default function ComercialNovo() {
   const [importing, setImporting] = useState(false);
   const [ambEdit, setAmbEdit] = useState<Ambiente | null>(null);
   const [ambDetail, setAmbDetail] = useState<Ambiente | null>(null);
+  // arquivos importados pendentes de upload (após criação do orçamento)
+  const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
@@ -522,6 +527,9 @@ export default function ComercialNovo() {
 
   const handleFile = async (file: File) => {
     setImporting(true);
+    const ext0 = file.name.toLowerCase().split(".").pop() || "";
+    const origem = ext0 === "txt" ? "promob_import" : ext0 === "xml" ? "xml_import" : (ext0 === "xlsx" || ext0 === "xls") ? "excel_import" : "upload";
+    setArquivosImportados((prev) => [...prev, { file, origem }]);
     try {
       const ext = file.name.toLowerCase().split(".").pop() || "";
       // Caminho 1: TXT/XML do Promob (parser específico)
@@ -701,6 +709,26 @@ export default function ComercialNovo() {
             codigo: it.codigo,
           })),
         );
+      }
+    }
+
+    // Upload de arquivos importados (Promob/XML/Excel) para a Central de Documentos do orçamento
+    if (arquivosImportados.length > 0) {
+      const { data: u } = await supabase.auth.getUser();
+      for (const { file, origem } of arquivosImportados) {
+        const path = `${orc.id}/${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from("orcamento-docs").upload(path, file);
+        if (!upErr) {
+          await supabase.from("orcamento_documentos" as any).insert({
+            orcamento_id: orc.id,
+            nome: file.name,
+            storage_path: path,
+            tamanho: file.size,
+            mime_type: file.type || null,
+            origem,
+            created_by: u.user?.id || null,
+          });
+        }
       }
     }
 
@@ -971,20 +999,22 @@ export default function ComercialNovo() {
                       <Label>Descrição</Label>
                       <Input value={mDescricao} onChange={(e) => setMDescricao(e.target.value)} placeholder="Opcional" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className={podeVerCusto ? "grid grid-cols-2 gap-3" : ""}>
                       <div>
                         <Label>Prazo (dias úteis)</Label>
                         <Input type="number" value={mPrazo} onChange={(e) => setMPrazo(e.target.value)} placeholder="Ex: 20 (0 ou vazio)" />
                       </div>
-                      <div>
-                        <Label>Custo de Aquisição</Label>
-                        <Input
-                          type="number" step="0.01"
-                          value={mCusto}
-                          onChange={(e) => setMCusto(e.target.value)}
-                          placeholder="R$ 0,00"
-                        />
-                      </div>
+                      {podeVerCusto && (
+                        <div>
+                          <Label>Custo de Aquisição</Label>
+                          <Input
+                            type="number" step="0.01"
+                            value={mCusto}
+                            onChange={(e) => setMCusto(e.target.value)}
+                            placeholder="R$ 0,00"
+                          />
+                        </div>
+                      )}
                     </div>
                     <Button onClick={addManualAmbiente} className="w-full">
                       <Plus className="w-4 h-4 mr-1.5" /> Adicionar
@@ -1005,7 +1035,7 @@ export default function ComercialNovo() {
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
-                      <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>
+                      {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
@@ -1021,14 +1051,16 @@ export default function ComercialNovo() {
                             </div>
                           )}
                         </td>
-                        <td className="px-2 py-3 text-center">
-                          <Input
-                            type="number" step="0.01"
-                            value={a.markup}
-                            onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
-                            className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
-                          />
-                        </td>
+                        {podeVerCusto && (
+                          <td className="px-2 py-3 text-center">
+                            <Input
+                              type="number" step="0.01"
+                              value={a.markup}
+                              onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
+                              className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
+                            />
+                          </td>
+                        )}
                         <td className="px-2 py-3 text-right">
                           <Input
                             type="number" step="0.01"
@@ -1036,9 +1068,11 @@ export default function ComercialNovo() {
                             onChange={(e) => onChangePreco(a, Number(e.target.value) || 0)}
                             className="h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300"
                           />
-                          <div className="text-[10px] text-muted-foreground mt-1 text-right">
-                            Custo: {fmtBrl(a.custo_aquisicao)}
-                          </div>
+                          {podeVerCusto && (
+                            <div className="text-[10px] text-muted-foreground mt-1 text-right">
+                              Custo: {fmtBrl(a.custo_aquisicao)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
@@ -1070,7 +1104,7 @@ export default function ComercialNovo() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/30">
-                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={2}>Total</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto ? 2 : 1}>Total</td>
                       <td className="px-2 py-3 text-right text-mono font-semibold">{fmtBrl(subtotalAmbientes)}</td>
                       <td />
                     </tr>

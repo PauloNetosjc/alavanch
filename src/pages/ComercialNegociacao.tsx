@@ -30,6 +30,7 @@ type Ambiente = {
   descricao: string | null;
   preco_sugerido: number | null;
   custo_aquisicao?: number | null;
+  negociavel?: boolean;
 };
 type Item = {
   id: string;
@@ -441,7 +442,7 @@ export default function ComercialNegociacao() {
           .single(),
         supabase
           .from("ambientes")
-          .select("id, nome, descricao, preco_sugerido, custo_aquisicao")
+          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel")
           .eq("orcamento_id", id)
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome").eq("ativo", true).order("nome"),
@@ -498,14 +499,22 @@ export default function ComercialNegociacao() {
   }, [id]);
 
   /* --------------------------- derived --------------------------- */
-  const subtotalAmbientes = useMemo(
-    () => ambientes.reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+  const subtotalNegociavel = useMemo(
+    () => ambientes.filter((a) => a.negociavel !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
     [ambientes],
   );
+  const subtotalFixo = useMemo(
+    () => ambientes.filter((a) => a.negociavel === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientes],
+  );
+  const subtotalAmbientes = subtotalNegociavel + subtotalFixo;
   const parceiroPerc = Number(orc?.parceiro_perc) || 0;
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
-  const totalProposta = Math.max(0, valorInicial - descValorAplicado);
+  // Desconto incide apenas sobre a parcela negociável (+ proporção do parceiro)
+  const baseNegociavelComParceiro = subtotalNegociavel + subtotalNegociavel * (parceiroPerc / 100);
+  const descValorEfetivo = Math.min(descValorAplicado, baseNegociavelComParceiro);
+  const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
@@ -884,10 +893,20 @@ export default function ComercialNegociacao() {
               return (
                 <div key={a.id} className="border-2 border-emerald-100 rounded-lg px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check className="w-3.5 h-3.5 text-emerald-700" />
-                      </div>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <label className="flex items-center gap-1.5 mt-0.5 cursor-pointer" title="Entra no cálculo de desconto">
+                          <input
+                            type="checkbox"
+                            checked={a.negociavel !== false}
+                            onChange={async (e) => {
+                              const v = e.target.checked;
+                              setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
+                              await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
+                            }}
+                            className="w-4 h-4 accent-emerald-600"
+                          />
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Negoc.</span>
+                        </label>
                       <div className="min-w-0">
                         <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
                         {a.descricao && (

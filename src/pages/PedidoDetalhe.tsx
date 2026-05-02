@@ -84,7 +84,23 @@ export default function PedidoDetalhe() {
     const { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
     setPastas(pst || []);
     const { data: dcs } = await supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false });
-    setDocs(dcs || []);
+    // Também traz documentos anexados na fase de orçamento (Promob, XML, Excel etc.)
+    let docsCombinados: any[] = dcs || [];
+    if (ped.orcamento_id) {
+      const { data: orcDocs } = await supabase
+        .from("orcamento_documentos" as any)
+        .select("*")
+        .eq("orcamento_id", ped.orcamento_id)
+        .order("created_at", { ascending: false });
+      const mapped = (orcDocs || []).map((d: any) => ({
+        ...d,
+        pasta_id: null,
+        _bucket: "orcamento-docs",
+        nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
+      }));
+      docsCombinados = [...mapped, ...docsCombinados];
+    }
+    setDocs(docsCombinados);
     const { data: ch } = await supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at");
     setChat(ch || []);
     const { data: rv } = await supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at");
@@ -604,7 +620,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
               )}
-              <a href={supabase.storage.from("pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+              <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
               <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
