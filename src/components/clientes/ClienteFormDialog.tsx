@@ -59,6 +59,9 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
   const [vendedores, setVendedores] = useState<{ user_id: string; nome_completo: string }[]>([]);
   const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
   const [parceiros, setParceiros] = useState<{ id: string; nome: string }[]>([]);
+  const [tab, setTab] = useState("dados");
+  const [agendas, setAgendas] = useState<any[]>([]);
+  const [pedidos, setPedidos] = useState<any[]>([]);
 
   useEffect(() => {
     if (!open) return;
