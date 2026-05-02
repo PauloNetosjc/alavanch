@@ -49,7 +49,7 @@ function fmtKey(d: Date)       { return d.toISOString().slice(0, 10); }
 
 export default function Agenda() {
   const { user, role } = useAuth();
-  const { lojas, selectedLojaId } = useLoja();
+  const { lojas } = useLoja();
   const isAdminOuDiretor = role === "admin" || role === "diretor";
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
