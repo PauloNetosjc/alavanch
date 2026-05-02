@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
+import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 
 type Cliente = { id: string; nome: string };
