@@ -32,10 +32,10 @@ const TIPO_LABEL: Record<AgendaTipo, string> = {
 
 // Tipos que exigem vínculo com PEDIDO existente do cliente
 const TIPOS_PEDIDO: AgendaTipo[] = ["retorno", "revisao_final", "medicao_tecnica", "entrega", "montagem"];
-// Tipo que exige vínculo com ORÇAMENTO do cliente
-const TIPOS_ORCAMENTO: AgendaTipo[] = ["medicao_orcamento"];
+// Medição de orçamento ainda não possui orçamento criado — não exige vínculo
+const TIPOS_ORCAMENTO: AgendaTipo[] = [];
 // Tipos que exigem cliente vinculado
-const TIPOS_COM_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", ...TIPOS_PEDIDO, ...TIPOS_ORCAMENTO];
+const TIPOS_COM_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", "medicao_orcamento", ...TIPOS_PEDIDO, ...TIPOS_ORCAMENTO];
 // Tipos que exigem endereço
 const TIPOS_COM_ENDERECO: AgendaTipo[] = ["medicao_tecnica", "revisao_final", "entrega", "montagem", "medicao_orcamento"];
 // Tipos que permitem cadastrar um cliente novo no próprio diálogo
