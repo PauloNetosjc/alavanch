@@ -30,6 +30,7 @@ type Ambiente = {
   descricao: string | null;
   preco_sugerido: number | null;
   custo_aquisicao?: number | null;
+  negociavel?: boolean;
 };
 type Item = {
   id: string;
