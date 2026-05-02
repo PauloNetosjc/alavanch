@@ -527,6 +527,9 @@ export default function ComercialNovo() {
 
   const handleFile = async (file: File) => {
     setImporting(true);
+    const ext0 = file.name.toLowerCase().split(".").pop() || "";
+    const origem = ext0 === "txt" ? "promob_import" : ext0 === "xml" ? "xml_import" : (ext0 === "xlsx" || ext0 === "xls") ? "excel_import" : "upload";
+    setArquivosImportados((prev) => [...prev, { file, origem }]);
     try {
       const ext = file.name.toLowerCase().split(".").pop() || "";
       // Caminho 1: TXT/XML do Promob (parser específico)
