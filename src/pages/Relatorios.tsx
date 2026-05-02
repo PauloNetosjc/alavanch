@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3 } from "lucide-react";
+import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3, CalendarDays } from "lucide-react";
 import { useLoja } from "@/contexts/LojaContext";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -17,6 +17,7 @@ export default function Relatorios() {
   const [orcs, setOrcs] = useState<any[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [parceiros, setParceiros] = useState<any[]>([]);
+  const [agendas, setAgendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,19 +31,22 @@ export default function Relatorios() {
       let qOrc = supabase.from("orcamentos").select("id, codigo, total, status, created_at, parceiro_id, cliente_id, loja_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido)");
       let qPed = supabase.from("pedidos").select("id, codigo, valor_total, status, created_at, cliente_id, loja_id");
       let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, valor_calculado, loja_id, parceiros(nome)");
+      let qAge = supabase.from("agenda_eventos" as any).select("id, tipo, data, status, loja_id");
 
       if (sinceISO) {
         qOrc = qOrc.gte("created_at", sinceISO);
         qPed = qPed.gte("created_at", sinceISO);
+        qAge = qAge.gte("data", sinceISO.slice(0, 10));
       }
       if (selectedLojaId) {
         qOrc = qOrc.eq("loja_id", selectedLojaId);
         qPed = qPed.eq("loja_id", selectedLojaId);
         qPar = qPar.eq("loja_id", selectedLojaId);
+        qAge = qAge.eq("loja_id", selectedLojaId);
       }
 
-      const [{ data: o }, { data: p }, { data: pc }] = await Promise.all([qOrc, qPed, qPar]);
-      setOrcs(o || []); setPedidos(p || []); setParceiros((pc as any[]) || []);
+      const [{ data: o }, { data: p }, { data: pc }, { data: ag }] = await Promise.all([qOrc, qPed, qPar, qAge]);
+      setOrcs(o || []); setPedidos(p || []); setParceiros((pc as any[]) || []); setAgendas((ag as any[]) || []);
       setLoading(false);
     })();
   }, [periodo, selectedLojaId]);
@@ -96,6 +100,31 @@ export default function Relatorios() {
   }, [orcs]);
 
   const maxTopParc = topParceiros[0]?.total || 1;
+
+  const TIPO_AGENDA_LABEL: Record<string, string> = {
+    apresentacao: "Apresentações",
+    retorno: "Retornos",
+    medicao_orcamento: "Medições de Orçamento",
+    revisao_final: "Revisões",
+    medicao_tecnica: "Medições Técnicas",
+    entrega: "Entregas",
+    montagem: "Montagens",
+  };
+
+  const agendasPorTipo = useMemo(() => {
+    const map = new Map<string, number>();
+    agendas.forEach((a) => {
+      const k = a.tipo || "—";
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+    return Object.keys(TIPO_AGENDA_LABEL)
+      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k], total: map.get(k) || 0 }))
+      .sort((a, b) => b.total - a.total);
+  }, [agendas]);
+
+  const totalAgendas = agendas.length;
+  const maxAgenda = agendasPorTipo[0]?.total || 1;
+
 
   return (
     <div className="space-y-6">
@@ -187,6 +216,37 @@ export default function Relatorios() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="surface-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded bg-primary/15 flex items-center justify-center">
+              <CalendarDays className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="text-[14px] font-medium">Agendamentos por Tipo</div>
+          </div>
+          <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-primary/15 text-primary">
+            {totalAgendas} no período
+          </span>
+        </div>
+        {totalAgendas === 0 ? (
+          <div className="text-[12px] text-muted-foreground text-center py-6">Nenhum agendamento no período.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+            {agendasPorTipo.map((a) => (
+              <div key={a.tipo}>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-medium">{a.label}</span>
+                  <span className="text-[11px] text-primary font-medium whitespace-nowrap">{a.total}</span>
+                </div>
+                <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${(a.total / maxAgenda) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="surface-card p-5">
