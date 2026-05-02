@@ -1050,31 +1050,54 @@ export default function ComercialNegociacao() {
           {/* lista de pagamentos */}
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
-              {pagamentos.map((p, idx) => (
-                <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
-                    {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
-                      <Banknote className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <DollarSign className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold uppercase">
-                      {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
+              {pagamentos.map((p, idx) => {
+                const det = ensureDetalhe(p);
+                return (
+                  <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
+                        {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
+                          <Banknote className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <DollarSign className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold uppercase">
+                          {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
+                        </div>
+                        {p.data_vencimento && (
+                          <div className="text-[12px] text-muted-foreground flex items-center gap-1">
+                            <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                      </Button>
                     </div>
-                    {p.data_vencimento && (
-                      <div className="text-[12px] text-muted-foreground flex items-center gap-1">
-                        <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
+                    {p.parcelas > 1 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-100">
+                        <div className="text-[11px] text-muted-foreground mb-2">Editar parcelas (alterar uma redistribui o saldo nas seguintes)</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {det.map((v, i) => (
+                            <div key={i} className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">{i + 1}/{p.parcelas}</span>
+                              <Input
+                                type="number" step="0.01"
+                                value={v}
+                                onChange={(e) => editarParcela(idx, i, Number(e.target.value) || 0)}
+                                className="pl-10 text-right text-[12px] h-8"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
-                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
