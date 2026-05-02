@@ -102,28 +102,35 @@ export default function Relatorios() {
   const maxTopParc = topParceiros[0]?.total || 1;
 
   const TIPO_AGENDA_LABEL: Record<string, string> = {
-    apresentacao: "Apresentações",
+    apresentacao_comercial: "Apresentações",
     retorno: "Retornos",
     medicao_orcamento: "Medições de Orçamento",
     revisao_final: "Revisões",
     medicao_tecnica: "Medições Técnicas",
     entrega: "Entregas",
     montagem: "Montagens",
+    tarefa_interna: "Tarefas Internas",
   };
+
+  const [tiposSelecionados, setTiposSelecionados] = useState<string[]>(Object.keys(TIPO_AGENDA_LABEL));
 
   const agendasPorTipo = useMemo(() => {
     const map = new Map<string, number>();
     agendas.forEach((a) => {
       const k = a.tipo || "—";
+      if (!tiposSelecionados.includes(k)) return;
       map.set(k, (map.get(k) || 0) + 1);
     });
-    return Object.keys(TIPO_AGENDA_LABEL)
-      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k], total: map.get(k) || 0 }))
+    return tiposSelecionados
+      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k] || k, total: map.get(k) || 0 }))
       .sort((a, b) => b.total - a.total);
-  }, [agendas]);
+  }, [agendas, tiposSelecionados]);
 
-  const totalAgendas = agendas.length;
+  const totalAgendas = agendasPorTipo.reduce((s, a) => s + a.total, 0);
   const maxAgenda = agendasPorTipo[0]?.total || 1;
+
+  const toggleTipo = (k: string) =>
+    setTiposSelecionados((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
 
 
   return (
