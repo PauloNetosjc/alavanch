@@ -47,8 +47,9 @@ type Pagamento = {
   valor: number;
   parcelas: number;
   data_vencimento: string | null;
+  parcelas_detalhe?: number[] | null;
 };
-type Metodo = { id: string; nome: string };
+type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number };
 type Regra = { role: string; desconto_max_perc: number };
 
 /* ========================== SENHA ADMIN DIALOG ========================== */
