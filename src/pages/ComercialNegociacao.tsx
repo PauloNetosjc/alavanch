@@ -442,7 +442,7 @@ export default function ComercialNegociacao() {
           .single(),
         supabase
           .from("ambientes")
-          .select("id, nome, descricao, preco_sugerido, custo_aquisicao")
+          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel")
           .eq("orcamento_id", id)
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome").eq("ativo", true).order("nome"),
