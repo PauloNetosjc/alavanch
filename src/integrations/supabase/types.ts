@@ -292,6 +292,53 @@ export type Database = {
           },
         ]
       }
+      cartoes_credito: {
+        Row: {
+          ativo: boolean | null
+          bandeira: string | null
+          conta_id: string | null
+          created_at: string
+          dia_fechamento: number | null
+          dia_vencimento: number | null
+          id: string
+          loja_id: string | null
+          nome: string
+          ultimos_digitos: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bandeira?: string | null
+          conta_id?: string | null
+          created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
+          id?: string
+          loja_id?: string | null
+          nome: string
+          ultimos_digitos?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bandeira?: string | null
+          conta_id?: string | null
+          created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          ultimos_digitos?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartoes_credito_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           created_at: string
@@ -495,30 +542,39 @@ export type Database = {
           ativo: boolean | null
           banco: string | null
           conta: string | null
+          cor: string | null
           created_at: string
           id: string
+          loja_id: string | null
           nome: string
           saldo_inicial: number | null
+          tipo: string | null
         }
         Insert: {
           agencia?: string | null
           ativo?: boolean | null
           banco?: string | null
           conta?: string | null
+          cor?: string | null
           created_at?: string
           id?: string
+          loja_id?: string | null
           nome: string
           saldo_inicial?: number | null
+          tipo?: string | null
         }
         Update: {
           agencia?: string | null
           ativo?: boolean | null
           banco?: string | null
           conta?: string | null
+          cor?: string | null
           created_at?: string
           id?: string
+          loja_id?: string | null
           nome?: string
           saldo_inicial?: number | null
+          tipo?: string | null
         }
         Relationships: []
       }
@@ -1180,30 +1236,239 @@ export type Database = {
           },
         ]
       }
+      parceiro_comissoes: {
+        Row: {
+          cliente_id: string | null
+          contrato_numero: string | null
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          lancamento_id: string | null
+          loja_id: string | null
+          observacoes: string | null
+          orcamento_id: string | null
+          parceiro_id: string
+          pedido_id: string | null
+          percentual: number | null
+          status: string
+          updated_at: string
+          valor_base: number | null
+          valor_calculado: number
+          valor_corrigido: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          contrato_numero?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          lancamento_id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          orcamento_id?: string | null
+          parceiro_id: string
+          pedido_id?: string | null
+          percentual?: number | null
+          status?: string
+          updated_at?: string
+          valor_base?: number | null
+          valor_calculado?: number
+          valor_corrigido?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          contrato_numero?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          lancamento_id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          orcamento_id?: string | null
+          parceiro_id?: string
+          pedido_id?: string | null
+          percentual?: number | null
+          status?: string
+          updated_at?: string
+          valor_base?: number | null
+          valor_calculado?: number
+          valor_corrigido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_comissoes_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_comissoes_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_comissoes_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiro_comprovantes: {
+        Row: {
+          comissao_id: string | null
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome: string
+          parceiro_id: string | null
+          storage_path: string
+          tamanho: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          comissao_id?: string | null
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome: string
+          parceiro_id?: string | null
+          storage_path: string
+          tamanho?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          comissao_id?: string | null
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          parceiro_id?: string | null
+          storage_path?: string
+          tamanho?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_comprovantes_comissao_id_fkey"
+            columns: ["comissao_id"]
+            isOneToOne: false
+            referencedRelation: "parceiro_comissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_comprovantes_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiro_pedidos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          origem: string | null
+          parceiro_id: string
+          pedido_id: string | null
+          status: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          origem?: string | null
+          parceiro_id: string
+          pedido_id?: string | null
+          status?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          origem?: string | null
+          parceiro_id?: string
+          pedido_id?: string | null
+          status?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_pedidos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiros: {
         Row: {
           ativo: boolean | null
+          cpf_cnpj: string | null
           created_at: string
+          email: string | null
+          endereco: string | null
           id: string
           loja_id: string | null
           nome: string
+          observacoes: string | null
           percentual_padrao: number | null
+          telefone: string | null
+          tipo: string
         }
         Insert: {
           ativo?: boolean | null
+          cpf_cnpj?: string | null
           created_at?: string
+          email?: string | null
+          endereco?: string | null
           id?: string
           loja_id?: string | null
           nome: string
+          observacoes?: string | null
           percentual_padrao?: number | null
+          telefone?: string | null
+          tipo?: string
         }
         Update: {
           ativo?: boolean | null
+          cpf_cnpj?: string | null
           created_at?: string
+          email?: string | null
+          endereco?: string | null
           id?: string
           loja_id?: string | null
           nome?: string
+          observacoes?: string | null
           percentual_padrao?: number | null
+          telefone?: string | null
+          tipo?: string
         }
         Relationships: [
           {

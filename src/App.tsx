@@ -28,6 +28,11 @@ import Relatorios from "@/pages/Relatorios";
 import ContratoAssinar from "@/pages/ContratoAssinar";
 import ContratoVisualizar from "@/pages/ContratoVisualizar";
 import PedidoDetalhe from "@/pages/PedidoDetalhe";
+import ContasCorrentes from "@/pages/ContasCorrentes";
+import ExtratoConta from "@/pages/ExtratoConta";
+import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
+import AuditoriaParceiros from "@/pages/AuditoriaParceiros";
+import Parceiros from "@/pages/Parceiros";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +87,11 @@ const App = () => (
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
+              <Route path="/contas" element={<ContasCorrentes />} />
+              <Route path="/contas/:id/extrato" element={<ExtratoConta />} />
+              <Route path="/categorias-financeiras" element={<CategoriasFinanceiras />} />
+              <Route path="/auditoria-parceiros" element={<AuditoriaParceiros />} />
+              <Route path="/parceiros" element={<Parceiros />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
