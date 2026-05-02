@@ -999,27 +999,10 @@ export default function ComercialNegociacao() {
                             />
                             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
                           </label>
-                          {/* Só mostra o checkbox de desconto se o ambiente foi marcado como elegível
-                              a desconto na tela de Ambientes (ComercialNovo). Se foi explicitamente
-                              definido como `false` lá, o item NÃO recebe desconto e o controle some. */}
-                          {a.aplicar_desconto !== false && (
-                            <label className={`flex items-center gap-1.5 ${incluido ? "cursor-pointer" : "opacity-40 cursor-not-allowed"}`} title="Aplicar desconto sobre este ambiente">
-                              <input
-                                type="checkbox"
-                                checked={recebeDesconto}
-                                disabled={!incluido}
-                                onChange={async (e) => {
-                                  const v = e.target.checked;
-                                  setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, aplicar_desconto: v } : x));
-                                  await supabase.from("ambientes").update({ aplicar_desconto: v } as any).eq("id", a.id);
-                                }}
-                                className="w-4 h-4 accent-blue-600"
-                              />
-                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Desconto</span>
-                            </label>
-                          )}
+                          {/* Indicador read-only: a elegibilidade a desconto é definida na tela
+                              de Ambientes (Orçamento). Aqui apenas mostramos o status. */}
                           {a.aplicar_desconto === false && (
-                            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium" title="Definido na tela de Ambientes">sem desconto</span>
+                            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium" title="Definido na tela de Orçamento">sem desconto</span>
                           )}
                         </div>
                       <div className="min-w-0">
