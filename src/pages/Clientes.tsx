@@ -164,7 +164,7 @@ export default function Clientes() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <KpiTile label="Total de Clientes" value={totalClientes} icon={Users} variant="blue" />
         <KpiTile label="Clientes Ativos" value={clientesAtivos} icon={UserCheck} variant="green" />
         <KpiTile label="Orçamentos Abertos" value={orcamentosAbertos} icon={FileText} variant="amber" />
@@ -220,92 +220,145 @@ export default function Clientes() {
             }
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Data de Cadastro</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile cards */}
+            <ul className="md:hidden divide-y">
               {filtered.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0"
-                        style={{ background: "#EAF2FB", color: "#3B6FB0" }}
-                      >
-                        {initials(c.nome)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-foreground truncate">
-                          {c.nome}
-                        </div>
-                        <div className="text-mono mt-0.5">{c.cpf_cnpj ?? "—"}</div>
-                      </div>
+                <li key={c.id} className="p-4 active:bg-muted/40" onClick={() => openEdit(c)}>
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-medium shrink-0"
+                      style={{ background: "#EAF2FB", color: "#3B6FB0" }}
+                    >
+                      {initials(c.nome)}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-0.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[14px] font-medium truncate">{c.nome}</div>
+                        <span
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                          style={{
+                            background: c.ativo === false ? "hsl(var(--status-neutral-bg))" : "hsl(var(--status-success-bg))",
+                            color: c.ativo === false ? "hsl(var(--status-neutral-fg))" : "hsl(var(--status-success-fg))",
+                          }}
+                        >
+                          {c.ativo === false ? "Inativo" : "Ativo"}
+                        </span>
+                      </div>
+                      <div className="text-mono text-[11px] mt-0.5">{c.cpf_cnpj ?? "—"}</div>
                       {c.telefone && (
-                        <div className="flex items-center gap-1.5 text-[12px] text-foreground">
+                        <div className="flex items-center gap-1.5 text-[12px] text-foreground mt-1">
                           <Phone className="w-3 h-3 text-muted-foreground" />
                           <span className="text-mono">{c.telefone}</span>
                         </div>
                       )}
                       {c.email && (
-                        <div className="text-[11px] text-muted-foreground truncate max-w-[240px]">
-                          {c.email}
-                        </div>
+                        <div className="text-[11px] text-muted-foreground truncate">{c.email}</div>
                       )}
-                      {!c.telefone && !c.email && <span className="text-[11px] text-muted-foreground">—</span>}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-[12px] text-foreground">{fmtDate(c.created_at as unknown as string)}</div>
-                    <div className="mt-0.5">
-                      <span
-                        className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                          background: c.ativo === false ? "hsl(var(--status-neutral-bg))" : "hsl(var(--status-success-bg))",
-                          color: c.ativo === false ? "hsl(var(--status-neutral-fg))" : "hsl(var(--status-success-fg))",
-                        }}
-                      >
-                        {c.ativo === false ? "Inativo" : "Ativo"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(c);
-                        }}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          remove(c);
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                  <div className="mt-3 flex justify-end gap-1">
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(c); }}>
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); remove(c); }}>
+                      <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </li>
               ))}
-            </TableBody>
-          </Table>
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Data de Cadastro</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((c) => (
+                    <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0"
+                            style={{ background: "#EAF2FB", color: "#3B6FB0" }}
+                          >
+                            {initials(c.nome)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-medium text-foreground truncate">
+                              {c.nome}
+                            </div>
+                            <div className="text-mono mt-0.5">{c.cpf_cnpj ?? "—"}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          {c.telefone && (
+                            <div className="flex items-center gap-1.5 text-[12px] text-foreground">
+                              <Phone className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-mono">{c.telefone}</span>
+                            </div>
+                          )}
+                          {c.email && (
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[240px]">
+                              {c.email}
+                            </div>
+                          )}
+                          {!c.telefone && !c.email && <span className="text-[11px] text-muted-foreground">—</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-[12px] text-foreground">{fmtDate(c.created_at as unknown as string)}</div>
+                        <div className="mt-0.5">
+                          <span
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                            style={{
+                              background: c.ativo === false ? "hsl(var(--status-neutral-bg))" : "hsl(var(--status-success-bg))",
+                              color: c.ativo === false ? "hsl(var(--status-neutral-fg))" : "hsl(var(--status-success-fg))",
+                            }}
+                          >
+                            {c.ativo === false ? "Inativo" : "Ativo"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(c);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              remove(c);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
