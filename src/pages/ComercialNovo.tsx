@@ -1035,7 +1035,7 @@ export default function ComercialNovo() {
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
-                      <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>
+                      {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
@@ -1051,14 +1051,16 @@ export default function ComercialNovo() {
                             </div>
                           )}
                         </td>
-                        <td className="px-2 py-3 text-center">
-                          <Input
-                            type="number" step="0.01"
-                            value={a.markup}
-                            onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
-                            className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
-                          />
-                        </td>
+                        {podeVerCusto && (
+                          <td className="px-2 py-3 text-center">
+                            <Input
+                              type="number" step="0.01"
+                              value={a.markup}
+                              onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
+                              className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
+                            />
+                          </td>
+                        )}
                         <td className="px-2 py-3 text-right">
                           <Input
                             type="number" step="0.01"
@@ -1066,9 +1068,11 @@ export default function ComercialNovo() {
                             onChange={(e) => onChangePreco(a, Number(e.target.value) || 0)}
                             className="h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300"
                           />
-                          <div className="text-[10px] text-muted-foreground mt-1 text-right">
-                            Custo: {fmtBrl(a.custo_aquisicao)}
-                          </div>
+                          {podeVerCusto && (
+                            <div className="text-[10px] text-muted-foreground mt-1 text-right">
+                              Custo: {fmtBrl(a.custo_aquisicao)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
