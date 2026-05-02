@@ -18,13 +18,14 @@ import {
   ClipboardCheck,
   Building2,
   CalendarDays,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
 import { usePermissions } from "@/hooks/usePermissions";
 
-type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string };
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[] };
 type Section = { label: string; items: Item[] };
 
 const sections: Section[] = [
