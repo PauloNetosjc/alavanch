@@ -143,13 +143,13 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   // Em mudança de tipo, reseta cliente novo apenas para apresentação (default novo)
   useEffect(() => {
     if (!open) return;
-    setNovoCliente(tipo === "apresentacao_comercial");
+    setNovoCliente(TIPOS_NOVO_CLIENTE.includes(tipo));
     setPedidoSelId(""); setOrcamentoSelId("");
   }, [tipo, open]);
 
   // busca incremental de clientes
   useEffect(() => {
-    if (!open || !exigeCliente || novoCliente || clienteBusca.length < 2) {
+    if (!open || !exigeCliente || (permiteNovoCliente && novoCliente) || clienteBusca.length < 2) {
       setClientesEnc([]); return;
     }
     let active = true;
