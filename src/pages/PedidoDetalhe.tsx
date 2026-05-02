@@ -282,6 +282,7 @@ export default function PedidoDetalhe() {
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
+      <ItensAvulsosManager pedidoId={pedido.id} />
 
       {/* IMPORTAR REVISÃO PROMOB */}
       <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
