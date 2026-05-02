@@ -3098,6 +3098,8 @@ export type Database = {
         | "assistencia_tecnica"
         | "tarefa_interna"
         | "apresentacao_comercial"
+        | "retorno"
+        | "medicao_orcamento"
       app_role:
         | "admin"
         | "vendedor"
@@ -3251,6 +3253,8 @@ export const Constants = {
         "assistencia_tecnica",
         "tarefa_interna",
         "apresentacao_comercial",
+        "retorno",
+        "medicao_orcamento",
       ],
       app_role: [
         "admin",
