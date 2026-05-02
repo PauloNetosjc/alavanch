@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
+import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
