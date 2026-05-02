@@ -110,6 +110,13 @@ export default function PedidoDetalhe() {
     setRevisoes(rv || []);
     const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
     setUsuarios(prof || []);
+    // Pedido pai (se este for adendo) e adendos filhos
+    if (ped.pedido_pai_id) {
+      const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
+      setPedidoPai(pai);
+    } else { setPedidoPai(null); }
+    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", id as string).order("created_at");
+    setAdendos(filhos || []);
     setLoading(false);
   };
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
