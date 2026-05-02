@@ -1,163 +1,242 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
+import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3 } from "lucide-react";
+import { useLoja } from "@/contexts/LojaContext";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
-const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#64748b"];
+type Periodo = "mes" | "ano" | "tudo" | "personalizado";
 
 export default function Relatorios() {
-  const [periodo, setPeriodo] = useState<"30" | "90" | "365">("90");
+  const { selectedLojaId } = useLoja();
+  const [periodo, setPeriodo] = useState<Periodo>("ano");
   const [orcs, setOrcs] = useState<any[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
-  const [ocorr, setOcorr] = useState<any[]>([]);
+  const [parceiros, setParceiros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const since = new Date();
-      since.setDate(since.getDate() - parseInt(periodo));
-      const sinceISO = since.toISOString();
+      let sinceISO: string | null = null;
+      const now = new Date();
+      if (periodo === "mes") sinceISO = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      else if (periodo === "ano") sinceISO = new Date(now.getFullYear(), 0, 1).toISOString();
 
-      const [{ data: o }, { data: p }, { data: oc }] = await Promise.all([
-        supabase.from("orcamentos").select("total, status, created_at").gte("created_at", sinceISO),
-        supabase.from("pedidos").select("valor_total, status, created_at").gte("created_at", sinceISO),
-        supabase.from("ocorrencias").select("tipo, status, created_at").gte("created_at", sinceISO),
-      ]);
-      setOrcs(o || []); setPedidos(p || []); setOcorr(oc || []);
+      let qOrc = supabase.from("orcamentos").select("id, codigo, total, status, created_at, parceiro_id, cliente_id, loja_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido)");
+      let qPed = supabase.from("pedidos").select("id, codigo, valor_total, status, created_at, cliente_id, loja_id");
+      let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, valor_calculado, loja_id, parceiros(nome)");
+
+      if (sinceISO) {
+        qOrc = qOrc.gte("created_at", sinceISO);
+        qPed = qPed.gte("created_at", sinceISO);
+      }
+      if (selectedLojaId) {
+        qOrc = qOrc.eq("loja_id", selectedLojaId);
+        qPed = qPed.eq("loja_id", selectedLojaId);
+        qPar = qPar.eq("loja_id", selectedLojaId);
+      }
+
+      const [{ data: o }, { data: p }, { data: pc }] = await Promise.all([qOrc, qPed, qPar]);
+      setOrcs(o || []); setPedidos(p || []); setParceiros((pc as any[]) || []);
       setLoading(false);
     })();
-  }, [periodo]);
+  }, [periodo, selectedLojaId]);
 
   const kpi = useMemo(() => {
-    const tot = orcs.reduce((s, o) => s + Number(o.total || 0), 0);
-    const aprov = orcs.filter((o) => o.status === "aprovado" || o.status === "fechado");
-    const totAprov = aprov.reduce((s, o) => s + Number(o.total || 0), 0);
-    const conv = orcs.length ? (aprov.length / orcs.length) * 100 : 0;
-    const ticket = aprov.length ? totAprov / aprov.length : 0;
-    return { tot, totAprov, conv, ticket, qtd: orcs.length };
+    const fechados = orcs.filter((o) => ["aprovado", "fechado", "convertido", "confirmado"].includes(o.status));
+    const faturamento = fechados.reduce((s, o) => s + Number(o.total || 0), 0);
+    const cancelados = orcs.filter((o) => o.status === "cancelado").length;
+    const conv = orcs.length ? (fechados.length / orcs.length) * 100 : 0;
+    const ticket = fechados.length ? faturamento / fechados.length : 0;
+    // markup: soma preco_sugerido / soma custo total dos ambientes
+    let totalPreco = 0, totalCusto = 0;
+    fechados.forEach((o) => (o.ambientes || []).forEach((a: any) => {
+      totalPreco += Number(a.preco_sugerido || 0);
+      totalCusto += Number(a.custo_loja || a.custo_fabrica || a.custo_aquisicao || 0);
+    }));
+    const markup = totalCusto > 0 ? ((totalPreco - totalCusto) / totalCusto) * 100 : 0;
+    return { faturamento, qtd: fechados.length, ticket, conv, cancelados, markup };
   }, [orcs]);
 
-  // série diária
-  const serie = useMemo(() => {
-    const map = new Map<string, number>();
-    orcs.forEach((o) => {
-      const d = new Date(o.created_at).toISOString().slice(0, 10);
-      map.set(d, (map.get(d) || 0) + Number(o.total || 0));
+  const evolucao = useMemo(() => {
+    const map = new Map<number, number>();
+    const ano = new Date().getFullYear();
+    for (let i = 0; i < 12; i++) map.set(i, 0);
+    orcs.filter((o) => ["aprovado","fechado","convertido","confirmado"].includes(o.status)).forEach((o) => {
+      const d = new Date(o.created_at);
+      if (d.getFullYear() === ano) {
+        map.set(d.getMonth(), (map.get(d.getMonth()) || 0) + Number(o.total || 0));
+      }
     });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([data, valor]) => ({ data: data.slice(5), valor }));
+    return Array.from(map.entries()).map(([m, v]) => ({ mes: meses[m], valor: v }));
   }, [orcs]);
 
-  // status pedidos
-  const statusPedidos = useMemo(() => {
-    const map = new Map<string, number>();
-    pedidos.forEach((p) => map.set(p.status, (map.get(p.status) || 0) + 1));
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [pedidos]);
+  const topParceiros = useMemo(() => {
+    const map = new Map<string, { nome: string; total: number }>();
+    parceiros.forEach((p) => {
+      const id = p.parceiro_id;
+      const nome = p.parceiros?.nome || "—";
+      const cur = map.get(id) || { nome, total: 0 };
+      cur.total += Number(p.valor_calculado || 0);
+      map.set(id, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 5);
+  }, [parceiros]);
 
-  // tipos ocorrências
-  const tiposOcorr = useMemo(() => {
-    const map = new Map<string, number>();
-    ocorr.forEach((o) => map.set(o.tipo, (map.get(o.tipo) || 0) + 1));
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [ocorr]);
+  const ultimosFechamentos = useMemo(() => {
+    return orcs
+      .filter((o) => ["aprovado","fechado","convertido","confirmado"].includes(o.status))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 8);
+  }, [orcs]);
+
+  const maxTopParc = topParceiros[0]?.total || 1;
 
   return (
     <div className="space-y-6">
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-md bg-primary/15 flex items-center justify-center">
+            <BarChart3 className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <h1>Relatórios Gerenciais</h1>
+            <p className="text-[12px] text-muted-foreground mt-1">Análise de desempenho comercial</p>
+          </div>
+        </div>
+        <div className="inline-flex rounded-md p-1 bg-secondary" style={{ border: "0.5px solid hsl(var(--border))" }}>
+          {[
+            { v: "mes", label: "Este Mês" },
+            { v: "ano", label: "Este Ano" },
+            { v: "tudo", label: "Tudo" },
+            { v: "personalizado", label: "Personalizado" },
+          ].map((p) => (
+            <button
+              key={p.v}
+              onClick={() => setPeriodo(p.v as Periodo)}
+              className={`px-3 py-1.5 text-[12px] rounded transition-colors ${
+                periodo === p.v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento" value={fmtBRL(kpi.faturamento)} badge="Ativo" />
+        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Markup Médio" value={`${kpi.markup.toFixed(1)}%`} badge="Real" />
+        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtd} ctt.`} />
+        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." />
+        <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="surface-card p-5 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded bg-primary/15 flex items-center justify-center">
+              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="text-[14px] font-medium">Evolução de Vendas</div>
+          </div>
+          <div style={{ width: "100%", height: 280 }}>
+            <ResponsiveContainer>
+              <BarChart data={evolucao}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="mes" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
+                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="surface-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded bg-primary/15 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="text-[14px] font-medium">Top Parceiros</div>
+          </div>
+          {topParceiros.length === 0 ? (
+            <div className="text-[12px] text-muted-foreground text-center py-8">Sem comissões.</div>
+          ) : (
+            <div className="space-y-3">
+              {topParceiros.map((p, i) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-muted-foreground w-4">{i + 1}</span>
+                      <span className="font-medium truncate">{p.nome}</span>
+                    </div>
+                    <span className="text-[11px] text-primary font-medium whitespace-nowrap">{fmtBRL(p.total)}</span>
+                  </div>
+                  <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${(p.total / maxTopParc) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="surface-card p-5">
+        <div className="text-[14px] font-medium mb-4">Últimos Fechamentos</div>
+        {loading ? (
+          <div className="text-[12px] text-muted-foreground py-6 text-center">Carregando…</div>
+        ) : ultimosFechamentos.length === 0 ? (
+          <div className="text-[12px] text-muted-foreground py-6 text-center">Nenhum fechamento no período.</div>
+        ) : (
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border">
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider">Data</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider">Código</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider">Status</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ultimosFechamentos.map((o) => (
+                <tr key={o.id} className="border-b border-border/50">
+                  <td className="py-2 px-2">{new Date(o.created_at).toLocaleDateString("pt-BR")}</td>
+                  <td className="py-2 px-2 font-medium">{o.codigo}</td>
+                  <td className="py-2 px-2 text-muted-foreground capitalize">{o.status}</td>
+                  <td className="py-2 px-2 text-right font-medium">{fmtBRL(Number(o.total || 0))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KpiBig({ icon, color, label, value, badge }: { icon: React.ReactNode; color: "primary" | "emerald" | "rose"; label: string; value: string; badge: string }) {
+  const colors: Record<string, { bg: string; fg: string; badgeBg: string; badgeFg: string }> = {
+    primary: { bg: "bg-primary/15", fg: "text-primary", badgeBg: "bg-primary/15", badgeFg: "text-primary" },
+    emerald: { bg: "bg-emerald-500/15", fg: "text-emerald-500", badgeBg: "bg-emerald-500/15", badgeFg: "text-emerald-500" },
+    rose: { bg: "bg-rose-500/15", fg: "text-rose-500", badgeBg: "bg-rose-500/15", badgeFg: "text-rose-500" },
+  };
+  const c = colors[color];
+  return (
+    <div className="surface-card p-4">
       <div className="flex items-start justify-between">
-        <div>
-          <h1>Relatórios</h1>
-          <p className="text-[12px] text-muted-foreground mt-1">
-            Visão consolidada de vendas, operações e ocorrências.
-          </p>
-        </div>
-        <Select value={periodo} onValueChange={(v: any) => setPeriodo(v)}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="30">Últimos 30 dias</SelectItem>
-            <SelectItem value="90">Últimos 90 dias</SelectItem>
-            <SelectItem value="365">Último ano</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className={`w-8 h-8 rounded-md flex items-center justify-center ${c.bg} ${c.fg}`}>{icon}</div>
+        <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${c.badgeBg} ${c.badgeFg}`}>{badge}</span>
       </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        <div className="surface-card p-4">
-          <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Volume Orçado</div>
-          <div className="text-[20px] font-medium mt-1">{fmtBRL(kpi.tot)}</div>
-        </div>
-        <div className="surface-card p-4">
-          <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Vendas Fechadas</div>
-          <div className="text-[20px] font-medium mt-1 text-emerald-500">{fmtBRL(kpi.totAprov)}</div>
-        </div>
-        <div className="surface-card p-4">
-          <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Conversão</div>
-          <div className="text-[20px] font-medium mt-1">{kpi.conv.toFixed(1)}%</div>
-        </div>
-        <div className="surface-card p-4">
-          <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Ticket Médio</div>
-          <div className="text-[20px] font-medium mt-1">{fmtBRL(kpi.ticket)}</div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="surface-card p-12 text-center text-[12px] text-muted-foreground">Carregando…</div>
-      ) : (
-        <>
-          <div className="surface-card p-4">
-            <div className="text-[12px] font-medium mb-3">Volume orçado por dia</div>
-            <div style={{ width: "100%", height: 240 }}>
-              <ResponsiveContainer>
-                <LineChart data={serie}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="data" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
-                  <Line type="monotone" dataKey="valor" stroke="#10b981" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="surface-card p-4">
-              <div className="text-[12px] font-medium mb-3">Pedidos por Status</div>
-              <div style={{ width: "100%", height: 220 }}>
-                <ResponsiveContainer>
-                  <BarChart data={statusPedidos}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="surface-card p-4">
-              <div className="text-[12px] font-medium mb-3">Tipos de Ocorrência</div>
-              <div style={{ width: "100%", height: 220 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={tiposOcorr} dataKey="value" nameKey="name" outerRadius={80} label>
-                      {tiposOcorr.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="text-[10px] uppercase text-muted-foreground tracking-wider mt-3">{label}</div>
+      <div className="text-[20px] font-medium mt-1">{value}</div>
     </div>
   );
 }
