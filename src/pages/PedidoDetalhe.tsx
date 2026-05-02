@@ -181,6 +181,40 @@ export default function PedidoDetalhe() {
     toast.success(`Workflow iniciado em: ${estagio.toUpperCase()}`);
   };
 
+  /* ----- criar adendo (novo orçamento atrelado a este pedido) ----- */
+  const criarAdendo = async () => {
+    if (!pedido || !pedido.orcamento_id) return;
+    if (!confirm("Criar um novo Adendo a partir deste pedido?\n\nO adendo é um orçamento complementar vinculado ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros independentes — sem alterar a venda já fechada.")) return;
+    setCriandoAdendo(true);
+    try {
+      const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orc) throw new Error("Orçamento original não encontrado");
+      const seq = (adendos.length + 1).toString().padStart(2, "0");
+      const novoCodigo = `${orc.codigo}-ADD-${seq}`;
+      const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
+        codigo: novoCodigo,
+        cliente_id: orc.cliente_id,
+        loja_id: orc.loja_id,
+        nome_projeto: `[ADENDO ${seq} de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+        status: "negociacao",
+        subtotal: 0, total: 0,
+        parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
+        consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+        is_adendo: true,
+        pedido_origem_id: pedido.id,
+        created_by: user?.id,
+      } as any).select().maybeSingle();
+      if (error || !novoOrc) throw error || new Error("Falha ao criar adendo");
+      toast.success(`Adendo ${novoCodigo} criado`);
+      navigate(`/comercial/${novoOrc.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar adendo");
+    } finally {
+      setCriandoAdendo(false);
+    }
+  };
+
+
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
 
