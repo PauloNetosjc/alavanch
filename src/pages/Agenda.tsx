@@ -48,13 +48,16 @@ function startOfWeek(d: Date)  { const x = new Date(d); x.setDate(d.getDate() - 
 function fmtKey(d: Date)       { return d.toISOString().slice(0, 10); }
 
 export default function Agenda() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const { lojas, selectedLojaId } = useLoja();
+  const isAdminOuDiretor = role === "admin" || role === "diretor";
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [responsaveis, setResponsaveis] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [filtroResp, setFiltroResp] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
+  const [filtroLoja, setFiltroLoja] = useState<string>("all"); // só admin/diretor
   const [openNovo, setOpenNovo] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
 
