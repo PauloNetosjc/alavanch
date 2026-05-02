@@ -15,6 +15,7 @@ import Dashboard from "@/pages/Dashboard";
 import Clientes from "@/pages/Clientes";
 import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
+import KanbanComercial from "@/pages/KanbanComercial";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialDetalhe from "@/pages/ComercialDetalhe";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
