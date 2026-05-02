@@ -237,6 +237,24 @@ export default function Relatorios() {
             {totalAgendas} no período
           </span>
         </div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {Object.entries(TIPO_AGENDA_LABEL).map(([k, label]) => {
+            const active = tiposSelecionados.includes(k);
+            return (
+              <button
+                key={k}
+                onClick={() => toggleTipo(k)}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         {totalAgendas === 0 ? (
           <div className="text-[12px] text-muted-foreground text-center py-6">Nenhum agendamento no período.</div>
         ) : (
