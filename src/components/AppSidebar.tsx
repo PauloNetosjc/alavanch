@@ -56,6 +56,7 @@ const sections: Section[] = [
     label: "Administrativo",
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
+      { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
       { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },

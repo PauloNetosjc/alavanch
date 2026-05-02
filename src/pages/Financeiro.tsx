@@ -324,7 +324,7 @@ export default function Financeiro() {
               <FileText className="w-4 h-4 mr-1" /> CSV
             </Button>
             <Button variant="outline" onClick={exportarExcel}><FileSpreadsheet className="w-4 h-4 mr-1" /> Excel</Button>
-            <Button variant="secondary"><BarChart3 className="w-4 h-4 mr-1" /> Resultado por Contrato</Button>
+            <Link to="/financeiro/analise"><Button variant="secondary"><BarChart3 className="w-4 h-4 mr-1" /> Resultado por Contrato</Button></Link>
             <Button onClick={novoLancamento} className="bg-violet-600 hover:bg-violet-700 text-white">
               <Plus className="w-4 h-4 mr-1" /> Lançar Conta
             </Button>

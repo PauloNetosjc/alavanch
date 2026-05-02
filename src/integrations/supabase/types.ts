@@ -374,6 +374,48 @@ export type Database = {
           },
         ]
       }
+      certificados_digitais: {
+        Row: {
+          created_at: string
+          id: string
+          loja_id: string | null
+          nome: string
+          senha_encrypted: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          validade_fim: string | null
+          validade_inicio: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome: string
+          senha_encrypted?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          validade_fim?: string | null
+          validade_inicio?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          senha_encrypted?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          validade_fim?: string | null
+          validade_inicio?: string | null
+        }
+        Relationships: []
+      }
       checkins: {
         Row: {
           assistencia_id: string
@@ -757,8 +799,12 @@ export type Database = {
       }
       lancamentos_financeiros: {
         Row: {
+          adendo_pedido_id: string | null
           categoria_id: string | null
+          comprovante_storage_path: string | null
           conciliado: boolean | null
+          conciliado_em: string | null
+          conciliado_por: string | null
           conta_id: string | null
           created_at: string
           data_pagamento: string | null
@@ -774,8 +820,12 @@ export type Database = {
           valor: number
         }
         Insert: {
+          adendo_pedido_id?: string | null
           categoria_id?: string | null
+          comprovante_storage_path?: string | null
           conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
           conta_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -791,8 +841,12 @@ export type Database = {
           valor: number
         }
         Update: {
+          adendo_pedido_id?: string | null
           categoria_id?: string | null
+          comprovante_storage_path?: string | null
           conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
           conta_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -980,6 +1034,84 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      notas_fiscais: {
+        Row: {
+          chave: string | null
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          data_emissao: string | null
+          id: string
+          loja_id: string | null
+          motivo_rejeicao: string | null
+          natureza_operacao: string | null
+          numero: string | null
+          pdf_storage_path: string | null
+          pedido_id: string | null
+          protocolo: string | null
+          provider: string | null
+          provider_id: string | null
+          serie: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor_produtos: number | null
+          valor_servicos: number | null
+          valor_total: number
+          xml_storage_path: string | null
+        }
+        Insert: {
+          chave?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string | null
+          id?: string
+          loja_id?: string | null
+          motivo_rejeicao?: string | null
+          natureza_operacao?: string | null
+          numero?: string | null
+          pdf_storage_path?: string | null
+          pedido_id?: string | null
+          protocolo?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          serie?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_produtos?: number | null
+          valor_servicos?: number | null
+          valor_total?: number
+          xml_storage_path?: string | null
+        }
+        Update: {
+          chave?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string | null
+          id?: string
+          loja_id?: string | null
+          motivo_rejeicao?: string | null
+          natureza_operacao?: string | null
+          numero?: string | null
+          pdf_storage_path?: string | null
+          pedido_id?: string | null
+          protocolo?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          serie?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_produtos?: number | null
+          valor_servicos?: number | null
+          valor_total?: number
+          xml_storage_path?: string | null
         }
         Relationships: []
       }
