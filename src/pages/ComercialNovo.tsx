@@ -517,7 +517,7 @@ export default function ComercialNovo() {
 
       const { data: ambs } = await supabase
         .from("ambientes")
-        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto")
         .eq("orcamento_id", editId)
         .order("ordem");
       const ambIds = (ambs ?? []).map((a: any) => a.id);
