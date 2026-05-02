@@ -1175,9 +1175,13 @@ export default function ComercialNegociacao() {
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[1,2,3,4,5,6,8,10,12,18,24].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                  ))}
+                  {(() => {
+                    const met = metodos.find((m) => m.nome === novoMetodo);
+                    const max = Math.max(1, Number(met?.max_parcelas) || 24);
+                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}x{(Number(met?.taxa_perc_parcela)||0) > 0 && n>1 ? ` · ${Number(met?.taxa_perc_parcela).toFixed(2)}% a.m.` : ""}</SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
