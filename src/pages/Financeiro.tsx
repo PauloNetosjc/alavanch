@@ -439,7 +439,64 @@ export default function Financeiro() {
 
       {/* TABELA */}
       <div className="rounded-2xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: cards */}
+        <ul className="md:hidden divide-y">
+          {filtrados.map((l) => {
+            const cod = pedidoCod(l.pedido_id);
+            const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
+            const cancelado = l.status === "cancelado";
+            return (
+              <li key={l.id} className={`p-4 ${cancelado ? "opacity-60" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${l.tipo === "entrada" ? "bg-emerald-500/15" : "bg-rose-500/15"}`}>
+                    {l.tipo === "entrada"
+                      ? <ArrowUpCircle className="w-4 h-4 text-emerald-600" />
+                      : <ArrowDownCircle className="w-4 h-4 text-rose-600" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-medium text-[14px] truncate">{l.descricao || "—"}</div>
+                      <div className={`text-right text-[14px] font-semibold whitespace-nowrap ${l.tipo === "entrada" ? "text-emerald-700" : "text-rose-700"}`}>
+                        {BRL(Number(l.valor || 0))}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground uppercase mt-0.5 truncate">
+                      {fmt(l.data_pagamento || l.data_vencimento)} · {contaName(l.conta_id)}
+                      {cod && (<> · <Link to={`/pedidos/${l.pedido_id}`} className="text-primary">[{cod}]</Link></>)}
+                    </div>
+                    <div className="text-[12px] mt-1 truncate">{catName(l.categoria_id)}</div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      {cancelado
+                        ? <Badge variant="destructive" className="text-[10px]">CANCELADO</Badge>
+                        : pago
+                          ? <Badge className="bg-emerald-500/15 text-emerald-700 text-[10px]">LIQUIDADO</Badge>
+                          : <Badge className="bg-violet-500/15 text-violet-700 text-[10px]">PENDENTE</Badge>}
+                      {!pago && !cancelado && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => abrirLiquidar(l)}>
+                            <Check className="w-4 h-4 text-emerald-600 mr-1" /> Liquidar
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => cancelar(l)}>
+                            <X className="w-4 h-4 text-rose-500" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+          {!filtrados.length && (
+            <li className="p-8 text-center text-muted-foreground text-[12px]">
+              <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
+              Nenhum lançamento no período/filtros selecionados
+            </li>
+          )}
+        </ul>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
