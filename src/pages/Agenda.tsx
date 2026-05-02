@@ -216,9 +216,10 @@ export default function Agenda() {
                   </div>
                   <div className="mt-1 space-y-0.5">
                     {evs.slice(0, 3).map((e) => (
-                      <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded border truncate ${TIPO_COR[e.tipo]}`} title={e.titulo}>
+                      <button key={e.id} onClick={() => abrirEvento(e.id)}
+                        className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border truncate hover:opacity-80 ${TIPO_COR[e.tipo]}`} title={e.titulo}>
                         {e.hora_inicio?.slice(0, 5)} {e.titulo}
-                      </div>
+                      </button>
                     ))}
                     {evs.length > 3 && <div className="text-[10px] text-muted-foreground">+{evs.length - 3} mais</div>}
                   </div>
