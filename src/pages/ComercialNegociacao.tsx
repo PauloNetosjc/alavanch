@@ -60,7 +60,7 @@ function SenhaAdminDialog({
   onOpenChange: (v: boolean) => void;
   percent: number;
   limite: number;
-  onAuthorized: () => void;
+  onAuthorized: (adminEmail: string) => void;
 }) {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
@@ -79,7 +79,7 @@ function SenhaAdminDialog({
       return;
     }
     toast.success("Desconto autorizado pelo gestor");
-    onAuthorized();
+    onAuthorized(data.admin_email || "");
     onOpenChange(false);
   };
 
