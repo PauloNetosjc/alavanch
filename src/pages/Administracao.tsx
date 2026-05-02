@@ -24,10 +24,16 @@ import { maskPhone } from "@/lib/masks";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
-  vendedor: "Vendedor",
+  diretor: "Diretor",
+  gerente: "Gerente de Loja",
+  vendedor: "Vendedor / Consultor",
+  projetista: "Projetista",
+  financeiro: "Financeiro",
+  tecnico: "Técnico",
   montador: "Montador",
+  assistencia: "Assistência / Pós-venda",
 };
-const ROLES = ["admin", "vendedor", "montador"];
+const ROLES = ["admin","diretor","gerente","vendedor","projetista","financeiro","tecnico","montador","assistencia"];
 
 export default function Administracao() {
   const { user } = useAuth();
