@@ -700,34 +700,58 @@ export default function ComercialNovo() {
   /* --------------------------------- finish ------------------------------- */
   const finish = async (goToNegociacao = false) => {
     setSaving(true);
-    const year = new Date().getFullYear();
-    const { count } = await supabase
-      .from("orcamentos")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", `${year}-01-01`);
-    const codigo = `ORC-${year}-${String((count ?? 0) + 1).padStart(4, "0")}`;
 
-    const { data: orc, error } = await supabase
-      .from("orcamentos")
-      .insert({
-        codigo,
-        cliente_id: clienteId,
-        nome_projeto: nomeProjeto || null,
-        parceiro_id: parceiroId || null,
-        parceiro_perc: parceiroPerc || 0,
-        consultor_id: consultorId || null,
-        subtotal: subtotalAmbientes,
-        desconto_perc: 0,
-        desconto_valor: 0,
-        total,
-        status: "negociacao",
-      })
-      .select("id")
-      .single();
+    let orcId = editId || "";
+    let codigo = orcCodigo;
 
-    if (error || !orc) {
-      setSaving(false);
-      return toast.error(error?.message ?? "Erro ao salvar");
+    if (isEdit && editId) {
+      const { error: upErr } = await supabase
+        .from("orcamentos")
+        .update({
+          cliente_id: clienteId,
+          nome_projeto: nomeProjeto || null,
+          parceiro_id: parceiroId || null,
+          parceiro_perc: parceiroPerc || 0,
+          consultor_id: consultorId || null,
+          subtotal: subtotalAmbientes,
+          total,
+        })
+        .eq("id", editId);
+      if (upErr) { setSaving(false); return toast.error(upErr.message); }
+
+      // Reset ambientes (cascade remove sub_itens via FK)
+      await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+    } else {
+      const year = new Date().getFullYear();
+      const { count } = await supabase
+        .from("orcamentos")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", `${year}-01-01`);
+      codigo = `ORC-${year}-${String((count ?? 0) + 1).padStart(4, "0")}`;
+
+      const { data: orc, error } = await supabase
+        .from("orcamentos")
+        .insert({
+          codigo,
+          cliente_id: clienteId,
+          nome_projeto: nomeProjeto || null,
+          parceiro_id: parceiroId || null,
+          parceiro_perc: parceiroPerc || 0,
+          consultor_id: consultorId || null,
+          subtotal: subtotalAmbientes,
+          desconto_perc: 0,
+          desconto_valor: 0,
+          total,
+          status: "negociacao",
+        })
+        .select("id")
+        .single();
+
+      if (error || !orc) {
+        setSaving(false);
+        return toast.error(error?.message ?? "Erro ao salvar");
+      }
+      orcId = orc.id;
     }
 
     for (let i = 0; i < ambientes.length; i++) {
@@ -735,7 +759,7 @@ export default function ComercialNovo() {
       const { data: amb } = await supabase
         .from("ambientes")
         .insert({
-          orcamento_id: orc.id,
+          orcamento_id: orcId,
           nome: a.nome,
           descricao: a.descricao || null,
           ordem: i,
@@ -772,11 +796,11 @@ export default function ComercialNovo() {
     if (arquivosImportados.length > 0) {
       const { data: u } = await supabase.auth.getUser();
       for (const { file, origem } of arquivosImportados) {
-        const path = `${orc.id}/${Date.now()}_${file.name}`;
+        const path = `${orcId}/${Date.now()}_${file.name}`;
         const { error: upErr } = await supabase.storage.from("orcamento-docs").upload(path, file);
         if (!upErr) {
           await supabase.from("orcamento_documentos" as any).insert({
-            orcamento_id: orc.id,
+            orcamento_id: orcId,
             nome: file.name,
             storage_path: path,
             tamanho: file.size,
@@ -786,12 +810,13 @@ export default function ComercialNovo() {
           });
         }
       }
+      setArquivosImportados([]);
     }
 
     setSaving(false);
-    toast.success(`Orçamento ${codigo} criado`);
-    if (goToNegociacao) navigate(`/comercial/${orc.id}/negociacao`);
-    else navigate(`/comercial/${orc.id}`);
+    toast.success(isEdit ? `Orçamento ${codigo || ""} atualizado` : `Orçamento ${codigo} criado`);
+    if (goToNegociacao) navigate(`/comercial/${orcId}/negociacao`);
+    else navigate(`/comercial`);
   };
 
   /* ------------------------------ summary side ---------------------------- */
