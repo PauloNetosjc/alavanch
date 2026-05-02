@@ -28,6 +28,11 @@ import Relatorios from "@/pages/Relatorios";
 import ContratoAssinar from "@/pages/ContratoAssinar";
 import ContratoVisualizar from "@/pages/ContratoVisualizar";
 import PedidoDetalhe from "@/pages/PedidoDetalhe";
+import ContasCorrentes from "@/pages/ContasCorrentes";
+import ExtratoConta from "@/pages/ExtratoConta";
+import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
+import AuditoriaParceiros from "@/pages/AuditoriaParceiros";
+import Parceiros from "@/pages/Parceiros";
 
 const queryClient = new QueryClient();
 
