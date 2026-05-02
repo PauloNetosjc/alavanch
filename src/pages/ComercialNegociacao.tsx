@@ -134,6 +134,10 @@ function ResumoFinanceiroDialog({
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
   jurosCliente: number;
 }) {
+  const { can } = usePermissions();
+  const podeVerCusto = can("itens", "view_custo");
+  const podeVerMarkup = can("itens", "view_markup");
+  const podeVerComissao = can("parceiros", "view_comissao");
   const frete = totalProposta * 0.038;
   const comissaoLoja = totalProposta * 0.027;
   const montagem = totalProposta * 0.054;
