@@ -405,6 +405,7 @@ export default function ComercialNegociacao() {
   // regras
   const [meuLimite, setMeuLimite] = useState<number>(0);
   const [autorizadoPorGestor, setAutorizadoPorGestor] = useState(false);
+  const [aprovadorEmail, setAprovadorEmail] = useState<string>("");
 
   // desconto (campos editados)
   const [descPerc, setDescPerc] = useState<number>(0);
