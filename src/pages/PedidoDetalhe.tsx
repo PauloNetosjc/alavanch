@@ -246,6 +246,9 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {/* PIPELINES & ESTÁGIOS */}
+      <PipelinesPanel pedido={pedido} />
+
       {/* CRONOGRAMA E DATAS */}
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
 
