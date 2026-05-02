@@ -545,6 +545,7 @@ export default function ComercialNovo() {
         preco_sugerido: Number(a.preco_sugerido) || 0,
         markup: Number(a.markup) || 0,
         itens: itensByAmb[a.id] || [],
+        aplicar_desconto: a.aplicar_desconto !== false,
       })));
     })();
   }, [editId, navigate]);
