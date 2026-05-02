@@ -20,8 +20,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }> };
-type Section = { label: string; items: Item[]; roles?: string[] };
+import { usePermissions } from "@/hooks/usePermissions";
+
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string };
+type Section = { label: string; items: Item[] };
 
 const sections: Section[] = [
   {
@@ -53,10 +55,10 @@ const sections: Section[] = [
   {
     label: "Administrativo",
     items: [
-      { label: "Contas Correntes", path: "/contas", icon: Wallet },
-      { label: "Categorias", path: "/categorias-financeiras", icon: Folder },
-      { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck },
-      { label: "Parceiros", path: "/parceiros", icon: Building2 },
+      { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
+      { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
+      { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
+      { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
     ],
   },
   {
@@ -71,6 +73,13 @@ const sections: Section[] = [
 export function AppSidebar() {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
+  const { can } = usePermissions();
+  const visibleSections = sections
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((it) => !it.modulo || can(it.modulo, "view")),
+    }))
+    .filter((s) => s.items.length > 0);
 
   const initials = (profile?.nome_completo || user?.email || "?")
     .split(" ")
@@ -106,7 +115,7 @@ export function AppSidebar() {
 
       {/* Sections */}
       <nav className="flex-1 overflow-y-auto pb-4">
-        {sections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.label} className="mt-2">
             <div
               className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
