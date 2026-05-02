@@ -529,18 +529,19 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
-  // Estimativa de juros do cliente: ~1.5% ao mês para parcelas > 1
+  // Juros do cliente embutidos: usa taxa configurada do método (ao mês), simples por parcela
   const jurosCliente = useMemo(() => {
     return pagamentos.reduce((s, p) => {
       if (!p.parcelas || p.parcelas <= 1) return s;
-      const taxa = 0.015;
+      const met = metodos.find((m) => m.nome === p.metodo);
+      const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+      if (!taxa) return s;
       const principal = p.valor / p.parcelas;
-      // soma juros simples por parcela
       let total = 0;
       for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
       return s + total;
     }, 0);
-  }, [pagamentos]);
+  }, [pagamentos, metodos]);
 
   /* ------------------------- handlers ------------------------- */
   const onPercChange = (v: number) => {
