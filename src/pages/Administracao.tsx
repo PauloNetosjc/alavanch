@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings, Percent, ShieldCheck, Save, Building2, Users, Banknote,
-  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare,
+  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -24,6 +24,7 @@ import { maskPhone } from "@/lib/masks";
 import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 import { PipelineOperacionalAdmin } from "@/components/PipelineOperacionalAdmin";
+import { AgendaAdmin } from "@/components/AgendaAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -77,6 +78,7 @@ export default function Administracao() {
           <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
           <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
           <TabsTrigger value="operacional"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />Operacional</TabsTrigger>
+          <TabsTrigger value="agenda"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Agenda</TabsTrigger>
         </TabsList>
 
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
@@ -92,6 +94,7 @@ export default function Administracao() {
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
         <TabsContent value="operacional" className="mt-4"><PipelineOperacionalAdmin /></TabsContent>
+        <TabsContent value="agenda" className="mt-4"><AgendaAdmin /></TabsContent>
       </Tabs>
     </div>
   );

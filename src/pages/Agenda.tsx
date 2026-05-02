@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoja } from "@/contexts/LojaContext";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
 
 const TIPO_LABEL: Record<string, string> = {
+  apresentacao_comercial: "Apresentação",
   medicao_tecnica: "Medição",
   revisao_final: "Revisão",
   entrega: "Entrega",
@@ -16,6 +18,7 @@ const TIPO_LABEL: Record<string, string> = {
   tarefa_interna: "Tarefa",
 };
 const TIPO_COR: Record<string, string> = {
+  apresentacao_comercial: "bg-pink-500/15 text-pink-700 border-pink-300",
   medicao_tecnica: "bg-blue-500/15 text-blue-700 border-blue-300",
   revisao_final: "bg-purple-500/15 text-purple-700 border-purple-300",
   entrega: "bg-emerald-500/15 text-emerald-700 border-emerald-300",
@@ -35,6 +38,7 @@ interface Evento {
   responsavel_id: string;
   status: string;
   pedido_id: string | null;
+  loja_id: string | null;
   excecao: boolean;
 }
 
@@ -44,13 +48,16 @@ function startOfWeek(d: Date)  { const x = new Date(d); x.setDate(d.getDate() - 
 function fmtKey(d: Date)       { return d.toISOString().slice(0, 10); }
 
 export default function Agenda() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const { lojas } = useLoja();
+  const isAdminOuDiretor = role === "admin" || role === "diretor";
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [responsaveis, setResponsaveis] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [filtroResp, setFiltroResp] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
+  const [filtroLoja, setFiltroLoja] = useState<string>("all"); // só admin/diretor
   const [openNovo, setOpenNovo] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
 
@@ -70,6 +77,10 @@ export default function Agenda() {
       .order("data").order("hora_inicio");
     if (filtroResp !== "all") q = q.eq("responsavel_id", filtroResp);
     if (filtroTipo !== "all") q = q.eq("tipo", filtroTipo);
+    if (isAdminOuDiretor && filtroLoja !== "all") {
+      if (filtroLoja === "__global__") q = q.is("loja_id", null);
+      else q = q.eq("loja_id", filtroLoja);
+    }
     const { data } = await q;
     setEventos((data as any) || []);
   };
@@ -80,7 +91,7 @@ export default function Agenda() {
       setResponsaveis((data as any) || []);
     })();
   }, []);
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo]);
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo, filtroLoja]);
 
   // agrupa por dia
   const porDia = useMemo(() => {
@@ -166,6 +177,16 @@ export default function Agenda() {
             {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        {isAdminOuDiretor && (
+          <Select value={filtroLoja} onValueChange={setFiltroLoja}>
+            <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as lojas</SelectItem>
+              <SelectItem value="__global__">Eventos gerais</SelectItem>
+              {lojas.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {view === "month" ? (
