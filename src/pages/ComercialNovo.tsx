@@ -523,51 +523,73 @@ export default function ComercialNovo() {
   const handleFile = async (file: File) => {
     setImporting(true);
     try {
-      const text = await file.text();
-      const parsed: PromobParseResult = parsePromobTxt(text);
-      if (parsed.environments.length === 0) {
-        toast.error("Nenhum ambiente identificado no arquivo");
+      const ext = file.name.toLowerCase().split(".").pop() || "";
+      // Caminho 1: TXT/XML do Promob (parser específico)
+      if (ext === "txt") {
+        const text = await file.text();
+        const parsed: PromobParseResult = parsePromobTxt(text);
+        if (parsed.environments.length === 0) {
+          toast.error("Nenhum ambiente identificado no arquivo");
+          return;
+        }
+        const novos: Ambiente[] = await Promise.all(
+          parsed.environments.map(async (env) => {
+            const itens: Item[] = env.items.map((it) => ({
+              descricao: it.description,
+              quantidade: it.quantity,
+              largura: it.width,
+              altura: it.height,
+              profundidade: it.depth,
+              custo_cliente: it.clientPrice,
+              custo_loja: it.storePrice,
+              custo_fabrica: it.factoryPrice,
+              cor: it.finish || null,
+              categoria: it.category || null,
+              codigo: it.projectRef || null,
+            }));
+            const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+            const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+            const markup = custo > 0 ? preco / custo : 0;
+            const descricao = await aiDescribe(env.name, itens);
+            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+          }),
+        );
+        setAmbientes((prev) => [...prev, ...novos]);
+        if (!nomeProjeto && parsed.header.clientName) setNomeProjeto(parsed.header.clientName);
+        toast.success(`${novos.length} ambientes importados!`);
+        parsed.warnings.forEach((w) => toast.warning(w));
         return;
       }
 
-      const novos: Ambiente[] = await Promise.all(
-        parsed.environments.map(async (env) => {
-          const itens: Item[] = env.items.map((it) => ({
-            descricao: it.description,
-            quantidade: it.quantity,
-            largura: it.width,
-            altura: it.height,
-            profundidade: it.depth,
-            custo_cliente: it.clientPrice,
-            custo_loja: it.storePrice,
-            custo_fabrica: it.factoryPrice,
-            cor: it.finish || null,
-            categoria: it.category || null,
-            codigo: it.projectRef || null,
-          }));
-          // custo_aquisicao = custo loja (preço Promob)
-          const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
-          // preço cliente sugerido (markup do sistema = soma dos custo_cliente)
-          const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
-          const markup = custo > 0 ? preco / custo : 0;
-          const descricao = await aiDescribe(env.name, itens);
-          return {
-            id: uid(),
-            nome: env.name,
-            descricao,
-            prazo_dias: null,
-            custo_aquisicao: custo,
-            preco_sugerido: preco,
-            markup: Number(markup.toFixed(2)),
-            itens,
-          };
-        }),
-      );
+      // Caminho 2: XML ou Excel genérico
+      let result: GenericParseResult;
+      if (ext === "xml") {
+        const text = await file.text();
+        result = parseProjetoXml(text);
+      } else if (ext === "xlsx" || ext === "xls") {
+        result = await parseProjetoExcel(file);
+      } else {
+        toast.error("Formato não suportado. Use TXT, XML ou XLSX.");
+        return;
+      }
 
+      const novos: Ambiente[] = result.environments.map((env) => {
+        const itens: Item[] = env.items.map((it) => ({
+          descricao: it.description,
+          quantidade: it.quantity,
+          largura: null, altura: null, profundidade: null,
+          custo_cliente: it.clientPrice || it.cost,
+          custo_loja: it.cost,
+          custo_fabrica: it.cost,
+          cor: null, categoria: null, codigo: null,
+        }));
+        const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+        const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+        const markup = custo > 0 ? preco / custo : 0;
+        return { id: uid(), nome: env.name, descricao: "", prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+      });
       setAmbientes((prev) => [...prev, ...novos]);
-      if (!nomeProjeto && parsed.header.clientName) setNomeProjeto(parsed.header.clientName);
-      toast.success(`${novos.length} ambientes importados com markup do sistema!`);
-      parsed.warnings.forEach((w) => toast.warning(w));
+      toast.success(`${novos.length} ambientes importados de ${ext.toUpperCase()}!`);
     } catch (e: any) {
       toast.error("Falha ao ler arquivo: " + e.message);
     } finally {
