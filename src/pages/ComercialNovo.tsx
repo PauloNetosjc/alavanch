@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -428,10 +428,13 @@ function DetalhamentoDialog({
 
 export default function ComercialNovo() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEdit = !!editId;
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [orcCodigo, setOrcCodigo] = useState<string>("");
 
   // ---- catálogos ----
   const [clientes, setClientes] = useState<Cliente[]>([]);
