@@ -95,6 +95,7 @@ const App = () => (
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/operacional/kanban" element={<KanbanOperacional />} />
               <Route path="/agenda" element={<Agenda />} />
+              <Route path="/autorizacoes" element={<Autorizacoes />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/meus-chamados" element={<MeusChamados />} />
               <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />
