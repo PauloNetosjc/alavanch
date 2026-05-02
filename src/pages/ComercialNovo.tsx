@@ -478,11 +478,64 @@ export default function ComercialNovo() {
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor = current user
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) setConsultorId(u.user.id);
+      // default consultor = current user (apenas em criação)
+      if (!isEdit) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) setConsultorId(u.user.id);
+      }
     })();
-  }, []);
+  }, [isEdit]);
+
+  /* ------------------------- load existing orçamento ---------------------- */
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      const { data: orc } = await supabase
+        .from("orcamentos")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id")
+        .eq("id", editId)
+        .maybeSingle();
+      if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
+      setOrcCodigo(orc.codigo || "");
+      setClienteId(orc.cliente_id || "");
+      setNomeProjeto(orc.nome_projeto || "");
+      setParceiroId(orc.parceiro_id || "");
+      setParceiroPerc(Number(orc.parceiro_perc) || 0);
+      setConsultorId(orc.consultor_id || "");
+
+      const { data: ambs } = await supabase
+        .from("ambientes")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem")
+        .eq("orcamento_id", editId)
+        .order("ordem");
+      const ambIds = (ambs ?? []).map((a: any) => a.id);
+      let itensByAmb: Record<string, Item[]> = {};
+      if (ambIds.length) {
+        const { data: subs } = await supabase
+          .from("sub_itens_ambiente")
+          .select("ambiente_id, descricao, quantidade, largura, altura, profundidade, custo_cliente, custo_loja, custo_fabrica, cor, categoria, codigo")
+          .in("ambiente_id", ambIds);
+        (subs ?? []).forEach((s: any) => {
+          (itensByAmb[s.ambiente_id] ||= []).push({
+            descricao: s.descricao, quantidade: s.quantidade,
+            largura: s.largura, altura: s.altura, profundidade: s.profundidade,
+            custo_cliente: Number(s.custo_cliente) || 0,
+            custo_loja: Number(s.custo_loja) || 0,
+            custo_fabrica: Number(s.custo_fabrica) || 0,
+            cor: s.cor, categoria: s.categoria, codigo: s.codigo,
+          });
+        });
+      }
+      setAmbientes((ambs ?? []).map((a: any) => ({
+        id: a.id, nome: a.nome, descricao: a.descricao || "",
+        prazo_dias: a.prazo_dias,
+        custo_aquisicao: Number(a.custo_aquisicao) || 0,
+        preco_sugerido: Number(a.preco_sugerido) || 0,
+        markup: Number(a.markup) || 0,
+        itens: itensByAmb[a.id] || [],
+      })));
+    })();
+  }, [editId, navigate]);
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
