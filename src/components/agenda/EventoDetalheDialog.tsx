@@ -108,46 +108,82 @@ export function EventoDetalheDialog({ open, onOpenChange, eventoId, onChanged }:
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 text-[13px]">
-          <div className="font-semibold text-base">{evento.titulo}</div>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="resumo">Resumo</TabsTrigger>
+            {pedido && <TabsTrigger value="pedido">Pedido</TabsTrigger>}
+          </TabsList>
 
-          <div className="grid grid-cols-2 gap-2 text-[12px]">
-            <div><span className="text-muted-foreground">Data:</span> <span className="capitalize">{fmtDate(evento.data)}</span></div>
-            <div><span className="text-muted-foreground">Horário:</span> {evento.hora_inicio?.slice(0,5)}{evento.hora_fim ? ` – ${evento.hora_fim.slice(0,5)}` : ""}</div>
-            <div className="col-span-2"><span className="text-muted-foreground">Responsável:</span> {responsavel}</div>
-            {evento.endereco && <div className="col-span-2"><span className="text-muted-foreground">Endereço:</span> {evento.endereco}</div>}
-          </div>
+          <TabsContent value="resumo" className="space-y-3 text-[13px]">
+            <div className="font-semibold text-base">{evento.titulo}</div>
 
-          {cliente && (
-            <div className="rounded-md border p-3 bg-muted/20 text-[12px] space-y-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-medium text-[13px]">
-                  <User className="w-3.5 h-3.5" /> Cliente vinculado
+            <div className="grid grid-cols-2 gap-2 text-[12px]">
+              <div><span className="text-muted-foreground">Data:</span> <span className="capitalize">{fmtDate(evento.data)}</span></div>
+              <div><span className="text-muted-foreground">Horário:</span> {evento.hora_inicio?.slice(0,5)}{evento.hora_fim ? ` – ${evento.hora_fim.slice(0,5)}` : ""}</div>
+              <div className="col-span-2"><span className="text-muted-foreground">Responsável:</span> {responsavel}</div>
+              {evento.endereco && <div className="col-span-2"><span className="text-muted-foreground">Endereço:</span> {evento.endereco}</div>}
+            </div>
+
+            {cliente && (
+              <div className="rounded-md border p-3 bg-muted/20 text-[12px] space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-medium text-[13px]">
+                    <User className="w-3.5 h-3.5" /> Cliente vinculado
+                  </div>
+                  <Link
+                    to={`/clientes?cliente=${cliente.id}`}
+                    className="text-primary text-[11px] underline font-medium"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Abrir perfil →
+                  </Link>
                 </div>
-                <Link
-                  to={`/clientes?cliente=${cliente.id}`}
-                  className="text-primary text-[11px] underline font-medium"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Abrir perfil →
-                </Link>
+                <div className="font-semibold text-[13px]">{cliente.nome}</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                  {cliente.telefone && <span>📞 {cliente.telefone}</span>}
+                  {cliente.email && <span>✉ {cliente.email}</span>}
+                </div>
               </div>
-              <div className="font-semibold text-[13px]">{cliente.nome}</div>
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
-                {cliente.telefone && <span>📞 {cliente.telefone}</span>}
-                {cliente.email && <span>✉ {cliente.email}</span>}
-              </div>
-            </div>
-          )}
+            )}
 
-          <div>
-            <Label>Observações / Anotações</Label>
-            <Textarea rows={4} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Anote tratativas, próximos passos…" />
-            <div className="flex justify-end mt-1">
-              <Button size="sm" variant="outline" onClick={salvarObs} disabled={saving}>{saving ? "Salvando…" : "Salvar anotações"}</Button>
+            <div>
+              <Label>Observações / Anotações</Label>
+              <Textarea rows={4} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Anote tratativas, próximos passos…" />
+              <div className="flex justify-end mt-1">
+                <Button size="sm" variant="outline" onClick={salvarObs} disabled={saving}>{saving ? "Salvando…" : "Salvar anotações"}</Button>
+              </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+
+          {pedido && (
+            <TabsContent value="pedido" className="space-y-3 text-[13px]">
+              <div className="rounded-md border p-3 bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-medium text-[13px]">
+                    <Package className="w-3.5 h-3.5" /> Pedido vinculado
+                  </div>
+                  <Link
+                    to={`/pedidos/${pedido.id}`}
+                    className="text-primary text-[11px] underline font-medium"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Abrir pedido →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[12px]">
+                  <div><span className="text-muted-foreground">Código:</span> <span className="font-semibold">{pedido.codigo || pedido.id.slice(0,8)}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> {pedido.status || "—"}</div>
+                  {pedido.valor_total != null && (
+                    <div><span className="text-muted-foreground">Valor:</span> {Number(pedido.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                  )}
+                  {pedido.created_at && (
+                    <div><span className="text-muted-foreground">Aberto em:</span> {new Date(pedido.created_at).toLocaleDateString("pt-BR")}</div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          )}
+        </Tabs>
 
         <DialogFooter className="gap-2">
           {evento.status === "agendado" && (
