@@ -55,11 +55,7 @@ export function LojaSelector() {
   const showAll = isAdmin && selectedLojaId === null;
   const label = showAll ? "Todas as lojas" : current?.nome ?? "—";
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return lojas;
-    const q = query.toLowerCase();
-    return lojas.filter((l) => l.nome.toLowerCase().includes(q) || (l.cnpj || "").includes(q));
-  }, [lojas, query]);
+  const showSearch = lojas.length > 6;
 
   const showSearch = lojas.length > 6;
 
