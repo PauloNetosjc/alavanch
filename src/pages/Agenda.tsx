@@ -289,6 +289,13 @@ export default function Agenda() {
                     const key = fmtKey(d);
                     const evs = porDia.get(key) || [];
                     const isToday = key === todayKey;
+                    // Agrupa por hora de início (HH:00) — comportamento Google Agenda
+                    const grupos = new Map<string, Evento[]>();
+                    evs.forEach((e) => {
+                      const slot = (e.hora_inicio || "00:00").slice(0, 2) + ":00";
+                      const arr = grupos.get(slot) || [];
+                      arr.push(e); grupos.set(slot, arr);
+                    });
                     return (
                       <div key={key} className={`border-r relative ${isToday ? "bg-primary/[0.03]" : ""}`}>
                         {/* linhas de hora */}
@@ -305,36 +312,56 @@ export default function Agenda() {
                           />
                         ))}
 
-                        {/* eventos posicionados absolutamente */}
-                        {evs.map((e) => {
-                          const top = eventTop(e.hora_inicio);
-                          const height = eventHeight(e.hora_inicio, e.hora_fim);
+                        {/* eventos posicionados — agrupados por slot de hora */}
+                        {Array.from(grupos.entries()).map(([slot, list]) => {
+                          const principal = list[0];
+                          const top = eventTop(principal.hora_inicio);
+                          const height = eventHeight(principal.hora_inicio, principal.hora_fim);
                           if (top < 0 || top > (HOUR_END - HOUR_START) * SLOT_PX) return null;
-                          return (
-                            <div
-                              key={e.id}
-                              onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
-                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm cursor-pointer hover:shadow-md ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
-                              style={{ top, height }}
-                              title={`${e.titulo} (${e.hora_inicio?.slice(0,5)}${e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""})`}
-                            >
-                              <div className="font-semibold truncate">
-                                {e.hora_inicio?.slice(0,5)} {TIPO_LABEL[e.tipo]}
-                              </div>
-                              <div className="truncate">{e.titulo}</div>
-                              {height > 60 && e.endereco && (
-                                <div className="truncate opacity-80">{e.endereco}</div>
-                              )}
-                              {e.excecao && (
-                                <div className="text-[9px] uppercase tracking-wide font-bold mt-0.5">Exceção</div>
-                              )}
-                              {e.status === "agendado" && height > 70 && (
-                                <div className="flex gap-2 mt-0.5">
-                                  <button onClick={(ev) => { ev.stopPropagation(); concluir(e.id); }} className="text-[10px] underline">Concluir</button>
-                                  <button onClick={(ev) => { ev.stopPropagation(); cancelar(e.id); }} className="text-[10px] underline opacity-70">Cancelar</button>
+                          if (list.length === 1) {
+                            const e = principal;
+                            return (
+                              <div
+                                key={e.id}
+                                onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
+                                className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm cursor-pointer hover:shadow-md ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
+                                style={{ top, height }}
+                                title={`${e.titulo} (${e.hora_inicio?.slice(0,5)}${e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""})`}
+                              >
+                                <div className="font-semibold truncate">
+                                  {e.hora_inicio?.slice(0,5)} {TIPO_LABEL[e.tipo]}
                                 </div>
-                              )}
-                            </div>
+                                <div className="truncate">{e.titulo}</div>
+                                {height > 60 && e.endereco && (
+                                  <div className="truncate opacity-80">{e.endereco}</div>
+                                )}
+                                {e.excecao && (
+                                  <div className="text-[9px] uppercase tracking-wide font-bold mt-0.5">Exceção</div>
+                                )}
+                                {e.status === "agendado" && height > 70 && (
+                                  <div className="flex gap-2 mt-0.5">
+                                    <button onClick={(ev) => { ev.stopPropagation(); concluir(e.id); }} className="text-[10px] underline">Concluir</button>
+                                    <button onClick={(ev) => { ev.stopPropagation(); cancelar(e.id); }} className="text-[10px] underline opacity-70">Cancelar</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          // Múltiplos eventos no mesmo slot — mostra resumo + chooser
+                          return (
+                            <button
+                              key={slot}
+                              onClick={(ev) => { ev.stopPropagation(); setChooserEvs(list); }}
+                              className="absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm cursor-pointer hover:shadow-md bg-card border-primary/40 text-foreground text-left"
+                              style={{ top, height }}
+                              title={`${list.length} eventos às ${slot}`}
+                            >
+                              <div className="font-semibold truncate flex items-center gap-1">
+                                {slot}
+                                <span className="ml-auto text-[10px] px-1 rounded-full bg-primary text-primary-foreground">+{list.length}</span>
+                              </div>
+                              <div className="truncate opacity-80">{list.length} eventos</div>
+                            </button>
                           );
                         })}
                       </div>
