@@ -10,7 +10,7 @@ interface Branding {
 }
 
 const Ctx = createContext<Branding | undefined>(undefined);
-const DEFAULT_NAME = "Planejados Pro";
+const DEFAULT_NAME = "Alavanch";
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
   const { selectedLojaId, lojas } = useLoja();
