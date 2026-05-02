@@ -782,7 +782,8 @@ export default function ComercialNovo() {
           custo_aquisicao: a.custo_aquisicao,
           preco_sugerido: a.preco_sugerido,
           markup: a.markup,
-        })
+          aplicar_desconto: a.aplicar_desconto !== false,
+        } as any)
         .select("id")
         .single();
       if (amb && a.itens.length > 0) {
