@@ -34,6 +34,8 @@ import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
 import AuditoriaParceiros from "@/pages/AuditoriaParceiros";
 import Parceiros from "@/pages/Parceiros";
 import Financeiro from "@/pages/Financeiro";
+import AnaliseFinanceira from "@/pages/AnaliseFinanceira";
+import NotasFiscais from "@/pages/NotasFiscais";
 import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
@@ -90,6 +92,9 @@ const App = () => (
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
               <Route path="/financeiro" element={<RequirePermission modulo="lancamentos"><Financeiro /></RequirePermission>} />
+              <Route path="/financeiro/analise" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
+              <Route path="/financeiro/analise/:id" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
+              <Route path="/notas-fiscais" element={<RequirePermission modulo="lancamentos"><NotasFiscais /></RequirePermission>} />
               <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
               <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
               <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
