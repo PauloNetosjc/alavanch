@@ -19,6 +19,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -76,6 +77,7 @@ const sections: Section[] = [
 export function AppSidebar() {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
+  const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
   const visibleSections = sections
     .map((s) => ({
@@ -100,14 +102,20 @@ export function AppSidebar() {
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-md flex items-center justify-center"
+            className="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden shrink-0"
             style={{ background: "#1A1A1A", border: "0.5px solid #333" }}
           >
-            <span className="text-[11px] font-medium text-white">P</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={brandNome} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[11px] font-medium text-white">
+                {(brandNome || "P").trim().charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
-          <div className="leading-tight">
-            <div className="text-[13px] font-medium text-white tracking-[0.02em]">
-              Planejados Pro
+          <div className="leading-tight min-w-0">
+            <div className="text-[13px] font-medium text-white tracking-[0.02em] truncate" title={brandNome}>
+              {brandNome}
             </div>
             <div className="text-[9px] uppercase text-[#555] tracking-[0.12em] mt-0.5">
               Sistema
