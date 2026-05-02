@@ -77,6 +77,10 @@ export default function Agenda() {
       .order("data").order("hora_inicio");
     if (filtroResp !== "all") q = q.eq("responsavel_id", filtroResp);
     if (filtroTipo !== "all") q = q.eq("tipo", filtroTipo);
+    if (isAdminOuDiretor && filtroLoja !== "all") {
+      if (filtroLoja === "__global__") q = q.is("loja_id", null);
+      else q = q.eq("loja_id", filtroLoja);
+    }
     const { data } = await q;
     setEventos((data as any) || []);
   };
@@ -87,7 +91,7 @@ export default function Agenda() {
       setResponsaveis((data as any) || []);
     })();
   }, []);
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo]);
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo, filtroLoja]);
 
   // agrupa por dia
   const porDia = useMemo(() => {
