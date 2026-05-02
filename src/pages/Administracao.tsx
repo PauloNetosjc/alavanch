@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
 import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
+import { PipelineOperacionalAdmin } from "@/components/PipelineOperacionalAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -75,6 +76,7 @@ export default function Administracao() {
           <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
           <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
           <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
+          <TabsTrigger value="operacional"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />Operacional</TabsTrigger>
         </TabsList>
 
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
@@ -89,6 +91,7 @@ export default function Administracao() {
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
+        <TabsContent value="operacional" className="mt-4"><PipelineOperacionalAdmin /></TabsContent>
       </Tabs>
     </div>
   );

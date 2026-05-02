@@ -30,7 +30,8 @@ type Ambiente = {
   descricao: string | null;
   preco_sugerido: number | null;
   custo_aquisicao?: number | null;
-  negociavel?: boolean;
+  negociavel?: boolean;        // incluir no orçamento
+  aplicar_desconto?: boolean;  // recebe desconto rateado
 };
 type Item = {
   id: string;
@@ -444,7 +445,7 @@ export default function ComercialNegociacao() {
           .single(),
         supabase
           .from("ambientes")
-          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel")
+          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas").eq("ativo", true).order("nome"),
@@ -506,21 +507,26 @@ export default function ComercialNegociacao() {
   }, [id]);
 
   /* --------------------------- derived --------------------------- */
-  const subtotalNegociavel = useMemo(
-    () => ambientes.filter((a) => a.negociavel !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+  // Apenas ambientes "incluídos" (negociavel !== false) entram no orçamento.
+  const ambientesIncluidos = useMemo(
+    () => ambientes.filter((a) => a.negociavel !== false),
     [ambientes],
   );
-  const subtotalFixo = useMemo(
-    () => ambientes.filter((a) => a.negociavel === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
-    [ambientes],
+  const subtotalComDesconto = useMemo(
+    () => ambientesIncluidos.filter((a) => a.aplicar_desconto !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientesIncluidos],
   );
-  const subtotalAmbientes = subtotalNegociavel + subtotalFixo;
+  const subtotalSemDesconto = useMemo(
+    () => ambientesIncluidos.filter((a) => a.aplicar_desconto === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientesIncluidos],
+  );
+  const subtotalAmbientes = subtotalComDesconto + subtotalSemDesconto;
   const parceiroPerc = Number(orc?.parceiro_perc) || 0;
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
-  // Desconto incide apenas sobre a parcela negociável (+ proporção do parceiro)
-  const baseNegociavelComParceiro = subtotalNegociavel + subtotalNegociavel * (parceiroPerc / 100);
-  const descValorEfetivo = Math.min(descValorAplicado, baseNegociavelComParceiro);
+  // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
+  const baseDescontavel = subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100);
+  const descValorEfetivo = Math.min(descValorAplicado, baseDescontavel);
   const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
@@ -951,37 +957,62 @@ export default function ComercialNegociacao() {
 
           <div className="space-y-3">
             {ambientes.map((a) => {
+              const incluido = a.negociavel !== false;
+              const recebeDesconto = a.aplicar_desconto !== false;
               const precoBase = Number(a.preco_sugerido) || 0;
-              const fator = subtotalAmbientes > 0 ? precoBase / subtotalAmbientes : 0;
-              const precoFinal = totalProposta * fator;
+              // Desconto rateado apenas entre os ambientes "aplicar desconto"
+              const fator = recebeDesconto && subtotalComDesconto > 0
+                ? precoBase / subtotalComDesconto
+                : 0;
+              const descontoAplicadoNoAmb = recebeDesconto ? descValorEfetivo * fator : 0;
+              const precoFinal = incluido ? Math.max(0, precoBase - descontoAplicadoNoAmb) : 0;
               const desconto = precoBase - precoFinal;
               return (
-                <div key={a.id} className="border-2 border-emerald-100 rounded-lg px-4 py-4">
+                <div key={a.id} className={`border-2 rounded-lg px-4 py-4 ${incluido ? "border-emerald-100" : "border-slate-200 bg-slate-50/60 opacity-70"}`}>
                   <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <label className="flex items-center gap-1.5 mt-0.5 cursor-pointer" title="Entra no cálculo de desconto">
-                          <input
-                            type="checkbox"
-                            checked={a.negociavel !== false}
-                            onChange={async (e) => {
-                              const v = e.target.checked;
-                              setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
-                              await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
-                            }}
-                            className="w-4 h-4 accent-emerald-600"
-                          />
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Negoc.</span>
-                        </label>
+                        <div className="flex flex-col gap-1.5 mt-0.5">
+                          <label className="flex items-center gap-1.5 cursor-pointer" title="Incluir este ambiente no orçamento">
+                            <input
+                              type="checkbox"
+                              checked={incluido}
+                              onChange={async (e) => {
+                                const v = e.target.checked;
+                                setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
+                                await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
+                              }}
+                              className="w-4 h-4 accent-emerald-600"
+                            />
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
+                          </label>
+                          <label className={`flex items-center gap-1.5 ${incluido ? "cursor-pointer" : "opacity-40 cursor-not-allowed"}`} title="Aplicar desconto sobre este ambiente">
+                            <input
+                              type="checkbox"
+                              checked={recebeDesconto}
+                              disabled={!incluido}
+                              onChange={async (e) => {
+                                const v = e.target.checked;
+                                setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, aplicar_desconto: v } : x));
+                                await supabase.from("ambientes").update({ aplicar_desconto: v } as any).eq("id", a.id);
+                              }}
+                              className="w-4 h-4 accent-blue-600"
+                            />
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Desconto</span>
+                          </label>
+                        </div>
                       <div className="min-w-0">
                         <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
                         {a.descricao && (
                           <div className="text-[12px] text-muted-foreground mt-1 line-clamp-2">- {a.descricao}</div>
                         )}
+                        {!incluido && <div className="text-[11px] text-slate-500 mt-1 italic">Não incluído no orçamento</div>}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Preço</div>
-                      {desconto > 0.01 ? (
+                      {!incluido ? (
+                        <div className="text-[13px] text-muted-foreground line-through">{fmtBrl(precoBase)}</div>
+                      ) : desconto > 0.01 ? (
                         <>
                           <div className="text-[12px] text-muted-foreground line-through">de {fmtBrl(precoBase)}</div>
                           <div className="text-[15px] font-semibold text-mono text-emerald-700">por {fmtBrl(precoFinal)}</div>

@@ -16,6 +16,7 @@ import Clientes from "@/pages/Clientes";
 import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
 import KanbanComercial from "@/pages/KanbanComercial";
+import KanbanOperacional from "@/pages/KanbanOperacional";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="/contratos/:id" element={<ContratoVisualizar />} />
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
+              <Route path="/operacional/kanban" element={<KanbanOperacional />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/meus-chamados" element={<MeusChamados />} />
               <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />
