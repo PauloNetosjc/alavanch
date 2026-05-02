@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, Pencil, Upload, Check, History, ExternalLink, Trash2 } from "lucide-react";
+import { Users, Search, Pencil, Upload, Check, History, ExternalLink, Trash2, Eye, Download, FileText } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
+import { abrirComprovante, baixarComprovante } from "@/lib/comprovantes";
 import { toast } from "sonner";
 
 type Comissao = {
@@ -177,12 +178,28 @@ export default function AuditoriaParceiros() {
                   <Button onClick={() => setUploadFor(c)}><Upload className="w-4 h-4 mr-1" /> Anexar Recibo</Button>
                 )}
                 {tab === "comprovantes" && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     <Badge className="bg-emerald-500/15 text-emerald-700">PAGO em {c.data_pagamento ? new Date(c.data_pagamento).toLocaleDateString("pt-BR") : "—"}</Badge>
                     {compsDaComissao.map((cp) => (
-                      <Button key={cp.id} size="sm" variant="ghost" onClick={() => removerComprovante(cp)} title={`Remover ${cp.nome}`}>
-                        <Trash2 className="w-4 h-4 text-rose-500" />
-                      </Button>
+                      <div key={cp.id} className="flex items-center gap-1 rounded-md border bg-muted/40 pl-2 pr-1 py-1">
+                        <button
+                          onClick={() => abrirComprovante(cp.storage_path)}
+                          className="text-xs font-medium inline-flex items-center gap-1 hover:underline max-w-[180px] truncate"
+                          title={`Visualizar ${cp.nome}`}
+                        >
+                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="truncate">{cp.nome}</span>
+                        </button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => abrirComprovante(cp.storage_path)} title="Visualizar">
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => baixarComprovante(cp.storage_path, cp.nome)} title="Baixar">
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removerComprovante(cp)} title={`Remover ${cp.nome}`}>
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -206,20 +223,33 @@ export default function AuditoriaParceiros() {
             {historico.length === 0 && (
               <div className="text-center text-muted-foreground py-10">Nenhum evento registrado.</div>
             )}
-            {historico.map((e) => (
-              <div key={e.id} className="py-3 flex items-start gap-3 text-sm">
-                <Badge variant={e.tipo === "comprovante_removido" ? "destructive" : "secondary"}>
-                  {e.tipo.replace("comprovante_", "")}
-                </Badge>
-                <div className="flex-1">
-                  <div>{e.descricao}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(e.created_at).toLocaleString("pt-BR")}
-                    {e.usuario_id && <> • por {e.usuario_id.slice(0, 8)}</>}
+            {historico.map((e) => {
+              const sp = e.metadata?.storage_path as string | undefined;
+              return (
+                <div key={e.id} className="py-3 flex items-start gap-3 text-sm">
+                  <Badge variant={e.tipo === "comprovante_removido" ? "destructive" : "secondary"}>
+                    {e.tipo.replace("comprovante_", "")}
+                  </Badge>
+                  <div className="flex-1">
+                    <div>{e.descricao}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(e.created_at).toLocaleString("pt-BR")}
+                      {e.usuario_id && <> • por {e.usuario_id.slice(0, 8)}</>}
+                    </div>
                   </div>
+                  {sp && e.tipo !== "comprovante_removido" && (
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => abrirComprovante(sp)} title="Visualizar">
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => baixarComprovante(sp)} title="Baixar">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
