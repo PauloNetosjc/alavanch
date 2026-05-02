@@ -1212,10 +1212,13 @@ export default function ComercialNegociacao() {
       <SenhaAdminDialog
         open={openSenha} onOpenChange={setOpenSenha}
         percent={descPerc} limite={meuLimite}
-        onAuthorized={() => {
+        onAuthorized={(adminEmail) => {
           setAutorizadoPorGestor(true);
+          setAprovadorEmail(adminEmail);
           setDescPercAplicado(descPerc);
           setDescValorAplicado(descValor);
+          // registra na timeline
+          registrarAprovacao(adminEmail, descPerc, descValor);
         }}
       />
       <ResumoFinanceiroDialog
