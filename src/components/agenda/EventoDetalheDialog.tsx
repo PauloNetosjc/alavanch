@@ -109,14 +109,24 @@ export function EventoDetalheDialog({ open, onOpenChange, eventoId, onChanged }:
           </div>
 
           {cliente && (
-            <div className="rounded-md border p-2 bg-muted/20 text-[12px]">
-              <div className="flex items-center gap-2 font-medium">
-                <User className="w-3.5 h-3.5" /> Cliente
+            <div className="rounded-md border p-3 bg-muted/20 text-[12px] space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-medium text-[13px]">
+                  <User className="w-3.5 h-3.5" /> Cliente vinculado
+                </div>
+                <Link
+                  to={`/clientes?cliente=${cliente.id}`}
+                  className="text-primary text-[11px] underline font-medium"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Abrir perfil →
+                </Link>
               </div>
-              <div className="mt-1">{cliente.nome}</div>
-              {cliente.telefone && <div className="text-muted-foreground">{cliente.telefone}</div>}
-              {cliente.email && <div className="text-muted-foreground">{cliente.email}</div>}
-              <Link to="/clientes" className="text-primary text-[11px] underline">Ver perfil completo</Link>
+              <div className="font-semibold text-[13px]">{cliente.nome}</div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                {cliente.telefone && <span>📞 {cliente.telefone}</span>}
+                {cliente.email && <span>✉ {cliente.email}</span>}
+              </div>
             </div>
           )}
 
