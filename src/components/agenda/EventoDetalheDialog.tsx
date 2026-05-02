@@ -68,8 +68,17 @@ export function EventoDetalheDialog({ open, onOpenChange, eventoId, onChanged }:
   };
 
   const concluir = async () => {
-    await supabase.from("agenda_eventos" as any).update({ status: "concluido", concluido_em: new Date().toISOString() }).eq("id", evento.id);
-    toast.success("Evento concluído"); onChanged?.(); onOpenChange(false);
+    await supabase.from("agenda_eventos" as any).update({ status: "concluido", concluido_em: new Date().toISOString(), descricao: obs }).eq("id", evento.id);
+    // Salva no histórico do cliente
+    if (cliente?.id) {
+      const { data: c } = await supabase.from("clientes").select("observacoes").eq("id", cliente.id).maybeSingle();
+      const dateStr = new Date(evento.data + "T00:00:00").toLocaleDateString("pt-BR");
+      const tipoLbl = TIPO_LABEL[evento.tipo] || evento.tipo;
+      const linha = `[${dateStr}] ${tipoLbl} — ${evento.titulo}${obs ? `: ${obs}` : ""}`;
+      const novo = c?.observacoes ? `${c.observacoes}\n${linha}` : linha;
+      await supabase.from("clientes").update({ observacoes: novo }).eq("id", cliente.id);
+    }
+    toast.success("Evento concluído e registrado no histórico do cliente"); onChanged?.(); onOpenChange(false);
   };
   const cancelar = async () => {
     await supabase.from("agenda_eventos" as any).update({ status: "cancelado", cancelado_em: new Date().toISOString() }).eq("id", evento.id);
