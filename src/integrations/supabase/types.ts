@@ -1733,6 +1733,33 @@ export type Database = {
           },
         ]
       }
+      permissoes: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          modulo: string
+          perfil: string | null
+          user_id: string
+        }
+        Insert: {
+          acao?: string
+          created_at?: string
+          id?: string
+          modulo: string
+          perfil?: string | null
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          modulo?: string
+          perfil?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pipeline_estagios: {
         Row: {
           ativo: boolean | null
@@ -2022,6 +2049,10 @@ export type Database = {
     }
     Functions: {
       current_loja_id: { Args: never; Returns: string }
+      has_permission: {
+        Args: { _acao?: string; _modulo: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

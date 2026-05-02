@@ -33,6 +33,7 @@ import ExtratoConta from "@/pages/ExtratoConta";
 import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
 import AuditoriaParceiros from "@/pages/AuditoriaParceiros";
 import Parceiros from "@/pages/Parceiros";
+import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
 
@@ -87,11 +88,11 @@ const App = () => (
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
-              <Route path="/contas" element={<ContasCorrentes />} />
-              <Route path="/contas/:id/extrato" element={<ExtratoConta />} />
-              <Route path="/categorias-financeiras" element={<CategoriasFinanceiras />} />
-              <Route path="/auditoria-parceiros" element={<AuditoriaParceiros />} />
-              <Route path="/parceiros" element={<Parceiros />} />
+              <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
+              <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
+              <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
+              <Route path="/auditoria-parceiros" element={<RequirePermission modulo="auditoria_parceiros"><AuditoriaParceiros /></RequirePermission>} />
+              <Route path="/parceiros" element={<RequirePermission modulo="parceiros"><Parceiros /></RequirePermission>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

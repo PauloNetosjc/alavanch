@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FileDown, FileText } from "lucide-react";
 import { BRL, somarMovimento, saldoFinal, ultimasCompetencias } from "@/lib/financeiro";
+import { exportarCSV, exportarPDF, type LancRow } from "@/lib/exportFinanceiro";
 
 type Lanc = { id: string; tipo: string; valor: number; descricao: string | null;
   data_pagamento: string | null; data_vencimento: string | null; status: string | null;
@@ -103,13 +104,48 @@ export default function ExtratoConta() {
       </div>
 
       <div className="rounded-2xl border bg-card p-6 space-y-4">
-        <div>
-          <div className="text-sm font-medium mb-2">Filtrar por Tipo</div>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium mb-2">Filtrar por Tipo</div>
+            <div className="flex gap-2">
+              <button onClick={() => setFiltroTipo(filtroTipo === "entrada" ? "" : "entrada")}
+                className={`px-4 py-1.5 rounded-md text-sm ${filtroTipo === "entrada" ? "bg-emerald-600 text-white" : "bg-muted"}`}>Entradas (a receber)</button>
+              <button onClick={() => setFiltroTipo(filtroTipo === "saida" ? "" : "saida")}
+                className={`px-4 py-1.5 rounded-md text-sm ${filtroTipo === "saida" ? "bg-rose-600 text-white" : "bg-muted"}`}>Saídas (a pagar)</button>
+            </div>
+          </div>
           <div className="flex gap-2">
-            <button onClick={() => setFiltroTipo(filtroTipo === "entrada" ? "" : "entrada")}
-              className={`px-4 py-1.5 rounded-md text-sm ${filtroTipo === "entrada" ? "bg-emerald-600 text-white" : "bg-muted"}`}>Entradas</button>
-            <button onClick={() => setFiltroTipo(filtroTipo === "saida" ? "" : "saida")}
-              className={`px-4 py-1.5 rounded-md text-sm ${filtroTipo === "saida" ? "bg-rose-600 text-white" : "bg-muted"}`}>Saídas</button>
+            <Button variant="outline" size="sm" onClick={() => {
+              const rows: LancRow[] = lancsFiltrados.map((l) => ({
+                data: l.data_pagamento || l.data_vencimento || "",
+                descricao: l.descricao || "",
+                categoria: cats.find((c) => c.id === l.categoria_id)?.nome || "",
+                conta: conta?.nome || "",
+                tipo: l.tipo,
+                status: l.status || "",
+                valor: Number(l.valor || 0),
+              }));
+              exportarCSV(rows, `extrato-${conta?.nome || "conta"}-${compAtual.key}.csv`);
+            }}><FileDown className="w-4 h-4 mr-1" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              const rows: LancRow[] = lancsFiltrados.map((l) => ({
+                data: l.data_pagamento || l.data_vencimento || "",
+                descricao: l.descricao || "",
+                categoria: cats.find((c) => c.id === l.categoria_id)?.nome || "",
+                conta: conta?.nome || "",
+                tipo: l.tipo,
+                status: l.status || "",
+                valor: Number(l.valor || 0),
+              }));
+              const compLabel = new Date(compAtual.year, compAtual.month - 1, 1)
+                .toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+              exportarPDF(rows, `Extrato — ${conta?.nome || "Conta"}`, {
+                competencia: compLabel,
+                conta: conta?.nome,
+                categoria: cats.find((c) => c.id === filtroCat)?.nome,
+                tipo: filtroTipo || "todos",
+              }, `extrato-${conta?.nome || "conta"}-${compAtual.key}.pdf`);
+            }}><FileText className="w-4 h-4 mr-1" /> PDF</Button>
           </div>
         </div>
         <div>
