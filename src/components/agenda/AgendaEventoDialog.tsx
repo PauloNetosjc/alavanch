@@ -486,6 +486,30 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
 
+          {followupTipo && (
+            <div className="rounded-md border p-3 bg-primary/5 space-y-2">
+              <div className="text-[12px] font-medium">
+                Agendar também: {TIPO_LABEL[followupTipo]} <span className="text-destructive">*</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Para concluir o agendamento de {TIPO_LABEL[tipo]}, é obrigatório agendar a {TIPO_LABEL[followupTipo]} na sequência.
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label>Data</Label><Input type="date" value={followupData} onChange={(e) => setFollowupData(e.target.value)} /></div>
+                <div><Label>Hora início</Label><Input type="time" value={followupHora} onChange={(e) => setFollowupHora(e.target.value)} /></div>
+                <div><Label>Hora fim</Label><Input type="time" value={followupHoraFim} onChange={(e) => setFollowupHoraFim(e.target.value)} /></div>
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={followupEndereco} onChange={(e) => setFollowupEndereco(e.target.value)} placeholder="(opcional — usa o do evento principal se vazio)" />
+              </div>
+              <div>
+                <Label>Observações</Label>
+                <Textarea rows={2} value={followupDescricao} onChange={(e) => setFollowupDescricao(e.target.value)} />
+              </div>
+            </div>
+          )}
+
           {config && (
             <div className="text-[11px] text-muted-foreground">
               Regra: {(config.dias_semana || []).map((d: number) => ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d]).join(", ")}
