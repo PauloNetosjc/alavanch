@@ -102,28 +102,35 @@ export default function Relatorios() {
   const maxTopParc = topParceiros[0]?.total || 1;
 
   const TIPO_AGENDA_LABEL: Record<string, string> = {
-    apresentacao: "Apresentações",
+    apresentacao_comercial: "Apresentações",
     retorno: "Retornos",
     medicao_orcamento: "Medições de Orçamento",
     revisao_final: "Revisões",
     medicao_tecnica: "Medições Técnicas",
     entrega: "Entregas",
     montagem: "Montagens",
+    tarefa_interna: "Tarefas Internas",
   };
+
+  const [tiposSelecionados, setTiposSelecionados] = useState<string[]>(Object.keys(TIPO_AGENDA_LABEL));
 
   const agendasPorTipo = useMemo(() => {
     const map = new Map<string, number>();
     agendas.forEach((a) => {
       const k = a.tipo || "—";
+      if (!tiposSelecionados.includes(k)) return;
       map.set(k, (map.get(k) || 0) + 1);
     });
-    return Object.keys(TIPO_AGENDA_LABEL)
-      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k], total: map.get(k) || 0 }))
+    return tiposSelecionados
+      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k] || k, total: map.get(k) || 0 }))
       .sort((a, b) => b.total - a.total);
-  }, [agendas]);
+  }, [agendas, tiposSelecionados]);
 
-  const totalAgendas = agendas.length;
+  const totalAgendas = agendasPorTipo.reduce((s, a) => s + a.total, 0);
   const maxAgenda = agendasPorTipo[0]?.total || 1;
+
+  const toggleTipo = (k: string) =>
+    setTiposSelecionados((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
 
 
   return (
@@ -229,6 +236,24 @@ export default function Relatorios() {
           <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-primary/15 text-primary">
             {totalAgendas} no período
           </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {Object.entries(TIPO_AGENDA_LABEL).map(([k, label]) => {
+            const active = tiposSelecionados.includes(k);
+            return (
+              <button
+                key={k}
+                onClick={() => toggleTipo(k)}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
         {totalAgendas === 0 ? (
           <div className="text-[12px] text-muted-foreground text-center py-6">Nenhum agendamento no período.</div>
