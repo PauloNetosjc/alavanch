@@ -31,19 +31,22 @@ export default function Relatorios() {
       let qOrc = supabase.from("orcamentos").select("id, codigo, total, status, created_at, parceiro_id, cliente_id, loja_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido)");
       let qPed = supabase.from("pedidos").select("id, codigo, valor_total, status, created_at, cliente_id, loja_id");
       let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, valor_calculado, loja_id, parceiros(nome)");
+      let qAge = supabase.from("agenda_eventos" as any).select("id, tipo, data, status, loja_id");
 
       if (sinceISO) {
         qOrc = qOrc.gte("created_at", sinceISO);
         qPed = qPed.gte("created_at", sinceISO);
+        qAge = qAge.gte("data", sinceISO.slice(0, 10));
       }
       if (selectedLojaId) {
         qOrc = qOrc.eq("loja_id", selectedLojaId);
         qPed = qPed.eq("loja_id", selectedLojaId);
         qPar = qPar.eq("loja_id", selectedLojaId);
+        qAge = qAge.eq("loja_id", selectedLojaId);
       }
 
-      const [{ data: o }, { data: p }, { data: pc }] = await Promise.all([qOrc, qPed, qPar]);
-      setOrcs(o || []); setPedidos(p || []); setParceiros((pc as any[]) || []);
+      const [{ data: o }, { data: p }, { data: pc }, { data: ag }] = await Promise.all([qOrc, qPed, qPar, qAge]);
+      setOrcs(o || []); setPedidos(p || []); setParceiros((pc as any[]) || []); setAgendas((ag as any[]) || []);
       setLoading(false);
     })();
   }, [periodo, selectedLojaId]);
