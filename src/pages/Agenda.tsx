@@ -347,6 +347,12 @@ export default function Agenda() {
         defaultDate={defaultDate}
         onCreated={reload}
       />
+      <EventoDetalheDialog
+        open={openDetalhe}
+        onOpenChange={setOpenDetalhe}
+        eventoId={eventoSelId}
+        onChanged={reload}
+      />
     </div>
   );
 }
