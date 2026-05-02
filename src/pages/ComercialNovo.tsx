@@ -428,6 +428,8 @@ function DetalhamentoDialog({
 
 export default function ComercialNovo() {
   const navigate = useNavigate();
+  const { role } = usePermissions();
+  const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -453,6 +455,8 @@ export default function ComercialNovo() {
   const [importing, setImporting] = useState(false);
   const [ambEdit, setAmbEdit] = useState<Ambiente | null>(null);
   const [ambDetail, setAmbDetail] = useState<Ambiente | null>(null);
+  // arquivos importados pendentes de upload (após criação do orçamento)
+  const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
