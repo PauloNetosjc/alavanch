@@ -999,20 +999,22 @@ export default function ComercialNovo() {
                       <Label>Descrição</Label>
                       <Input value={mDescricao} onChange={(e) => setMDescricao(e.target.value)} placeholder="Opcional" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className={podeVerCusto ? "grid grid-cols-2 gap-3" : ""}>
                       <div>
                         <Label>Prazo (dias úteis)</Label>
                         <Input type="number" value={mPrazo} onChange={(e) => setMPrazo(e.target.value)} placeholder="Ex: 20 (0 ou vazio)" />
                       </div>
-                      <div>
-                        <Label>Custo de Aquisição</Label>
-                        <Input
-                          type="number" step="0.01"
-                          value={mCusto}
-                          onChange={(e) => setMCusto(e.target.value)}
-                          placeholder="R$ 0,00"
-                        />
-                      </div>
+                      {podeVerCusto && (
+                        <div>
+                          <Label>Custo de Aquisição</Label>
+                          <Input
+                            type="number" step="0.01"
+                            value={mCusto}
+                            onChange={(e) => setMCusto(e.target.value)}
+                            placeholder="R$ 0,00"
+                          />
+                        </div>
+                      )}
                     </div>
                     <Button onClick={addManualAmbiente} className="w-full">
                       <Plus className="w-4 h-4 mr-1.5" /> Adicionar
