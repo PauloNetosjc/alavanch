@@ -33,6 +33,7 @@ import ExtratoConta from "@/pages/ExtratoConta";
 import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
 import AuditoriaParceiros from "@/pages/AuditoriaParceiros";
 import Parceiros from "@/pages/Parceiros";
+import Financeiro from "@/pages/Financeiro";
 import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
+              <Route path="/financeiro" element={<RequirePermission modulo="lancamentos"><Financeiro /></RequirePermission>} />
               <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
               <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
               <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
