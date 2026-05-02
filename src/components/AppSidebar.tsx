@@ -66,7 +66,8 @@ const sections: Section[] = [
   {
     label: "Configuração",
     items: [
-      { label: "Administração", path: "/administracao", icon: Settings },
+      { label: "Configurações", path: "/configuracoes", icon: Settings },
+      { label: "Administração (Usuários)", path: "/administracao", icon: Users },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks },
     ],
   },
