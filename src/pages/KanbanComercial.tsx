@@ -48,14 +48,18 @@ export default function KanbanComercial() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: orcs }, { data: lj }, { data: pf }] = await Promise.all([
+    const [{ data: ests }, { data: orcs }, { data: lj }, { data: pf }, { data: peds }] = await Promise.all([
       supabase.from("crm_estagios").select("*").eq("ativo", true).order("ordem"),
       supabase.from("orcamentos").select("id, codigo, nome_projeto, total, created_at, estagio_id, status, vendedor_id, loja_id, cliente:clientes(nome)").order("created_at", { ascending: false }),
       supabase.from("lojas").select("id, nome").order("nome"),
       supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
+      supabase.from("pedidos").select("id, orcamento_id"),
     ]);
+    const pedidoMap = new Map<string, string>();
+    (peds ?? []).forEach((p: any) => { if (p.orcamento_id) pedidoMap.set(p.orcamento_id, p.id); });
+    const orcsWithPedido = (orcs ?? []).map((o: any) => ({ ...o, pedido_id: pedidoMap.get(o.id) ?? null }));
     setEstagios((ests ?? []) as Estagio[]);
-    setCards((orcs ?? []) as any);
+    setCards(orcsWithPedido as any);
     setLojas((lj ?? []) as any);
     setVendedores((pf ?? []) as any);
     setLoading(false);
