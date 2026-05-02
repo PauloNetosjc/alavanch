@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LojaProvider } from "@/contexts/LojaContext";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import { AppLayout } from "@/components/AppLayout";
 import Configuracoes from "@/pages/Configuracoes";
 import Login from "@/pages/Login";
@@ -70,6 +71,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <LojaProvider>
+          <BrandingProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/contrato/:token" element={<ContratoAssinar />} />
@@ -107,6 +109,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </BrandingProvider>
           </LojaProvider>
         </AuthProvider>
       </BrowserRouter>

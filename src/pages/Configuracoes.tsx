@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
+import { useBranding } from "@/contexts/BrandingContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ export default function Configuracoes() {
 function useConfig(lojaId: string | null) {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const branding = useBranding();
 
   useEffect(() => {
     if (!lojaId) { setConfig(null); setLoading(false); return; }
@@ -71,6 +73,7 @@ function useConfig(lojaId: string | null) {
       .select().maybeSingle();
     if (error) { toast.error(error.message); return; }
     setConfig(data);
+    branding.refresh();
     toast.success("Configurações salvas");
   };
 
@@ -201,13 +204,73 @@ function EmpresaTab() {
   const { selectedLojaId, lojas } = useLoja();
   const lojaId = selectedLojaId || lojas[0]?.id || null;
   const { config, setConfig, save, loading } = useConfig(lojaId);
+  const [uploading, setUploading] = useState(false);
   if (loading) return <div className="text-[12px] text-muted-foreground">Carregando…</div>;
   if (!config) return <div className="text-[12px] text-muted-foreground">Selecione uma loja.</div>;
   const c = config;
   const set = (k: string, v: any) => setConfig({ ...c, [k]: v });
 
+  const handleLogoUpload = async (file: File) => {
+    if (!lojaId) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Logo deve ter até 2MB"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `lojas/${lojaId}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
+      const url = pub.publicUrl;
+      set("logo_url", url);
+      await save({ ...c, logo_url: url });
+      toast.success("Logo atualizado");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao enviar logo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="surface-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center"><Building2 className="w-4 h-4 text-primary" /></div>
+          <div className="text-[15px] font-medium">Identidade Visual</div>
+        </div>
+        <div className="flex items-start gap-5">
+          <div
+            className="w-24 h-24 rounded-md flex items-center justify-center overflow-hidden bg-secondary shrink-0"
+            style={{ border: "0.5px solid hsl(var(--border))" }}
+          >
+            {c.logo_url ? (
+              <img src={c.logo_url} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <Building2 className="w-8 h-8 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex-1">
+            <Label>Logo da Empresa</Label>
+            <p className="text-[11px] text-muted-foreground mb-2">PNG, JPG ou SVG até 2MB. Aparece no menu lateral.</p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                disabled={uploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}
+                className="max-w-xs"
+              />
+              {c.logo_url && (
+                <Button variant="ghost" size="sm" onClick={() => { set("logo_url", null); save({ ...c, logo_url: null }); }}>
+                  Remover
+                </Button>
+              )}
+            </div>
+            {uploading && <div className="text-[11px] text-muted-foreground mt-2">Enviando…</div>}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="surface-card p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -215,7 +278,15 @@ function EmpresaTab() {
             <div className="text-[15px] font-medium">Dados Básicos</div>
           </div>
           <div className="space-y-3">
-            <div><Label>Nome da Empresa</Label><Input value={c.nome_empresa ?? ""} onChange={(e) => set("nome_empresa", e.target.value)} /></div>
+            <div><Label>Nome da Empresa (Razão Social)</Label><Input value={c.nome_empresa ?? ""} onChange={(e) => set("nome_empresa", e.target.value)} /></div>
+            <div>
+              <Label>Nome Fantasia</Label>
+              <Input
+                value={c.nome_fantasia ?? ""}
+                onChange={(e) => set("nome_fantasia", e.target.value)}
+                placeholder="Exibido no menu lateral"
+              />
+            </div>
             <div><Label>CNPJ</Label><Input value={c.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} /></div>
             <div><Label>Inscrição Estadual</Label><Input value={c.inscricao_estadual ?? ""} onChange={(e) => set("inscricao_estadual", e.target.value)} /></div>
             <div><Label>Endereço</Label><Input value={c.endereco ?? ""} onChange={(e) => set("endereco", e.target.value)} /></div>

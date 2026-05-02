@@ -595,11 +595,13 @@ export type Database = {
           id: string
           imp_saida_perc: number | null
           inscricao_estadual: string | null
+          logo_url: string | null
           loja_id: string
           markup_padrao: number | null
           montagem_perc: number | null
           mostrar_desconto_contrato: boolean | null
           nome_empresa: string | null
+          nome_fantasia: string | null
           outros_perc: number | null
           prazo_padrao_dias: number | null
           taxa_fixa_perc: number | null
@@ -625,11 +627,13 @@ export type Database = {
           id?: string
           imp_saida_perc?: number | null
           inscricao_estadual?: string | null
+          logo_url?: string | null
           loja_id: string
           markup_padrao?: number | null
           montagem_perc?: number | null
           mostrar_desconto_contrato?: boolean | null
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           outros_perc?: number | null
           prazo_padrao_dias?: number | null
           taxa_fixa_perc?: number | null
@@ -655,11 +659,13 @@ export type Database = {
           id?: string
           imp_saida_perc?: number | null
           inscricao_estadual?: string | null
+          logo_url?: string | null
           loja_id?: string
           markup_padrao?: number | null
           montagem_perc?: number | null
           mostrar_desconto_contrato?: boolean | null
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           outros_perc?: number | null
           prazo_padrao_dias?: number | null
           taxa_fixa_perc?: number | null
