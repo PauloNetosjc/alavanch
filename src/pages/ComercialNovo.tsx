@@ -889,7 +889,7 @@ export default function ComercialNovo() {
   return (
     <div className="grid grid-cols-12 gap-6">
       <div className="col-span-12 md:col-span-3">
-        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} />
+        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} />
       </div>
 
       <div className="col-span-12 md:col-span-9 space-y-6">
@@ -1342,7 +1342,7 @@ export default function ComercialNovo() {
                 className="bg-[#2D6BE5] hover:bg-[#2459C9]"
               >
                 <FileText className="w-4 h-4 mr-1.5" />
-                {saving ? "Salvando…" : "Salvar Orçamento"}
+                {saving ? "Salvando…" : (isEdit ? "Salvar Alterações" : "Salvar Orçamento")}
               </Button>
               <Button
                 onClick={() => finish(true)}
