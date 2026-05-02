@@ -124,26 +124,51 @@ export default function NotasFiscais() {
         </TabsContent>
 
         <TabsContent value="emitidas" className="mt-6">
-          <div className="surface-card">
-            <table className="w-full text-sm">
-              <thead className="text-[10px] uppercase tracking-wider text-muted-foreground border-b">
-                <tr><th className="text-left p-3">Tipo</th><th className="text-left p-3">Número</th><th className="text-left p-3">Status</th><th className="text-right p-3">Valor</th><th className="text-left p-3">Emitida em</th></tr>
-              </thead>
-              <tbody className="divide-y">
-                {notas.map((n) => (
-                  <tr key={n.id}>
-                    <td className="p-3 uppercase">{n.tipo}</td>
-                    <td className="p-3">{n.numero || "—"}</td>
-                    <td className="p-3"><StatusBadge status={n.status} /></td>
-                    <td className="p-3 text-right">{BRL(n.valor_total)}</td>
-                    <td className="p-3 text-xs text-muted-foreground">
-                      {n.data_emissao ? new Date(n.data_emissao).toLocaleString("pt-BR") : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {!notas.length && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma nota emitida.</td></tr>}
-              </tbody>
-            </table>
+          <div className="surface-card p-0 overflow-hidden">
+            {/* Mobile cards */}
+            <ul className="md:hidden divide-y">
+              {notas.map((n) => (
+                <li key={n.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{n.tipo}</div>
+                      <div className="font-medium text-[14px] mt-0.5">{n.numero || "—"}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        {n.data_emissao ? new Date(n.data_emissao).toLocaleString("pt-BR") : "—"}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-mono font-semibold text-[13px]">{BRL(n.valor_total)}</div>
+                      <div className="mt-1"><StatusBadge status={n.status} /></div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+              {!notas.length && <li className="p-8 text-center text-muted-foreground text-[12px]">Nenhuma nota emitida.</li>}
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-wider text-muted-foreground border-b">
+                  <tr><th className="text-left p-3">Tipo</th><th className="text-left p-3">Número</th><th className="text-left p-3">Status</th><th className="text-right p-3">Valor</th><th className="text-left p-3">Emitida em</th></tr>
+                </thead>
+                <tbody className="divide-y">
+                  {notas.map((n) => (
+                    <tr key={n.id}>
+                      <td className="p-3 uppercase">{n.tipo}</td>
+                      <td className="p-3">{n.numero || "—"}</td>
+                      <td className="p-3"><StatusBadge status={n.status} /></td>
+                      <td className="p-3 text-right">{BRL(n.valor_total)}</td>
+                      <td className="p-3 text-xs text-muted-foreground">
+                        {n.data_emissao ? new Date(n.data_emissao).toLocaleString("pt-BR") : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {!notas.length && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma nota emitida.</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
