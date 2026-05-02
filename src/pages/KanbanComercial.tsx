@@ -212,7 +212,7 @@ export default function KanbanComercial() {
                       onDragStart={(e) => onDragStart(e, c.id)}
                       onClick={() => {
                         if (c.pedido_id) navigate(`/pedidos/${c.pedido_id}`);
-                        else if (c.status === "negociacao" || c.status === "aprovado") navigate(`/comercial/${c.id}/negociar`);
+                        else if (c.status === "negociacao" || c.status === "aprovado") navigate(`/comercial/${c.id}/negociacao`);
                         else navigate(`/comercial/${c.id}`);
                       }}
                       className="bg-card border rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
