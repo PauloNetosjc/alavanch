@@ -578,6 +578,99 @@ export type Database = {
           },
         ]
       }
+      configuracoes_empresa: {
+        Row: {
+          cnpj: string | null
+          comissao_bronze_ate: number | null
+          comissao_bronze_perc: number | null
+          comissao_ouro_perc: number | null
+          comissao_prata_ate: number | null
+          comissao_prata_perc: number | null
+          created_at: string
+          desconto_maximo: number | null
+          email: string | null
+          endereco: string | null
+          frete_compra_perc: number | null
+          icms_compra_perc: number | null
+          id: string
+          imp_saida_perc: number | null
+          inscricao_estadual: string | null
+          loja_id: string
+          markup_padrao: number | null
+          montagem_perc: number | null
+          mostrar_desconto_contrato: boolean | null
+          nome_empresa: string | null
+          outros_perc: number | null
+          prazo_padrao_dias: number | null
+          taxa_fixa_perc: number | null
+          taxa_modo: string | null
+          taxa_responsavel: string | null
+          telefone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          comissao_bronze_ate?: number | null
+          comissao_bronze_perc?: number | null
+          comissao_ouro_perc?: number | null
+          comissao_prata_ate?: number | null
+          comissao_prata_perc?: number | null
+          created_at?: string
+          desconto_maximo?: number | null
+          email?: string | null
+          endereco?: string | null
+          frete_compra_perc?: number | null
+          icms_compra_perc?: number | null
+          id?: string
+          imp_saida_perc?: number | null
+          inscricao_estadual?: string | null
+          loja_id: string
+          markup_padrao?: number | null
+          montagem_perc?: number | null
+          mostrar_desconto_contrato?: boolean | null
+          nome_empresa?: string | null
+          outros_perc?: number | null
+          prazo_padrao_dias?: number | null
+          taxa_fixa_perc?: number | null
+          taxa_modo?: string | null
+          taxa_responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          comissao_bronze_ate?: number | null
+          comissao_bronze_perc?: number | null
+          comissao_ouro_perc?: number | null
+          comissao_prata_ate?: number | null
+          comissao_prata_perc?: number | null
+          created_at?: string
+          desconto_maximo?: number | null
+          email?: string | null
+          endereco?: string | null
+          frete_compra_perc?: number | null
+          icms_compra_perc?: number | null
+          id?: string
+          imp_saida_perc?: number | null
+          inscricao_estadual?: string | null
+          loja_id?: string
+          markup_padrao?: number | null
+          montagem_perc?: number | null
+          mostrar_desconto_contrato?: boolean | null
+          nome_empresa?: string | null
+          outros_perc?: number | null
+          prazo_padrao_dias?: number | null
+          taxa_fixa_perc?: number | null
+          taxa_modo?: string | null
+          taxa_responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
@@ -1015,6 +1108,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      metas_vendas: {
+        Row: {
+          ano: number
+          created_at: string
+          id: string
+          loja_id: string
+          mes: number
+          meta_valor: number
+          updated_at: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          id?: string
+          loja_id: string
+          mes: number
+          meta_valor?: number
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          id?: string
+          loja_id?: string
+          mes?: number
+          meta_valor?: number
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Relationships: []
       }
       metodos_pagamento: {
         Row: {
