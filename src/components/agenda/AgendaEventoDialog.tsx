@@ -123,7 +123,9 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setExcecao(false); setAutorizadorEmail(""); setAutorizadorSenha("");
     setExcecaoMotivo(""); setValidacaoErr("");
     setClienteId(""); setClienteNome(""); setClienteFone(""); setClienteBusca("");
-    setNovoCliente(defaultTipo === "apresentacao_comercial");
+    setNovoCliente(TIPOS_NOVO_CLIENTE.includes(defaultTipo));
+    setFollowupData(""); setFollowupHora("09:00"); setFollowupHoraFim("");
+    setFollowupEndereco(""); setFollowupDescricao("");
     setPedidoSelId(pedidoId || ""); setOrcamentoSelId(orcamentoId || "");
     setPedidosCliente([]); setOrcamentosCliente([]);
     setLojaEventoId(lojaCtxId || null);
