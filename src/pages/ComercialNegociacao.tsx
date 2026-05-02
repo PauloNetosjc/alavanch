@@ -447,9 +447,9 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
-          .select("id, metodo, valor, parcelas, data_vencimento")
+          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
           .eq("orcamento_id", id),
         supabase.auth.getUser(),
       ]);
@@ -458,7 +458,10 @@ export default function ComercialNegociacao() {
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
       setMetodos((m ?? []) as Metodo[]);
-      setPagamentos((pgs ?? []) as Pagamento[]);
+      setPagamentos(((pgs ?? []) as any).map((p: any) => ({
+        ...p,
+        parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
+      })));
 
       const ambIds = (amb ?? []).map((a: any) => a.id);
       if (ambIds.length) {
@@ -474,18 +477,20 @@ export default function ComercialNegociacao() {
       setDescPerc(dp); setDescValor(dv);
       setDescPercAplicado(dp); setDescValorAplicado(dv);
 
-      // limite do usuário
+      // limite do usuário (individual sobrepõe o do cargo)
       const userId = u?.user?.id;
       if (userId) {
-        const { data: roles } = await supabase
-          .from("user_roles").select("role").eq("user_id", userId);
-        const { data: regras } = await supabase
-          .from("regras_aprovacao").select("role, desconto_max_perc").eq("ativo", true);
+        const [{ data: roles }, { data: regras }, { data: prof }] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", userId),
+          supabase.from("regras_aprovacao").select("role, desconto_max_perc").eq("ativo", true),
+          supabase.from("profiles").select("desconto_max_perc").eq("user_id", userId).maybeSingle(),
+        ]);
         const meusRoles = (roles ?? []).map((r: any) => r.role);
-        const max = (regras ?? [])
+        const maxRole = (regras ?? [])
           .filter((r: Regra) => meusRoles.includes(r.role))
           .reduce((mx, r) => Math.max(mx, Number(r.desconto_max_perc) || 0), 0);
-        setMeuLimite(max);
+        const indiv = (prof as any)?.desconto_max_perc;
+        setMeuLimite(indiv != null ? Number(indiv) : maxRole);
       }
 
       // Template de contrato (loja atual ou padrão global)
