@@ -35,7 +35,7 @@ interface Props {
 
 export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, defaultTipo = "tarefa_interna", defaultDate, onCreated }: Props) {
   const { user } = useAuth();
-  const { lojaId } = useLoja() as any;
+  const { selectedLojaId: lojaId } = useLoja();
 
   const [tipo, setTipo] = useState<AgendaTipo>(defaultTipo);
   const [titulo, setTitulo] = useState("");
