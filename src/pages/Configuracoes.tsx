@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
+import { useBranding } from "@/contexts/BrandingContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ export default function Configuracoes() {
 function useConfig(lojaId: string | null) {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const branding = useBranding();
 
   useEffect(() => {
     if (!lojaId) { setConfig(null); setLoading(false); return; }
@@ -71,6 +73,7 @@ function useConfig(lojaId: string | null) {
       .select().maybeSingle();
     if (error) { toast.error(error.message); return; }
     setConfig(data);
+    branding.refresh();
     toast.success("Configurações salvas");
   };
 
