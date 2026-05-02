@@ -560,6 +560,18 @@ export default function ComercialNegociacao() {
     setDescValor(v);
     setDescPerc(baseDescontavel > 0 ? Number(((v / baseDescontavel) * 100).toFixed(2)) : 0);
   };
+  // Recalcula valores de desconto quando a base descontável mudar
+  // (ex.: usuário marcou/desmarcou "Desconto" em algum ambiente)
+  useEffect(() => {
+    if (descPerc > 0) {
+      setDescValor(Number((baseDescontavel * (descPerc / 100)).toFixed(2)));
+    }
+    if (descPercAplicado > 0) {
+      setDescValorAplicado(Number((baseDescontavel * (descPercAplicado / 100)).toFixed(2)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseDescontavel]);
+
   const acimaDoLimite = descPerc > meuLimite + 0.001;
 
   const registrarAprovacao = async (adminEmail: string, percUsado: number, valorUsado: number) => {
