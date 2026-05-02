@@ -507,21 +507,26 @@ export default function ComercialNegociacao() {
   }, [id]);
 
   /* --------------------------- derived --------------------------- */
-  const subtotalNegociavel = useMemo(
-    () => ambientes.filter((a) => a.negociavel !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+  // Apenas ambientes "incluídos" (negociavel !== false) entram no orçamento.
+  const ambientesIncluidos = useMemo(
+    () => ambientes.filter((a) => a.negociavel !== false),
     [ambientes],
   );
-  const subtotalFixo = useMemo(
-    () => ambientes.filter((a) => a.negociavel === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
-    [ambientes],
+  const subtotalComDesconto = useMemo(
+    () => ambientesIncluidos.filter((a) => a.aplicar_desconto !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientesIncluidos],
   );
-  const subtotalAmbientes = subtotalNegociavel + subtotalFixo;
+  const subtotalSemDesconto = useMemo(
+    () => ambientesIncluidos.filter((a) => a.aplicar_desconto === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientesIncluidos],
+  );
+  const subtotalAmbientes = subtotalComDesconto + subtotalSemDesconto;
   const parceiroPerc = Number(orc?.parceiro_perc) || 0;
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
-  // Desconto incide apenas sobre a parcela negociável (+ proporção do parceiro)
-  const baseNegociavelComParceiro = subtotalNegociavel + subtotalNegociavel * (parceiroPerc / 100);
-  const descValorEfetivo = Math.min(descValorAplicado, baseNegociavelComParceiro);
+  // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
+  const baseDescontavel = subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100);
+  const descValorEfetivo = Math.min(descValorAplicado, baseDescontavel);
   const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
