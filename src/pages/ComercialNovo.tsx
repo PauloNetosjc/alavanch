@@ -46,6 +46,7 @@ type Ambiente = {
   markup: number;            // multiplicador (ex: 2 = 2x o custo)
   itens: Item[];
   manual?: boolean;
+  aplicar_desconto?: boolean;  // se false, esse ambiente não recebe desconto na negociação
 };
 
 const fmtBrl = (n: number) =>
@@ -516,7 +517,7 @@ export default function ComercialNovo() {
 
       const { data: ambs } = await supabase
         .from("ambientes")
-        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto")
         .eq("orcamento_id", editId)
         .order("ordem");
       const ambIds = (ambs ?? []).map((a: any) => a.id);
@@ -544,6 +545,7 @@ export default function ComercialNovo() {
         preco_sugerido: Number(a.preco_sugerido) || 0,
         markup: Number(a.markup) || 0,
         itens: itensByAmb[a.id] || [],
+        aplicar_desconto: a.aplicar_desconto !== false,
       })));
     })();
   }, [editId, navigate]);
@@ -780,7 +782,8 @@ export default function ComercialNovo() {
           custo_aquisicao: a.custo_aquisicao,
           preco_sugerido: a.preco_sugerido,
           markup: a.markup,
-        })
+          aplicar_desconto: a.aplicar_desconto !== false,
+        } as any)
         .select("id")
         .single();
       if (amb && a.itens.length > 0) {
@@ -1129,6 +1132,7 @@ export default function ComercialNovo() {
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
                       {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
+                      <th className="text-center px-2 py-3 w-[90px]" title="Recebe desconto na negociação">Desconto</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
                   </thead>
@@ -1165,6 +1169,15 @@ export default function ComercialNovo() {
                               Custo: {fmtBrl(a.custo_aquisicao)}
                             </div>
                           )}
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={a.aplicar_desconto !== false}
+                              onCheckedChange={(v) => updateAmbiente(a.id, { aplicar_desconto: !!v })}
+                              title="Permitir desconto sobre este ambiente na negociação"
+                            />
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
