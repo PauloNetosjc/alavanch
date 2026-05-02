@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoja } from "@/contexts/LojaContext";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
 
@@ -37,6 +38,7 @@ interface Evento {
   responsavel_id: string;
   status: string;
   pedido_id: string | null;
+  loja_id: string | null;
   excecao: boolean;
 }
 
