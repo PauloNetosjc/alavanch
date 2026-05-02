@@ -4,7 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LojaProvider } from "@/contexts/LojaContext";
 import { AppLayout } from "@/components/AppLayout";
+import Configuracoes from "@/pages/Configuracoes";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 import Placeholder from "@/pages/Placeholder";
@@ -67,6 +69,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <LojaProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/contrato/:token" element={<ContratoAssinar />} />
@@ -91,6 +94,7 @@ const App = () => (
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/financeiro" element={<RequirePermission modulo="lancamentos"><Financeiro /></RequirePermission>} />
               <Route path="/financeiro/analise" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
               <Route path="/financeiro/analise/:id" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
@@ -103,6 +107,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </LojaProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

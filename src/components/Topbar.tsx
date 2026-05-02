@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { LojaSelector } from "@/components/LojaSelector";
 
 type Result = {
   id: string;
@@ -122,7 +123,10 @@ export function Topbar() {
         )}
       </div>
 
-      <NotificationsBell />
+      <div className="ml-3 flex items-center gap-2">
+        <LojaSelector />
+        <NotificationsBell />
+      </div>
     </header>
   );
 }
