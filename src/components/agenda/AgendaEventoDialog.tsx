@@ -239,7 +239,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         return "Data antes do prazo mínimo (" + prazo + " dias úteis após a base).";
     }
     return null;
-  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId, isApresentacao, exigeCliente, exigePedido, exigeOrcamento, exigeEndereco, pedidoSelId, orcamentoSelId]);
+  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId, permiteNovoCliente, exigeCliente, exigePedido, exigeOrcamento, exigeEndereco, pedidoSelId, orcamentoSelId, followupTipo, followupData, followupHora]);
 
   const handleSubmit = async () => {
     setSaving(true); setValidacaoErr("");
