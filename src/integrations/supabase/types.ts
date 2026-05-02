@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       ambientes: {
         Row: {
+          aplicar_desconto: boolean
           created_at: string
           custo_aquisicao: number | null
           custo_fabrica: number | null
@@ -31,6 +32,7 @@ export type Database = {
           preco_sugerido: number | null
         }
         Insert: {
+          aplicar_desconto?: boolean
           created_at?: string
           custo_aquisicao?: number | null
           custo_fabrica?: number | null
@@ -46,6 +48,7 @@ export type Database = {
           preco_sugerido?: number | null
         }
         Update: {
+          aplicar_desconto?: boolean
           created_at?: string
           custo_aquisicao?: number | null
           custo_fabrica?: number | null
@@ -2063,6 +2066,106 @@ export type Database = {
           },
         ]
       }
+      pedido_estagio_checklist: {
+        Row: {
+          concluido: boolean
+          concluido_em: string | null
+          created_at: string
+          descricao: string
+          estagio_id: string | null
+          id: string
+          ordem: number
+          pedido_id: string
+        }
+        Insert: {
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          descricao: string
+          estagio_id?: string | null
+          id?: string
+          ordem?: number
+          pedido_id: string
+        }
+        Update: {
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          descricao?: string
+          estagio_id?: string | null
+          id?: string
+          ordem?: number
+          pedido_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_estagio_checklist_estagio_id_fkey"
+            columns: ["estagio_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_estagio_checklist_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_estagio_historico: {
+        Row: {
+          created_at: string
+          estagio_anterior_id: string | null
+          estagio_id: string | null
+          id: string
+          observacao: string | null
+          pedido_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estagio_anterior_id?: string | null
+          estagio_id?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estagio_anterior_id?: string | null
+          estagio_id?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_estagio_historico_estagio_anterior_id_fkey"
+            columns: ["estagio_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_estagio_historico_estagio_id_fkey"
+            columns: ["estagio_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_estagio_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_itens_avulsos: {
         Row: {
           created_at: string
@@ -2209,6 +2312,10 @@ export type Database = {
           data_medicao_tecnica: string | null
           data_montagem: string | null
           data_vistoria: string | null
+          estagio_iniciado_em: string | null
+          estagio_operacional_id: string | null
+          estagio_prazo: string | null
+          estagio_responsavel_id: string | null
           id: string
           is_adendo: boolean | null
           loja_id: string | null
@@ -2233,6 +2340,10 @@ export type Database = {
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
+          estagio_iniciado_em?: string | null
+          estagio_operacional_id?: string | null
+          estagio_prazo?: string | null
+          estagio_responsavel_id?: string | null
           id?: string
           is_adendo?: boolean | null
           loja_id?: string | null
@@ -2257,6 +2368,10 @@ export type Database = {
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
+          estagio_iniciado_em?: string | null
+          estagio_operacional_id?: string | null
+          estagio_prazo?: string | null
+          estagio_responsavel_id?: string | null
           id?: string
           is_adendo?: boolean | null
           loja_id?: string | null
@@ -2276,6 +2391,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_operacional_id_fkey"
+            columns: ["estagio_operacional_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
             referencedColumns: ["id"]
           },
           {
