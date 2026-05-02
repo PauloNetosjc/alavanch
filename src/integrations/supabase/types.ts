@@ -124,6 +124,63 @@ export type Database = {
           },
         ]
       }
+      aprovacoes_desconto: {
+        Row: {
+          aprovador_email: string | null
+          aprovador_id: string | null
+          created_at: string
+          desconto_perc: number
+          desconto_valor: number
+          id: string
+          limite_solicitante: number | null
+          observacao: string | null
+          orcamento_id: string
+          pedido_id: string | null
+          solicitante_id: string | null
+        }
+        Insert: {
+          aprovador_email?: string | null
+          aprovador_id?: string | null
+          created_at?: string
+          desconto_perc: number
+          desconto_valor: number
+          id?: string
+          limite_solicitante?: number | null
+          observacao?: string | null
+          orcamento_id: string
+          pedido_id?: string | null
+          solicitante_id?: string | null
+        }
+        Update: {
+          aprovador_email?: string | null
+          aprovador_id?: string | null
+          created_at?: string
+          desconto_perc?: number
+          desconto_valor?: number
+          id?: string
+          limite_solicitante?: number | null
+          observacao?: string | null
+          orcamento_id?: string
+          pedido_id?: string | null
+          solicitante_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacoes_desconto_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacoes_desconto_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           assinatura_base64: string
@@ -1205,19 +1262,25 @@ export type Database = {
           ativo: boolean | null
           created_at: string
           id: string
+          max_parcelas: number
           nome: string
+          taxa_perc_parcela: number
         }
         Insert: {
           ativo?: boolean | null
           created_at?: string
           id?: string
+          max_parcelas?: number
           nome: string
+          taxa_perc_parcela?: number
         }
         Update: {
           ativo?: boolean | null
           created_at?: string
           id?: string
+          max_parcelas?: number
           nome?: string
+          taxa_perc_parcela?: number
         }
         Relationships: []
       }
@@ -1595,6 +1658,7 @@ export type Database = {
           metodo: string
           orcamento_id: string
           parcelas: number | null
+          parcelas_detalhe: Json | null
           valor: number
         }
         Insert: {
@@ -1604,6 +1668,7 @@ export type Database = {
           metodo: string
           orcamento_id: string
           parcelas?: number | null
+          parcelas_detalhe?: Json | null
           valor: number
         }
         Update: {
@@ -1613,6 +1678,7 @@ export type Database = {
           metodo?: string
           orcamento_id?: string
           parcelas?: number | null
+          parcelas_detalhe?: Json | null
           valor?: number
         }
         Relationships: [
@@ -2290,6 +2356,7 @@ export type Database = {
           ativo: boolean | null
           avatar_url: string | null
           created_at: string
+          desconto_max_perc: number | null
           id: string
           loja_id: string | null
           nome_completo: string | null
@@ -2301,6 +2368,7 @@ export type Database = {
           ativo?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
@@ -2312,6 +2380,7 @@ export type Database = {
           ativo?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
