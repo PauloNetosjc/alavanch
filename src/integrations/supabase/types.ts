@@ -1769,7 +1769,15 @@ export type Database = {
           pedido_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_chat_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedido_documentos: {
         Row: {
@@ -1823,7 +1831,22 @@ export type Database = {
           storage_path?: string
           tamanho?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_documentos_pasta_id_fkey"
+            columns: ["pasta_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_pastas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_documentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedido_pastas: {
         Row: {
@@ -1847,7 +1870,15 @@ export type Database = {
           ordem?: number | null
           pedido_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_pastas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedido_revisoes: {
         Row: {
@@ -1898,7 +1929,22 @@ export type Database = {
           variacao_perc?: number | null
           versao?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_revisoes_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "ambientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_revisoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedidos: {
         Row: {
@@ -2021,6 +2067,30 @@ export type Database = {
           modulo?: string
           perfil?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      permissoes_modulos_catalogo: {
+        Row: {
+          acao: string
+          created_at: string
+          descricao: string | null
+          id: string
+          modulo: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          modulo: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          modulo?: string
         }
         Relationships: []
       }
@@ -2324,6 +2394,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      loja_de_ambiente: { Args: { _ambiente_id: string }; Returns: string }
+      loja_de_assistencia: {
+        Args: { _assistencia_id: string }
+        Returns: string
+      }
+      loja_de_comissao: { Args: { _comissao_id: string }; Returns: string }
+      loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
+      loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
+      loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
+      pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "vendedor" | "montador"
