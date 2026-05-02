@@ -96,7 +96,23 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
     } else {
       setForm(empty);
     }
+    setTab("dados");
   }, [cliente, open]);
+
+  // Carrega histórico (agendas + pedidos) do cliente em edição
+  useEffect(() => {
+    if (!open || !cliente?.id) { setAgendas([]); setPedidos([]); return; }
+    (async () => {
+      const [{ data: ags }, { data: peds }] = await Promise.all([
+        supabase.from("agenda_eventos" as any).select("id, tipo, titulo, data, hora_inicio, status, endereco")
+          .eq("cliente_id", cliente.id).order("data", { ascending: false }).order("hora_inicio", { ascending: false }),
+        supabase.from("pedidos").select("id, codigo, status, valor_total, created_at")
+          .eq("cliente_id", cliente.id).order("created_at", { ascending: false }),
+      ]);
+      setAgendas((ags as any) || []);
+      setPedidos((peds as any) || []);
+    })();
+  }, [open, cliente?.id]);
 
   // Detecta CPF/CNPJ pela quantidade de dígitos automaticamente
   const maskDoc = (v: string) => (unmask(v).length > 11 ? maskCnpj(v) : maskCpf(v));
