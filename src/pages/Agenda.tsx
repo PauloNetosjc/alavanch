@@ -8,6 +8,7 @@ import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
 
 const TIPO_LABEL: Record<string, string> = {
+  apresentacao_comercial: "Apresentação",
   medicao_tecnica: "Medição",
   revisao_final: "Revisão",
   entrega: "Entrega",
@@ -16,6 +17,7 @@ const TIPO_LABEL: Record<string, string> = {
   tarefa_interna: "Tarefa",
 };
 const TIPO_COR: Record<string, string> = {
+  apresentacao_comercial: "bg-pink-500/15 text-pink-700 border-pink-300",
   medicao_tecnica: "bg-blue-500/15 text-blue-700 border-blue-300",
   revisao_final: "bg-purple-500/15 text-purple-700 border-purple-300",
   entrega: "bg-emerald-500/15 text-emerald-700 border-emerald-300",
