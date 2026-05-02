@@ -22,24 +22,28 @@ interface PageHeaderProps {
 export function PageHeader({ icon: Icon, iconVariant = "blue", title, subtitle, actions }: PageHeaderProps) {
   const s = styles[iconVariant];
   return (
-    <div className="flex items-start justify-between mb-6">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 sm:mb-6">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+          className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: s.bg, border: `1px solid ${s.border}` }}
         >
-          <Icon className="w-6 h-6" style={{ color: s.icon }} />
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: s.icon }} />
         </div>
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-none">
+        <div className="min-w-0">
+          <h1 className="text-[20px] sm:text-[28px] font-semibold tracking-tight text-foreground leading-tight truncate">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[13px] text-muted-foreground mt-1.5">{subtitle}</p>
+            <p className="text-[12px] sm:text-[13px] text-muted-foreground mt-1 sm:mt-1.5 line-clamp-2">{subtitle}</p>
           )}
         </div>
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:flex-1 sm:[&>*]:flex-initial">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -13,7 +13,7 @@ type Result = {
   path: string;
 };
 
-export function Topbar() {
+export function Topbar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
@@ -65,10 +65,19 @@ export function Topbar() {
 
   return (
     <header
-      className="h-14 flex items-center px-6 sticky top-0 z-30"
+      className="h-14 flex items-center px-3 sm:px-4 md:px-6 sticky top-0 z-30 gap-2"
       style={{ background: "hsl(var(--background))", borderBottom: "0.5px solid hsl(var(--border))" }}
     >
-      <div className="relative flex-1 max-w-2xl mx-auto">
+      {/* Mobile menu button */}
+      <button
+        onClick={onOpenMobileMenu}
+        className="md:hidden h-9 w-9 flex items-center justify-center rounded-md hover:bg-secondary shrink-0"
+        aria-label="Abrir menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      <div className="relative flex-1 max-w-2xl mx-auto min-w-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           ref={inputRef}
@@ -79,11 +88,11 @@ export function Topbar() {
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Buscar clientes, contratos, assistências…"
-          className="w-full h-9 pl-9 pr-16 rounded-md text-[13px] bg-card placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          placeholder="Buscar…"
+          className="w-full h-9 pl-9 pr-3 sm:pr-16 rounded-md text-[13px] bg-card placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           style={{ border: "0.5px solid hsl(var(--border))" }}
         />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 bg-secondary">
+        <kbd className="hidden sm:inline absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 bg-secondary">
           ⌘K
         </kbd>
 
@@ -123,7 +132,7 @@ export function Topbar() {
         )}
       </div>
 
-      <div className="ml-3 flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <LojaSelector />
         <NotificationsBell />
       </div>
