@@ -160,6 +160,14 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
     onOpenChange(false);
   };
 
+  const TIPO_LABEL: Record<string, string> = {
+    apresentacao_comercial: "Apresentação", medicao_tecnica: "Medição",
+    revisao_final: "Revisão", entrega: "Entrega", montagem: "Montagem",
+    assistencia_tecnica: "Assistência", tarefa_interna: "Tarefa",
+  };
+  const fmtBR = (d: string) => new Date(d + (d.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR");
+  const fmtMoney = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -167,76 +175,140 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
           <DialogTitle>{cliente ? "Editar cliente" : "Novo cliente"}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <Label>Nome <span className="text-destructive">*</span></Label>
-            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-          </div>
-          <div>
-            <Label>CPF / CNPJ {docTipo && <span className="text-muted-foreground text-xs">({docTipo})</span>}</Label>
-            <Input value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: maskDoc(e.target.value) })} />
-          </div>
-          <div>
-            <Label>Data nascimento</Label>
-            <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
-          </div>
-          <div>
-            <Label>E-mail <span className="text-destructive">*</span></Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <Label>Telefone <span className="text-destructive">*</span></Label>
-            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} />
-          </div>
-          <div className="col-span-2">
-            <Label>Telefone secundário</Label>
-            <Input value={form.telefone_secundario} onChange={(e) => setForm({ ...form, telefone_secundario: maskPhone(e.target.value) })} />
-          </div>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className={cliente ? "grid grid-cols-3 w-full" : "grid grid-cols-1 w-full"}>
+            <TabsTrigger value="dados">Dados</TabsTrigger>
+            {cliente && <TabsTrigger value="agendas">Agendamentos ({agendas.length})</TabsTrigger>}
+            {cliente && <TabsTrigger value="pedidos">Pedidos ({pedidos.length})</TabsTrigger>}
+          </TabsList>
 
-          <div>
-            <Label>Vendedor / Consultor</Label>
-            <Select value={form.vendedor_id || "none"} onValueChange={(v) => setForm({ ...form, vendedor_id: v === "none" ? "" : v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Nenhum —</SelectItem>
-                {vendedores.map((v) => <SelectItem key={v.user_id} value={v.user_id}>{v.nome_completo}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Origem do lead</Label>
-            <Select value={form.origem_id || "none"} onValueChange={(v) => setForm({ ...form, origem_id: v === "none" ? "" : v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Nenhuma —</SelectItem>
-                {origens.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2">
-            <Label>Indicador / Parceiro</Label>
-            <Select value={form.parceiro_id || "none"} onValueChange={(v) => setForm({ ...form, parceiro_id: v === "none" ? "" : v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Nenhum —</SelectItem>
-                {parceiros.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <TabsContent value="dados">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Nome <span className="text-destructive">*</span></Label>
+                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              </div>
+              <div>
+                <Label>CPF / CNPJ {docTipo && <span className="text-muted-foreground text-xs">({docTipo})</span>}</Label>
+                <Input value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: maskDoc(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Data nascimento</Label>
+                <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
+              </div>
+              <div>
+                <Label>E-mail <span className="text-destructive">*</span></Label>
+                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div>
+                <Label>Telefone <span className="text-destructive">*</span></Label>
+                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} />
+              </div>
+              <div className="col-span-2">
+                <Label>Telefone secundário</Label>
+                <Input value={form.telefone_secundario} onChange={(e) => setForm({ ...form, telefone_secundario: maskPhone(e.target.value) })} />
+              </div>
 
-          <div className="col-span-2">
-            <Label>Endereço de cobrança</Label>
-            <Textarea rows={2} value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <Label>Endereço de entrega</Label>
-            <Textarea rows={2} value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <Label>Observações</Label>
-            <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
-          </div>
-        </div>
+              <div>
+                <Label>Vendedor / Consultor</Label>
+                <Select value={form.vendedor_id || "none"} onValueChange={(v) => setForm({ ...form, vendedor_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhum —</SelectItem>
+                    {vendedores.map((v) => <SelectItem key={v.user_id} value={v.user_id}>{v.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Origem do lead</Label>
+                <Select value={form.origem_id || "none"} onValueChange={(v) => setForm({ ...form, origem_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhuma —</SelectItem>
+                    {origens.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label>Indicador / Parceiro</Label>
+                <Select value={form.parceiro_id || "none"} onValueChange={(v) => setForm({ ...form, parceiro_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhum —</SelectItem>
+                    {parceiros.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2">
+                <Label>Endereço de cobrança</Label>
+                <Textarea rows={2} value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <Label>Endereço de entrega</Label>
+                <Textarea rows={2} value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <Label>Observações</Label>
+                <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+              </div>
+            </div>
+          </TabsContent>
+
+          {cliente && (
+            <TabsContent value="agendas">
+              {agendas.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                  <CalendarDays className="w-8 h-8 opacity-40" />
+                  Nenhum agendamento registrado para este cliente.
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {agendas.map((a) => (
+                    <li key={a.id} className="py-2 flex items-start gap-3">
+                      <div className="text-[11px] text-center w-14 shrink-0">
+                        <div className="font-semibold">{fmtBR(a.data)}</div>
+                        <div className="text-muted-foreground">{a.hora_inicio?.slice(0, 5)}</div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium truncate">{a.titulo}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {TIPO_LABEL[a.tipo] || a.tipo} • <span className="capitalize">{a.status}</span>
+                          {a.endereco ? ` • ${a.endereco}` : ""}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+          )}
+
+          {cliente && (
+            <TabsContent value="pedidos">
+              {pedidos.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                  <FileText className="w-8 h-8 opacity-40" />
+                  Nenhum pedido registrado para este cliente.
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {pedidos.map((p) => (
+                    <li key={p.id} className="py-2 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium truncate">{p.codigo}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {fmtBR((p.created_at as string).slice(0, 10))} • <span className="capitalize">{p.status}</span>
+                        </div>
+                      </div>
+                      <div className="text-[13px] font-semibold">{fmtMoney(Number(p.valor_total))}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
