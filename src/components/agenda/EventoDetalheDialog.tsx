@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { CheckCircle2, XCircle, User } from "lucide-react";
+import { CheckCircle2, XCircle, User, Package } from "lucide-react";
 
 const TIPO_LABEL: Record<string, string> = {
   apresentacao_comercial: "Apresentação Comercial",
