@@ -41,6 +41,7 @@ import Financeiro from "@/pages/Financeiro";
 import AnaliseFinanceira from "@/pages/AnaliseFinanceira";
 import NotasFiscais from "@/pages/NotasFiscais";
 import Agenda from "@/pages/Agenda";
+import Autorizacoes from "@/pages/Autorizacoes";
 import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
