@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,12 +56,13 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
 function StepsCard({
-  step, setStep, canGoTo, summary,
+  step, setStep, canGoTo, summary, title,
 }: {
   step: number;
   setStep: (n: number) => void;
   canGoTo: (n: number) => boolean;
   summary: React.ReactNode;
+  title?: string;
 }) {
   const items = [
     { n: 1, label: "Cliente" },
@@ -70,7 +71,7 @@ function StepsCard({
   ];
   return (
     <div className="surface-card p-5 sticky top-4">
-      <div className="text-[18px] font-semibold mb-4">Novo Orçamento</div>
+      <div className="text-[18px] font-semibold mb-4">{title || "Novo Orçamento"}</div>
       <div className="space-y-2 mb-5">
         {items.map((it) => {
           const active = step === it.n;
@@ -428,10 +429,13 @@ function DetalhamentoDialog({
 
 export default function ComercialNovo() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEdit = !!editId;
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [orcCodigo, setOrcCodigo] = useState<string>("");
 
   // ---- catálogos ----
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -475,11 +479,64 @@ export default function ComercialNovo() {
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor = current user
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) setConsultorId(u.user.id);
+      // default consultor = current user (apenas em criação)
+      if (!isEdit) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) setConsultorId(u.user.id);
+      }
     })();
-  }, []);
+  }, [isEdit]);
+
+  /* ------------------------- load existing orçamento ---------------------- */
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      const { data: orc } = await supabase
+        .from("orcamentos")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id")
+        .eq("id", editId)
+        .maybeSingle();
+      if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
+      setOrcCodigo(orc.codigo || "");
+      setClienteId(orc.cliente_id || "");
+      setNomeProjeto(orc.nome_projeto || "");
+      setParceiroId(orc.parceiro_id || "");
+      setParceiroPerc(Number(orc.parceiro_perc) || 0);
+      setConsultorId(orc.consultor_id || "");
+
+      const { data: ambs } = await supabase
+        .from("ambientes")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem")
+        .eq("orcamento_id", editId)
+        .order("ordem");
+      const ambIds = (ambs ?? []).map((a: any) => a.id);
+      let itensByAmb: Record<string, Item[]> = {};
+      if (ambIds.length) {
+        const { data: subs } = await supabase
+          .from("sub_itens_ambiente")
+          .select("ambiente_id, descricao, quantidade, largura, altura, profundidade, custo_cliente, custo_loja, custo_fabrica, cor, categoria, codigo")
+          .in("ambiente_id", ambIds);
+        (subs ?? []).forEach((s: any) => {
+          (itensByAmb[s.ambiente_id] ||= []).push({
+            descricao: s.descricao, quantidade: s.quantidade,
+            largura: s.largura, altura: s.altura, profundidade: s.profundidade,
+            custo_cliente: Number(s.custo_cliente) || 0,
+            custo_loja: Number(s.custo_loja) || 0,
+            custo_fabrica: Number(s.custo_fabrica) || 0,
+            cor: s.cor, categoria: s.categoria, codigo: s.codigo,
+          });
+        });
+      }
+      setAmbientes((ambs ?? []).map((a: any) => ({
+        id: a.id, nome: a.nome, descricao: a.descricao || "",
+        prazo_dias: a.prazo_dias,
+        custo_aquisicao: Number(a.custo_aquisicao) || 0,
+        preco_sugerido: Number(a.preco_sugerido) || 0,
+        markup: Number(a.markup) || 0,
+        itens: itensByAmb[a.id] || [],
+      })));
+    })();
+  }, [editId, navigate]);
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
@@ -644,34 +701,58 @@ export default function ComercialNovo() {
   /* --------------------------------- finish ------------------------------- */
   const finish = async (goToNegociacao = false) => {
     setSaving(true);
-    const year = new Date().getFullYear();
-    const { count } = await supabase
-      .from("orcamentos")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", `${year}-01-01`);
-    const codigo = `ORC-${year}-${String((count ?? 0) + 1).padStart(4, "0")}`;
 
-    const { data: orc, error } = await supabase
-      .from("orcamentos")
-      .insert({
-        codigo,
-        cliente_id: clienteId,
-        nome_projeto: nomeProjeto || null,
-        parceiro_id: parceiroId || null,
-        parceiro_perc: parceiroPerc || 0,
-        consultor_id: consultorId || null,
-        subtotal: subtotalAmbientes,
-        desconto_perc: 0,
-        desconto_valor: 0,
-        total,
-        status: "negociacao",
-      })
-      .select("id")
-      .single();
+    let orcId = editId || "";
+    let codigo = orcCodigo;
 
-    if (error || !orc) {
-      setSaving(false);
-      return toast.error(error?.message ?? "Erro ao salvar");
+    if (isEdit && editId) {
+      const { error: upErr } = await supabase
+        .from("orcamentos")
+        .update({
+          cliente_id: clienteId,
+          nome_projeto: nomeProjeto || null,
+          parceiro_id: parceiroId || null,
+          parceiro_perc: parceiroPerc || 0,
+          consultor_id: consultorId || null,
+          subtotal: subtotalAmbientes,
+          total,
+        })
+        .eq("id", editId);
+      if (upErr) { setSaving(false); return toast.error(upErr.message); }
+
+      // Reset ambientes (cascade remove sub_itens via FK)
+      await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+    } else {
+      const year = new Date().getFullYear();
+      const { count } = await supabase
+        .from("orcamentos")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", `${year}-01-01`);
+      codigo = `ORC-${year}-${String((count ?? 0) + 1).padStart(4, "0")}`;
+
+      const { data: orc, error } = await supabase
+        .from("orcamentos")
+        .insert({
+          codigo,
+          cliente_id: clienteId,
+          nome_projeto: nomeProjeto || null,
+          parceiro_id: parceiroId || null,
+          parceiro_perc: parceiroPerc || 0,
+          consultor_id: consultorId || null,
+          subtotal: subtotalAmbientes,
+          desconto_perc: 0,
+          desconto_valor: 0,
+          total,
+          status: "negociacao",
+        })
+        .select("id")
+        .single();
+
+      if (error || !orc) {
+        setSaving(false);
+        return toast.error(error?.message ?? "Erro ao salvar");
+      }
+      orcId = orc.id;
     }
 
     for (let i = 0; i < ambientes.length; i++) {
@@ -679,7 +760,7 @@ export default function ComercialNovo() {
       const { data: amb } = await supabase
         .from("ambientes")
         .insert({
-          orcamento_id: orc.id,
+          orcamento_id: orcId,
           nome: a.nome,
           descricao: a.descricao || null,
           ordem: i,
@@ -716,11 +797,11 @@ export default function ComercialNovo() {
     if (arquivosImportados.length > 0) {
       const { data: u } = await supabase.auth.getUser();
       for (const { file, origem } of arquivosImportados) {
-        const path = `${orc.id}/${Date.now()}_${file.name}`;
+        const path = `${orcId}/${Date.now()}_${file.name}`;
         const { error: upErr } = await supabase.storage.from("orcamento-docs").upload(path, file);
         if (!upErr) {
           await supabase.from("orcamento_documentos" as any).insert({
-            orcamento_id: orc.id,
+            orcamento_id: orcId,
             nome: file.name,
             storage_path: path,
             tamanho: file.size,
@@ -730,12 +811,13 @@ export default function ComercialNovo() {
           });
         }
       }
+      setArquivosImportados([]);
     }
 
     setSaving(false);
-    toast.success(`Orçamento ${codigo} criado`);
-    if (goToNegociacao) navigate(`/comercial/${orc.id}/negociacao`);
-    else navigate(`/comercial/${orc.id}`);
+    toast.success(isEdit ? `Orçamento ${codigo || ""} atualizado` : `Orçamento ${codigo} criado`);
+    if (goToNegociacao) navigate(`/comercial/${orcId}/negociacao`);
+    else navigate(`/comercial`);
   };
 
   /* ------------------------------ summary side ---------------------------- */
@@ -807,7 +889,7 @@ export default function ComercialNovo() {
   return (
     <div className="grid grid-cols-12 gap-6">
       <div className="col-span-12 md:col-span-3">
-        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} />
+        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} />
       </div>
 
       <div className="col-span-12 md:col-span-9 space-y-6">
@@ -1260,7 +1342,7 @@ export default function ComercialNovo() {
                 className="bg-[#2D6BE5] hover:bg-[#2459C9]"
               >
                 <FileText className="w-4 h-4 mr-1.5" />
-                {saving ? "Salvando…" : "Salvar Orçamento"}
+                {saving ? "Salvando…" : (isEdit ? "Salvar Alterações" : "Salvar Orçamento")}
               </Button>
               <Button
                 onClick={() => finish(true)}
