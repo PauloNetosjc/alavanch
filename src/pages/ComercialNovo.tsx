@@ -933,11 +933,11 @@ export default function ComercialNovo() {
                 <div className="rounded-lg border border-border p-5">
                   <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
                     <Upload className="w-4 h-4 text-[#2D6BE5]" />
-                    Importar Promob (XML ou TXT)
+                    Importar projeto (TXT, XML ou Excel)
                   </div>
                   <label className="block border-2 border-dashed border-[#D6E4F5] rounded-lg py-10 px-4 cursor-pointer hover:bg-[#F8FAFD] transition text-center">
                     <input
-                      type="file" accept=".txt,.xml" className="hidden"
+                      type="file" accept=".txt,.xml,.xlsx,.xls" className="hidden"
                       onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                     />
                     <div className="w-12 h-12 rounded-full bg-[#EAF2FB] flex items-center justify-center mx-auto mb-3">
@@ -948,10 +948,10 @@ export default function ComercialNovo() {
                       )}
                     </div>
                     <div className="text-[14px] font-medium text-[#2D6BE5]">
-                      {importing ? "Processando…" : "Arraste ou clique para importar XML ou TXT do Promob"}
+                      {importing ? "Processando…" : "Arraste ou clique para importar TXT, XML ou Excel"}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Arquivos .xml ou .txt são aceitos
+                      .txt (Promob), .xml ou .xlsx
                     </div>
                   </label>
                 </div>
