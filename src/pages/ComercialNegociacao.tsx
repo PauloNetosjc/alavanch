@@ -665,6 +665,7 @@ export default function ComercialNegociacao() {
           valor: p.valor,
           parcelas: p.parcelas,
           data_vencimento: p.data_vencimento,
+          parcelas_detalhe: p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas ? p.parcelas_detalhe : null,
         })),
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
