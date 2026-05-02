@@ -550,13 +550,15 @@ export default function ComercialNegociacao() {
   }, [pagamentos, metodos]);
 
   /* ------------------------- handlers ------------------------- */
+  // Desconto incide APENAS sobre os ambientes marcados com "Aplicar desconto"
+  // (baseDescontavel = subtotal dos ambientes descontáveis + parceria proporcional)
   const onPercChange = (v: number) => {
     setDescPerc(v);
-    setDescValor(Number((valorInicial * (v / 100)).toFixed(2)));
+    setDescValor(Number((baseDescontavel * (v / 100)).toFixed(2)));
   };
   const onValorChange = (v: number) => {
     setDescValor(v);
-    setDescPerc(valorInicial > 0 ? Number(((v / valorInicial) * 100).toFixed(2)) : 0);
+    setDescPerc(baseDescontavel > 0 ? Number(((v / baseDescontavel) * 100).toFixed(2)) : 0);
   };
   const acimaDoLimite = descPerc > meuLimite + 0.001;
 
