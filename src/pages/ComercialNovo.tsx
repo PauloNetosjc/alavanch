@@ -1170,6 +1170,15 @@ export default function ComercialNovo() {
                             </div>
                           )}
                         </td>
+                        <td className="px-2 py-3 text-center">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={a.aplicar_desconto !== false}
+                              onCheckedChange={(v) => updateAmbiente(a.id, { aplicar_desconto: !!v })}
+                              title="Permitir desconto sobre este ambiente na negociação"
+                            />
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <Button
