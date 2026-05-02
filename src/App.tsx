@@ -17,7 +17,6 @@ import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
 import KanbanComercial from "@/pages/KanbanComercial";
 import ComercialNovo from "@/pages/ComercialNovo";
-import ComercialDetalhe from "@/pages/ComercialDetalhe";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
 import RadarPrazos from "@/pages/RadarPrazos";
@@ -86,8 +85,8 @@ const App = () => (
               <Route path="/comercial" element={<Comercial />} />
               <Route path="/comercial/kanban" element={<KanbanComercial />} />
               <Route path="/comercial/novo" element={<ComercialNovo />} />
-             <Route path="/comercial/:id" element={<ComercialDetalhe />} />
-             <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
+              <Route path="/comercial/:id" element={<ComercialNovo />} />
+              <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
               <Route path="/contratos/:id" element={<ContratoVisualizar />} />
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
