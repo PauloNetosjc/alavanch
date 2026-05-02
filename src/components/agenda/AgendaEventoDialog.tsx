@@ -318,7 +318,36 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       };
       const { error } = await supabase.from("agenda_eventos" as any).insert(payload);
       if (error) throw error;
-      toast.success("Evento agendado");
+
+      if (followupTipo) {
+        const followupTitulo = cliNomeFinal
+          ? `${TIPO_LABEL[followupTipo]} – ${cliNomeFinal}`
+          : TIPO_LABEL[followupTipo];
+        const followupPayload: any = {
+          pedido_id: pedidoSelId || pedidoId || null,
+          orcamento_id: orcamentoSelId || orcamentoId || null,
+          cliente_id: cliId,
+          loja_id: lojaEventoId,
+          tipo: followupTipo,
+          titulo: followupTitulo,
+          descricao: followupDescricao || null,
+          data: followupData,
+          hora_inicio: followupHora,
+          hora_fim: followupHoraFim || null,
+          endereco: followupEndereco || endereco || null,
+          responsavel_id: responsavelId,
+          excecao: false,
+          created_by: user?.id || null,
+        };
+        const { error: fErr } = await supabase.from("agenda_eventos" as any).insert(followupPayload);
+        if (fErr) {
+          toast.warning(`Evento principal criado, mas falhou ao agendar ${TIPO_LABEL[followupTipo]}: ${fErr.message}`);
+        } else {
+          toast.success(`Evento e ${TIPO_LABEL[followupTipo]} agendados`);
+        }
+      } else {
+        toast.success("Evento agendado");
+      }
       onCreated?.();
       onOpenChange(false);
     } catch (e: any) {
