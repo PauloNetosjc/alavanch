@@ -276,7 +276,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
 
       let cliId = clienteId || null;
       let cliNomeFinal = clienteNome;
-      if (isApresentacao && novoCliente && clienteNome.trim()) {
+      if (permiteNovoCliente && novoCliente && clienteNome.trim()) {
         const { data: novo, error: cErr } = await supabase
           .from("clientes")
           .insert({
