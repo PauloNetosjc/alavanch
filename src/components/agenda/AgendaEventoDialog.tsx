@@ -38,6 +38,13 @@ const TIPOS_ORCAMENTO: AgendaTipo[] = ["medicao_orcamento"];
 const TIPOS_COM_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", ...TIPOS_PEDIDO, ...TIPOS_ORCAMENTO];
 // Tipos que exigem endereço
 const TIPOS_COM_ENDERECO: AgendaTipo[] = ["medicao_tecnica", "revisao_final", "entrega", "montagem", "medicao_orcamento"];
+// Tipos que permitem cadastrar um cliente novo no próprio diálogo
+const TIPOS_NOVO_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", "medicao_orcamento"];
+// Map tipo principal → tipo do followup obrigatório
+const FOLLOWUP_TIPO: Partial<Record<AgendaTipo, AgendaTipo>> = {
+  medicao_orcamento: "apresentacao_comercial",
+  medicao_tecnica: "revisao_final",
+};
 
 interface Props {
   open: boolean;
