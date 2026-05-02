@@ -1132,6 +1132,7 @@ export default function ComercialNovo() {
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
                       {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
+                      <th className="text-center px-2 py-3 w-[90px]" title="Recebe desconto na negociação">Desconto</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
                   </thead>
