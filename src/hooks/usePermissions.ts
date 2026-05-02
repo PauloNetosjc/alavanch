@@ -23,7 +23,7 @@ export function usePermissions() {
         .from("permissoes" as any)
         .select("modulo,acao,perfil")
         .eq("user_id", user.id);
-      setPerms((data as Permissao[]) || []);
+      setPerms(((data as unknown) as Permissao[]) || []);
       setLoading(false);
     })();
   }, [user, role]);
