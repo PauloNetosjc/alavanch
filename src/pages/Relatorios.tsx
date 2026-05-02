@@ -249,6 +249,8 @@ export default function Relatorios() {
         )}
       </div>
 
+      <div className="surface-card p-5">
+        <div className="text-[14px] font-medium mb-4">Últimos Fechamentos</div>
         {loading ? (
           <div className="text-[12px] text-muted-foreground py-6 text-center">Carregando…</div>
         ) : ultimosFechamentos.length === 0 ? (
