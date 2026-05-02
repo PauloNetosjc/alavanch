@@ -620,7 +620,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
               )}
-              <a href={supabase.storage.from("pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+              <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
               <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
