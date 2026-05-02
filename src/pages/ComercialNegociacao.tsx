@@ -197,23 +197,28 @@ function ResumoFinanceiroDialog({
             <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
             <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
             <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
-            {parceiroNome && (
+            {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
                 value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
             )}
-            <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />
-            <div>
-              <div className="text-[12px] text-muted-foreground">Markup Médio</div>
-              <div className="text-[20px] font-semibold text-emerald-600">{markup.toFixed(2)}x</div>
-            </div>
-            <div className="border-t border-border pt-2">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Cálculo:</div>
-              <div className="text-[12px] text-muted-foreground">VPL ÷ Custo Base = Markup</div>
-              <div className="text-[12px] text-muted-foreground">{fmtBrl(totalVPL)} ÷ {fmtBrl(custoFabrica)} = {markup.toFixed(2)}x</div>
-            </div>
+            {podeVerCusto && <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />}
+            {podeVerMarkup && (
+              <>
+                <div>
+                  <div className="text-[12px] text-muted-foreground">Markup Médio</div>
+                  <div className="text-[20px] font-semibold text-emerald-600">{markup.toFixed(2)}x</div>
+                </div>
+                <div className="border-t border-border pt-2">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Cálculo:</div>
+                  <div className="text-[12px] text-muted-foreground">VPL ÷ Custo Base = Markup</div>
+                  <div className="text-[12px] text-muted-foreground">{fmtBrl(totalVPL)} ÷ {fmtBrl(custoFabrica)} = {markup.toFixed(2)}x</div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* COMPOSIÇÃO DE CUSTOS */}
+          {podeVerCusto && (
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
@@ -227,6 +232,7 @@ function ResumoFinanceiroDialog({
               <span className="text-mono">{fmtBrl(totalCustos)}</span>
             </div>
           </div>
+          )}
 
           {/* RESULTADO */}
           <div className="space-y-4">
