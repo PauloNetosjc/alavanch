@@ -18,7 +18,7 @@ const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", cur
 
 export default function Configuracoes() {
   const { role } = useAuth();
-  if (role !== "admin") return <Navigate to="/dashboard" replace />;
+  if (role !== "admin" && role !== "diretor") return <Navigate to="/dashboard" replace />;
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
