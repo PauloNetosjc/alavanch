@@ -213,16 +213,21 @@ export default function Agenda() {
               const isToday = key === fmtKey(new Date());
               const evs = porDia.get(key) || [];
               return (
-                <div key={key} className={`min-h-[110px] border-b border-r p-1.5 ${sameMonth ? "bg-card" : "bg-muted/30"}`}>
+                <div
+                  key={key}
+                  onClick={() => { setCursor(d); setView("week"); }}
+                  className={`min-h-[110px] border-b border-r p-1.5 cursor-pointer hover:bg-accent/30 transition ${sameMonth ? "bg-card" : "bg-muted/30"}`}
+                  title="Abrir semana deste dia"
+                >
                   <div className="flex items-center justify-between">
                     <span className={`text-[11px] ${isToday ? "font-bold text-primary" : "text-muted-foreground"}`}>{d.getDate()}</span>
-                    <button onClick={() => { setDefaultDate(key); setOpenNovo(true); }} className="opacity-30 hover:opacity-100" title="Adicionar">
+                    <button onClick={(ev) => { ev.stopPropagation(); setDefaultDate(key); setOpenNovo(true); }} className="opacity-30 hover:opacity-100" title="Adicionar">
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
                   <div className="mt-1 space-y-0.5">
                     {evs.slice(0, 3).map((e) => (
-                      <button key={e.id} onClick={() => abrirEvento(e.id)}
+                      <button key={e.id} onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
                         className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border truncate hover:opacity-80 ${TIPO_COR[e.tipo]}`} title={e.titulo}>
                         {e.hora_inicio?.slice(0, 5)} {e.titulo}
                       </button>
