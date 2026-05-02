@@ -223,20 +223,33 @@ export default function AuditoriaParceiros() {
             {historico.length === 0 && (
               <div className="text-center text-muted-foreground py-10">Nenhum evento registrado.</div>
             )}
-            {historico.map((e) => (
-              <div key={e.id} className="py-3 flex items-start gap-3 text-sm">
-                <Badge variant={e.tipo === "comprovante_removido" ? "destructive" : "secondary"}>
-                  {e.tipo.replace("comprovante_", "")}
-                </Badge>
-                <div className="flex-1">
-                  <div>{e.descricao}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(e.created_at).toLocaleString("pt-BR")}
-                    {e.usuario_id && <> • por {e.usuario_id.slice(0, 8)}</>}
+            {historico.map((e) => {
+              const sp = e.metadata?.storage_path as string | undefined;
+              return (
+                <div key={e.id} className="py-3 flex items-start gap-3 text-sm">
+                  <Badge variant={e.tipo === "comprovante_removido" ? "destructive" : "secondary"}>
+                    {e.tipo.replace("comprovante_", "")}
+                  </Badge>
+                  <div className="flex-1">
+                    <div>{e.descricao}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(e.created_at).toLocaleString("pt-BR")}
+                      {e.usuario_id && <> • por {e.usuario_id.slice(0, 8)}</>}
+                    </div>
                   </div>
+                  {sp && e.tipo !== "comprovante_removido" && (
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => abrirComprovante(sp)} title="Visualizar">
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => baixarComprovante(sp)} title="Baixar">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
