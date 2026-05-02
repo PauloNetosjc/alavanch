@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
+import { EventoDetalheDialog } from "@/components/agenda/EventoDetalheDialog";
 
 const TIPO_LABEL: Record<string, string> = {
   apresentacao_comercial: "Apresentação",
@@ -60,6 +61,9 @@ export default function Agenda() {
   const [filtroLoja, setFiltroLoja] = useState<string>("all"); // só admin/diretor
   const [openNovo, setOpenNovo] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
+  const [openDetalhe, setOpenDetalhe] = useState(false);
+  const [eventoSelId, setEventoSelId] = useState<string | null>(null);
+  const abrirEvento = (id: string) => { setEventoSelId(id); setOpenDetalhe(true); };
 
   // intervalo visível
   const range = useMemo(() => {
@@ -212,9 +216,10 @@ export default function Agenda() {
                   </div>
                   <div className="mt-1 space-y-0.5">
                     {evs.slice(0, 3).map((e) => (
-                      <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded border truncate ${TIPO_COR[e.tipo]}`} title={e.titulo}>
+                      <button key={e.id} onClick={() => abrirEvento(e.id)}
+                        className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border truncate hover:opacity-80 ${TIPO_COR[e.tipo]}`} title={e.titulo}>
                         {e.hora_inicio?.slice(0, 5)} {e.titulo}
-                      </div>
+                      </button>
                     ))}
                     {evs.length > 3 && <div className="text-[10px] text-muted-foreground">+{evs.length - 3} mais</div>}
                   </div>
@@ -302,7 +307,8 @@ export default function Agenda() {
                           return (
                             <div
                               key={e.id}
-                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
+                              onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
+                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm cursor-pointer hover:shadow-md ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
                               style={{ top, height }}
                               title={`${e.titulo} (${e.hora_inicio?.slice(0,5)}${e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""})`}
                             >
@@ -340,6 +346,12 @@ export default function Agenda() {
         onOpenChange={setOpenNovo}
         defaultDate={defaultDate}
         onCreated={reload}
+      />
+      <EventoDetalheDialog
+        open={openDetalhe}
+        onOpenChange={setOpenDetalhe}
+        eventoId={eventoSelId}
+        onChanged={reload}
       />
     </div>
   );

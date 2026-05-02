@@ -59,6 +59,7 @@ export type Database = {
       agenda_eventos: {
         Row: {
           cancelado_em: string | null
+          cliente_id: string | null
           concluido_em: string | null
           created_at: string
           created_by: string | null
@@ -82,6 +83,7 @@ export type Database = {
         }
         Insert: {
           cancelado_em?: string | null
+          cliente_id?: string | null
           concluido_em?: string | null
           created_at?: string
           created_by?: string | null
@@ -105,6 +107,7 @@ export type Database = {
         }
         Update: {
           cancelado_em?: string | null
+          cliente_id?: string | null
           concluido_em?: string | null
           created_at?: string
           created_by?: string | null
@@ -126,7 +129,15 @@ export type Database = {
           titulo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agenda_eventos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agenda_excecao_autorizadores: {
         Row: {
