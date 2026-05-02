@@ -98,6 +98,19 @@ export default function Clientes() {
     load();
   }, []);
 
+  // Auto-abrir cliente vindo de ?cliente=<id> (ex: link a partir da agenda)
+  useEffect(() => {
+    if (loading || clientes.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("cliente");
+    if (!id) return;
+    const found = clientes.find((c) => c.id === id);
+    if (found) {
+      setEditing(found);
+      setDialogOpen(true);
+    }
+  }, [loading, clientes]);
+
   const totalClientes = clientes.length;
   const clientesAtivos = useMemo(() => clientes.filter((c) => c.ativo !== false).length, [clientes]);
 
