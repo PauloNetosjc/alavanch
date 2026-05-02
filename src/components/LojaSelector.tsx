@@ -57,8 +57,6 @@ export function LojaSelector() {
 
   const showSearch = lojas.length > 6;
 
-  const showSearch = lojas.length > 6;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
