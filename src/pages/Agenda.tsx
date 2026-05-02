@@ -177,6 +177,16 @@ export default function Agenda() {
             {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        {isAdminOuDiretor && (
+          <Select value={filtroLoja} onValueChange={setFiltroLoja}>
+            <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as lojas</SelectItem>
+              <SelectItem value="__global__">Eventos gerais</SelectItem>
+              {lojas.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {view === "month" ? (
