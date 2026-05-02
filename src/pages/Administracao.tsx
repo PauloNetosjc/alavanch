@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings, Percent, ShieldCheck, Save, Building2, Users, Banknote,
-  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2,
+  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
 import { PermissoesAdmin } from "@/components/PermissoesAdmin";
+import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
