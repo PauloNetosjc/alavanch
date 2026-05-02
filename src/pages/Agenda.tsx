@@ -224,41 +224,115 @@ export default function Agenda() {
           </div>
         </div>
       ) : (
-        <div className="surface-card overflow-hidden">
-          <div className="grid grid-cols-7 border-b">
-            {weekDays.map((d) => (
-              <div key={fmtKey(d)} className="p-2 text-center border-r">
-                <div className="text-[10px] uppercase text-muted-foreground">{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.getDay()]}</div>
-                <div className="text-[14px] font-semibold">{d.getDate()}</div>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 min-h-[400px]">
-            {weekDays.map((d) => {
-              const key = fmtKey(d);
-              const evs = porDia.get(key) || [];
-              return (
-                <div key={key} className="border-r p-2 space-y-1">
-                  {evs.length === 0 && <div className="text-[10px] text-muted-foreground italic">—</div>}
-                  {evs.map((e) => (
-                    <div key={e.id} className={`text-[11px] p-1.5 rounded border ${TIPO_COR[e.tipo]}`}>
-                      <div className="font-semibold">{e.hora_inicio?.slice(0,5)} {TIPO_LABEL[e.tipo]}</div>
-                      <div className="truncate">{e.titulo}</div>
-                      {e.endereco && <div className="text-[10px] truncate opacity-80">{e.endereco}</div>}
-                      {e.excecao && <div className="text-[9px] uppercase tracking-wide font-bold">Exceção</div>}
-                      {e.status === "agendado" && (
-                        <div className="flex gap-1 mt-1">
-                          <button onClick={() => concluir(e.id)} className="text-[10px] underline">Concluir</button>
-                          <button onClick={() => cancelar(e.id)} className="text-[10px] underline opacity-70">Cancelar</button>
-                        </div>
-                      )}
+        // Visão semanal estilo Google Agenda: grade horária com slots de 1h
+        (() => {
+          const HOUR_START = 7;   // 07:00
+          const HOUR_END = 22;    // 22:00
+          const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+          const SLOT_PX = 56;     // altura de uma hora
+          const todayKey = fmtKey(new Date());
+
+          const parseHM = (h: string) => {
+            const [hh, mm] = (h || "00:00").split(":").map(Number);
+            return hh + (mm || 0) / 60;
+          };
+          const eventTop = (h: string) => (parseHM(h) - HOUR_START) * SLOT_PX;
+          const eventHeight = (ini: string, fim: string | null) => {
+            const a = parseHM(ini);
+            const b = fim ? parseHM(fim) : a + 1; // default 1h
+            return Math.max(24, (b - a) * SLOT_PX);
+          };
+
+          return (
+            <div className="surface-card overflow-hidden">
+              {/* cabeçalho dos dias */}
+              <div className="grid border-b sticky top-0 bg-card z-10" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
+                <div className="border-r" />
+                {weekDays.map((d) => {
+                  const isToday = fmtKey(d) === todayKey;
+                  return (
+                    <div key={fmtKey(d)} className={`p-2 text-center border-r ${isToday ? "bg-primary/5" : ""}`}>
+                      <div className="text-[10px] uppercase text-muted-foreground">
+                        {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.getDay()]}
+                      </div>
+                      <div className={`text-[18px] font-semibold ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+
+              {/* corpo: coluna de horas + 7 colunas de dias */}
+              <div className="overflow-auto max-h-[calc(100vh-300px)]">
+                <div className="grid relative" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
+                  {/* coluna de horários */}
+                  <div className="border-r">
+                    {HOURS.map((h) => (
+                      <div key={h} style={{ height: SLOT_PX }} className="text-[10px] text-muted-foreground text-right pr-1.5 -mt-1.5">
+                        {String(h).padStart(2, "0")}:00
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* colunas dos dias */}
+                  {weekDays.map((d) => {
+                    const key = fmtKey(d);
+                    const evs = porDia.get(key) || [];
+                    const isToday = key === todayKey;
+                    return (
+                      <div key={key} className={`border-r relative ${isToday ? "bg-primary/[0.03]" : ""}`}>
+                        {/* linhas de hora */}
+                        {HOURS.map((h) => (
+                          <button
+                            key={h}
+                            onClick={() => {
+                              setDefaultDate(key);
+                              setOpenNovo(true);
+                            }}
+                            className="block w-full border-b border-dashed border-border/60 hover:bg-muted/40 transition"
+                            style={{ height: SLOT_PX }}
+                            title={`Adicionar evento às ${String(h).padStart(2, "0")}:00`}
+                          />
+                        ))}
+
+                        {/* eventos posicionados absolutamente */}
+                        {evs.map((e) => {
+                          const top = eventTop(e.hora_inicio);
+                          const height = eventHeight(e.hora_inicio, e.hora_fim);
+                          if (top < 0 || top > (HOUR_END - HOUR_START) * SLOT_PX) return null;
+                          return (
+                            <div
+                              key={e.id}
+                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
+                              style={{ top, height }}
+                              title={`${e.titulo} (${e.hora_inicio?.slice(0,5)}${e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""})`}
+                            >
+                              <div className="font-semibold truncate">
+                                {e.hora_inicio?.slice(0,5)} {TIPO_LABEL[e.tipo]}
+                              </div>
+                              <div className="truncate">{e.titulo}</div>
+                              {height > 60 && e.endereco && (
+                                <div className="truncate opacity-80">{e.endereco}</div>
+                              )}
+                              {e.excecao && (
+                                <div className="text-[9px] uppercase tracking-wide font-bold mt-0.5">Exceção</div>
+                              )}
+                              {e.status === "agendado" && height > 70 && (
+                                <div className="flex gap-2 mt-0.5">
+                                  <button onClick={(ev) => { ev.stopPropagation(); concluir(e.id); }} className="text-[10px] underline">Concluir</button>
+                                  <button onClick={(ev) => { ev.stopPropagation(); cancelar(e.id); }} className="text-[10px] underline opacity-70">Cancelar</button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            </div>
+          );
+        })()
       )}
 
       <AgendaEventoDialog

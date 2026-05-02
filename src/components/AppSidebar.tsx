@@ -18,13 +18,14 @@ import {
   ClipboardCheck,
   Building2,
   CalendarDays,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
 import { usePermissions } from "@/hooks/usePermissions";
 
-type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string };
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[] };
 type Section = { label: string; items: Item[] };
 
 const sections: Section[] = [
@@ -72,6 +73,7 @@ const sections: Section[] = [
     label: "Configuração",
     items: [
       { label: "Configurações", path: "/configuracoes", icon: Settings },
+      { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks },
     ],
@@ -86,7 +88,11 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const visibleSections = sections
     .map((s) => ({
       ...s,
-      items: s.items.filter((it) => !it.modulo || can(it.modulo, "view")),
+      items: s.items.filter((it) => {
+        if (it.modulo && !can(it.modulo, "view")) return false;
+        if (it.roles && !it.roles.includes(role || "")) return false;
+        return true;
+      }),
     }))
     .filter((s) => s.items.length > 0);
 
