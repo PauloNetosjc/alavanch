@@ -46,6 +46,7 @@ type Ambiente = {
   markup: number;            // multiplicador (ex: 2 = 2x o custo)
   itens: Item[];
   manual?: boolean;
+  aplicar_desconto?: boolean;  // se false, esse ambiente não recebe desconto na negociação
 };
 
 const fmtBrl = (n: number) =>
