@@ -200,7 +200,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     if (!data || !hora) return "Informe data e hora.";
     if (!responsavelId) return "Escolha um responsável.";
     if (exigeCliente) {
-      if (isApresentacao && novoCliente) {
+      if (permiteNovoCliente && novoCliente) {
         if (!clienteNome.trim()) return "Informe o nome do cliente.";
         if (!unmask(clienteFone)) return "Informe o telefone do cliente.";
       } else if (!clienteId) {
@@ -210,6 +210,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     if (exigePedido && !pedidoSelId) return "Selecione um pedido do cliente.";
     if (exigeOrcamento && !orcamentoSelId) return "Selecione um orçamento do cliente.";
     if (exigeEndereco && !endereco.trim()) return "Endereço é obrigatório para este tipo de evento.";
+    if (followupTipo) {
+      if (!followupData || !followupHora) return `É necessário agendar também a ${TIPO_LABEL[followupTipo]} na sequência.`;
+      if (followupData < data) return `A ${TIPO_LABEL[followupTipo]} deve ser na mesma data ou após a ${TIPO_LABEL[tipo]}.`;
+    }
 
     if (!config) return null;
     const dt = new Date(data + "T00:00:00");
