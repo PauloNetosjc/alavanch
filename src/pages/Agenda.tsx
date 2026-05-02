@@ -11,7 +11,9 @@ import { EventoDetalheDialog } from "@/components/agenda/EventoDetalheDialog";
 
 const TIPO_LABEL: Record<string, string> = {
   apresentacao_comercial: "Apresentação",
-  medicao_tecnica: "Medição",
+  retorno: "Retorno",
+  medicao_orcamento: "Medição de Orçamento",
+  medicao_tecnica: "Medição Técnica",
   revisao_final: "Revisão",
   entrega: "Entrega",
   montagem: "Montagem",
@@ -20,6 +22,8 @@ const TIPO_LABEL: Record<string, string> = {
 };
 const TIPO_COR: Record<string, string> = {
   apresentacao_comercial: "bg-pink-500/15 text-pink-700 border-pink-300",
+  retorno: "bg-cyan-500/15 text-cyan-700 border-cyan-300",
+  medicao_orcamento: "bg-indigo-500/15 text-indigo-700 border-indigo-300",
   medicao_tecnica: "bg-blue-500/15 text-blue-700 border-blue-300",
   revisao_final: "bg-purple-500/15 text-purple-700 border-purple-300",
   entrega: "bg-emerald-500/15 text-emerald-700 border-emerald-300",
