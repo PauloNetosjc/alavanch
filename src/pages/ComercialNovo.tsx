@@ -493,10 +493,20 @@ export default function ComercialNovo() {
     (async () => {
       const { data: orc } = await supabase
         .from("orcamentos")
-        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo")
         .eq("id", editId)
         .maybeSingle();
       if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
+      // Bloqueia edição de orçamento que já virou pedido (exceto adendos)
+      if (!(orc as any).is_adendo) {
+        const { data: pedidoExistente } = await supabase
+          .from("pedidos").select("id").eq("orcamento_id", editId).maybeSingle();
+        if (pedidoExistente) {
+          toast.error("Este orçamento já virou venda. Edições devem ser feitas via Adendo.");
+          navigate(`/pedidos/${pedidoExistente.id}`);
+          return;
+        }
+      }
       setOrcCodigo(orc.codigo || "");
       setClienteId(orc.cliente_id || "");
       setNomeProjeto(orc.nome_projeto || "");

@@ -56,6 +56,9 @@ export default function PedidoDetalhe() {
   const [chat, setChat] = useState<any[]>([]);
   const [revisoes, setRevisoes] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [pedidoPai, setPedidoPai] = useState<any>(null);
+  const [adendos, setAdendos] = useState<any[]>([]);
+  const [criandoAdendo, setCriandoAdendo] = useState(false);
 
   const totalProjeto = useMemo(
     () => ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0),
@@ -107,6 +110,13 @@ export default function PedidoDetalhe() {
     setRevisoes(rv || []);
     const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
     setUsuarios(prof || []);
+    // Pedido pai (se este for adendo) e adendos filhos
+    if (ped.pedido_pai_id) {
+      const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
+      setPedidoPai(pai);
+    } else { setPedidoPai(null); }
+    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", id as string).order("created_at");
+    setAdendos(filhos || []);
     setLoading(false);
   };
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
@@ -170,6 +180,40 @@ export default function PedidoDetalhe() {
     });
     toast.success(`Workflow iniciado em: ${estagio.toUpperCase()}`);
   };
+
+  /* ----- criar adendo (novo orçamento atrelado a este pedido) ----- */
+  const criarAdendo = async () => {
+    if (!pedido || !pedido.orcamento_id) return;
+    if (!confirm("Criar um novo Adendo a partir deste pedido?\n\nO adendo é um orçamento complementar vinculado ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros independentes — sem alterar a venda já fechada.")) return;
+    setCriandoAdendo(true);
+    try {
+      const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orc) throw new Error("Orçamento original não encontrado");
+      const seq = (adendos.length + 1).toString().padStart(2, "0");
+      const novoCodigo = `${orc.codigo}-ADD-${seq}`;
+      const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
+        codigo: novoCodigo,
+        cliente_id: orc.cliente_id,
+        loja_id: orc.loja_id,
+        nome_projeto: `[ADENDO ${seq} de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+        status: "negociacao",
+        subtotal: 0, total: 0,
+        parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
+        consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+        is_adendo: true,
+        pedido_origem_id: pedido.id,
+        created_by: user?.id,
+      } as any).select().maybeSingle();
+      if (error || !novoOrc) throw error || new Error("Falha ao criar adendo");
+      toast.success(`Adendo ${novoCodigo} criado`);
+      navigate(`/comercial/${novoOrc.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar adendo");
+    } finally {
+      setCriandoAdendo(false);
+    }
+  };
+
 
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
@@ -243,8 +287,41 @@ export default function PedidoDetalhe() {
               <Printer className="w-4 h-4 mr-1.5" /> Contrato
             </Button>
           ) : null}
+          <Button variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
+            disabled={criandoAdendo}
+            onClick={criarAdendo}>
+            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+          </Button>
         </div>
       </div>
+
+      {/* VÍNCULO DE ADENDO / PEDIDO PAI */}
+      {(pedidoPai || adendos.length > 0) && (
+        <section className="surface-card p-4 border-l-4 border-purple-400">
+          <div className="flex items-start gap-4 flex-wrap">
+            {pedidoPai && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Pedido original</div>
+                <Link to={`/pedidos/${pedidoPai.id}`} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple-700 hover:underline">
+                  <FileText className="w-4 h-4" /> {pedidoPai.codigo} · {fmtBrl(Number(pedidoPai.valor_total) || 0)}
+                </Link>
+              </div>
+            )}
+            {adendos.length > 0 && (
+              <div className="flex-1 min-w-[280px]">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Adendos vinculados ({adendos.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {adendos.map((a) => (
+                    <Link key={a.id} to={`/pedidos/${a.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 border border-purple-200 text-[12px] text-purple-700 hover:bg-purple-100">
+                      <Sparkles className="w-3.5 h-3.5" /> {a.codigo} · {fmtBrl(Number(a.valor_total) || 0)} <span className="text-muted-foreground">· {a.status}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* PIPELINES & ESTÁGIOS */}
       <PipelinesPanel pedido={pedido} />
