@@ -21,13 +21,20 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
+import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
-  vendedor: "Vendedor",
+  diretor: "Diretor",
+  gerente: "Gerente de Loja",
+  vendedor: "Vendedor / Consultor",
+  projetista: "Projetista",
+  financeiro: "Financeiro",
+  tecnico: "Técnico",
   montador: "Montador",
+  assistencia: "Assistência / Pós-venda",
 };
-const ROLES = ["admin", "vendedor", "montador"];
+const ROLES = ["admin","diretor","gerente","vendedor","projetista","financeiro","tecnico","montador","assistencia"];
 
 export default function Administracao() {
   const { user } = useAuth();
@@ -57,6 +64,7 @@ export default function Administracao() {
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="descontos"><Percent className="w-3.5 h-3.5 mr-1.5" />Descontos</TabsTrigger>
           <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
+          <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
           <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
           <TabsTrigger value="bancos"><Banknote className="w-3.5 h-3.5 mr-1.5" />Bancos</TabsTrigger>
           <TabsTrigger value="pagamentos"><CreditCard className="w-3.5 h-3.5 mr-1.5" />Pagamentos</TabsTrigger>
@@ -69,6 +77,7 @@ export default function Administracao() {
 
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
+        <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
         <TabsContent value="bancos" className="mt-4"><Bancos /></TabsContent>
         <TabsContent value="pagamentos" className="mt-4"><MetodosPagamento /></TabsContent>

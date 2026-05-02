@@ -2237,6 +2237,30 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissoes: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          modulo: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          acao?: string
+          created_at?: string
+          id?: string
+          modulo: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          modulo?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       sub_itens_ambiente: {
         Row: {
           altura: number | null
@@ -2379,7 +2403,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_my_permissions: {
+        Row: {
+          acao: string | null
+          modulo: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       current_loja_id: { Args: never; Returns: string }
@@ -2404,9 +2434,22 @@ export type Database = {
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
       pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
+      user_has_perm: {
+        Args: { _acao: string; _modulo: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "vendedor" | "montador"
+      app_role:
+        | "admin"
+        | "vendedor"
+        | "montador"
+        | "diretor"
+        | "gerente"
+        | "projetista"
+        | "financeiro"
+        | "tecnico"
+        | "assistencia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2534,7 +2577,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedor", "montador"],
+      app_role: [
+        "admin",
+        "vendedor",
+        "montador",
+        "diretor",
+        "gerente",
+        "projetista",
+        "financeiro",
+        "tecnico",
+        "assistencia",
+      ],
     },
   },
 } as const
