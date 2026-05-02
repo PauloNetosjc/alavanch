@@ -23,6 +23,7 @@ type Card = {
   vendedor_id: string | null;
   loja_id: string | null;
   cliente: { nome: string } | null;
+  pedido_id?: string | null;
 };
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
@@ -47,14 +48,18 @@ export default function KanbanComercial() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: orcs }, { data: lj }, { data: pf }] = await Promise.all([
+    const [{ data: ests }, { data: orcs }, { data: lj }, { data: pf }, { data: peds }] = await Promise.all([
       supabase.from("crm_estagios").select("*").eq("ativo", true).order("ordem"),
       supabase.from("orcamentos").select("id, codigo, nome_projeto, total, created_at, estagio_id, status, vendedor_id, loja_id, cliente:clientes(nome)").order("created_at", { ascending: false }),
       supabase.from("lojas").select("id, nome").order("nome"),
       supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
+      supabase.from("pedidos").select("id, orcamento_id"),
     ]);
+    const pedidoMap = new Map<string, string>();
+    (peds ?? []).forEach((p: any) => { if (p.orcamento_id) pedidoMap.set(p.orcamento_id, p.id); });
+    const orcsWithPedido = (orcs ?? []).map((o: any) => ({ ...o, pedido_id: pedidoMap.get(o.id) ?? null }));
     setEstagios((ests ?? []) as Estagio[]);
-    setCards((orcs ?? []) as any);
+    setCards(orcsWithPedido as any);
     setLojas((lj ?? []) as any);
     setVendedores((pf ?? []) as any);
     setLoading(false);
@@ -205,7 +210,11 @@ export default function KanbanComercial() {
                       key={c.id}
                       draggable
                       onDragStart={(e) => onDragStart(e, c.id)}
-                      onClick={() => navigate(`/comercial/${c.id}`)}
+                      onClick={() => {
+                        if (c.pedido_id) navigate(`/pedidos/${c.pedido_id}`);
+                        else if (c.status === "negociacao" || c.status === "aprovado") navigate(`/comercial/${c.id}/negociacao`);
+                        else navigate(`/comercial/${c.id}`);
+                      }}
                       className="bg-card border rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <div className="text-[11px] font-mono text-muted-foreground">{c.codigo}</div>

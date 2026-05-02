@@ -246,6 +246,9 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {/* PIPELINES & ESTÁGIOS */}
+      <PipelinesPanel pedido={pedido} />
+
       {/* CRONOGRAMA E DATAS */}
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
 
@@ -997,5 +1000,74 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any
         {rev.aprovada && <span className="text-emerald-700 text-[12px] font-semibold">✓ Aprovada em {fmtDateTime(rev.aprovada_em)}</span>}
       </DialogFooter>
     </div>
+  );
+}
+
+/* ============================================================== */
+/*                       PIPELINES PANEL                          */
+/* ============================================================== */
+function PipelinesPanel({ pedido }: { pedido: any }) {
+  const [crmEstagios, setCrmEstagios] = useState<any[]>([]);
+  const [crmEstagioAtual, setCrmEstagioAtual] = useState<any>(null);
+
+  useEffect(() => {
+    if (!pedido?.orcamento_id) return;
+    (async () => {
+      const { data: orc } = await supabase
+        .from("orcamentos")
+        .select("estagio_id")
+        .eq("id", pedido.orcamento_id)
+        .maybeSingle();
+      const { data: ests } = await supabase
+        .from("crm_estagios")
+        .select("id, nome, cor, ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      setCrmEstagios(ests ?? []);
+      if (orc?.estagio_id) setCrmEstagioAtual((ests ?? []).find((e: any) => e.id === orc.estagio_id) ?? null);
+    })();
+  }, [pedido?.orcamento_id]);
+
+  // Estágio do workflow operacional (pipeline de produção)
+  const opLabel = WF_STAGES.find(s => s.key === pedido?.workflow_estagio)?.label
+    ?? (pedido?.workflow_estagio ? pedido.workflow_estagio.toUpperCase() : "AGUARDANDO");
+
+  return (
+    <section className="surface-card p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-[12px] font-semibold">P</div>
+        <div>
+          <h3 className="font-playfair text-[18px] font-semibold leading-none">Pipelines & Estágios</h3>
+          <p className="text-[11px] text-muted-foreground mt-1">Posição deste pedido nos kanbans ativos</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="border rounded-lg p-3 bg-muted/20">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Comercial (CRM)</div>
+          <div className="flex items-center gap-2">
+            {crmEstagioAtual ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: crmEstagioAtual.cor || "#888" }} />
+                <span className="font-semibold text-[14px]">{crmEstagioAtual.nome}</span>
+              </>
+            ) : (
+              <span className="text-[12px] text-muted-foreground">Não vinculado</span>
+            )}
+            {crmEstagios.length > 0 && (
+              <span className="ml-auto text-[11px] text-muted-foreground">
+                {crmEstagioAtual ? `${(crmEstagios.findIndex((e: any) => e.id === crmEstagioAtual.id) + 1)}/${crmEstagios.length}` : `0/${crmEstagios.length}`}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="border rounded-lg p-3 bg-muted/20">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Operacional (Produção)</div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+            <span className="font-semibold text-[14px]">{opLabel}</span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

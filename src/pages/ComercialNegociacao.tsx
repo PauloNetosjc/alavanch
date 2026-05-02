@@ -47,8 +47,9 @@ type Pagamento = {
   valor: number;
   parcelas: number;
   data_vencimento: string | null;
+  parcelas_detalhe?: number[] | null;
 };
-type Metodo = { id: string; nome: string };
+type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number };
 type Regra = { role: string; desconto_max_perc: number };
 
 /* ========================== SENHA ADMIN DIALOG ========================== */
@@ -59,7 +60,7 @@ function SenhaAdminDialog({
   onOpenChange: (v: boolean) => void;
   percent: number;
   limite: number;
-  onAuthorized: () => void;
+  onAuthorized: (adminEmail: string) => void;
 }) {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,7 +79,7 @@ function SenhaAdminDialog({
       return;
     }
     toast.success("Desconto autorizado pelo gestor");
-    onAuthorized();
+    onAuthorized(data.admin_email || "");
     onOpenChange(false);
   };
 
@@ -404,6 +405,7 @@ export default function ComercialNegociacao() {
   // regras
   const [meuLimite, setMeuLimite] = useState<number>(0);
   const [autorizadoPorGestor, setAutorizadoPorGestor] = useState(false);
+  const [aprovadorEmail, setAprovadorEmail] = useState<string>("");
 
   // desconto (campos editados)
   const [descPerc, setDescPerc] = useState<number>(0);
@@ -445,9 +447,9 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
-          .select("id, metodo, valor, parcelas, data_vencimento")
+          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
           .eq("orcamento_id", id),
         supabase.auth.getUser(),
       ]);
@@ -456,7 +458,10 @@ export default function ComercialNegociacao() {
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
       setMetodos((m ?? []) as Metodo[]);
-      setPagamentos((pgs ?? []) as Pagamento[]);
+      setPagamentos(((pgs ?? []) as any).map((p: any) => ({
+        ...p,
+        parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
+      })));
 
       const ambIds = (amb ?? []).map((a: any) => a.id);
       if (ambIds.length) {
@@ -472,18 +477,20 @@ export default function ComercialNegociacao() {
       setDescPerc(dp); setDescValor(dv);
       setDescPercAplicado(dp); setDescValorAplicado(dv);
 
-      // limite do usuário
+      // limite do usuário (individual sobrepõe o do cargo)
       const userId = u?.user?.id;
       if (userId) {
-        const { data: roles } = await supabase
-          .from("user_roles").select("role").eq("user_id", userId);
-        const { data: regras } = await supabase
-          .from("regras_aprovacao").select("role, desconto_max_perc").eq("ativo", true);
+        const [{ data: roles }, { data: regras }, { data: prof }] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", userId),
+          supabase.from("regras_aprovacao").select("role, desconto_max_perc").eq("ativo", true),
+          supabase.from("profiles").select("desconto_max_perc").eq("user_id", userId).maybeSingle(),
+        ]);
         const meusRoles = (roles ?? []).map((r: any) => r.role);
-        const max = (regras ?? [])
+        const maxRole = (regras ?? [])
           .filter((r: Regra) => meusRoles.includes(r.role))
           .reduce((mx, r) => Math.max(mx, Number(r.desconto_max_perc) || 0), 0);
-        setMeuLimite(max);
+        const indiv = (prof as any)?.desconto_max_perc;
+        setMeuLimite(indiv != null ? Number(indiv) : maxRole);
       }
 
       // Template de contrato (loja atual ou padrão global)
@@ -522,18 +529,19 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
-  // Estimativa de juros do cliente: ~1.5% ao mês para parcelas > 1
+  // Juros do cliente embutidos: usa taxa configurada do método (ao mês), simples por parcela
   const jurosCliente = useMemo(() => {
     return pagamentos.reduce((s, p) => {
       if (!p.parcelas || p.parcelas <= 1) return s;
-      const taxa = 0.015;
+      const met = metodos.find((m) => m.nome === p.metodo);
+      const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+      if (!taxa) return s;
       const principal = p.valor / p.parcelas;
-      // soma juros simples por parcela
       let total = 0;
       for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
       return s + total;
     }, 0);
-  }, [pagamentos]);
+  }, [pagamentos, metodos]);
 
   /* ------------------------- handlers ------------------------- */
   const onPercChange = (v: number) => {
@@ -545,6 +553,20 @@ export default function ComercialNegociacao() {
     setDescPerc(valorInicial > 0 ? Number(((v / valorInicial) * 100).toFixed(2)) : 0);
   };
   const acimaDoLimite = descPerc > meuLimite + 0.001;
+
+  const registrarAprovacao = async (adminEmail: string, percUsado: number, valorUsado: number) => {
+    if (!id) return;
+    const { data: u } = await supabase.auth.getUser();
+    await supabase.from("aprovacoes_desconto").insert({
+      orcamento_id: id,
+      solicitante_id: u?.user?.id ?? null,
+      aprovador_email: adminEmail || null,
+      desconto_perc: percUsado,
+      desconto_valor: valorUsado,
+      limite_solicitante: meuLimite,
+      observacao: `Aprovação concedida via senha de gestor`,
+    });
+  };
 
   const aplicarDesconto = () => {
     if (descPerc <= meuLimite + 0.001 || autorizadoPorGestor) {
@@ -559,6 +581,48 @@ export default function ComercialNegociacao() {
     setDescPerc(0); setDescValor(0);
     setDescPercAplicado(0); setDescValorAplicado(0);
     setAutorizadoPorGestor(false);
+    setAprovadorEmail("");
+  };
+
+  // helper: distribui valor restante igualmente nas parcelas seguintes
+  const recalcParcelas = (det: number[], total: number, idxAlterado: number): number[] => {
+    const n = det.length;
+    if (n <= 1) return [total];
+    const fixadosAteAgora = det.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
+    const restantes = n - (idxAlterado + 1);
+    if (restantes <= 0) {
+      // ajusta a última pra fechar
+      const novo = [...det];
+      const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
+      novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+      return novo;
+    }
+    const restoTotal = total - fixadosAteAgora;
+    const valorEach = Number((restoTotal / restantes).toFixed(2));
+    const novo = [...det];
+    for (let i = idxAlterado + 1; i < n; i++) novo[i] = valorEach;
+    // ajusta a última para fechar arredondamento
+    const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
+    novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+    return novo;
+  };
+
+  const ensureDetalhe = (p: Pagamento): number[] => {
+    if (p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas) return [...p.parcelas_detalhe];
+    const base = Number((p.valor / p.parcelas).toFixed(2));
+    const arr = Array(p.parcelas).fill(base);
+    arr[p.parcelas - 1] = Number((p.valor - base * (p.parcelas - 1)).toFixed(2));
+    return arr;
+  };
+
+  const editarParcela = (idxPag: number, idxParc: number, novoValor: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const det = ensureDetalhe(p);
+      det[idxParc] = Number(novoValor) || 0;
+      const recalc = recalcParcelas(det, p.valor, idxParc);
+      return { ...p, parcelas_detalhe: recalc };
+    }));
   };
 
   const addPagamento = () => {
@@ -566,7 +630,7 @@ export default function ComercialNegociacao() {
     if (!novoValor || novoValor <= 0) return toast.error("Valor inválido");
     setPagamentos((p) => [
       ...p,
-      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null },
+      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null, parcelas_detalhe: null },
     ]);
     setNovoMetodo(""); setNovoValor(0); setNovoParcelas(1); setNovoVenc("");
   };
@@ -601,6 +665,7 @@ export default function ComercialNegociacao() {
           valor: p.valor,
           parcelas: p.parcelas,
           data_vencimento: p.data_vencimento,
+          parcelas_detalhe: p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas ? p.parcelas_detalhe : null,
         })),
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
@@ -985,31 +1050,54 @@ export default function ComercialNegociacao() {
           {/* lista de pagamentos */}
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
-              {pagamentos.map((p, idx) => (
-                <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
-                    {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
-                      <Banknote className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <DollarSign className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold uppercase">
-                      {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
+              {pagamentos.map((p, idx) => {
+                const det = ensureDetalhe(p);
+                return (
+                  <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
+                        {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
+                          <Banknote className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <DollarSign className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold uppercase">
+                          {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
+                        </div>
+                        {p.data_vencimento && (
+                          <div className="text-[12px] text-muted-foreground flex items-center gap-1">
+                            <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                      </Button>
                     </div>
-                    {p.data_vencimento && (
-                      <div className="text-[12px] text-muted-foreground flex items-center gap-1">
-                        <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
+                    {p.parcelas > 1 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-100">
+                        <div className="text-[11px] text-muted-foreground mb-2">Editar parcelas (alterar uma redistribui o saldo nas seguintes)</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {det.map((v, i) => (
+                            <div key={i} className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">{i + 1}/{p.parcelas}</span>
+                              <Input
+                                type="number" step="0.01"
+                                value={v}
+                                onChange={(e) => editarParcela(idx, i, Number(e.target.value) || 0)}
+                                className="pl-10 text-right text-[12px] h-8"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
-                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
@@ -1087,9 +1175,13 @@ export default function ComercialNegociacao() {
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[1,2,3,4,5,6,8,10,12,18,24].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                  ))}
+                  {(() => {
+                    const met = metodos.find((m) => m.nome === novoMetodo);
+                    const max = Math.max(1, Number(met?.max_parcelas) || 24);
+                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}x{(Number(met?.taxa_perc_parcela)||0) > 0 && n>1 ? ` · ${Number(met?.taxa_perc_parcela).toFixed(2)}% a.m.` : ""}</SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
@@ -1147,10 +1239,13 @@ export default function ComercialNegociacao() {
       <SenhaAdminDialog
         open={openSenha} onOpenChange={setOpenSenha}
         percent={descPerc} limite={meuLimite}
-        onAuthorized={() => {
+        onAuthorized={(adminEmail) => {
           setAutorizadoPorGestor(true);
+          setAprovadorEmail(adminEmail);
           setDescPercAplicado(descPerc);
           setDescValorAplicado(descValor);
+          // registra na timeline
+          registrarAprovacao(adminEmail, descPerc, descValor);
         }}
       />
       <ResumoFinanceiroDialog
