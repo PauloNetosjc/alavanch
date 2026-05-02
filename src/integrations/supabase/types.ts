@@ -517,6 +517,97 @@ export type Database = {
           },
         ]
       }
+      autorizacoes: {
+        Row: {
+          agenda_evento_id: string | null
+          aprovador_email: string | null
+          aprovador_id: string | null
+          contexto: Json
+          created_at: string
+          decidido_em: string | null
+          decisao_observacao: string | null
+          descricao: string | null
+          id: string
+          limite_padrao: number | null
+          loja_id: string | null
+          orcamento_id: string | null
+          pedido_id: string | null
+          solicitante_email: string | null
+          solicitante_id: string | null
+          status: Database["public"]["Enums"]["autorizacao_status"]
+          tipo: Database["public"]["Enums"]["autorizacao_tipo"]
+          titulo: string
+          updated_at: string
+          valor_solicitado: number | null
+        }
+        Insert: {
+          agenda_evento_id?: string | null
+          aprovador_email?: string | null
+          aprovador_id?: string | null
+          contexto?: Json
+          created_at?: string
+          decidido_em?: string | null
+          decisao_observacao?: string | null
+          descricao?: string | null
+          id?: string
+          limite_padrao?: number | null
+          loja_id?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          solicitante_email?: string | null
+          solicitante_id?: string | null
+          status?: Database["public"]["Enums"]["autorizacao_status"]
+          tipo: Database["public"]["Enums"]["autorizacao_tipo"]
+          titulo: string
+          updated_at?: string
+          valor_solicitado?: number | null
+        }
+        Update: {
+          agenda_evento_id?: string | null
+          aprovador_email?: string | null
+          aprovador_id?: string | null
+          contexto?: Json
+          created_at?: string
+          decidido_em?: string | null
+          decisao_observacao?: string | null
+          descricao?: string | null
+          id?: string
+          limite_padrao?: number | null
+          loja_id?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          solicitante_email?: string | null
+          solicitante_id?: string | null
+          status?: Database["public"]["Enums"]["autorizacao_status"]
+          tipo?: Database["public"]["Enums"]["autorizacao_tipo"]
+          titulo?: string
+          updated_at?: string
+          valor_solicitado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autorizacoes_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autorizacoes_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autorizacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartoes_credito: {
         Row: {
           ativo: boolean | null
@@ -3006,6 +3097,13 @@ export type Database = {
         | "financeiro"
         | "tecnico"
         | "assistencia"
+      autorizacao_status: "pendente" | "aprovada" | "rejeitada" | "expirada"
+      autorizacao_tipo:
+        | "desconto_acima_limite"
+        | "agenda_fora_horario"
+        | "agenda_fora_dia"
+        | "agenda_lead_time"
+        | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3153,6 +3251,14 @@ export const Constants = {
         "financeiro",
         "tecnico",
         "assistencia",
+      ],
+      autorizacao_status: ["pendente", "aprovada", "rejeitada", "expirada"],
+      autorizacao_tipo: [
+        "desconto_acima_limite",
+        "agenda_fora_horario",
+        "agenda_fora_dia",
+        "agenda_lead_time",
+        "outro",
       ],
     },
   },
