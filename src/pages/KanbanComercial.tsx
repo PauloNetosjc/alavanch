@@ -23,6 +23,7 @@ type Card = {
   vendedor_id: string | null;
   loja_id: string | null;
   cliente: { nome: string } | null;
+  pedido_id?: string | null;
 };
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
