@@ -14,6 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dias_semana: number[]
+          duracao_padrao_min: number
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          loja_id: string | null
+          prazo_minimo_dias_uteis: number
+          tipo: Database["public"]["Enums"]["agenda_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dias_semana?: number[]
+          duracao_padrao_min?: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          loja_id?: string | null
+          prazo_minimo_dias_uteis?: number
+          tipo: Database["public"]["Enums"]["agenda_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dias_semana?: number[]
+          duracao_padrao_min?: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          loja_id?: string | null
+          prazo_minimo_dias_uteis?: number
+          tipo?: Database["public"]["Enums"]["agenda_tipo"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agenda_eventos: {
+        Row: {
+          cancelado_em: string | null
+          concluido_em: string | null
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string | null
+          endereco: string | null
+          excecao: boolean
+          excecao_autorizador_id: string | null
+          excecao_motivo: string | null
+          hora_fim: string | null
+          hora_inicio: string
+          id: string
+          loja_id: string | null
+          orcamento_id: string | null
+          pedido_id: string | null
+          responsavel_id: string
+          status: Database["public"]["Enums"]["agenda_status"]
+          tipo: Database["public"]["Enums"]["agenda_tipo"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          data: string
+          descricao?: string | null
+          endereco?: string | null
+          excecao?: boolean
+          excecao_autorizador_id?: string | null
+          excecao_motivo?: string | null
+          hora_fim?: string | null
+          hora_inicio: string
+          id?: string
+          loja_id?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          responsavel_id: string
+          status?: Database["public"]["Enums"]["agenda_status"]
+          tipo: Database["public"]["Enums"]["agenda_tipo"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string | null
+          endereco?: string | null
+          excecao?: boolean
+          excecao_autorizador_id?: string | null
+          excecao_motivo?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string
+          id?: string
+          loja_id?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          responsavel_id?: string
+          status?: Database["public"]["Enums"]["agenda_status"]
+          tipo?: Database["public"]["Enums"]["agenda_tipo"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agenda_excecao_autorizadores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          loja_id: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agenda_feriados: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          loja_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao: string
+          id?: string
+          loja_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          loja_id?: string | null
+        }
+        Relationships: []
+      }
       ambientes: {
         Row: {
           aplicar_desconto: boolean
@@ -2788,6 +2950,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_dias_uteis: {
+        Args: { _inicio: string; _loja: string; _n: number }
+        Returns: string
+      }
       current_loja_id: { Args: never; Returns: string }
       has_permission: {
         Args: { _acao?: string; _modulo: string; _user_id: string }
@@ -2800,6 +2966,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_dia_util: { Args: { _data: string; _loja: string }; Returns: boolean }
       loja_de_ambiente: { Args: { _ambiente_id: string }; Returns: string }
       loja_de_assistencia: {
         Args: { _assistencia_id: string }
@@ -2810,12 +2977,24 @@ export type Database = {
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
       pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
+      pode_autorizar_excecao_agenda: {
+        Args: { _loja: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_perm: {
         Args: { _acao: string; _modulo: string; _user_id: string }
         Returns: boolean
       }
     }
     Enums: {
+      agenda_status: "agendado" | "concluido" | "cancelado" | "reagendado"
+      agenda_tipo:
+        | "medicao_tecnica"
+        | "revisao_final"
+        | "entrega"
+        | "montagem"
+        | "assistencia_tecnica"
+        | "tarefa_interna"
       app_role:
         | "admin"
         | "vendedor"
@@ -2953,6 +3132,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agenda_status: ["agendado", "concluido", "cancelado", "reagendado"],
+      agenda_tipo: [
+        "medicao_tecnica",
+        "revisao_final",
+        "entrega",
+        "montagem",
+        "assistencia_tecnica",
+        "tarefa_interna",
+      ],
       app_role: [
         "admin",
         "vendedor",

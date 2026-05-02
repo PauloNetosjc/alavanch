@@ -17,6 +17,7 @@ import {
   Folder,
   ClipboardCheck,
   Building2,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -51,6 +52,7 @@ const sections: Section[] = [
     label: "Operação",
     items: [
       { label: "Kanban Operacional", path: "/operacional/kanban", icon: Hammer },
+      { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "Montagem", path: "/montagem", icon: Hammer },
       { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },
     ],

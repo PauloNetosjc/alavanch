@@ -40,6 +40,7 @@ import Parceiros from "@/pages/Parceiros";
 import Financeiro from "@/pages/Financeiro";
 import AnaliseFinanceira from "@/pages/AnaliseFinanceira";
 import NotasFiscais from "@/pages/NotasFiscais";
+import Agenda from "@/pages/Agenda";
 import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/operacional/kanban" element={<KanbanOperacional />} />
+              <Route path="/agenda" element={<Agenda />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/meus-chamados" element={<MeusChamados />} />
               <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />
