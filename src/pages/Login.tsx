@@ -42,7 +42,7 @@ export default function Login() {
             <span className="text-[11px] font-medium text-white">P</span>
           </div>
           <div>
-            <div className="text-[13px] font-medium tracking-[0.02em]">Planejados Pro</div>
+            <div className="text-[13px] font-medium tracking-[0.02em]">Alavanch</div>
             <div className="text-[9px] uppercase text-muted-foreground tracking-[0.12em]">Sistema</div>
           </div>
         </div>

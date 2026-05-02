@@ -740,7 +740,7 @@ export default function ComercialNegociacao() {
     if (!ok) { setConfirmando(false); return; }
 
     // Buscar dados da loja para empresa
-    let empresa = { nome: "Planejados Pro", cnpj: "", endereco: "", telefone: "" };
+    let empresa = { nome: "Alavanch", cnpj: "", endereco: "", telefone: "" };
     if (orc.loja_id) {
       const { data: loja } = await supabase.from("lojas").select("nome, cnpj, endereco, telefone").eq("id", orc.loja_id).maybeSingle();
       if (loja) empresa = { nome: loja.nome, cnpj: loja.cnpj || "", endereco: loja.endereco || "", telefone: loja.telefone || "" };
@@ -856,7 +856,7 @@ export default function ComercialNegociacao() {
         <div class="muted">Projeto: <b>${orc.nome_projeto || "—"}</b></div>
       </div>
       <div style="text-align:right">
-        <div style="font-weight:600">Planejados Pro</div>
+        <div style="font-weight:600">Alavanch</div>
         <div class="muted">contato@planejadospro.com.br</div>
       </div>
     </div>
@@ -918,7 +918,7 @@ export default function ComercialNegociacao() {
 
     <div class="sig">
       <div>Cliente<br/><span class="muted">${cliente?.nome || ""}</span></div>
-      <div>Empresa<br/><span class="muted">Planejados Pro</span></div>
+      <div>Empresa<br/><span class="muted">Alavanch</span></div>
     </div>
 
     <div class="footer">Documento gerado automaticamente em ${new Date().toLocaleString("pt-BR")}.</div>
