@@ -499,14 +499,22 @@ export default function ComercialNegociacao() {
   }, [id]);
 
   /* --------------------------- derived --------------------------- */
-  const subtotalAmbientes = useMemo(
-    () => ambientes.reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+  const subtotalNegociavel = useMemo(
+    () => ambientes.filter((a) => a.negociavel !== false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
     [ambientes],
   );
+  const subtotalFixo = useMemo(
+    () => ambientes.filter((a) => a.negociavel === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
+    [ambientes],
+  );
+  const subtotalAmbientes = subtotalNegociavel + subtotalFixo;
   const parceiroPerc = Number(orc?.parceiro_perc) || 0;
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
-  const totalProposta = Math.max(0, valorInicial - descValorAplicado);
+  // Desconto incide apenas sobre a parcela negociável (+ proporção do parceiro)
+  const baseNegociavelComParceiro = subtotalNegociavel + subtotalNegociavel * (parceiroPerc / 100);
+  const descValorEfetivo = Math.min(descValorAplicado, baseNegociavelComParceiro);
+  const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
