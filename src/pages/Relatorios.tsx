@@ -219,7 +219,36 @@ export default function Relatorios() {
       </div>
 
       <div className="surface-card p-5">
-        <div className="text-[14px] font-medium mb-4">Últimos Fechamentos</div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded bg-primary/15 flex items-center justify-center">
+              <CalendarDays className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="text-[14px] font-medium">Agendamentos por Tipo</div>
+          </div>
+          <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-primary/15 text-primary">
+            {totalAgendas} no período
+          </span>
+        </div>
+        {totalAgendas === 0 ? (
+          <div className="text-[12px] text-muted-foreground text-center py-6">Nenhum agendamento no período.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+            {agendasPorTipo.map((a) => (
+              <div key={a.tipo}>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-medium">{a.label}</span>
+                  <span className="text-[11px] text-primary font-medium whitespace-nowrap">{a.total}</span>
+                </div>
+                <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${(a.total / maxAgenda) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
         {loading ? (
           <div className="text-[12px] text-muted-foreground py-6 text-center">Carregando…</div>
         ) : ultimosFechamentos.length === 0 ? (
