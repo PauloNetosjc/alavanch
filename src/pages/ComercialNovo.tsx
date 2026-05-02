@@ -56,12 +56,13 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
 function StepsCard({
-  step, setStep, canGoTo, summary,
+  step, setStep, canGoTo, summary, title,
 }: {
   step: number;
   setStep: (n: number) => void;
   canGoTo: (n: number) => boolean;
   summary: React.ReactNode;
+  title?: string;
 }) {
   const items = [
     { n: 1, label: "Cliente" },
@@ -70,7 +71,7 @@ function StepsCard({
   ];
   return (
     <div className="surface-card p-5 sticky top-4">
-      <div className="text-[18px] font-semibold mb-4">Novo Orçamento</div>
+      <div className="text-[18px] font-semibold mb-4">{title || "Novo Orçamento"}</div>
       <div className="space-y-2 mb-5">
         {items.map((it) => {
           const active = step === it.n;
