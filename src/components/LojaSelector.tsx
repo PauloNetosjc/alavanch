@@ -18,6 +18,12 @@ export function LojaSelector() {
   const isAdmin = role === "admin";
   const [query, setQuery] = useState("");
 
+  const filtered = useMemo(() => {
+    if (!query.trim()) return lojas;
+    const q = query.toLowerCase();
+    return lojas.filter((l) => l.nome.toLowerCase().includes(q) || (l.cnpj || "").includes(q));
+  }, [lojas, query]);
+
   if (loading) {
     return (
       <div
