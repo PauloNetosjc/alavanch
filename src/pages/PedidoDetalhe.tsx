@@ -1149,3 +1149,98 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
     </section>
   );
 }
+
+/* ============================================================== */
+/*           CONTRATO — barra de envio e confirmação              */
+/* ============================================================== */
+function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
+  const [uploading, setUploading] = useState(false);
+  const signingUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
+
+  const marcarEnviado = async (via: "email" | "whatsapp" | "link") => {
+    await supabase.from("contratos").update({ enviado_em: new Date().toISOString(), enviado_via: via }).eq("id", contrato.id);
+    onChange();
+  };
+
+  const copiarLink = async () => {
+    await navigator.clipboard.writeText(signingUrl);
+    toast.success("Link copiado");
+    marcarEnviado("link");
+  };
+
+  const enviarEmail = () => {
+    if (!cliente?.email) return toast.error("Cliente sem e-mail cadastrado");
+    const assunto = encodeURIComponent(`Contrato ${contrato.numero} - assinatura`);
+    const corpo = encodeURIComponent(
+      `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${signingUrl}\n\nObrigado!`
+    );
+    window.open(`mailto:${cliente.email}?subject=${assunto}&body=${corpo}`, "_blank");
+    marcarEnviado("email");
+  };
+
+  const enviarWhatsapp = () => {
+    if (!cliente?.telefone) return toast.error("Cliente sem telefone cadastrado");
+    const fone = String(cliente.telefone).replace(/\D/g, "");
+    const msg = encodeURIComponent(
+      `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${signingUrl}`
+    );
+    window.open(`https://wa.me/55${fone}?text=${msg}`, "_blank");
+    marcarEnviado("whatsapp");
+  };
+
+  const anexarPdfAssinado = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "pdf";
+      const path = `${contrato.id}/assinado-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("contratos-assinatura").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("contratos-assinatura").getPublicUrl(path);
+      const { error: e2 } = await supabase.from("contratos").update({
+        status: "assinado",
+        assinado_em: new Date().toISOString(),
+        assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
+        metodo_assinatura: "manual",
+        pdf_assinado_url: pub.publicUrl,
+      }).eq("id", contrato.id);
+      if (e2) throw e2;
+      toast.success("Contrato impresso assinado anexado e confirmado");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao anexar PDF assinado");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-amber-300 bg-amber-50 space-y-2">
+      <div className="text-[12px] text-amber-900 font-medium">
+        Contrato <b>{contrato.numero}</b> aguardando assinatura — workflow operacional bloqueado.
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={copiarLink}>
+          <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link
+        </Button>
+        <Button size="sm" variant="outline" onClick={enviarEmail}>
+          <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por e-mail
+        </Button>
+        <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
+          <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
+        </Button>
+        <label className="inline-flex">
+          <input type="file" accept="application/pdf,image/*" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarPdfAssinado(f); }} />
+          <Button asChild size="sm" variant="outline" className="text-amber-800 border-amber-400 cursor-pointer" disabled={uploading}>
+            <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : "Anexar contrato impresso assinado"}</span>
+          </Button>
+        </label>
+      </div>
+      {contrato.enviado_em && (
+        <div className="text-[11px] text-amber-800">
+          Enviado via {contrato.enviado_via} em {new Date(contrato.enviado_em).toLocaleString("pt-BR")}.
+        </div>
+      )}
+    </div>
+  );
+}
