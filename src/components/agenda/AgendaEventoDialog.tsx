@@ -227,12 +227,11 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       const payload: any = {
         pedido_id: pedidoId || null,
         orcamento_id: orcamentoId || null,
+        cliente_id: cliId,
         loja_id: lojaEventoId,
         tipo,
         titulo: tituloFinal,
-        descricao: tipo === "apresentacao_comercial" && cliId
-          ? (descricao ? `${descricao}\nCliente ID: ${cliId}` : `Cliente ID: ${cliId}`)
-          : descricao || null,
+        descricao: descricao || null,
         data,
         hora_inicio: hora,
         hora_fim: horaFim || null,
