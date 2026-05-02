@@ -1408,6 +1408,50 @@ export type Database = {
           },
         ]
       }
+      orcamento_documentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          mime_type: string | null
+          nome: string
+          orcamento_id: string
+          origem: string | null
+          storage_path: string
+          tamanho: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          nome: string
+          orcamento_id: string
+          origem?: string | null
+          storage_path: string
+          tamanho?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          orcamento_id?: string
+          origem?: string | null
+          storage_path?: string
+          tamanho?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_documentos_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orcamentos: {
         Row: {
           cliente_id: string | null
