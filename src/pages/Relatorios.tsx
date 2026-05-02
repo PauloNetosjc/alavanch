@@ -101,6 +101,31 @@ export default function Relatorios() {
 
   const maxTopParc = topParceiros[0]?.total || 1;
 
+  const TIPO_AGENDA_LABEL: Record<string, string> = {
+    apresentacao: "Apresentações",
+    retorno: "Retornos",
+    medicao_orcamento: "Medições de Orçamento",
+    revisao_final: "Revisões",
+    medicao_tecnica: "Medições Técnicas",
+    entrega: "Entregas",
+    montagem: "Montagens",
+  };
+
+  const agendasPorTipo = useMemo(() => {
+    const map = new Map<string, number>();
+    agendas.forEach((a) => {
+      const k = a.tipo || "—";
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+    return Object.keys(TIPO_AGENDA_LABEL)
+      .map((k) => ({ tipo: k, label: TIPO_AGENDA_LABEL[k], total: map.get(k) || 0 }))
+      .sort((a, b) => b.total - a.total);
+  }, [agendas]);
+
+  const totalAgendas = agendas.length;
+  const maxAgenda = agendasPorTipo[0]?.total || 1;
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
