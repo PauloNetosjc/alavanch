@@ -13,18 +13,31 @@ import { maskPhone, unmask } from "@/lib/masks";
 
 export type AgendaTipo =
   | "apresentacao_comercial"
+  | "retorno"
+  | "medicao_orcamento"
   | "medicao_tecnica" | "revisao_final" | "entrega"
   | "montagem" | "assistencia_tecnica" | "tarefa_interna";
 
 const TIPO_LABEL: Record<AgendaTipo, string> = {
-  apresentacao_comercial: "Apresentação Comercial",
+  apresentacao_comercial: "Apresentação",
+  retorno: "Retorno",
+  medicao_orcamento: "Medição de Orçamento",
   medicao_tecnica: "Medição Técnica",
-  revisao_final: "Revisão Final",
+  revisao_final: "Revisão",
   entrega: "Entrega",
   montagem: "Montagem",
   assistencia_tecnica: "Assistência Técnica",
   tarefa_interna: "Tarefa Interna",
 };
+
+// Tipos que exigem vínculo com PEDIDO existente do cliente
+const TIPOS_PEDIDO: AgendaTipo[] = ["retorno", "revisao_final", "medicao_tecnica", "entrega", "montagem"];
+// Tipo que exige vínculo com ORÇAMENTO do cliente
+const TIPOS_ORCAMENTO: AgendaTipo[] = ["medicao_orcamento"];
+// Tipos que exigem cliente vinculado
+const TIPOS_COM_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", ...TIPOS_PEDIDO, ...TIPOS_ORCAMENTO];
+// Tipos que exigem endereço
+const TIPOS_COM_ENDERECO: AgendaTipo[] = ["medicao_tecnica", "revisao_final", "entrega", "montagem", "medicao_orcamento"];
 
 interface Props {
   open: boolean;
@@ -54,17 +67,22 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [responsaveis, setResponsaveis] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [config, setConfig] = useState<any>(null);
 
-  // loja do evento (admin pode escolher; outros = sua loja)
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [lojaEventoId, setLojaEventoId] = useState<string | null>(lojaCtxId || null);
 
-  // mini-cadastro de cliente (apenas apresentação comercial)
+  // cliente
   const [clienteId, setClienteId] = useState<string>("");
   const [clienteNome, setClienteNome] = useState("");
   const [clienteFone, setClienteFone] = useState("");
   const [clienteBusca, setClienteBusca] = useState("");
   const [clientesEnc, setClientesEnc] = useState<{ id: string; nome: string; telefone: string | null }[]>([]);
   const [novoCliente, setNovoCliente] = useState(true);
+
+  // pedido / orçamento vinculado (filtrados por cliente)
+  const [pedidoSelId, setPedidoSelId] = useState<string>(pedidoId || "");
+  const [pedidosCliente, setPedidosCliente] = useState<{ id: string; codigo: string | null; status: string | null }[]>([]);
+  const [orcamentoSelId, setOrcamentoSelId] = useState<string>(orcamentoId || "");
+  const [orcamentosCliente, setOrcamentosCliente] = useState<{ id: string; codigo: string | null; status: string | null }[]>([]);
 
   // exceção
   const [excecao, setExcecao] = useState(false);
@@ -75,6 +93,12 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
 
   const [saving, setSaving] = useState(false);
 
+  const exigeCliente = TIPOS_COM_CLIENTE.includes(tipo);
+  const exigePedido = TIPOS_PEDIDO.includes(tipo);
+  const exigeOrcamento = TIPOS_ORCAMENTO.includes(tipo);
+  const exigeEndereco = TIPOS_COM_ENDERECO.includes(tipo);
+  const isApresentacao = tipo === "apresentacao_comercial";
+
   useEffect(() => {
     if (!open) return;
     setTipo(defaultTipo);
@@ -82,7 +106,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setResponsavelId(user?.id || "");
     setExcecao(false); setAutorizadorEmail(""); setAutorizadorSenha("");
     setExcecaoMotivo(""); setValidacaoErr("");
-    setClienteId(""); setClienteNome(""); setClienteFone(""); setClienteBusca(""); setNovoCliente(true);
+    setClienteId(""); setClienteNome(""); setClienteFone(""); setClienteBusca("");
+    setNovoCliente(defaultTipo === "apresentacao_comercial");
+    setPedidoSelId(pedidoId || ""); setOrcamentoSelId(orcamentoId || "");
+    setPedidosCliente([]); setOrcamentosCliente([]);
     setLojaEventoId(lojaCtxId || null);
     if (defaultDate) setData(defaultDate);
     (async () => {
@@ -93,11 +120,18 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
     })();
-  }, [open, defaultTipo, defaultDate, user?.id, lojaCtxId]);
+  }, [open, defaultTipo, defaultDate, user?.id, lojaCtxId, pedidoId, orcamentoId]);
+
+  // Em mudança de tipo, reseta cliente novo apenas para apresentação (default novo)
+  useEffect(() => {
+    if (!open) return;
+    setNovoCliente(tipo === "apresentacao_comercial");
+    setPedidoSelId(""); setOrcamentoSelId("");
+  }, [tipo, open]);
 
   // busca incremental de clientes
   useEffect(() => {
-    if (!open || tipo !== "apresentacao_comercial" || clienteBusca.length < 2) {
+    if (!open || !exigeCliente || novoCliente || clienteBusca.length < 2) {
       setClientesEnc([]); return;
     }
     let active = true;
@@ -110,9 +144,28 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       if (active) setClientesEnc((cs as any) || []);
     })();
     return () => { active = false; };
-  }, [clienteBusca, tipo, open]);
+  }, [clienteBusca, exigeCliente, novoCliente, open]);
 
-  // Carrega config sempre que tipo ou loja mudar
+  // Carrega pedidos/orçamentos do cliente selecionado
+  useEffect(() => {
+    if (!open || !clienteId) { setPedidosCliente([]); setOrcamentosCliente([]); return; }
+    (async () => {
+      if (exigePedido) {
+        const { data: ps } = await supabase
+          .from("pedidos").select("id, codigo, status")
+          .eq("cliente_id", clienteId).order("created_at", { ascending: false }).limit(50);
+        setPedidosCliente((ps as any) || []);
+      }
+      if (exigeOrcamento) {
+        const { data: os } = await supabase
+          .from("orcamentos").select("id, codigo, status")
+          .eq("cliente_id", clienteId).order("created_at", { ascending: false }).limit(50);
+        setOrcamentosCliente((os as any) || []);
+      }
+    })();
+  }, [clienteId, exigePedido, exigeOrcamento, open]);
+
+  // config por tipo/loja
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -128,43 +181,43 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const validar = useMemo(() => async (): Promise<string | null> => {
     if (!data || !hora) return "Informe data e hora.";
     if (!responsavelId) return "Escolha um responsável.";
-    if (tipo === "apresentacao_comercial") {
-      if (novoCliente) {
+    if (exigeCliente) {
+      if (isApresentacao && novoCliente) {
         if (!clienteNome.trim()) return "Informe o nome do cliente.";
         if (!unmask(clienteFone)) return "Informe o telefone do cliente.";
       } else if (!clienteId) {
-        return "Selecione um cliente existente.";
+        return "Selecione um cliente.";
       }
     }
-    if ((tipo === "medicao_tecnica" || tipo === "revisao_final" || tipo === "entrega" || tipo === "montagem") && !endereco.trim())
-      return "Endereço é obrigatório para este tipo de evento.";
-    if (!config) return null;
+    if (exigePedido && !pedidoSelId) return "Selecione um pedido do cliente.";
+    if (exigeOrcamento && !orcamentoSelId) return "Selecione um orçamento do cliente.";
+    if (exigeEndereco && !endereco.trim()) return "Endereço é obrigatório para este tipo de evento.";
 
+    if (!config) return null;
     const dt = new Date(data + "T00:00:00");
     const dow = dt.getDay();
     if (Array.isArray(config.dias_semana) && !config.dias_semana.includes(dow))
       return "Dia da semana não permitido para " + TIPO_LABEL[tipo] + ".";
-
     if (config.hora_inicio && hora < config.hora_inicio) return "Horário antes do permitido (" + config.hora_inicio + ").";
     if (config.hora_fim && hora > config.hora_fim)       return "Horário depois do permitido (" + config.hora_fim + ").";
 
     const prazo = Number(config.prazo_minimo_dias_uteis) || 0;
     if (prazo > 0) {
       let base: string | null = null;
-      if (pedidoId) {
-        const { data: p } = await supabase.from("pedidos").select("created_at").eq("id", pedidoId).maybeSingle();
+      const pid = pedidoSelId || pedidoId;
+      if (pid) {
+        const { data: p } = await supabase.from("pedidos").select("created_at").eq("id", pid).maybeSingle();
         base = p?.created_at ? (p.created_at as string).slice(0, 10) : null;
       }
       const baseDate = base || new Date().toISOString().slice(0, 10);
       const { data: minDate } = await supabase.rpc("add_dias_uteis" as any, {
         _inicio: baseDate, _n: prazo, _loja: lojaEventoId,
       });
-      if (minDate && data < (minDate as string)) {
+      if (minDate && data < (minDate as string))
         return "Data antes do prazo mínimo (" + prazo + " dias úteis após a base).";
-      }
     }
     return null;
-  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId]);
+  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId, isApresentacao, exigeCliente, exigePedido, exigeOrcamento, exigeEndereco, pedidoSelId, orcamentoSelId]);
 
   const handleSubmit = async () => {
     setSaving(true); setValidacaoErr("");
@@ -199,10 +252,9 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         usaExcecao = true;
       }
 
-      // se for apresentação comercial e cliente novo, cria primeiro
       let cliId = clienteId || null;
       let cliNomeFinal = clienteNome;
-      if (tipo === "apresentacao_comercial" && novoCliente && clienteNome.trim()) {
+      if (isApresentacao && novoCliente && clienteNome.trim()) {
         const { data: novo, error: cErr } = await supabase
           .from("clientes")
           .insert({
@@ -216,17 +268,17 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         if (cErr) throw cErr;
         cliId = (novo as any)?.id || null;
         cliNomeFinal = (novo as any)?.nome || clienteNome;
-      } else if (tipo === "apresentacao_comercial" && !novoCliente && clienteId) {
+      } else if (exigeCliente && clienteId) {
         const found = clientesEnc.find(c => c.id === clienteId);
-        cliNomeFinal = found?.nome || "";
+        cliNomeFinal = found?.nome || clienteBusca;
       }
 
       const tituloFinal = titulo
-        || (tipo === "apresentacao_comercial" && cliNomeFinal ? `Apresentação – ${cliNomeFinal}` : TIPO_LABEL[tipo]);
+        || (cliNomeFinal ? `${TIPO_LABEL[tipo]} – ${cliNomeFinal}` : TIPO_LABEL[tipo]);
 
       const payload: any = {
-        pedido_id: pedidoId || null,
-        orcamento_id: orcamentoId || null,
+        pedido_id: pedidoSelId || pedidoId || null,
+        orcamento_id: orcamentoSelId || orcamentoId || null,
         cliente_id: cliId,
         loja_id: lojaEventoId,
         tipo,
@@ -254,8 +306,6 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     }
   };
 
-  const isComercial = tipo === "apresentacao_comercial";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -273,7 +323,6 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             </Select>
           </div>
 
-          {/* Loja do evento */}
           <div>
             <Label>Loja</Label>
             {isAdmin ? (
@@ -289,25 +338,27 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             )}
           </div>
 
-          {/* Cliente (apenas apresentação) */}
-          {isComercial && (
+          {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
+          {exigeCliente && (
             <div className="rounded-md border p-3 bg-muted/20 space-y-2">
-              <div className="flex items-center gap-3 text-[12px]">
-                <label className="flex items-center gap-1">
-                  <input type="radio" checked={novoCliente} onChange={() => setNovoCliente(true)} /> Novo cliente
-                </label>
-                <label className="flex items-center gap-1">
-                  <input type="radio" checked={!novoCliente} onChange={() => setNovoCliente(false)} /> Cliente existente
-                </label>
-              </div>
-              {novoCliente ? (
+              {isApresentacao && (
+                <div className="flex items-center gap-3 text-[12px]">
+                  <label className="flex items-center gap-1">
+                    <input type="radio" checked={novoCliente} onChange={() => setNovoCliente(true)} /> Novo cliente
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input type="radio" checked={!novoCliente} onChange={() => setNovoCliente(false)} /> Cliente existente
+                  </label>
+                </div>
+              )}
+              {isApresentacao && novoCliente ? (
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Nome <span className="text-destructive">*</span></Label><Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} /></div>
                   <div><Label>Telefone <span className="text-destructive">*</span></Label><Input value={clienteFone} onChange={(e) => setClienteFone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
                 </div>
               ) : (
                 <div>
-                  <Label>Buscar cliente</Label>
+                  <Label>Cliente <span className="text-destructive">*</span></Label>
                   <Input value={clienteBusca} onChange={(e) => { setClienteBusca(e.target.value); setClienteId(""); }} placeholder="Digite o nome…" />
                   {clientesEnc.length > 0 && (
                     <div className="mt-1 border rounded-md max-h-40 overflow-y-auto">
@@ -320,6 +371,36 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Seletor de pedido (filtrado por cliente) */}
+              {exigePedido && clienteId && (
+                <div>
+                  <Label>Pedido vinculado <span className="text-destructive">*</span></Label>
+                  <Select value={pedidoSelId} onValueChange={setPedidoSelId}>
+                    <SelectTrigger><SelectValue placeholder={pedidosCliente.length ? "Selecione…" : "Cliente sem pedidos"} /></SelectTrigger>
+                    <SelectContent>
+                      {pedidosCliente.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.codigo || p.id.slice(0,8)} {p.status ? `· ${p.status}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Seletor de orçamento (filtrado por cliente) */}
+              {exigeOrcamento && clienteId && (
+                <div>
+                  <Label>Orçamento vinculado <span className="text-destructive">*</span></Label>
+                  <Select value={orcamentoSelId} onValueChange={setOrcamentoSelId}>
+                    <SelectTrigger><SelectValue placeholder={orcamentosCliente.length ? "Selecione…" : "Cliente sem orçamentos"} /></SelectTrigger>
+                    <SelectContent>
+                      {orcamentosCliente.map(o => (
+                        <SelectItem key={o.id} value={o.id}>{o.codigo || o.id.slice(0,8)} {o.status ? `· ${o.status}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
@@ -335,7 +416,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             <div><Label>Hora fim</Label><Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} /></div>
           </div>
           <div>
-            <Label>Endereço {(tipo === "medicao_tecnica" || tipo === "revisao_final" || tipo === "entrega" || tipo === "montagem") && <span className="text-destructive">*</span>}</Label>
+            <Label>Endereço {exigeEndereco && <span className="text-destructive">*</span>}</Label>
             <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
           </div>
           <div>
