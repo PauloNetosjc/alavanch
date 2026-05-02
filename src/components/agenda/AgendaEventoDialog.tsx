@@ -38,6 +38,13 @@ const TIPOS_ORCAMENTO: AgendaTipo[] = ["medicao_orcamento"];
 const TIPOS_COM_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", ...TIPOS_PEDIDO, ...TIPOS_ORCAMENTO];
 // Tipos que exigem endereço
 const TIPOS_COM_ENDERECO: AgendaTipo[] = ["medicao_tecnica", "revisao_final", "entrega", "montagem", "medicao_orcamento"];
+// Tipos que permitem cadastrar um cliente novo no próprio diálogo
+const TIPOS_NOVO_CLIENTE: AgendaTipo[] = ["apresentacao_comercial", "medicao_orcamento"];
+// Map tipo principal → tipo do followup obrigatório
+const FOLLOWUP_TIPO: Partial<Record<AgendaTipo, AgendaTipo>> = {
+  medicao_orcamento: "apresentacao_comercial",
+  medicao_tecnica: "revisao_final",
+};
 
 interface Props {
   open: boolean;
@@ -98,6 +105,15 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const exigeOrcamento = TIPOS_ORCAMENTO.includes(tipo);
   const exigeEndereco = TIPOS_COM_ENDERECO.includes(tipo);
   const isApresentacao = tipo === "apresentacao_comercial";
+  const permiteNovoCliente = TIPOS_NOVO_CLIENTE.includes(tipo);
+  const followupTipo = FOLLOWUP_TIPO[tipo];
+
+  // Followup obrigatório (apresentação após medição de orçamento; revisão após medição técnica)
+  const [followupData, setFollowupData] = useState("");
+  const [followupHora, setFollowupHora] = useState("09:00");
+  const [followupHoraFim, setFollowupHoraFim] = useState("");
+  const [followupEndereco, setFollowupEndereco] = useState("");
+  const [followupDescricao, setFollowupDescricao] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -107,7 +123,9 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setExcecao(false); setAutorizadorEmail(""); setAutorizadorSenha("");
     setExcecaoMotivo(""); setValidacaoErr("");
     setClienteId(""); setClienteNome(""); setClienteFone(""); setClienteBusca("");
-    setNovoCliente(defaultTipo === "apresentacao_comercial");
+    setNovoCliente(TIPOS_NOVO_CLIENTE.includes(defaultTipo));
+    setFollowupData(""); setFollowupHora("09:00"); setFollowupHoraFim("");
+    setFollowupEndereco(""); setFollowupDescricao("");
     setPedidoSelId(pedidoId || ""); setOrcamentoSelId(orcamentoId || "");
     setPedidosCliente([]); setOrcamentosCliente([]);
     setLojaEventoId(lojaCtxId || null);
@@ -125,13 +143,13 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   // Em mudança de tipo, reseta cliente novo apenas para apresentação (default novo)
   useEffect(() => {
     if (!open) return;
-    setNovoCliente(tipo === "apresentacao_comercial");
+    setNovoCliente(TIPOS_NOVO_CLIENTE.includes(tipo));
     setPedidoSelId(""); setOrcamentoSelId("");
   }, [tipo, open]);
 
   // busca incremental de clientes
   useEffect(() => {
-    if (!open || !exigeCliente || novoCliente || clienteBusca.length < 2) {
+    if (!open || !exigeCliente || (permiteNovoCliente && novoCliente) || clienteBusca.length < 2) {
       setClientesEnc([]); return;
     }
     let active = true;
@@ -182,7 +200,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     if (!data || !hora) return "Informe data e hora.";
     if (!responsavelId) return "Escolha um responsável.";
     if (exigeCliente) {
-      if (isApresentacao && novoCliente) {
+      if (permiteNovoCliente && novoCliente) {
         if (!clienteNome.trim()) return "Informe o nome do cliente.";
         if (!unmask(clienteFone)) return "Informe o telefone do cliente.";
       } else if (!clienteId) {
@@ -192,6 +210,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     if (exigePedido && !pedidoSelId) return "Selecione um pedido do cliente.";
     if (exigeOrcamento && !orcamentoSelId) return "Selecione um orçamento do cliente.";
     if (exigeEndereco && !endereco.trim()) return "Endereço é obrigatório para este tipo de evento.";
+    if (followupTipo) {
+      if (!followupData || !followupHora) return `É necessário agendar também a ${TIPO_LABEL[followupTipo]} na sequência.`;
+      if (followupData < data) return `A ${TIPO_LABEL[followupTipo]} deve ser na mesma data ou após a ${TIPO_LABEL[tipo]}.`;
+    }
 
     if (!config) return null;
     const dt = new Date(data + "T00:00:00");
@@ -217,7 +239,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         return "Data antes do prazo mínimo (" + prazo + " dias úteis após a base).";
     }
     return null;
-  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId, isApresentacao, exigeCliente, exigePedido, exigeOrcamento, exigeEndereco, pedidoSelId, orcamentoSelId]);
+  }, [data, hora, responsavelId, tipo, endereco, config, pedidoId, lojaEventoId, novoCliente, clienteNome, clienteFone, clienteId, permiteNovoCliente, exigeCliente, exigePedido, exigeOrcamento, exigeEndereco, pedidoSelId, orcamentoSelId, followupTipo, followupData, followupHora]);
 
   const handleSubmit = async () => {
     setSaving(true); setValidacaoErr("");
@@ -254,7 +276,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
 
       let cliId = clienteId || null;
       let cliNomeFinal = clienteNome;
-      if (isApresentacao && novoCliente && clienteNome.trim()) {
+      if (permiteNovoCliente && novoCliente && clienteNome.trim()) {
         const { data: novo, error: cErr } = await supabase
           .from("clientes")
           .insert({
@@ -296,7 +318,36 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       };
       const { error } = await supabase.from("agenda_eventos" as any).insert(payload);
       if (error) throw error;
-      toast.success("Evento agendado");
+
+      if (followupTipo) {
+        const followupTitulo = cliNomeFinal
+          ? `${TIPO_LABEL[followupTipo]} – ${cliNomeFinal}`
+          : TIPO_LABEL[followupTipo];
+        const followupPayload: any = {
+          pedido_id: pedidoSelId || pedidoId || null,
+          orcamento_id: orcamentoSelId || orcamentoId || null,
+          cliente_id: cliId,
+          loja_id: lojaEventoId,
+          tipo: followupTipo,
+          titulo: followupTitulo,
+          descricao: followupDescricao || null,
+          data: followupData,
+          hora_inicio: followupHora,
+          hora_fim: followupHoraFim || null,
+          endereco: followupEndereco || endereco || null,
+          responsavel_id: responsavelId,
+          excecao: false,
+          created_by: user?.id || null,
+        };
+        const { error: fErr } = await supabase.from("agenda_eventos" as any).insert(followupPayload);
+        if (fErr) {
+          toast.warning(`Evento principal criado, mas falhou ao agendar ${TIPO_LABEL[followupTipo]}: ${fErr.message}`);
+        } else {
+          toast.success(`Evento e ${TIPO_LABEL[followupTipo]} agendados`);
+        }
+      } else {
+        toast.success("Evento agendado");
+      }
       onCreated?.();
       onOpenChange(false);
     } catch (e: any) {
@@ -341,7 +392,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
           {exigeCliente && (
             <div className="rounded-md border p-3 bg-muted/20 space-y-2">
-              {isApresentacao && (
+              {permiteNovoCliente && (
                 <div className="flex items-center gap-3 text-[12px]">
                   <label className="flex items-center gap-1">
                     <input type="radio" checked={novoCliente} onChange={() => setNovoCliente(true)} /> Novo cliente
@@ -351,7 +402,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
                   </label>
                 </div>
               )}
-              {isApresentacao && novoCliente ? (
+              {permiteNovoCliente && novoCliente ? (
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Nome <span className="text-destructive">*</span></Label><Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} /></div>
                   <div><Label>Telefone <span className="text-destructive">*</span></Label><Input value={clienteFone} onChange={(e) => setClienteFone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
@@ -434,6 +485,30 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             <Label>Observações</Label>
             <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
+
+          {followupTipo && (
+            <div className="rounded-md border p-3 bg-primary/5 space-y-2">
+              <div className="text-[12px] font-medium">
+                Agendar também: {TIPO_LABEL[followupTipo]} <span className="text-destructive">*</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Para concluir o agendamento de {TIPO_LABEL[tipo]}, é obrigatório agendar a {TIPO_LABEL[followupTipo]} na sequência.
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label>Data</Label><Input type="date" value={followupData} onChange={(e) => setFollowupData(e.target.value)} /></div>
+                <div><Label>Hora início</Label><Input type="time" value={followupHora} onChange={(e) => setFollowupHora(e.target.value)} /></div>
+                <div><Label>Hora fim</Label><Input type="time" value={followupHoraFim} onChange={(e) => setFollowupHoraFim(e.target.value)} /></div>
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={followupEndereco} onChange={(e) => setFollowupEndereco(e.target.value)} placeholder="(opcional — usa o do evento principal se vazio)" />
+              </div>
+              <div>
+                <Label>Observações</Label>
+                <Textarea rows={2} value={followupDescricao} onChange={(e) => setFollowupDescricao(e.target.value)} />
+              </div>
+            </div>
+          )}
 
           {config && (
             <div className="text-[11px] text-muted-foreground">
