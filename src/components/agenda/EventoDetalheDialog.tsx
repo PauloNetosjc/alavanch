@@ -30,12 +30,15 @@ interface Props {
 export function EventoDetalheDialog({ open, onOpenChange, eventoId, onChanged }: Props) {
   const [evento, setEvento] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
+  const [pedido, setPedido] = useState<any>(null);
   const [responsavel, setResponsavel] = useState<string>("");
   const [obs, setObs] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState("resumo");
 
   useEffect(() => {
     if (!open || !eventoId) return;
+    setTab("resumo"); setPedido(null);
     (async () => {
       const { data } = await supabase.from("agenda_eventos" as any).select("*").eq("id", eventoId).maybeSingle();
       setEvento(data);
@@ -44,6 +47,12 @@ export function EventoDetalheDialog({ open, onOpenChange, eventoId, onChanged }:
         const { data: c } = await supabase.from("clientes").select("id, nome, telefone, email").eq("id", (data as any).cliente_id).maybeSingle();
         setCliente(c);
       } else { setCliente(null); }
+      if ((data as any)?.pedido_id) {
+        const { data: p } = await supabase.from("pedidos")
+          .select("id, codigo, status, valor_total, created_at")
+          .eq("id", (data as any).pedido_id).maybeSingle();
+        setPedido(p);
+      }
       if ((data as any)?.responsavel_id) {
         const { data: p } = await supabase.from("profiles").select("nome_completo").eq("user_id", (data as any).responsavel_id).maybeSingle();
         setResponsavel((p as any)?.nome_completo || "—");
