@@ -51,7 +51,16 @@ const sections: Section[] = [
     ],
   },
   {
-    label: "Config",
+    label: "Administrativo",
+    items: [
+      { label: "Contas Correntes", path: "/contas", icon: Wallet },
+      { label: "Categorias", path: "/categorias-financeiras", icon: Folder },
+      { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck },
+      { label: "Parceiros", path: "/parceiros", icon: Building2 },
+    ],
+  },
+  {
+    label: "Configuração",
     items: [
       { label: "Administração", path: "/administracao", icon: Settings },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks },
