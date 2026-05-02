@@ -146,8 +146,8 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           setSaving(false);
           return;
         }
-        // valida senha do autorizador via Edge Function existente
-        const { data: vp, error: vpErr } = await supabase.functions.invoke("verify-admin-password", {
+        // valida e-mail + senha do autorizador
+        const { data: vp, error: vpErr } = await supabase.functions.invoke("verify-user-password", {
           body: { email: autorizadorEmail, password: autorizadorSenha },
         });
         if (vpErr || !(vp as any)?.ok) {
