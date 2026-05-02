@@ -17,6 +17,7 @@ export default function Relatorios() {
   const [orcs, setOrcs] = useState<any[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [parceiros, setParceiros] = useState<any[]>([]);
+  const [agendas, setAgendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
