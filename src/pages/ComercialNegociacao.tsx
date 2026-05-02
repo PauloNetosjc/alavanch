@@ -554,6 +554,20 @@ export default function ComercialNegociacao() {
   };
   const acimaDoLimite = descPerc > meuLimite + 0.001;
 
+  const registrarAprovacao = async (adminEmail: string, percUsado: number, valorUsado: number) => {
+    if (!id) return;
+    const { data: u } = await supabase.auth.getUser();
+    await supabase.from("aprovacoes_desconto").insert({
+      orcamento_id: id,
+      solicitante_id: u?.user?.id ?? null,
+      aprovador_email: adminEmail || null,
+      desconto_perc: percUsado,
+      desconto_valor: valorUsado,
+      limite_solicitante: meuLimite,
+      observacao: `Aprovação concedida via senha de gestor`,
+    });
+  };
+
   const aplicarDesconto = () => {
     if (descPerc <= meuLimite + 0.001 || autorizadoPorGestor) {
       setDescPercAplicado(descPerc);
@@ -567,6 +581,48 @@ export default function ComercialNegociacao() {
     setDescPerc(0); setDescValor(0);
     setDescPercAplicado(0); setDescValorAplicado(0);
     setAutorizadoPorGestor(false);
+    setAprovadorEmail("");
+  };
+
+  // helper: distribui valor restante igualmente nas parcelas seguintes
+  const recalcParcelas = (det: number[], total: number, idxAlterado: number): number[] => {
+    const n = det.length;
+    if (n <= 1) return [total];
+    const fixadosAteAgora = det.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
+    const restantes = n - (idxAlterado + 1);
+    if (restantes <= 0) {
+      // ajusta a última pra fechar
+      const novo = [...det];
+      const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
+      novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+      return novo;
+    }
+    const restoTotal = total - fixadosAteAgora;
+    const valorEach = Number((restoTotal / restantes).toFixed(2));
+    const novo = [...det];
+    for (let i = idxAlterado + 1; i < n; i++) novo[i] = valorEach;
+    // ajusta a última para fechar arredondamento
+    const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
+    novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+    return novo;
+  };
+
+  const ensureDetalhe = (p: Pagamento): number[] => {
+    if (p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas) return [...p.parcelas_detalhe];
+    const base = Number((p.valor / p.parcelas).toFixed(2));
+    const arr = Array(p.parcelas).fill(base);
+    arr[p.parcelas - 1] = Number((p.valor - base * (p.parcelas - 1)).toFixed(2));
+    return arr;
+  };
+
+  const editarParcela = (idxPag: number, idxParc: number, novoValor: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const det = ensureDetalhe(p);
+      det[idxParc] = Number(novoValor) || 0;
+      const recalc = recalcParcelas(det, p.valor, idxParc);
+      return { ...p, parcelas_detalhe: recalc };
+    }));
   };
 
   const addPagamento = () => {
@@ -574,7 +630,7 @@ export default function ComercialNegociacao() {
     if (!novoValor || novoValor <= 0) return toast.error("Valor inválido");
     setPagamentos((p) => [
       ...p,
-      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null },
+      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null, parcelas_detalhe: null },
     ]);
     setNovoMetodo(""); setNovoValor(0); setNovoParcelas(1); setNovoVenc("");
   };
