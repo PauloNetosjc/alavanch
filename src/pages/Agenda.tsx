@@ -68,6 +68,7 @@ export default function Agenda() {
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
   const [openDetalhe, setOpenDetalhe] = useState(false);
   const [eventoSelId, setEventoSelId] = useState<string | null>(null);
+  const [chooserEvs, setChooserEvs] = useState<Evento[] | null>(null);
   const abrirEvento = (id: string) => { setEventoSelId(id); setOpenDetalhe(true); };
 
   // intervalo visível
