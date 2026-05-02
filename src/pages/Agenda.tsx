@@ -61,6 +61,9 @@ export default function Agenda() {
   const [filtroLoja, setFiltroLoja] = useState<string>("all"); // só admin/diretor
   const [openNovo, setOpenNovo] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
+  const [openDetalhe, setOpenDetalhe] = useState(false);
+  const [eventoSelId, setEventoSelId] = useState<string | null>(null);
+  const abrirEvento = (id: string) => { setEventoSelId(id); setOpenDetalhe(true); };
 
   // intervalo visível
   const range = useMemo(() => {
