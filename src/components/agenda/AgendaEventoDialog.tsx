@@ -105,6 +105,15 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const exigeOrcamento = TIPOS_ORCAMENTO.includes(tipo);
   const exigeEndereco = TIPOS_COM_ENDERECO.includes(tipo);
   const isApresentacao = tipo === "apresentacao_comercial";
+  const permiteNovoCliente = TIPOS_NOVO_CLIENTE.includes(tipo);
+  const followupTipo = FOLLOWUP_TIPO[tipo];
+
+  // Followup obrigatório (apresentação após medição de orçamento; revisão após medição técnica)
+  const [followupData, setFollowupData] = useState("");
+  const [followupHora, setFollowupHora] = useState("09:00");
+  const [followupHoraFim, setFollowupHoraFim] = useState("");
+  const [followupEndereco, setFollowupEndereco] = useState("");
+  const [followupDescricao, setFollowupDescricao] = useState("");
 
   useEffect(() => {
     if (!open) return;
