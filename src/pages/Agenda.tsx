@@ -307,7 +307,8 @@ export default function Agenda() {
                           return (
                             <div
                               key={e.id}
-                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
+                              onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
+                              className={`absolute left-1 right-1 rounded border px-1.5 py-1 overflow-hidden text-[11px] shadow-sm cursor-pointer hover:shadow-md ${TIPO_COR[e.tipo]} ${e.status === "cancelado" ? "opacity-50 line-through" : ""}`}
                               style={{ top, height }}
                               title={`${e.titulo} (${e.hora_inicio?.slice(0,5)}${e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""})`}
                             >
