@@ -23,6 +23,7 @@ export type Database = {
           descricao: string | null
           id: string
           markup: number | null
+          negociavel: boolean
           nome: string
           orcamento_id: string
           ordem: number | null
@@ -37,6 +38,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           markup?: number | null
+          negociavel?: boolean
           nome: string
           orcamento_id: string
           ordem?: number | null
@@ -51,6 +53,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           markup?: number | null
+          negociavel?: boolean
           nome?: string
           orcamento_id?: string
           ordem?: number | null
@@ -530,9 +533,12 @@ export type Database = {
           loja_id: string | null
           nome: string
           observacoes: string | null
+          origem_id: string | null
+          parceiro_id: string | null
           telefone: string | null
           telefone_secundario: string | null
           updated_at: string
+          vendedor_id: string | null
         }
         Insert: {
           ativo?: boolean | null
@@ -547,9 +553,12 @@ export type Database = {
           loja_id?: string | null
           nome: string
           observacoes?: string | null
+          origem_id?: string | null
+          parceiro_id?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
           updated_at?: string
+          vendedor_id?: string | null
         }
         Update: {
           ativo?: boolean | null
@@ -564,9 +573,12 @@ export type Database = {
           loja_id?: string | null
           nome?: string
           observacoes?: string | null
+          origem_id?: string | null
+          parceiro_id?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
           updated_at?: string
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -574,6 +586,13 @@ export type Database = {
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_origem_id_fkey"
+            columns: ["origem_id"]
+            isOneToOne: false
+            referencedRelation: "origens_lead"
             referencedColumns: ["id"]
           },
         ]
@@ -863,6 +882,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_estagios: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          id: string
+          is_ganho: boolean
+          is_perdido: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          is_ganho?: boolean
+          is_perdido?: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          is_ganho?: boolean
+          is_perdido?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
       }
       fotos_assistencia: {
         Row: {
@@ -1366,16 +1418,21 @@ export type Database = {
           created_by: string | null
           desconto_perc: number | null
           desconto_valor: number | null
+          estagio_id: string | null
           id: string
           loja_id: string | null
+          motivo_perda: string | null
           nome_projeto: string | null
+          origem_id: string | null
           parceiro_id: string | null
           parceiro_perc: number | null
+          perdido_em: string | null
           projetista_id: string | null
           status: string
           subtotal: number | null
           total: number | null
           updated_at: string
+          vendedor_id: string | null
         }
         Insert: {
           cliente_id?: string | null
@@ -1386,16 +1443,21 @@ export type Database = {
           created_by?: string | null
           desconto_perc?: number | null
           desconto_valor?: number | null
+          estagio_id?: string | null
           id?: string
           loja_id?: string | null
+          motivo_perda?: string | null
           nome_projeto?: string | null
+          origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          perdido_em?: string | null
           projetista_id?: string | null
           status?: string
           subtotal?: number | null
           total?: number | null
           updated_at?: string
+          vendedor_id?: string | null
         }
         Update: {
           cliente_id?: string | null
@@ -1406,16 +1468,21 @@ export type Database = {
           created_by?: string | null
           desconto_perc?: number | null
           desconto_valor?: number | null
+          estagio_id?: string | null
           id?: string
           loja_id?: string | null
+          motivo_perda?: string | null
           nome_projeto?: string | null
+          origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          perdido_em?: string | null
           projetista_id?: string | null
           status?: string
           subtotal?: number | null
           total?: number | null
           updated_at?: string
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -1426,10 +1493,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orcamentos_estagio_id_fkey"
+            columns: ["estagio_id"]
+            isOneToOne: false
+            referencedRelation: "crm_estagios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orcamentos_loja_id_fkey"
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_origem_id_fkey"
+            columns: ["origem_id"]
+            isOneToOne: false
+            referencedRelation: "origens_lead"
             referencedColumns: ["id"]
           },
           {
@@ -1847,6 +1928,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pedido_itens_avulsos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          negociavel: boolean
+          nome: string
+          orcamento_id: string | null
+          ordem: number | null
+          pedido_id: string | null
+          valor_venda: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          negociavel?: boolean
+          nome: string
+          orcamento_id?: string | null
+          ordem?: number | null
+          pedido_id?: string | null
+          valor_venda?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          negociavel?: boolean
+          nome?: string
+          orcamento_id?: string | null
+          ordem?: number | null
+          pedido_id?: string | null
+          valor_venda?: number
+        }
+        Relationships: []
       }
       pedido_pastas: {
         Row: {

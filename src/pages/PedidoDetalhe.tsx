@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
+import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -281,6 +282,7 @@ export default function PedidoDetalhe() {
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
+      <ItensAvulsosManager pedidoId={pedido.id} />
 
       {/* IMPORTAR REVISÃO PROMOB */}
       <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
+import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 
 type Cliente = { id: string; nome: string };
@@ -522,51 +523,73 @@ export default function ComercialNovo() {
   const handleFile = async (file: File) => {
     setImporting(true);
     try {
-      const text = await file.text();
-      const parsed: PromobParseResult = parsePromobTxt(text);
-      if (parsed.environments.length === 0) {
-        toast.error("Nenhum ambiente identificado no arquivo");
+      const ext = file.name.toLowerCase().split(".").pop() || "";
+      // Caminho 1: TXT/XML do Promob (parser específico)
+      if (ext === "txt") {
+        const text = await file.text();
+        const parsed: PromobParseResult = parsePromobTxt(text);
+        if (parsed.environments.length === 0) {
+          toast.error("Nenhum ambiente identificado no arquivo");
+          return;
+        }
+        const novos: Ambiente[] = await Promise.all(
+          parsed.environments.map(async (env) => {
+            const itens: Item[] = env.items.map((it) => ({
+              descricao: it.description,
+              quantidade: it.quantity,
+              largura: it.width,
+              altura: it.height,
+              profundidade: it.depth,
+              custo_cliente: it.clientPrice,
+              custo_loja: it.storePrice,
+              custo_fabrica: it.factoryPrice,
+              cor: it.finish || null,
+              categoria: it.category || null,
+              codigo: it.projectRef || null,
+            }));
+            const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+            const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+            const markup = custo > 0 ? preco / custo : 0;
+            const descricao = await aiDescribe(env.name, itens);
+            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+          }),
+        );
+        setAmbientes((prev) => [...prev, ...novos]);
+        if (!nomeProjeto && parsed.header.clientName) setNomeProjeto(parsed.header.clientName);
+        toast.success(`${novos.length} ambientes importados!`);
+        parsed.warnings.forEach((w) => toast.warning(w));
         return;
       }
 
-      const novos: Ambiente[] = await Promise.all(
-        parsed.environments.map(async (env) => {
-          const itens: Item[] = env.items.map((it) => ({
-            descricao: it.description,
-            quantidade: it.quantity,
-            largura: it.width,
-            altura: it.height,
-            profundidade: it.depth,
-            custo_cliente: it.clientPrice,
-            custo_loja: it.storePrice,
-            custo_fabrica: it.factoryPrice,
-            cor: it.finish || null,
-            categoria: it.category || null,
-            codigo: it.projectRef || null,
-          }));
-          // custo_aquisicao = custo loja (preço Promob)
-          const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
-          // preço cliente sugerido (markup do sistema = soma dos custo_cliente)
-          const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
-          const markup = custo > 0 ? preco / custo : 0;
-          const descricao = await aiDescribe(env.name, itens);
-          return {
-            id: uid(),
-            nome: env.name,
-            descricao,
-            prazo_dias: null,
-            custo_aquisicao: custo,
-            preco_sugerido: preco,
-            markup: Number(markup.toFixed(2)),
-            itens,
-          };
-        }),
-      );
+      // Caminho 2: XML ou Excel genérico
+      let result: GenericParseResult;
+      if (ext === "xml") {
+        const text = await file.text();
+        result = parseProjetoXml(text);
+      } else if (ext === "xlsx" || ext === "xls") {
+        result = await parseProjetoExcel(file);
+      } else {
+        toast.error("Formato não suportado. Use TXT, XML ou XLSX.");
+        return;
+      }
 
+      const novos: Ambiente[] = result.environments.map((env) => {
+        const itens: Item[] = env.items.map((it) => ({
+          descricao: it.description,
+          quantidade: it.quantity,
+          largura: null, altura: null, profundidade: null,
+          custo_cliente: it.clientPrice || it.cost,
+          custo_loja: it.cost,
+          custo_fabrica: it.cost,
+          cor: null, categoria: null, codigo: null,
+        }));
+        const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
+        const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+        const markup = custo > 0 ? preco / custo : 0;
+        return { id: uid(), nome: env.name, descricao: "", prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+      });
       setAmbientes((prev) => [...prev, ...novos]);
-      if (!nomeProjeto && parsed.header.clientName) setNomeProjeto(parsed.header.clientName);
-      toast.success(`${novos.length} ambientes importados com markup do sistema!`);
-      parsed.warnings.forEach((w) => toast.warning(w));
+      toast.success(`${novos.length} ambientes importados de ${ext.toUpperCase()}!`);
     } catch (e: any) {
       toast.error("Falha ao ler arquivo: " + e.message);
     } finally {
@@ -910,11 +933,11 @@ export default function ComercialNovo() {
                 <div className="rounded-lg border border-border p-5">
                   <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
                     <Upload className="w-4 h-4 text-[#2D6BE5]" />
-                    Importar Promob (XML ou TXT)
+                    Importar projeto (TXT, XML ou Excel)
                   </div>
                   <label className="block border-2 border-dashed border-[#D6E4F5] rounded-lg py-10 px-4 cursor-pointer hover:bg-[#F8FAFD] transition text-center">
                     <input
-                      type="file" accept=".txt,.xml" className="hidden"
+                      type="file" accept=".txt,.xml,.xlsx,.xls" className="hidden"
                       onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                     />
                     <div className="w-12 h-12 rounded-full bg-[#EAF2FB] flex items-center justify-center mx-auto mb-3">
@@ -925,10 +948,10 @@ export default function ComercialNovo() {
                       )}
                     </div>
                     <div className="text-[14px] font-medium text-[#2D6BE5]">
-                      {importing ? "Processando…" : "Arraste ou clique para importar XML ou TXT do Promob"}
+                      {importing ? "Processando…" : "Arraste ou clique para importar TXT, XML ou Excel"}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Arquivos .xml ou .txt são aceitos
+                      .txt (Promob), .xml ou .xlsx
                     </div>
                   </label>
                 </div>
