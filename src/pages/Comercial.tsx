@@ -219,7 +219,7 @@ export default function Comercial() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <BigKpi label="EM NEGOCIAÇÃO"   value={fmtBrl(stats.negociacao)}     icon={Clock}        variant="purple" />
         <BigKpi label="VENDAS FECHADAS" value={fmtBrl(stats.vendasFechadas)} icon={CheckCircle2} variant="green" />
         <BigKpi label="TICKET MÉDIO"    value={fmtBrl(stats.ticket)}         icon={TrendingUp}   variant="violet" />
@@ -341,68 +341,118 @@ export default function Comercial() {
             ) : undefined}
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[11px] tracking-wider">CONTRATO / DATA</TableHead>
-                <TableHead className="text-[11px] tracking-wider">CLIENTE</TableHead>
-                <TableHead className="text-[11px] tracking-wider">STATUS &amp; WORKFLOW</TableHead>
-                <TableHead className="text-[11px] tracking-wider text-right">VALOR</TableHead>
-                <TableHead className="text-[11px] tracking-wider text-right">AÇÕES</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile: cards */}
+            <ul className="md:hidden divide-y">
               {visibleRows.map((r) => {
                 const st = STATUS_LABEL[r.status] ?? STATUS_LABEL.negociacao;
                 const isVenda = !!r.pedido_id;
                 const assinaturaPendente = r.contrato_status === "aguardando_assinatura";
                 const onOpen = () => navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}`);
                 return (
-                  <TableRow key={r.id} className="cursor-pointer" onClick={onOpen}>
-                    <TableCell>
-                      <div className="font-medium text-mono flex items-center gap-1.5">
-                        {r.codigo}
-                        {assinaturaPendente && (
-                          <span title="Assinatura pendente" className="inline-flex items-center text-amber-600">
-                            <Clock className="w-3.5 h-3.5" />
-                          </span>
+                  <li key={r.id} className="p-4 active:bg-muted/40" onClick={onOpen}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-mono text-[11px]">
+                          {r.codigo}
+                          {assinaturaPendente && <Clock className="w-3 h-3 text-amber-600" />}
+                          <span className="text-muted-foreground">· {fmtDate(r.created_at)}</span>
+                        </div>
+                        <div className="font-medium text-[14px] mt-1 truncate">{r.cliente?.nome ?? "—"}</div>
+                        {r.nome_projeto && (
+                          <div className="text-[12px] text-muted-foreground truncate">{r.nome_projeto}</div>
                         )}
                       </div>
-                      <div className="text-[12px] text-muted-foreground">{fmtDate(r.created_at)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{r.cliente?.nome ?? "—"}</div>
-                      {r.nome_projeto && (
-                        <div className="text-[12px] text-muted-foreground">{r.nome_projeto}</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
-                        style={{ background: st.bg, color: st.fg }}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
-                        {isVenda ? "VENDA" : st.label}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right text-mono font-medium">
-                      {fmtBrl(Number(r.total) || 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                      <div className="text-right shrink-0">
+                        <div className="text-mono font-semibold text-[13px]">{fmtBrl(Number(r.total) || 0)}</div>
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full mt-1"
+                          style={{ background: st.bg, color: st.fg }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
+                          {isVenda ? "VENDA" : st.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                        aria-label="Negociação"
-                        title="Abrir negociação"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
                       >
                         <Calculator className="w-3.5 h-3.5" /> Negociar
                       </button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[11px] tracking-wider">CONTRATO / DATA</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">CLIENTE</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">STATUS &amp; WORKFLOW</TableHead>
+                    <TableHead className="text-[11px] tracking-wider text-right">VALOR</TableHead>
+                    <TableHead className="text-[11px] tracking-wider text-right">AÇÕES</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleRows.map((r) => {
+                    const st = STATUS_LABEL[r.status] ?? STATUS_LABEL.negociacao;
+                    const isVenda = !!r.pedido_id;
+                    const assinaturaPendente = r.contrato_status === "aguardando_assinatura";
+                    const onOpen = () => navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}`);
+                    return (
+                      <TableRow key={r.id} className="cursor-pointer" onClick={onOpen}>
+                        <TableCell>
+                          <div className="font-medium text-mono flex items-center gap-1.5">
+                            {r.codigo}
+                            {assinaturaPendente && (
+                              <span title="Assinatura pendente" className="inline-flex items-center text-amber-600">
+                                <Clock className="w-3.5 h-3.5" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[12px] text-muted-foreground">{fmtDate(r.created_at)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{r.cliente?.nome ?? "—"}</div>
+                          {r.nome_projeto && (
+                            <div className="text-[12px] text-muted-foreground">{r.nome_projeto}</div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                            style={{ background: st.bg, color: st.fg }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
+                            {isVenda ? "VENDA" : st.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-mono font-medium">
+                          {fmtBrl(Number(r.total) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                            aria-label="Negociação"
+                            title="Abrir negociação"
+                          >
+                            <Calculator className="w-3.5 h-3.5" /> Negociar
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
     </div>
