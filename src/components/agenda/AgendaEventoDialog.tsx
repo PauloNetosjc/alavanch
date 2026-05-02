@@ -392,7 +392,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
           {exigeCliente && (
             <div className="rounded-md border p-3 bg-muted/20 space-y-2">
-              {isApresentacao && (
+              {permiteNovoCliente && (
                 <div className="flex items-center gap-3 text-[12px]">
                   <label className="flex items-center gap-1">
                     <input type="radio" checked={novoCliente} onChange={() => setNovoCliente(true)} /> Novo cliente
@@ -402,7 +402,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
                   </label>
                 </div>
               )}
-              {isApresentacao && novoCliente ? (
+              {permiteNovoCliente && novoCliente ? (
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Nome <span className="text-destructive">*</span></Label><Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} /></div>
                   <div><Label>Telefone <span className="text-destructive">*</span></Label><Input value={clienteFone} onChange={(e) => setClienteFone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
