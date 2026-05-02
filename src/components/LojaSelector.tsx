@@ -61,18 +61,18 @@ export function LojaSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="h-9 px-3 rounded-md text-[12px] flex items-center gap-2 bg-card hover:bg-secondary transition-colors"
+          className="h-9 px-2 sm:px-3 rounded-md text-[12px] flex items-center gap-1.5 sm:gap-2 bg-card hover:bg-secondary transition-colors"
           style={{ border: "0.5px solid hsl(var(--border))" }}
           title={label}
         >
           {showAll ? (
-            <Globe className="w-3.5 h-3.5 text-primary" />
+            <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
           ) : (
-            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           )}
-          <span className="max-w-[180px] truncate">{label}</span>
+          <span className="hidden sm:inline max-w-[180px] truncate">{label}</span>
           {isAdmin && lojas.length > 1 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+            <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
               {lojas.length}
             </span>
           )}

@@ -74,7 +74,7 @@ const sections: Section[] = [
   },
 ];
 
-export function AppSidebar() {
+export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
   const { nome: brandNome, logoUrl } = useBranding();
@@ -94,10 +94,7 @@ export function AppSidebar() {
     .toUpperCase();
 
   return (
-    <aside
-      className="w-[220px] shrink-0 flex flex-col h-screen sticky top-0"
-      style={{ background: "#0F0F0F", borderRight: "0.5px solid #222" }}
-    >
+    <div className="flex flex-col h-full" style={{ background: "#0F0F0F" }}>
       {/* Top: brand */}
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
@@ -141,6 +138,7 @@ export function AppSidebar() {
                   <NavLink
                     key={it.path}
                     to={it.path}
+                    onClick={onNavigate}
                     className="group flex items-center gap-2.5 rounded-md transition-colors"
                     style={{
                       padding: "7px 14px",
@@ -192,6 +190,17 @@ export function AppSidebar() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function AppSidebar() {
+  return (
+    <aside
+      className="hidden md:flex w-[220px] shrink-0 flex-col h-screen sticky top-0"
+      style={{ background: "#0F0F0F", borderRight: "0.5px solid #222" }}
+    >
+      <SidebarInner />
     </aside>
   );
 }
