@@ -1527,12 +1527,14 @@ export type Database = {
           desconto_valor: number | null
           estagio_id: string | null
           id: string
+          is_adendo: boolean | null
           loja_id: string | null
           motivo_perda: string | null
           nome_projeto: string | null
           origem_id: string | null
           parceiro_id: string | null
           parceiro_perc: number | null
+          pedido_origem_id: string | null
           perdido_em: string | null
           projetista_id: string | null
           status: string
@@ -1552,12 +1554,14 @@ export type Database = {
           desconto_valor?: number | null
           estagio_id?: string | null
           id?: string
+          is_adendo?: boolean | null
           loja_id?: string | null
           motivo_perda?: string | null
           nome_projeto?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          pedido_origem_id?: string | null
           perdido_em?: string | null
           projetista_id?: string | null
           status?: string
@@ -1577,12 +1581,14 @@ export type Database = {
           desconto_valor?: number | null
           estagio_id?: string | null
           id?: string
+          is_adendo?: boolean | null
           loja_id?: string | null
           motivo_perda?: string | null
           nome_projeto?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          pedido_origem_id?: string | null
           perdido_em?: string | null
           projetista_id?: string | null
           status?: string
