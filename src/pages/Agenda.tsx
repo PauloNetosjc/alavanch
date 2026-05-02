@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
+import { EventoDetalheDialog } from "@/components/agenda/EventoDetalheDialog";
 
 const TIPO_LABEL: Record<string, string> = {
   apresentacao_comercial: "Apresentação",
