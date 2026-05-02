@@ -712,6 +712,26 @@ export default function ComercialNovo() {
       }
     }
 
+    // Upload de arquivos importados (Promob/XML/Excel) para a Central de Documentos do orçamento
+    if (arquivosImportados.length > 0) {
+      const { data: u } = await supabase.auth.getUser();
+      for (const { file, origem } of arquivosImportados) {
+        const path = `${orc.id}/${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from("orcamento-docs").upload(path, file);
+        if (!upErr) {
+          await supabase.from("orcamento_documentos" as any).insert({
+            orcamento_id: orc.id,
+            nome: file.name,
+            storage_path: path,
+            tamanho: file.size,
+            mime_type: file.type || null,
+            origem,
+            created_by: u.user?.id || null,
+          });
+        }
+      }
+    }
+
     setSaving(false);
     toast.success(`Orçamento ${codigo} criado`);
     if (goToNegociacao) navigate(`/comercial/${orc.id}/negociacao`);
