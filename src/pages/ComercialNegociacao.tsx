@@ -893,10 +893,20 @@ export default function ComercialNegociacao() {
               return (
                 <div key={a.id} className="border-2 border-emerald-100 rounded-lg px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check className="w-3.5 h-3.5 text-emerald-700" />
-                      </div>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <label className="flex items-center gap-1.5 mt-0.5 cursor-pointer" title="Entra no cálculo de desconto">
+                          <input
+                            type="checkbox"
+                            checked={a.negociavel !== false}
+                            onChange={async (e) => {
+                              const v = e.target.checked;
+                              setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
+                              await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
+                            }}
+                            className="w-4 h-4 accent-emerald-600"
+                          />
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Negoc.</span>
+                        </label>
                       <div className="min-w-0">
                         <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
                         {a.descricao && (
