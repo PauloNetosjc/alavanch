@@ -2406,7 +2406,16 @@ export type Database = {
       pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "vendedor" | "montador"
+      app_role:
+        | "admin"
+        | "vendedor"
+        | "montador"
+        | "diretor"
+        | "gerente"
+        | "projetista"
+        | "financeiro"
+        | "tecnico"
+        | "assistencia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2534,7 +2543,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedor", "montador"],
+      app_role: [
+        "admin",
+        "vendedor",
+        "montador",
+        "diretor",
+        "gerente",
+        "projetista",
+        "financeiro",
+        "tecnico",
+        "assistencia",
+      ],
     },
   },
 } as const
