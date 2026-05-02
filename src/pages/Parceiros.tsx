@@ -97,8 +97,43 @@ export default function Parceiros() {
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-card p-6">
-        <table className="w-full text-sm">
+      <div className="rounded-2xl border bg-card p-3 sm:p-6">
+        {/* Mobile cards */}
+        <ul className="md:hidden divide-y -mx-3">
+          {lista.map((p) => (
+            <li key={p.id} className="px-3 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-[14px] truncate">{p.nome}</div>
+                  <div className="text-[11px] text-muted-foreground italic truncate">{p.email || "sem email cadastrado…"}</div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Badge variant="secondary" className="uppercase text-[10px]">{p.tipo}</Badge>
+                    {p.telefone && (
+                      <span className="text-[12px] text-muted-foreground inline-flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {p.telefone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">RT</div>
+                  <div className="font-semibold text-purple-600 text-[14px]">
+                    {p.percentual_padrao != null ? `${Number(p.percentual_padrao).toFixed(2)}%` : "—"}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-1">
+                <Button size="sm" variant="ghost" onClick={() => setHistoricoFor(p)}><FileText className="w-4 h-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEdit(p); setDialog(true); }}><Pencil className="w-4 h-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => remover(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+              </div>
+            </li>
+          ))}
+          {!lista.length && <li className="py-12 text-center text-muted-foreground text-[12px]">Nenhum {tabLabels[tab].toLowerCase()} cadastrado</li>}
+        </ul>
+
+        {/* Desktop table */}
+        <table className="hidden md:table w-full text-sm">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b">
               <th className="text-left py-3">Nome / E-mail</th>
