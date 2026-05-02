@@ -244,24 +244,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="outline" className="text-[#2D6BE5] border-[#2D6BE5]/30"
-                onClick={() => {
-                  const url = `${window.location.origin}/contrato/${contrato.signing_token}`;
-                  navigator.clipboard.writeText(url);
-                  toast.success("Link copiado");
-                }}>
-                <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link da assinatura digital
-              </Button>
-              <Button size="sm" variant="outline" className="text-amber-700 border-amber-300 bg-amber-50"
-                onClick={async () => {
-                  await supabase.from("contratos").update({ status: "assinado", assinado_em: new Date().toISOString(), assinatura_nome: "Assinatura manual" }).eq("id", contrato.id);
-                  toast.success("Assinatura manual confirmada");
-                  carregar();
-                }}>
-                Confirmar assinatura manual
-              </Button>
-            </div>
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} onChange={carregar} />
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -378,6 +361,24 @@ export default function PedidoDetalhe() {
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
+
+      {/* AVISO: edição de pedido fechado gera adendo */}
+      <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
+        <Sparkles className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+        <div className="flex-1 text-[13px] text-purple-900">
+          <div className="font-semibold mb-0.5">Pedido fechado — toda alteração vira Adendo</div>
+          <div>
+            Para preservar o financeiro, este pedido não pode ser editado diretamente. Adicionar itens avulsos
+            ou importar revisões cria um <b>Adendo</b> (orçamento complementar vinculado), que gera um novo
+            contrato e novos lançamentos sem alterar a venda original.
+          </div>
+        </div>
+        <Button onClick={criarAdendo} disabled={criandoAdendo} className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+        </Button>
+      </section>
+
+      {/* Itens avulsos do pedido (apenas leitura — adições devem ir para um adendo) */}
       <ItensAvulsosManager pedidoId={pedido.id} />
 
       {/* IMPORTAR REVISÃO PROMOB */}
