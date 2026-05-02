@@ -22,11 +22,13 @@ interface Props {
   orcamentoId?: string;
   /** Quando os itens mudarem (criação/remoção/edição), notifica o pai. */
   onChange?: (totals: { totalNegociavel: number; totalNaoNegociavel: number }) => void;
+  /** Quando true, esconde botões de edição (usado em pedidos fechados — alterações viram adendo). */
+  readOnly?: boolean;
 }
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export function ItensAvulsosManager({ pedidoId, orcamentoId, onChange }: Props) {
+export function ItensAvulsosManager({ pedidoId, orcamentoId, onChange, readOnly = false }: Props) {
   const [itens, setItens] = useState<ItemAvulso[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ nome: "", descricao: "", valor_venda: "0", negociavel: true });
@@ -81,9 +83,11 @@ export function ItensAvulsosManager({ pedidoId, orcamentoId, onChange }: Props) 
     <div className="surface-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold flex items-center gap-2"><Package className="w-4 h-4" /> Itens avulsos</h3>
-        <Button size="sm" onClick={() => setOpen(true)} disabled={!pedidoId && !orcamentoId}>
-          <Plus className="w-4 h-4 mr-1" /> Adicionar item
-        </Button>
+        {!readOnly && (
+          <Button size="sm" onClick={() => setOpen(true)} disabled={!pedidoId && !orcamentoId}>
+            <Plus className="w-4 h-4 mr-1" /> Adicionar item
+          </Button>
+        )}
       </div>
       {itens.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-4">Nenhum item avulso.</div>
@@ -103,9 +107,11 @@ export function ItensAvulsosManager({ pedidoId, orcamentoId, onChange }: Props) 
                 </div>
               </div>
               <div className="text-sm font-semibold">{fmtBrl(Number(i.valor_venda))}</div>
-              <Button size="icon" variant="ghost" onClick={() => remover(i.id)}>
-                <Trash2 className="w-4 h-4 text-destructive" />
-              </Button>
+              {!readOnly && (
+                <Button size="icon" variant="ghost" onClick={() => remover(i.id)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              )}
             </li>
           ))}
         </ul>

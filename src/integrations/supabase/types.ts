@@ -806,11 +806,17 @@ export type Database = {
           conteudo_snapshot: Json | null
           created_at: string
           created_by: string | null
+          documento_url: string | null
+          enviado_em: string | null
+          enviado_via: string | null
           id: string
           loja_id: string | null
+          metodo_assinatura: string | null
           numero: string
           observacoes_adicionais: string | null
           orcamento_id: string
+          pdf_assinado_url: string | null
+          selfie_url: string | null
           signing_token: string
           status: string
           template_id: string | null
@@ -827,11 +833,17 @@ export type Database = {
           conteudo_snapshot?: Json | null
           created_at?: string
           created_by?: string | null
+          documento_url?: string | null
+          enviado_em?: string | null
+          enviado_via?: string | null
           id?: string
           loja_id?: string | null
+          metodo_assinatura?: string | null
           numero: string
           observacoes_adicionais?: string | null
           orcamento_id: string
+          pdf_assinado_url?: string | null
+          selfie_url?: string | null
           signing_token?: string
           status?: string
           template_id?: string | null
@@ -848,11 +860,17 @@ export type Database = {
           conteudo_snapshot?: Json | null
           created_at?: string
           created_by?: string | null
+          documento_url?: string | null
+          enviado_em?: string | null
+          enviado_via?: string | null
           id?: string
           loja_id?: string | null
+          metodo_assinatura?: string | null
           numero?: string
           observacoes_adicionais?: string | null
           orcamento_id?: string
+          pdf_assinado_url?: string | null
+          selfie_url?: string | null
           signing_token?: string
           status?: string
           template_id?: string | null
