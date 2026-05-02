@@ -386,6 +386,30 @@ export default function Agenda() {
         eventoId={eventoSelId}
         onChanged={reload}
       />
+
+      {/* Chooser de eventos sobrepostos no mesmo horário */}
+      <Dialog open={!!chooserEvs} onOpenChange={(v) => !v && setChooserEvs(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eventos neste horário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            {chooserEvs?.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => { setChooserEvs(null); abrirEvento(e.id); }}
+                className={`w-full text-left rounded border px-3 py-2 text-[12px] hover:opacity-90 ${TIPO_COR[e.tipo]}`}
+              >
+                <div className="font-semibold">
+                  {e.hora_inicio?.slice(0,5)}{e.hora_fim ? `–${e.hora_fim.slice(0,5)}` : ""} · {TIPO_LABEL[e.tipo]}
+                </div>
+                <div className="truncate">{e.titulo}</div>
+                {e.endereco && <div className="opacity-80 truncate">{e.endereco}</div>}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
