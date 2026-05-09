@@ -835,10 +835,16 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
             </div>
             <div className="flex items-center gap-1">
               {!d.assinado_em && !d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)}>
+                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)} title="Link rápido">
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
               )}
+              {!d._readonly && (
+                <Button size="sm" variant="ghost" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura digital">
+                  <PenLine className="w-4 h-4 text-primary" />
+                </Button>
+              )}
+              {false && (
               <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
