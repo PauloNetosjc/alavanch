@@ -189,10 +189,13 @@ export function EstagiosEditDialog({
       // Estágios
       const idMap: Record<string, string> = {};
       for (const [i, row] of rows.entries()) {
-        const payload = {
+        const payload: any = {
           nome: row.nome, ordem: i + 1, cor: row.cor, ativo: row.ativo,
           checklist_template_id: row.checklist_template_id,
           sla_dias_uteis: row.sla_dias_uteis,
+          concluir_acao: row.concluir_acao ?? "proxima",
+          concluir_pipeline_destino: row.concluir_acao === "outro_kanban" ? row.concluir_pipeline_destino : null,
+          concluir_estagio_destino_id: row.concluir_acao === "outro_kanban" ? row.concluir_estagio_destino_id : null,
         };
         if (row.id.startsWith("new-")) {
           const { data, error } = await (supabase as any).from("pipeline_estagios").insert({ pipeline, ...payload }).select("id").single();
