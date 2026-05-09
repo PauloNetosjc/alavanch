@@ -250,7 +250,7 @@ export default function AssinaturaPublica() {
   }
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted">
+      <div className="min-h-screen flex items-center justify-center bg-muted" role="status" aria-label="Carregando assinatura">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
