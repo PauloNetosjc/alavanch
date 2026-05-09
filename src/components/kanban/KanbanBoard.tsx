@@ -11,6 +11,7 @@ import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros
 import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
+import { ConcluirCardDialog } from "./ConcluirCardDialog";
 import type { KanbanKey } from "./kanbanRegistry";
 
 const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
@@ -83,6 +84,7 @@ export default function KanbanBoard({
 
   const [activeCard, setActiveCard] = useState<CardRow | null>(null);
   const [activeStage, setActiveStage] = useState<Estagio | null>(null);
+  const [concluirCardId, setConcluirCardId] = useState<CardRow | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -222,20 +224,9 @@ export default function KanbanBoard({
     carregar();
   };
 
-  const concluirCard = async (cardId: string, e: React.MouseEvent) => {
+  const abrirConcluir = (card: CardRow, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
-    const card = cards.find((c) => c.id === cardId);
-    const est = estagios.find((es) => es.id === card?.estagio_id);
-    const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: cardId });
-    if (error) return toast.error(error.message);
-    if (card?.pedido_id) {
-      await logEvento(card.pedido_id, "kanban_concluido",
-        `[${pipeline}] Card concluído na etapa "${est?.nome ?? "—"}"`,
-        { pipeline, estagio: est?.nome, card_id: cardId });
-    }
-    toast.success("Card concluído");
-    carregar();
+    setConcluirCardId(card);
   };
 
   const onCardClick = (c: CardRow, est: Estagio) => {
@@ -302,6 +293,18 @@ export default function KanbanBoard({
         estagios={estagios}
         onUpdated={carregar}
       />
+      {concluirCardId && (
+        <ConcluirCardDialog
+          open={!!concluirCardId}
+          onOpenChange={(v) => { if (!v) setConcluirCardId(null); }}
+          cardId={concluirCardId.id}
+          pedidoId={concluirCardId.pedido_id}
+          pipeline={pipeline}
+          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem }))}
+          estagioAtualId={concluirCardId.estagio_id}
+          onDone={carregar}
+        />
+      )}
 
       {loading ? (
         <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>
@@ -369,7 +372,7 @@ export default function KanbanBoard({
                               {ped.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
                               {podeConcluir(c) && !isConcluidos(e) && (
                                 <button
-                                  onClick={(ev) => concluirCard(c.id, ev)}
+                                  onClick={(ev) => abrirConcluir(c, ev)}
                                   title="Concluir card"
                                   className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
                                 >
