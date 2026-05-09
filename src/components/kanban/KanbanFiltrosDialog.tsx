@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Star, X } from "lucide-react";
+import { X, Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+export type UrgenciaNivel = "baixa" | "media" | "alta";
 
 export type KanbanFiltros = {
   dataFim?: string;
@@ -15,12 +17,12 @@ export type KanbanFiltros = {
   tipoOcorrencia?: string;
   equipe?: string;
   grupoLinhasGrade?: string;
-  estrelas?: number; // 0..5
+  urgencia?: UrgenciaNivel;
   somenteAtrasados: boolean;
   mostrarValores: boolean;
   mostrarTarefas: boolean;
   arquivados: boolean;
-  ordenarPor: "indices" | "estrelas" | "entrega";
+  ordenarPor: "indices" | "urgencia" | "entrega";
 };
 
 export const FILTROS_DEFAULT: KanbanFiltros = {
@@ -29,6 +31,12 @@ export const FILTROS_DEFAULT: KanbanFiltros = {
   mostrarTarefas: false,
   arquivados: false,
   ordenarPor: "indices",
+};
+
+export const URGENCIA_META: Record<UrgenciaNivel, { label: string; color: string; bg: string }> = {
+  baixa: { label: "Baixa", color: "#16a34a", bg: "#dcfce7" },
+  media: { label: "Média", color: "#ca8a04", bg: "#fef9c3" },
+  alta: { label: "Alta", color: "#dc2626", bg: "#fee2e2" },
 };
 
 type Loja = { id: string; nome: string };
