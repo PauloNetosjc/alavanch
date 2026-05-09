@@ -118,6 +118,7 @@ const App = () => (
               <Route path="/operacional/fabrica" element={<Navigate to="/kanban-fabrica" replace />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/autorizacoes" element={<Autorizacoes />} />
+              <Route path="/assinaturas" element={<Assinaturas />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/meus-chamados" element={<MeusChamados />} />
               <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />
