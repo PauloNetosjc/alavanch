@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExternalLink, FileText, Flame, Clock, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
-import { ConcluirCardDialog } from "./ConcluirCardDialog";
+import { executarConcluirAction } from "./concluirAction";
 
 type CardLite = {
   id: string;
