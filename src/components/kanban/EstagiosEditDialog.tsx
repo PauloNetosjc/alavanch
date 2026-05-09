@@ -347,12 +347,33 @@ export function EstagiosEditDialog({
 
                           <span className="col-span-1 text-xs text-center">→</span>
 
-                          <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
-                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Destino" /></SelectTrigger>
+                          <Select
+                            value={a.pipeline_destino ?? pipeline}
+                            onValueChange={(v) => {
+                              const firstStage = todosEstagios.find((s) => s.pipeline === v);
+                              updateAuto(a.id, {
+                                pipeline_destino: v === pipeline ? null : v,
+                                estagio_destino_id: firstStage?.id ?? a.estagio_destino_id,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="col-span-2" title="Kanban destino"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {rows.filter((x) => x.id !== r.id).map((x) => (
-                                <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                              {Array.from(new Set(todosEstagios.map((s) => s.pipeline))).map((p) => (
+                                <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
+                            <SelectTrigger className="col-span-2"><SelectValue placeholder="Destino" /></SelectTrigger>
+                            <SelectContent>
+                              {todosEstagios
+                                .filter((x) => x.pipeline === (a.pipeline_destino ?? pipeline))
+                                .filter((x) => !(x.pipeline === pipeline && x.id === r.id))
+                                .map((x) => (
+                                  <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
 
