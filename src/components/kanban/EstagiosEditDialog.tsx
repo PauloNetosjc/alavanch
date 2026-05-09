@@ -17,6 +17,9 @@ type Estagio = {
   ativo: boolean;
   checklist_template_id: string | null;
   sla_dias_uteis: number | null;
+  concluir_acao: string | null;
+  concluir_pipeline_destino: string | null;
+  concluir_estagio_destino_id: string | null;
 };
 type Template = { id: string; nome: string; tipo_servico: string };
 
@@ -119,7 +122,7 @@ export function EstagiosEditDialog({
   const addNew = () => {
     setRows((r) => [
       ...r,
-      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null },
+      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null, concluir_acao: "proxima", concluir_pipeline_destino: null, concluir_estagio_destino_id: null },
     ]);
   };
 
@@ -186,10 +189,13 @@ export function EstagiosEditDialog({
       // Estágios
       const idMap: Record<string, string> = {};
       for (const [i, row] of rows.entries()) {
-        const payload = {
+        const payload: any = {
           nome: row.nome, ordem: i + 1, cor: row.cor, ativo: row.ativo,
           checklist_template_id: row.checklist_template_id,
           sla_dias_uteis: row.sla_dias_uteis,
+          concluir_acao: row.concluir_acao ?? "proxima",
+          concluir_pipeline_destino: row.concluir_acao === "outro_kanban" ? row.concluir_pipeline_destino : null,
+          concluir_estagio_destino_id: row.concluir_acao === "outro_kanban" ? row.concluir_estagio_destino_id : null,
         };
         if (row.id.startsWith("new-")) {
           const { data, error } = await (supabase as any).from("pipeline_estagios").insert({ pipeline, ...payload }).select("id").single();
@@ -298,8 +304,65 @@ export function EstagiosEditDialog({
                   </div>
 
                   {aberto && (
-                    <div className="ml-8 border-l-2 pl-3 space-y-2 bg-muted/20 p-2 rounded">
-                      <div className="text-xs font-medium text-muted-foreground">
+                    <div className="ml-8 border-l-2 pl-3 space-y-3 bg-muted/20 p-2 rounded">
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Botão "Concluir card" — quando clicado neste estágio:
+                        </div>
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <Select
+                            value={r.concluir_acao ?? "proxima"}
+                            onValueChange={(v) => update(i, {
+                              concluir_acao: v,
+                              concluir_pipeline_destino: v === "outro_kanban" ? r.concluir_pipeline_destino : null,
+                              concluir_estagio_destino_id: v === "outro_kanban" ? r.concluir_estagio_destino_id : null,
+                            })}
+                          >
+                            <SelectTrigger className="col-span-4"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="proxima">Mover para próxima etapa</SelectItem>
+                              <SelectItem value="outro_kanban">Enviar para outro kanban</SelectItem>
+                              <SelectItem value="remover">Remover do kanban</SelectItem>
+                              <SelectItem value="desativado">Desativado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {r.concluir_acao === "outro_kanban" && (
+                            <>
+                              <Select
+                                value={r.concluir_pipeline_destino ?? ""}
+                                onValueChange={(v) => {
+                                  const first = todosEstagios.find((s) => s.pipeline === v);
+                                  update(i, { concluir_pipeline_destino: v, concluir_estagio_destino_id: first?.id ?? null });
+                                }}
+                              >
+                                <SelectTrigger className="col-span-4"><SelectValue placeholder="Kanban destino" /></SelectTrigger>
+                                <SelectContent>
+                                  {Array.from(new Set(todosEstagios.map((s) => s.pipeline)))
+                                    .filter((p) => p !== pipeline)
+                                    .map((p) => (
+                                      <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={r.concluir_estagio_destino_id ?? ""}
+                                onValueChange={(v) => update(i, { concluir_estagio_destino_id: v })}
+                              >
+                                <SelectTrigger className="col-span-4"><SelectValue placeholder="Estágio destino" /></SelectTrigger>
+                                <SelectContent>
+                                  {todosEstagios
+                                    .filter((s) => s.pipeline === r.concluir_pipeline_destino)
+                                    .map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-xs font-medium text-muted-foreground pt-2 border-t">
                         Automações — quando o card está em "{r.nome}":
                       </div>
                       {regras.map((a) => (

@@ -11,7 +11,7 @@ import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros
 import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
-import { ConcluirCardDialog } from "./ConcluirCardDialog";
+import { executarConcluirAction } from "./concluirAction";
 import type { KanbanKey } from "./kanbanRegistry";
 
 const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
@@ -27,7 +27,7 @@ export type KanbanBoardProps = {
   useStageDialog?: boolean;
 };
 
-type Estagio = { id: string; nome: string; ordem: number; cor: string | null; checklist_template_id: string | null };
+type Estagio = { id: string; nome: string; ordem: number; cor: string | null; checklist_template_id: string | null; concluir_acao: string | null; concluir_pipeline_destino: string | null; concluir_estagio_destino_id: string | null };
 type CardRow = {
   id: string;
   pedido_id: string;
@@ -84,7 +84,6 @@ export default function KanbanBoard({
 
   const [activeCard, setActiveCard] = useState<CardRow | null>(null);
   const [activeStage, setActiveStage] = useState<Estagio | null>(null);
-  const [concluirCardId, setConcluirCardId] = useState<CardRow | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -94,7 +93,7 @@ export default function KanbanBoard({
 
       const [{ data: est }, { data: rows }, { data: profs }] = await Promise.all([
         (supabase as any).from("pipeline_estagios")
-          .select("id,nome,ordem,cor,checklist_template_id")
+          .select("id,nome,ordem,cor,checklist_template_id,concluir_acao,concluir_pipeline_destino,concluir_estagio_destino_id")
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
           .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
@@ -224,9 +223,18 @@ export default function KanbanBoard({
     carregar();
   };
 
-  const abrirConcluir = (card: CardRow, e: React.MouseEvent) => {
+  const abrirConcluir = async (card: CardRow, e: React.MouseEvent) => {
     e.stopPropagation();
-    setConcluirCardId(card);
+    const est = estagios.find((s) => s.id === card.estagio_id);
+    if (!est) return;
+    const ok = await executarConcluirAction({
+      cardId: card.id,
+      pedidoId: card.pedido_id,
+      pipeline,
+      estagioAtual: est as any,
+      estagiosPipeline: estagios,
+    });
+    if (ok) carregar();
   };
 
   const onCardClick = (c: CardRow, est: Estagio) => {
@@ -293,18 +301,6 @@ export default function KanbanBoard({
         estagios={estagios}
         onUpdated={carregar}
       />
-      {concluirCardId && (
-        <ConcluirCardDialog
-          open={!!concluirCardId}
-          onOpenChange={(v) => { if (!v) setConcluirCardId(null); }}
-          cardId={concluirCardId.id}
-          pedidoId={concluirCardId.pedido_id}
-          pipeline={pipeline}
-          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem }))}
-          estagioAtualId={concluirCardId.estagio_id}
-          onDone={carregar}
-        />
-      )}
 
       {loading ? (
         <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>

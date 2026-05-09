@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExternalLink, FileText, Flame, Clock, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
-import { ConcluirCardDialog } from "./ConcluirCardDialog";
+import { executarConcluirAction } from "./concluirAction";
 
 type CardLite = {
   id: string;
@@ -15,7 +15,7 @@ type CardLite = {
   prazo: string | null;
   iniciado_em: string | null;
 };
-type Stage = { id: string; nome: string; ordem?: number; cor: string | null; checklist_template_id: string | null };
+type Stage = { id: string; nome: string; ordem?: number; cor: string | null; checklist_template_id: string | null; concluir_acao?: string | null; concluir_pipeline_destino?: string | null; concluir_estagio_destino_id?: string | null };
 type Pedido = {
   id: string; codigo: string; valor_total: number | null;
   urgencia: string | null;
@@ -67,7 +67,7 @@ export function StageActionDialog({
   const [items, setItems] = useState<ChkItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [concluirOpen, setConcluirOpen] = useState(false);
+  
 
   const isPosVenda = pipeline === "pos_venda";
 
@@ -171,9 +171,25 @@ export function StageActionDialog({
     }
   };
 
-  const concluirCard = () => {
-    if (!card || !pedido) return;
-    setConcluirOpen(true);
+  const concluirCard = async () => {
+    if (!card || !pedido || !stage) return;
+    setBusy(true);
+    const ok = await executarConcluirAction({
+      cardId: card.id,
+      pedidoId: card.pedido_id,
+      pipeline,
+      estagioAtual: {
+        id: stage.id,
+        nome: stage.nome,
+        ordem: stage.ordem,
+        concluir_acao: (stage.concluir_acao as any) ?? "proxima",
+        concluir_pipeline_destino: stage.concluir_pipeline_destino ?? null,
+        concluir_estagio_destino_id: stage.concluir_estagio_destino_id ?? null,
+      },
+      estagiosPipeline: estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem })),
+    });
+    setBusy(false);
+    if (ok) { onUpdated(); onOpenChange(false); }
   };
 
   if (!card || !stage) return null;
@@ -284,18 +300,6 @@ export function StageActionDialog({
           )}
         </DialogFooter>
       </DialogContent>
-      {card && (
-        <ConcluirCardDialog
-          open={concluirOpen}
-          onOpenChange={setConcluirOpen}
-          cardId={card.id}
-          pedidoId={card.pedido_id}
-          pipeline={pipeline}
-          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem ?? 0 }))}
-          estagioAtualId={card.estagio_id}
-          onDone={() => { onUpdated(); onOpenChange(false); }}
-        />
-      )}
     </Dialog>
   );
 }
