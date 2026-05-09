@@ -35,7 +35,10 @@ type Automacao = {
   ajustar_prazo_dias: number | null;
   ativo: boolean;
   ordem: number;
+  acao: string;
+  acao_config: Record<string, any>;
 };
+type Profile = { user_id: string; nome_completo: string | null };
 
 const PIPELINE_LABELS: Record<string, string> = {
   leads: "Leads",
