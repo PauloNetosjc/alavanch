@@ -216,6 +216,7 @@ export function EstagiosEditDialog({
           pipeline,
           estagio_origem_id: origemId,
           estagio_destino_id: destinoId,
+          pipeline_destino: a.pipeline_destino && a.pipeline_destino !== pipeline ? a.pipeline_destino : null,
           evento: a.evento,
           condicao_tipo: a.condicao_tipo,
           condicao_valor: a.condicao_valor || null,
