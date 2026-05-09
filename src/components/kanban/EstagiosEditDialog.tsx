@@ -95,22 +95,25 @@ export function EstagiosEditDialog({
   const [templates, setTemplates] = useState<Template[]>([]);
   const [autos, setAutos] = useState<Automacao[]>([]);
   const [autosRemovidas, setAutosRemovidas] = useState<string[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [expandido, setExpandido] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }] = await Promise.all([
+    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }, { data: profs }] = await Promise.all([
       (supabase as any).from("pipeline_estagios").select("*").eq("pipeline", pipeline).order("ordem"),
       (supabase as any).from("pipeline_estagios").select("*").eq("ativo", true).order("pipeline").order("ordem"),
       supabase.from("checklist_templates").select("id,nome,tipo_servico").eq("ativo", true).order("nome"),
       (supabase as any).from("pipeline_automacoes").select("*").eq("pipeline", pipeline).order("ordem"),
+      supabase.from("profiles").select("user_id,nome_completo").order("nome_completo"),
     ]);
     setRows((ests ?? []) as Estagio[]);
     setTodosEstagios((todos ?? []) as Estagio[]);
     setTemplates((tpls ?? []) as Template[]);
-    setAutos((as ?? []) as Automacao[]);
+    setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {} })) as Automacao[]);
+    setProfiles((profs ?? []) as Profile[]);
     setAutosRemovidas([]);
     setExpandido({});
     setLoading(false);
