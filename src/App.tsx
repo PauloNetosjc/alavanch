@@ -30,6 +30,7 @@ import Assistencia from "@/pages/Assistencia";
 import MeusChamados from "@/pages/MeusChamados";
 import MeuChamadoDetalhe from "@/pages/MeuChamadoDetalhe";
 import ChecklistTemplates from "@/pages/ChecklistTemplates";
+import ChecklistAssistencia from "@/pages/ChecklistAssistencia";
 import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/ocorrencias" element={<Ocorrencias />} />
               <Route path="/administracao" element={<Administracao />} />
               <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
+              <Route path="/administracao/checklist-assistencia" element={<ChecklistAssistencia />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/financeiro" element={<RequirePermission modulo="lancamentos"><Financeiro /></RequirePermission>} />
               <Route path="/financeiro/analise" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />

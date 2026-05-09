@@ -409,6 +409,10 @@ function Cronograma({ pedido, salvarPedido }: any) {
   const [dataRevisao, setDataRevisao] = useState<string | null>(null);
   const [dataAssinaturaPdf, setDataAssinaturaPdf] = useState<string | null>(null);
   const [dataImplantacaoFabrica, setDataImplantacaoFabrica] = useState<string | null>(null);
+  const [dataChegadaDeposito, setDataChegadaDeposito] = useState<string | null>(null);
+  const [dataEntrega, setDataEntrega] = useState<string | null>(null);
+  const [dataMontagemFinalizada, setDataMontagemFinalizada] = useState<string | null>(null);
+  const [dataVistoria, setDataVistoria] = useState<string | null>(null);
 
   const carregar = async () => {
     // Revisão final: agendada junto com a medição técnica
@@ -422,29 +426,63 @@ function Cronograma({ pedido, salvarPedido }: any) {
       .maybeSingle();
     setDataRevisao(rev?.data ? String(rev.data).slice(0, 10) : null);
 
-    // Assinatura PDF Final: dia em que o card saiu da etapa "Assinatura PDF Final" no kanban revisão
-    const { data: assin } = await (supabase as any)
+    // Buscar todos os eventos kanban deste pedido
+    const { data: evts } = await (supabase as any)
       .from("timeline_eventos")
-      .select("created_at, metadata")
+      .select("created_at, tipo, metadata")
       .eq("entidade_tipo", "pedido")
       .eq("entidade_id", pedido.id)
-      .eq("tipo", "kanban_movimento")
-      .order("created_at", { ascending: false });
-    const evAssin = (assin || []).find((e: any) =>
-      e.metadata?.pipeline === "revisao" && String(e.metadata?.de || "").toLowerCase().includes("assinatura pdf final")
-    );
+      .in("tipo", ["kanban_movimento", "kanban_concluido"])
+      .order("created_at", { ascending: true });
+    const all: any[] = evts || [];
+
+    const movFor = (pipeline: string, paraSubstr: string, asc = true) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_movimento" &&
+          e.metadata?.pipeline === pipeline &&
+          String(e.metadata?.para || "").toLowerCase().includes(paraSubstr.toLowerCase())
+      );
+      return asc ? arr[0] : arr[arr.length - 1];
+    };
+    const saidaFor = (pipeline: string, deSubstr: string) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_movimento" &&
+          e.metadata?.pipeline === pipeline &&
+          String(e.metadata?.de || "").toLowerCase().includes(deSubstr.toLowerCase())
+      );
+      return arr[arr.length - 1];
+    };
+    const concluidoFor = (pipeline: string, estagioSubstr?: string) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_concluido" &&
+          e.metadata?.pipeline === pipeline &&
+          (!estagioSubstr ||
+            String(e.metadata?.estagio || "").toLowerCase().includes(estagioSubstr.toLowerCase()))
+      );
+      return arr[arr.length - 1];
+    };
+
+    const evAssin = saidaFor("revisao", "assinatura pdf final");
     setDataAssinaturaPdf(evAssin?.created_at ? String(evAssin.created_at).slice(0, 10) : null);
 
-    // Implantação Fábrica: dia em que o card foi concluído no kanban fábrica
-    const { data: fab } = await (supabase as any)
-      .from("timeline_eventos")
-      .select("created_at, metadata")
-      .eq("entidade_tipo", "pedido")
-      .eq("entidade_id", pedido.id)
-      .eq("tipo", "kanban_concluido")
-      .order("created_at", { ascending: false });
-    const evFab = (fab || []).find((e: any) => e.metadata?.pipeline === "fabrica");
+    const evFab = concluidoFor("fabrica");
     setDataImplantacaoFabrica(evFab?.created_at ? String(evFab.created_at).slice(0, 10) : null);
+
+    // Linha 2 — pipeline montagem
+    const evChegada = movFor("montagem", "agendamento entrega") ?? movFor("montagem", "depósito");
+    setDataChegadaDeposito(evChegada?.created_at ? String(evChegada.created_at).slice(0, 10) : null);
+
+    const evEntrega = movFor("montagem", "entregue");
+    setDataEntrega(evEntrega?.created_at ? String(evEntrega.created_at).slice(0, 10) : null);
+
+    const evMontFim = movFor("montagem", "vistoria pendente");
+    setDataMontagemFinalizada(evMontFim?.created_at ? String(evMontFim.created_at).slice(0, 10) : null);
+
+    const evVistoria = concluidoFor("montagem", "vistoria agendada");
+    setDataVistoria(evVistoria?.created_at ? String(evVistoria.created_at).slice(0, 10) : null);
   };
 
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id]);
@@ -482,6 +520,13 @@ function Cronograma({ pedido, salvarPedido }: any) {
     { key: "fabrica", label: "Implantação Fábrica", icon: "🏭", value: dataImplantacaoFabrica, hint: "Conclusão do card no Kanban Fábrica" },
   ];
 
+  const fieldsLinha2 = [
+    { key: "chegada", label: "Chegada Depósito", icon: "📦", value: dataChegadaDeposito, hint: "Entrada na etapa Agendamento Entrega-Depósito" },
+    { key: "entrega", label: "Entrega", icon: "🚚", value: dataEntrega, hint: "Entrada na etapa Entregue (Kanban Montagem)" },
+    { key: "mont_fim", label: "Montagem Finalizada", icon: "🛠️", value: dataMontagemFinalizada, hint: "Entrada na etapa Vistoria Pendente" },
+    { key: "vistoria", label: "Vistoria", icon: "✅", value: dataVistoria, hint: "Conclusão na etapa Vistoria Agendada" },
+  ];
+
   return (
     <section className="surface-card p-6">
       <div className="flex items-center justify-between mb-5">
@@ -515,6 +560,19 @@ function Cronograma({ pedido, salvarPedido }: any) {
                 <span className={f.value ? "" : "text-muted-foreground"}>{fmt(f.value)}</span>
               </div>
             )}
+            <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        {fieldsLinha2.map((f) => (
+          <div key={f.key}>
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <span>{f.icon}</span> {f.label}
+            </Label>
+            <div className="w-full mt-1.5 h-9 px-3 rounded-md border bg-muted/40 text-[13px] flex items-center">
+              <span className={f.value ? "" : "text-muted-foreground"}>{fmt(f.value)}</span>
+            </div>
             <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
           </div>
         ))}

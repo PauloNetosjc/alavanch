@@ -20,17 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListChecks, Plus, Trash2, Edit2, X } from "lucide-react";
+import { LifeBuoy, Plus, Trash2, Edit2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
 type Template = { id: string; nome: string; tipo_servico: string; ativo: boolean; ordem: number };
 type Item = { id?: string; descricao: string; obrigatorio: boolean; ordem: number };
 
-const TIPOS = ["kanban", "operacional", "comercial", "outro"];
 const TIPOS_ASSISTENCIA = ["garantia", "reparo", "ajuste", "substituicao"];
+const SEEDS = [
+  { nome: "Garantia padrão", tipo: "garantia" },
+  { nome: "Reparo padrão", tipo: "reparo" },
+  { nome: "Ajuste padrão", tipo: "ajuste" },
+  { nome: "Substituição padrão", tipo: "substituicao" },
+];
 
-export default function ChecklistTemplates() {
+export default function ChecklistAssistencia() {
   const { role } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [open, setOpen] = useState(false);
@@ -48,9 +53,21 @@ export default function ChecklistTemplates() {
     const { data } = await supabase
       .from("checklist_templates")
       .select("*")
-      .not("tipo_servico", "in", `(${TIPOS_ASSISTENCIA.join(",")})`)
+      .in("tipo_servico", TIPOS_ASSISTENCIA)
       .order("ordem");
-    setTemplates((data || []) as any);
+    let list = (data || []) as Template[];
+    // Seed inicial
+    if (list.length === 0) {
+      const rows = SEEDS.map((s, i) => ({ nome: s.nome, tipo_servico: s.tipo, ativo: true, ordem: i + 1 }));
+      await supabase.from("checklist_templates").insert(rows);
+      const { data: again } = await supabase
+        .from("checklist_templates")
+        .select("*")
+        .in("tipo_servico", TIPOS_ASSISTENCIA)
+        .order("ordem");
+      list = (again || []) as Template[];
+    }
+    setTemplates(list);
   };
   useEffect(() => {
     load();
@@ -59,7 +76,7 @@ export default function ChecklistTemplates() {
   const openNew = () => {
     setEdit(null);
     setNome("");
-    setTipo("kanban");
+    setTipo("garantia");
     setAtivo(true);
     setItens([]);
     setOpen(true);
@@ -128,10 +145,10 @@ export default function ChecklistTemplates() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={ListChecks}
-        iconVariant="purple"
-        title="Modelos de Checklist"
-        subtitle="MODELOS POR TIPO DE SERVIÇO"
+        icon={LifeBuoy}
+        iconVariant="rose"
+        title="Checklist Assistência"
+        subtitle="MODELOS USADOS NOS CHAMADOS DE ASSISTÊNCIA"
       />
 
       <div className="flex justify-end">
@@ -178,7 +195,7 @@ export default function ChecklistTemplates() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPOS.map((t) => (
+                  {TIPOS_ASSISTENCIA.map((t) => (
                     <SelectItem key={t} value={t} className="capitalize">
                       {t}
                     </SelectItem>
