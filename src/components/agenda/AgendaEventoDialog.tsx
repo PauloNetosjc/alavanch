@@ -115,6 +115,8 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [followupEndereco, setFollowupEndereco] = useState("");
   const [followupDescricao, setFollowupDescricao] = useState("");
 
+  const lockedFromPedido = !!pedidoId;
+
   useEffect(() => {
     if (!open) return;
     setTipo(defaultTipo);
@@ -137,15 +139,37 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       ]);
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
+
+      // Quando aberto a partir de um pedido, trava tipo/loja/cliente/pedido
+      if (pedidoId) {
+        const { data: ped } = await supabase
+          .from("pedidos")
+          .select("id, codigo, status, loja_id, cliente_id, clientes:cliente_id(id, nome, telefone)")
+          .eq("id", pedidoId)
+          .maybeSingle();
+        if (ped) {
+          if ((ped as any).loja_id) setLojaEventoId((ped as any).loja_id);
+          const cli: any = (ped as any).clientes;
+          if (cli) {
+            setClienteId(cli.id);
+            setClienteNome(cli.nome || "");
+            setClienteFone(cli.telefone || "");
+            setClienteBusca(cli.nome || "");
+            setNovoCliente(false);
+          }
+          setPedidosCliente([{ id: (ped as any).id, codigo: (ped as any).codigo || null, status: (ped as any).status || null }]);
+          setPedidoSelId((ped as any).id);
+        }
+      }
     })();
   }, [open, defaultTipo, defaultDate, user?.id, lojaCtxId, pedidoId, orcamentoId]);
 
   // Em mudança de tipo, reseta cliente novo apenas para apresentação (default novo)
   useEffect(() => {
-    if (!open) return;
+    if (!open || lockedFromPedido) return;
     setNovoCliente(TIPOS_NOVO_CLIENTE.includes(tipo));
     setPedidoSelId(""); setOrcamentoSelId("");
-  }, [tipo, open]);
+  }, [tipo, open, lockedFromPedido]);
 
   // busca incremental de clientes
   useEffect(() => {
@@ -364,19 +388,25 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         <div className="space-y-3">
           <div>
             <Label>Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as AgendaTipo)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(TIPO_LABEL).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {lockedFromPedido ? (
+              <Input value={TIPO_LABEL[tipo]} disabled />
+            ) : (
+              <Select value={tipo} onValueChange={(v) => setTipo(v as AgendaTipo)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPO_LABEL).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div>
             <Label>Loja</Label>
-            {isAdmin ? (
+            {lockedFromPedido ? (
+              <Input value={lojas.find(l => l.id === lojaEventoId)?.nome || "—"} disabled />
+            ) : isAdmin ? (
               <Select value={lojaEventoId ?? "__all__"} onValueChange={(v) => setLojaEventoId(v === "__all__" ? null : v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -392,7 +422,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
           {exigeCliente && (
             <div className="rounded-md border p-3 bg-muted/20 space-y-2">
-              {permiteNovoCliente && (
+              {permiteNovoCliente && !lockedFromPedido && (
                 <div className="flex items-center gap-3 text-[12px]">
                   <label className="flex items-center gap-1">
                     <input type="radio" checked={novoCliente} onChange={() => setNovoCliente(true)} /> Novo cliente
@@ -402,7 +432,12 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
                   </label>
                 </div>
               )}
-              {permiteNovoCliente && novoCliente ? (
+              {lockedFromPedido ? (
+                <div>
+                  <Label>Cliente <span className="text-destructive">*</span></Label>
+                  <Input value={clienteNome + (clienteFone ? ` · ${clienteFone}` : "")} disabled />
+                </div>
+              ) : permiteNovoCliente && novoCliente ? (
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Nome <span className="text-destructive">*</span></Label><Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} /></div>
                   <div><Label>Telefone <span className="text-destructive">*</span></Label><Input value={clienteFone} onChange={(e) => setClienteFone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
@@ -429,16 +464,24 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
               {exigePedido && clienteId && (
                 <div>
                   <Label>Pedido vinculado <span className="text-destructive">*</span></Label>
-                  <Select value={pedidoSelId} onValueChange={setPedidoSelId}>
-                    <SelectTrigger><SelectValue placeholder={pedidosCliente.length ? "Selecione…" : "Cliente sem pedidos"} /></SelectTrigger>
-                    <SelectContent>
-                      {pedidosCliente.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.codigo || p.id.slice(0,8)} {p.status ? `· ${p.status}` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {lockedFromPedido ? (
+                    <Input
+                      value={(() => { const p = pedidosCliente.find(x => x.id === pedidoSelId); return p ? `${p.codigo || p.id.slice(0,8)}${p.status ? ` · ${p.status}` : ""}` : ""; })()}
+                      disabled
+                    />
+                  ) : (
+                    <Select value={pedidoSelId} onValueChange={setPedidoSelId}>
+                      <SelectTrigger><SelectValue placeholder={pedidosCliente.length ? "Selecione…" : "Cliente sem pedidos"} /></SelectTrigger>
+                      <SelectContent>
+                        {pedidosCliente.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.codigo || p.id.slice(0,8)} {p.status ? `· ${p.status}` : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
+
 
               {/* Seletor de orçamento (filtrado por cliente) */}
               {exigeOrcamento && clienteId && (
