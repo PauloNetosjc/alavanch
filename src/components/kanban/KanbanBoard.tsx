@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -6,26 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Filter, AlertTriangle, Clock, Star, X, Search, Flame, Settings, Check, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros, type UrgenciaNivel } from "./KanbanFiltrosDialog";
+import { KanbanSwitcher } from "./KanbanSwitcher";
+import { EstagiosEditDialog } from "./EstagiosEditDialog";
+import { StageActionDialog } from "./StageActionDialog";
+import type { KanbanKey } from "./kanbanRegistry";
 
 const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
 
 export type KanbanBoardProps = {
   pipeline: string;
-  /** mantido por compatibilidade — não é mais usado (cards agora vêm de kanban_cards) */
-  stageColumn?: string;
+  activeKey: KanbanKey;
   title: string;
   subtitle?: string;
   icon?: LucideIcon;
   iconVariant?: "blue" | "purple" | "green" | "amber" | "rose";
-  switcher?: ReactNode;
-  estagiosPath?: string;
-  extraActions?: ReactNode;
+  /** When true, clicking a card opens the stage action popup instead of navigating to /pedidos/:id */
+  useStageDialog?: boolean;
 };
 
-type Estagio = { id: string; nome: string; ordem: number; cor: string | null };
+type Estagio = { id: string; nome: string; ordem: number; cor: string | null; checklist_template_id: string | null };
 type CardRow = {
-  id: string;                  // kanban_cards.id
+  id: string;
   pedido_id: string;
   estagio_id: string;
   responsavel_id: string | null;
@@ -57,15 +60,17 @@ const diffDays = (iso?: string | null) => {
 
 export default function KanbanBoard({
   pipeline,
+  activeKey,
   title,
   subtitle,
   icon,
   iconVariant = "purple",
-  switcher,
-  estagiosPath = "/administracao?tab=pipelines",
-  extraActions,
+  useStageDialog = false,
 }: KanbanBoardProps) {
   const nav = useNavigate();
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
+
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [cards, setCards] = useState<CardRow[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -73,28 +78,39 @@ export default function KanbanBoard({
   const [search, setSearch] = useState("");
   const [filtros, setFiltros] = useState<KanbanFiltros>(FILTROS_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [editEstOpen, setEditEstOpen] = useState(false);
+
+  const [activeCard, setActiveCard] = useState<CardRow | null>(null);
+  const [activeStage, setActiveStage] = useState<Estagio | null>(null);
 
   const carregar = async () => {
     setLoading(true);
-    // dispara verificação de atrasos (idempotente)
-    await (supabase as any).rpc("kanban_processar_atrasos").catch(() => {});
-    const [{ data: est }, { data: rows }, { data: profs }] = await Promise.all([
-      supabase.from("pipeline_estagios").select("id,nome,ordem,cor").eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
-      (supabase as any)
-        .from("kanban_cards")
-        .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,
-                 pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
-        .eq("pipeline", pipeline)
-        .order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id,nome_completo"),
-    ]);
-    setEstagios((est ?? []) as Estagio[]);
-    setCards((rows ?? []) as CardRow[]);
-    setProfiles((profs ?? []) as any);
-    setLoading(false);
+    try {
+      // Trigger overdue check (best-effort, ignore errors)
+      try { await (supabase as any).rpc("kanban_processar_atrasos"); } catch { /* ignore */ }
+
+      const [{ data: est }, { data: rows }, { data: profs }] = await Promise.all([
+        (supabase as any).from("pipeline_estagios")
+          .select("id,nome,ordem,cor,checklist_template_id")
+          .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
+        (supabase as any).from("kanban_cards")
+          .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,
+                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
+          .eq("pipeline", pipeline)
+          .order("created_at", { ascending: false }),
+        supabase.from("profiles").select("user_id,nome_completo"),
+      ]);
+      setEstagios((est ?? []) as Estagio[]);
+      setCards((rows ?? []) as CardRow[]);
+      setProfiles((profs ?? []) as any);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao carregar Kanban");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { carregar(); }, [pipeline]);
+  useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pipeline]);
 
   const profileNome = (id: string | null) =>
     profiles.find((p) => p.user_id === id)?.nome_completo || "—";
@@ -171,11 +187,19 @@ export default function KanbanBoard({
     carregar();
   };
 
+  const onCardClick = (c: CardRow, est: Estagio) => {
+    if (useStageDialog) {
+      setActiveCard(c);
+      setActiveStage(est);
+    } else if (c.pedido) {
+      nav(`/pedidos/${c.pedido.id}`);
+    }
+  };
+
   const chips: { label: string; onClear: () => void }[] = [];
   chips.push({ label: `Arquivados: ${filtros.arquivados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, arquivados: false })) });
   chips.push({ label: `Atrasados: ${filtros.somenteAtrasados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, somenteAtrasados: false })) });
   chips.push({ label: `Mostrar valores: ${filtros.mostrarValores ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, mostrarValores: !f.mostrarValores })) });
-  chips.push({ label: `Mostrar tarefas: ${filtros.mostrarTarefas ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, mostrarTarefas: !f.mostrarTarefas })) });
   if (filtros.urgencia) chips.push({ label: `Urgência: ${URGENCIA_META[filtros.urgencia].label}`, onClear: () => setFiltros((f) => ({ ...f, urgencia: undefined })) });
 
   return (
@@ -187,11 +211,12 @@ export default function KanbanBoard({
         subtitle={subtitle}
         actions={
           <div className="flex gap-2 items-center">
-            {switcher}
-            <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => nav(estagiosPath)}>
-              <Settings className="w-4 h-4" /> Estágios
-            </Button>
-            {extraActions}
+            <KanbanSwitcher active={activeKey} />
+            {isAdmin && (
+              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => setEditEstOpen(true)}>
+                <Settings className="w-4 h-4" /> Editar estágios
+              </Button>
+            )}
           </div>
         }
       />
@@ -216,6 +241,14 @@ export default function KanbanBoard({
       </div>
 
       <KanbanFiltrosDialog open={filterOpen} onOpenChange={setFilterOpen} value={filtros} onChange={setFiltros} />
+      <EstagiosEditDialog open={editEstOpen} onOpenChange={setEditEstOpen} pipeline={pipeline} onChanged={carregar} />
+      <StageActionDialog
+        open={!!activeCard}
+        onOpenChange={(v) => { if (!v) { setActiveCard(null); setActiveStage(null); } }}
+        card={activeCard}
+        stage={activeStage}
+        onUpdated={carregar}
+      />
 
       {loading ? (
         <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>
@@ -253,9 +286,7 @@ export default function KanbanBoard({
                       const ped = c.pedido!;
                       const d = diffDays(c.prazo);
                       const atrasado = d != null && d < 0;
-                      const cardBg = atrasado
-                        ? "bg-red-50 border-red-300"
-                        : "bg-card border-border";
+                      const cardBg = atrasado ? "bg-red-50 border-red-300" : "bg-card border-border";
                       const prazoColor = d == null ? "" :
                         d < 0 ? "bg-red-100 border-red-300 text-red-700" :
                         d <= 2 ? "bg-amber-50 border-amber-200 text-amber-700" :
@@ -266,7 +297,7 @@ export default function KanbanBoard({
                           key={c.id}
                           draggable
                           onDragStart={(ev) => ev.dataTransfer.setData("text/card", c.id)}
-                          onClick={() => nav(`/pedidos/${ped.id}`)}
+                          onClick={() => onCardClick(c, e)}
                           className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
                           style={{ borderLeftColor: e.cor || "#6b7280" }}
                         >

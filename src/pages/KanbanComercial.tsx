@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Briefcase, Plus, Search, KanbanSquare, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean; ativo: boolean };
 type Card = {
@@ -28,8 +30,10 @@ type Card = {
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export default function KanbanComercial({ switcher }: { switcher?: React.ReactNode } = {}) {
+export default function KanbanComercial() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,10 +146,12 @@ export default function KanbanComercial({ switcher }: { switcher?: React.ReactNo
         subtitle="Funil de orçamentos por estágio"
         actions={
           <div className="flex gap-2">
-            {switcher}
-            <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
-              <Settings className="w-4 h-4" /> Estágios
-            </Button>
+            <KanbanSwitcher active="comercial" />
+            {isAdmin && (
+              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
+                <Settings className="w-4 h-4" /> Editar estágios
+              </Button>
+            )}
             <Button onClick={() => navigate("/comercial/novo")} variant="outline" className="gap-1.5 rounded-xl">
               <Plus className="w-4 h-4" /> Novo Orçamento
             </Button>

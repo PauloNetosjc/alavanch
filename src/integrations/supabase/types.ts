@@ -2843,6 +2843,7 @@ export type Database = {
       pipeline_estagios: {
         Row: {
           ativo: boolean | null
+          checklist_template_id: string | null
           cor: string | null
           created_at: string
           id: string
@@ -2852,6 +2853,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          checklist_template_id?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -2861,6 +2863,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          checklist_template_id?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -2868,7 +2871,15 @@ export type Database = {
           ordem?: number
           pipeline?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_estagios_checklist_template_id_fkey"
+            columns: ["checklist_template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
