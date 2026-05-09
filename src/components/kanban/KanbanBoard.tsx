@@ -34,6 +34,7 @@ type CardRow = {
   responsavel_id: string | null;
   prazo: string | null;
   iniciado_em: string | null;
+  created_at: string | null;
   pedido: {
     id: string;
     codigo: string;
@@ -94,7 +95,7 @@ export default function KanbanBoard({
           .select("id,nome,ordem,cor,checklist_template_id")
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
-          .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,
+          .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
                    pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
           .eq("pipeline", pipeline)
           .order("created_at", { ascending: false }),
@@ -115,8 +116,32 @@ export default function KanbanBoard({
   const profileNome = (id: string | null) =>
     profiles.find((p) => p.user_id === id)?.nome_completo || "—";
 
+  const isConcluidos = (e: Estagio) => e.nome.trim().toLowerCase() === "concluídos" || e.nome.trim().toLowerCase() === "concluidos";
+
+  const visibleEstagios = useMemo(
+    () => (isAdmin ? estagios : estagios.filter((e) => !isConcluidos(e))),
+    [estagios, isAdmin]
+  );
+
+  // Última etapa "real" (antes de Concluídos) — usada para liberar o botão de concluir
+  const lastRealStageId = useMemo(() => {
+    const reais = estagios.filter((e) => !isConcluidos(e));
+    return reais.length ? reais[reais.length - 1].id : null;
+  }, [estagios]);
+
+  const podeConcluir = (card: CardRow) => {
+    // Pós-venda permite concluir em qualquer etapa
+    if (pipeline === "pos_venda") return true;
+    return card.estagio_id === lastRealStageId;
+  };
+
   const filtered = useMemo(() => {
     return cards.filter((c) => {
+      // Esconde cards que já estão em "Concluídos" para não-admin
+      if (!isAdmin) {
+        const est = estagios.find((e) => e.id === c.estagio_id);
+        if (est && isConcluidos(est)) return false;
+      }
       const ped = c.pedido;
       if (!ped) return false;
       const t = search.toLowerCase();
@@ -137,7 +162,7 @@ export default function KanbanBoard({
       if (filtros.urgencia && ped.urgencia !== filtros.urgencia) return false;
       return true;
     });
-  }, [cards, search, filtros]);
+  }, [cards, search, filtros, isAdmin, estagios]);
 
   const cardsPorEstagio = useMemo(() => {
     const map = new Map<string, CardRow[]>();
@@ -283,7 +308,7 @@ export default function KanbanBoard({
       ) : (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
-            {estagios.map((e) => {
+            {visibleEstagios.map((e) => {
               const list = cardsPorEstagio.get(e.id) || [];
               const total = totaisPorEstagio.get(e.id) || 0;
               return (
@@ -342,16 +367,23 @@ export default function KanbanBoard({
                                 </span>
                               )}
                               {ped.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
-                              <button
-                                onClick={(ev) => concluirCard(c.id, ev)}
-                                title="Concluir card"
-                                className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
+                              {podeConcluir(c) && !isConcluidos(e) && (
+                                <button
+                                  onClick={(ev) => concluirCard(c.id, ev)}
+                                  title="Concluir card"
+                                  className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="text-[12px] font-medium truncate mt-1">{ped.cliente?.nome || "—"}</div>
+                          {c.created_at && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Criado em {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                            </div>
+                          )}
                           {filtros.mostrarValores && (
                             <div className="text-[11px] text-muted-foreground mt-1">{fmtBrl(Number(ped.valor_total) || 0)}</div>
                           )}

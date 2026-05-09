@@ -110,9 +110,12 @@ export function StageActionDialog({
 
   useEffect(() => { if (open) load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [open, card?.id, stage?.id]);
 
+  const isConcluidos = (s: Stage) => (s.nome || "").trim().toLowerCase().replace(/í/g, "i") === "concluidos";
+
   const proximoEstagio = (): Stage | null => {
     if (!stage) return null;
-    const sorted = [...estagios].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    // Concluídos é estágio terminal: nunca é destino de "avançar"
+    const sorted = [...estagios].filter((s) => !isConcluidos(s)).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
     const idx = sorted.findIndex((s) => s.id === stage.id);
     if (idx < 0 || idx >= sorted.length - 1) return null;
     return sorted[idx + 1];
@@ -283,9 +286,11 @@ export function StageActionDialog({
               Avançar para "{prox.nome}"
             </Button>
           )}
-          <Button disabled={busy} onClick={concluirCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="w-4 h-4 mr-1" /> Concluir card
-          </Button>
+          {(isPosVenda || !prox) && (
+            <Button disabled={busy} onClick={concluirCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Check className="w-4 h-4 mr-1" /> Concluir card
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
