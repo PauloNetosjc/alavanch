@@ -21,6 +21,7 @@ import KanbanPosVenda from "@/pages/KanbanPosVenda";
 import KanbanRevisao from "@/pages/KanbanRevisao";
 import KanbanMontagem from "@/pages/KanbanMontagem";
 import KanbanFabrica from "@/pages/KanbanFabrica";
+import Kanbans from "@/pages/Kanbans";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
