@@ -379,13 +379,13 @@ export function EstagiosEditDialog({
                               <Select
                                 value={r.concluir_pipeline_destino ?? ""}
                                 onValueChange={(v) => {
-                                  const first = todosEstagios.find((s) => s.pipeline === v);
+                                  const first = estagiosDisponiveis.find((s) => s.pipeline === v);
                                   update(i, { concluir_pipeline_destino: v, concluir_estagio_destino_id: first?.id ?? null });
                                 }}
                               >
                                 <SelectTrigger className="col-span-4"><SelectValue placeholder="Kanban destino" /></SelectTrigger>
                                 <SelectContent>
-                                  {Array.from(new Set(todosEstagios.map((s) => s.pipeline)))
+                                  {Array.from(new Set(estagiosDisponiveis.map((s) => s.pipeline)))
                                     .filter((p) => p !== pipeline)
                                     .map((p) => (
                                       <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
@@ -398,7 +398,7 @@ export function EstagiosEditDialog({
                               >
                                 <SelectTrigger className="col-span-4"><SelectValue placeholder="Estágio destino" /></SelectTrigger>
                                 <SelectContent>
-                                  {todosEstagios
+                                  {estagiosDisponiveis
                                     .filter((s) => s.pipeline === r.concluir_pipeline_destino)
                                     .map((s) => (
                                       <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
@@ -514,7 +514,7 @@ export function EstagiosEditDialog({
                                 <Select
                                   value={a.pipeline_destino ?? pipeline}
                                   onValueChange={(v) => {
-                                    const firstStage = todosEstagios.find((s) => s.pipeline === v);
+                                    const firstStage = estagiosDisponiveis.find((s) => s.pipeline === v);
                                     updateAuto(a.id, {
                                       pipeline_destino: v === pipeline ? null : v,
                                       estagio_destino_id: firstStage?.id ?? a.estagio_destino_id,
@@ -523,7 +523,7 @@ export function EstagiosEditDialog({
                                 >
                                   <SelectTrigger className="col-span-3" title="Kanban destino"><SelectValue /></SelectTrigger>
                                   <SelectContent>
-                                    {Array.from(new Set(todosEstagios.map((s) => s.pipeline))).map((p) => (
+                                    {Array.from(new Set(estagiosDisponiveis.map((s) => s.pipeline))).map((p) => (
                                       <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
                                     ))}
                                   </SelectContent>
@@ -531,7 +531,7 @@ export function EstagiosEditDialog({
                                 <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
                                   <SelectTrigger className="col-span-4"><SelectValue placeholder="Estágio destino" /></SelectTrigger>
                                   <SelectContent>
-                                    {todosEstagios
+                                    {estagiosDisponiveis
                                       .filter((x) => x.pipeline === (a.pipeline_destino ?? pipeline))
                                       .filter((x) => !(a.acao === "mover" && x.pipeline === pipeline && x.id === r.id))
                                       .map((x) => (
@@ -627,7 +627,7 @@ export function EstagiosEditDialog({
                                     <SelectValue placeholder='Se "Não" → estágio…' />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {todosEstagios
+                                    {estagiosDisponiveis
                                       .filter((x) => x.pipeline === pipeline)
                                       .map((x) => (
                                         <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
