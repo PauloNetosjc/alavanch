@@ -672,22 +672,24 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold uppercase tracking-wider ${pastaAtiva === p.id ? "bg-purple-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
               {p.nome}
             </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="absolute -top-1 -right-1 p-0.5 rounded-full bg-white border opacity-0 group-hover:opacity-100">
-                  <MoreVertical className="w-3 h-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setRenomearPasta(p)}>✏️ Renomear Pasta</DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600" onClick={async () => {
-                  if (!confirm(`Deletar pasta "${p.nome}" e todos seus documentos?`)) return;
-                  await supabase.from("pedido_documentos").delete().eq("pasta_id", p.id);
-                  await supabase.from("pedido_pastas").delete().eq("id", p.id);
-                  toast.success("Pasta removida"); onChange();
-                }}>🗑 Deletar Pasta</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!p._virtual && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="absolute -top-1 -right-1 p-0.5 rounded-full bg-white border opacity-0 group-hover:opacity-100">
+                    <MoreVertical className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setRenomearPasta(p)}>✏️ Renomear Pasta</DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600" onClick={async () => {
+                    if (!confirm(`Deletar pasta "${p.nome}" e todos seus documentos?`)) return;
+                    await supabase.from("pedido_documentos").delete().eq("pasta_id", p.id);
+                    await supabase.from("pedido_pastas").delete().eq("id", p.id);
+                    toast.success("Pasta removida"); onChange();
+                  }}>🗑 Deletar Pasta</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         ))}
         <Button size="sm" variant="outline" className="rounded-full text-emerald-700 border-emerald-300 bg-emerald-50" onClick={() => setNovaPastaOpen(true)}>
