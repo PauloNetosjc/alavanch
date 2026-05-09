@@ -1352,19 +1352,32 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
-function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
+function ContratoEnvioBar({ contrato, cliente, pedido, solic, onChange }: any) {
   const [uploading, setUploading] = useState(false);
-  const signingUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
+  const [criando, setCriando] = useState(false);
 
-  const marcarEnviado = async (via: "email" | "whatsapp" | "link") => {
-    await supabase.from("contratos").update({ enviado_em: new Date().toISOString(), enviado_via: via }).eq("id", contrato.id);
-    onChange();
+  // Preferir o link do NOVO módulo (solicitações de assinatura)
+  const newSigningUrl = solic?.token ? `${window.location.origin}/assinatura/${solic.token}` : null;
+  const legacyUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
+  const signingUrl = newSigningUrl || legacyUrl;
+
+  const criarSolicitacao = async () => {
+    setCriando(true);
+    try {
+      const { data, error } = await supabase.rpc("auto_criar_solic_contrato", {
+        p_pedido_id: pedido.id, p_contrato_id: contrato.id,
+      });
+      if (error) throw error;
+      if (data) toast.success("Solicitação de assinatura criada");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar solicitação");
+    } finally { setCriando(false); }
   };
 
   const copiarLink = async () => {
     await navigator.clipboard.writeText(signingUrl);
     toast.success("Link copiado");
-    marcarEnviado("link");
   };
 
   const enviarEmail = () => {
@@ -1374,7 +1387,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
       `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${signingUrl}\n\nObrigado!`
     );
     window.open(`mailto:${cliente.email}?subject=${assunto}&body=${corpo}`, "_blank");
-    marcarEnviado("email");
   };
 
   const enviarWhatsapp = () => {
@@ -1384,7 +1396,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
       `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${signingUrl}`
     );
     window.open(`https://wa.me/55${fone}?text=${msg}`, "_blank");
-    marcarEnviado("whatsapp");
   };
 
   const anexarPdfAssinado = async (file: File) => {
@@ -1403,6 +1414,12 @@ function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
         pdf_assinado_url: pub.publicUrl,
       }).eq("id", contrato.id);
       if (e2) throw e2;
+      // Sincroniza solicitação se existir
+      if (solic?.id) {
+        await supabase.from("solicitacoes_assinatura").update({
+          status: "concluido", concluido_em: new Date().toISOString(),
+        }).eq("id", solic.id);
+      }
       toast.success("Contrato impresso assinado anexado e confirmado");
       onChange();
     } catch (e: any) {
@@ -1412,32 +1429,56 @@ function ContratoEnvioBar({ contrato, cliente, pedido, onChange }: any) {
     }
   };
 
+  const statusLabel = solic?.status
+    ? ({
+        aguardando_cliente: "Aguardando cliente assinar",
+        assinado_cliente: "Cliente assinou — aguardando loja",
+        aguardando_loja: "Aguardando loja assinar",
+        assinado_loja: "Loja assinou",
+        concluido: "Concluído",
+        recusado: "Recusado pelo cliente",
+        cancelado: "Cancelado",
+        expirado: "Link expirado",
+        rascunho: "Rascunho",
+      } as Record<string, string>)[solic.status]
+    : "Sem solicitação no novo módulo";
+
   return (
     <div className="mt-2 p-3 rounded-lg border border-amber-300 bg-amber-50 space-y-2">
       <div className="text-[12px] text-amber-900 font-medium">
         Contrato <b>{contrato.numero}</b> aguardando assinatura — workflow operacional bloqueado.
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={copiarLink}>
-          <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link
-        </Button>
-        <Button size="sm" variant="outline" onClick={enviarEmail}>
-          <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por e-mail
-        </Button>
-        <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
-          <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
-        </Button>
-        <label className="inline-flex">
-          <input type="file" accept="application/pdf,image/*" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarPdfAssinado(f); }} />
-          <Button asChild size="sm" variant="outline" className="text-amber-800 border-amber-400 cursor-pointer" disabled={uploading}>
-            <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : "Anexar contrato impresso assinado"}</span>
-          </Button>
-        </label>
+      <div className="text-[11px] text-amber-800">
+        Status assinatura: <b>{statusLabel}</b>
       </div>
-      {contrato.enviado_em && (
+      {!solic && (
+        <Button size="sm" variant="outline" onClick={criarSolicitacao} disabled={criando}>
+          {criando ? "Criando…" : "Criar solicitação de assinatura"}
+        </Button>
+      )}
+      {solic && (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={copiarLink}>
+            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link
+          </Button>
+          <Button size="sm" variant="outline" onClick={enviarEmail}>
+            <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por e-mail
+          </Button>
+          <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
+            <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
+          </Button>
+          <label className="inline-flex">
+            <input type="file" accept="application/pdf,image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarPdfAssinado(f); }} />
+            <Button asChild size="sm" variant="outline" className="text-amber-800 border-amber-400 cursor-pointer" disabled={uploading}>
+              <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : "Anexar contrato impresso assinado"}</span>
+            </Button>
+          </label>
+        </div>
+      )}
+      {solic?.created_at && (
         <div className="text-[11px] text-amber-800">
-          Enviado via {contrato.enviado_via} em {new Date(contrato.enviado_em).toLocaleString("pt-BR")}.
+          Solicitação criada em {new Date(solic.created_at).toLocaleString("pt-BR")}.
         </div>
       )}
     </div>
