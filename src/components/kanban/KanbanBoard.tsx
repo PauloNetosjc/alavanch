@@ -230,6 +230,33 @@ export default function KanbanBoard({
         { pipeline, de: deEst?.nome, para: paraEst?.nome, card_id: cardId, drag: true });
     }
     toast.success("Card movido");
+
+    // Verifica automações "criar_assistencia" para o estágio destino
+    if (card?.pedido_id) {
+      try {
+        const { data: regras } = await (supabase as any)
+          .from("pipeline_automacoes")
+          .select("acao_config")
+          .eq("pipeline", pipeline)
+          .eq("estagio_origem_id", novoEstagio)
+          .eq("evento", "card_chegou")
+          .eq("acao", "criar_assistencia")
+          .eq("ativo", true)
+          .limit(1);
+        const regra = (regras ?? [])[0];
+        if (regra) {
+          const cfg = regra.acao_config || {};
+          setAssistPrompt({
+            open: true,
+            pedidoId: card.pedido_id,
+            cardId,
+            mensagem: cfg.mensagem || "Será necessário abrir um chamado de assistência para este pedido?",
+            estagioSeNao: cfg.estagio_se_nao || null,
+          });
+          return; // não recarrega ainda; recarrega após resposta
+        }
+      } catch (e) { console.error(e); }
+    }
     carregar();
   };
 
