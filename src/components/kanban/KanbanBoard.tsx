@@ -86,6 +86,14 @@ export default function KanbanBoard({
   const [activeCard, setActiveCard] = useState<CardRow | null>(null);
   const [activeStage, setActiveStage] = useState<Estagio | null>(null);
 
+  const [assistPrompt, setAssistPrompt] = useState<{
+    open: boolean;
+    pedidoId: string | null;
+    cardId: string | null;
+    mensagem: string;
+    estagioSeNao: string | null;
+  }>({ open: false, pedidoId: null, cardId: null, mensagem: "", estagioSeNao: null });
+
   const carregar = async () => {
     setLoading(true);
     try {
