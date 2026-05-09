@@ -308,7 +308,7 @@ export default function KanbanBoard({
       ) : (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
-            {estagios.map((e) => {
+            {visibleEstagios.map((e) => {
               const list = cardsPorEstagio.get(e.id) || [];
               const total = totaisPorEstagio.get(e.id) || 0;
               return (
