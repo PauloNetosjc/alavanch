@@ -266,7 +266,13 @@ export default function ContratoAssinar() {
                 <div className="border-2 border-dashed border-border rounded-lg bg-muted/20">
                   <canvas
                     ref={canvasRef}
-                    className="w-full h-[200px] touch-none cursor-crosshair block"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    onPointerLeave={(e) => { if (drawing.current) handlePointerUp(e); }}
+                    style={{ touchAction: "none" }}
+                    className="w-full h-[200px] cursor-crosshair block"
                   />
                 </div>
                 <div className="flex justify-end">
