@@ -76,7 +76,8 @@ const sections: Section[] = [
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
-      { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks },
+      { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
+      { label: "Checklist Assistência", path: "/administracao/checklist-assistencia", icon: LifeBuoy, roles: ["admin"] },
     ],
   },
 ];
