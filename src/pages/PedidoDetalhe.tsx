@@ -53,6 +53,7 @@ export default function PedidoDetalhe() {
   const [cliente, setCliente] = useState<any>(null);
   const [ambientes, setAmbientes] = useState<any[]>([]);
   const [contrato, setContrato] = useState<any>(null);
+  const [solicAssin, setSolicAssin] = useState<any>(null);
   const [pastas, setPastas] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [chat, setChat] = useState<any[]>([]);
