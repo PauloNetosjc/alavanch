@@ -21,6 +21,7 @@ import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
+import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
