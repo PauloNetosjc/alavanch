@@ -11,6 +11,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
+import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
+
+function maskDocAuto(v: string) {
+  const d = unmask(v);
+  return d.length <= 11 ? maskCpf(v) : maskCnpj(v);
+}
 
 const ACEITE_TEXT =
   "Declaro que li e estou de acordo com o conteúdo deste documento. Confirmo que os dados enviados são verdadeiros e autorizo o uso desta assinatura digital para validação deste documento.";
@@ -45,6 +52,9 @@ export default function AssinaturaPublica() {
   const [pedido, setPedido] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
+  const [contrato, setContrato] = useState<any>(null);
+  const [tpl, setTpl] = useState<ContratoTemplate | null>(null);
+  const [docHtml, setDocHtml] = useState<string>("");
   const [erro, setErro] = useState<string>("");
   const [done, setDone] = useState(false);
   const [requerLoja, setRequerLoja] = useState(false);
@@ -84,9 +94,9 @@ export default function AssinaturaPublica() {
 
       const [{ data: t }, { data: p }, { data: c }, { data: l }] = await Promise.all([
         supabase.from("tipos_documento").select("*").eq("id", s.tipo_documento_id).maybeSingle(),
-        supabase.from("pedidos").select("id,codigo").eq("id", s.pedido_id).maybeSingle(),
+        supabase.from("pedidos").select("id,codigo,valor_total,loja_id").eq("id", s.pedido_id).maybeSingle(),
         s.cliente_id
-          ? supabase.from("clientes").select("nome,email").eq("id", s.cliente_id).maybeSingle()
+          ? supabase.from("clientes").select("nome,email,cpf_cnpj,telefone").eq("id", s.cliente_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
         s.loja_id
           ? supabase.from("lojas").select("nome").eq("id", s.loja_id).maybeSingle()
@@ -97,7 +107,33 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
+
+      // Carrega contrato + template e renderiza HTML inline (somente leitura)
+      if (s.contrato_id) {
+        const { data: ct } = await supabase
+          .from("contratos")
+          .select("*")
+          .eq("id", s.contrato_id)
+          .maybeSingle();
+        setContrato(ct);
+        if (ct?.template_id) {
+          const { data: tpls } = await supabase
+            .from("contratos_template")
+            .select("*")
+            .eq("id", ct.template_id)
+            .maybeSingle();
+          setTpl(tpls as any);
+          if (tpls && ct.conteudo_snapshot) {
+            try {
+              setDocHtml(renderContratoHtml(tpls as any, ct.conteudo_snapshot as any));
+            } catch {/* noop */}
+          }
+        }
+      }
+
+      // Prefill com dados do cliente
       if (c?.nome) setNome(c.nome);
+      if (c?.cpf_cnpj) setDoc(maskDocAuto(c.cpf_cnpj));
       setLoading(false);
     })();
   }, [token]);
@@ -276,13 +312,20 @@ export default function AssinaturaPublica() {
             <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
             <div><span className="text-muted-foreground">Pedido:</span> {pedido?.codigo || "—"}</div>
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
-            {solic?.file_url && (
-              <a href={solic.file_url} target="_blank" rel="noreferrer" className="inline-block mt-2 text-primary underline text-xs">
-                Visualizar documento
-              </a>
-            )}
           </CardContent>
         </Card>
+
+        {docHtml && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+            <CardContent>
+              <div
+                className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
+                dangerouslySetInnerHTML={{ __html: docHtml }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Identificação</CardTitle></CardHeader>
@@ -292,8 +335,8 @@ export default function AssinaturaPublica() {
               <Input value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
             <div>
-              <Label>CPF/Documento</Label>
-              <Input value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="000.000.000-00" />
+              <Label>CPF/CNPJ</Label>
+              <Input value={doc} onChange={(e) => setDoc(maskDocAuto(e.target.value))} placeholder="000.000.000-00" />
             </div>
             <div>
               <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Foto do documento (RG/CNH)</Label>
