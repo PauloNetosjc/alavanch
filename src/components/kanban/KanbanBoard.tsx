@@ -223,9 +223,18 @@ export default function KanbanBoard({
     carregar();
   };
 
-  const abrirConcluir = (card: CardRow, e: React.MouseEvent) => {
+  const abrirConcluir = async (card: CardRow, e: React.MouseEvent) => {
     e.stopPropagation();
-    setConcluirCardId(card);
+    const est = estagios.find((s) => s.id === card.estagio_id);
+    if (!est) return;
+    const ok = await executarConcluirAction({
+      cardId: card.id,
+      pedidoId: card.pedido_id,
+      pipeline,
+      estagioAtual: est as any,
+      estagiosPipeline: estagios,
+    });
+    if (ok) carregar();
   };
 
   const onCardClick = (c: CardRow, est: Estagio) => {
