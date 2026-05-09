@@ -502,7 +502,7 @@ export default function ComercialNovo() {
     (async () => {
       const { data: orc } = await supabase
         .from("orcamentos")
-        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id")
         .eq("id", editId)
         .maybeSingle();
       if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
@@ -522,6 +522,7 @@ export default function ComercialNovo() {
       setParceiroId(orc.parceiro_id || "");
       setParceiroPerc(Number(orc.parceiro_perc) || 0);
       setConsultorId(orc.consultor_id || "");
+      setLojaId((orc as any).loja_id || profile?.loja_id || "");
 
       const { data: ambs } = await supabase
         .from("ambientes")
