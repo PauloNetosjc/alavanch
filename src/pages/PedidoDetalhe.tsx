@@ -406,10 +406,11 @@ export default function PedidoDetalhe() {
 /* ============================================================== */
 function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
   const [local, setLocal] = useState(pedido);
+  const [agendaOpen, setAgendaOpen] = useState(false);
   useEffect(() => setLocal(pedido), [pedido]);
 
   const fields = [
-    { key: "data_medicao_tecnica", label: "Medição Técnica", icon: "📐" },
+    { key: "data_medicao_tecnica", label: "Medição Técnica", icon: "📐", agenda: true },
     { key: "data_envio_fabrica", label: "Envio p/ Fábrica", icon: "🏭" },
     { key: "data_chegada_material", label: "Chegada Material", icon: "📦" },
     { key: "data_montagem", label: "Agend. Montagem", icon: "🛠" },
@@ -421,6 +422,24 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
     for (const f of fields) patch[f.key] = local[f.key] || null;
     await salvarPedido(patch);
     toast.success("Cronograma salvo");
+  };
+
+  const onAgendaCriada = async () => {
+    // Busca o evento de medição técnica mais recente para este pedido
+    const { data } = await supabase
+      .from("agenda_eventos")
+      .select("data_inicio")
+      .eq("pedido_id", pedido.id)
+      .eq("tipo", "medicao_tecnica")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.data_inicio) {
+      const dataStr = String(data.data_inicio).slice(0, 10);
+      setLocal((prev: any) => ({ ...prev, data_medicao_tecnica: dataStr }));
+      await salvarPedido({ data_medicao_tecnica: dataStr });
+      toast.success("Medição técnica agendada");
+    }
   };
 
   return (
@@ -443,12 +462,25 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
               <span>{f.icon}</span> {f.label}
             </Label>
-            <Input
-              type="date"
-              value={local[f.key] || ""}
-              onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })}
-              className="mt-1.5"
-            />
+            {f.agenda ? (
+              <button
+                type="button"
+                onClick={() => setAgendaOpen(true)}
+                className="w-full mt-1.5 h-9 px-3 rounded-md border bg-background text-left text-[13px] hover:border-[#2D6BE5] flex items-center justify-between"
+              >
+                <span className={local[f.key] ? "" : "text-muted-foreground"}>
+                  {local[f.key] ? new Date(local[f.key] + "T00:00:00").toLocaleDateString("pt-BR") : "Agendar…"}
+                </span>
+                <Calendar className="w-4 h-4 text-[#2D6BE5]" />
+              </button>
+            ) : (
+              <Input
+                type="date"
+                value={local[f.key] || ""}
+                onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })}
+                className="mt-1.5"
+              />
+            )}
             <Button
               size="sm"
               variant="outline"
@@ -465,6 +497,14 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
           </div>
         ))}
       </div>
+
+      <AgendaEventoDialog
+        open={agendaOpen}
+        onOpenChange={setAgendaOpen}
+        pedidoId={pedido.id}
+        defaultTipo="medicao_tecnica"
+        onCreated={onAgendaCriada}
+      />
     </section>
   );
 }
