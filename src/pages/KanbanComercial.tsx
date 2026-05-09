@@ -28,7 +28,7 @@ type Card = {
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export default function KanbanComercial() {
+export default function KanbanComercial({ switcher }: { switcher?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
