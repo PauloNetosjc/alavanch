@@ -228,6 +228,9 @@ export default function KanbanComercial() {
                       <div className="font-medium text-sm truncate">{c.cliente?.nome ?? "—"}</div>
                       {c.nome_projeto && <div className="text-xs text-muted-foreground truncate">{c.nome_projeto}</div>}
                       <div className="text-sm font-semibold mt-1">{fmtBrl(Number(c.total) || 0)}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        Criado em {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                      </div>
                     </div>
                   ))}
                   {items.length === 0 && (
