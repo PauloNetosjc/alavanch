@@ -50,6 +50,7 @@ const PIPELINE_LABELS: Record<string, string> = {
 };
 
 const EVENTOS = [
+  { value: "card_chegou", label: "Quando criado/movido para este estágio" },
   { value: "agenda_criada", label: "Agenda criada" },
   { value: "medicao_agendada", label: "Medição técnica agendada" },
   { value: "revisao_agendada", label: "Revisão final agendada" },
@@ -57,6 +58,25 @@ const EVENTOS = [
   { value: "assinatura_concluida", label: "Assinatura concluída" },
   { value: "manual", label: "Disparo manual" },
 ];
+
+const ACOES = [
+  { value: "mover", label: "Mover para" },
+  { value: "duplicar", label: "Duplicar em" },
+  { value: "checar_dados", label: "Checar dados do pedido" },
+  { value: "comunicado", label: "Disparar comunicado interno" },
+  { value: "notificar", label: "Notificar responsável" },
+];
+
+const CHECAR_CAMPOS = [
+  { value: "contrato_assinado", label: "Contrato assinado" },
+  { value: "cliente_cpf", label: "Cliente — CPF/CNPJ preenchido" },
+  { value: "cliente_email", label: "Cliente — e-mail preenchido" },
+  { value: "cliente_telefone", label: "Cliente — telefone preenchido" },
+  { value: "pedido_status", label: "Status do pedido (igual a...)" },
+  { value: "pagamentos_completos", label: "Pagamentos todos quitados" },
+];
+
+const ROLES_COMUNICADO = ["admin","financeiro","diretor","vendedor","conferente","montador","tecnico"];
 
 const TIPOS_AGENDA = [
   "medicao_tecnica","revisao_final","entrega","montagem","vistoria","reuniao","outro",
