@@ -2842,6 +2842,8 @@ export type Database = {
       }
       pipeline_automacoes: {
         Row: {
+          acao: string
+          acao_config: Json
           ajustar_prazo_dias: number | null
           ativo: boolean
           condicao_tipo: string
@@ -2857,6 +2859,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acao?: string
+          acao_config?: Json
           ajustar_prazo_dias?: number | null
           ativo?: boolean
           condicao_tipo?: string
@@ -2872,6 +2876,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acao?: string
+          acao_config?: Json
           ajustar_prazo_dias?: number | null
           ativo?: boolean
           condicao_tipo?: string
@@ -3260,6 +3266,16 @@ export type Database = {
       }
       concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
       current_loja_id: { Args: never; Returns: string }
+      executar_automacao_acao: {
+        Args: {
+          _card_id: string
+          _contexto?: Json
+          _evento: string
+          _pedido_id: string
+          _regra_id: string
+        }
+        Returns: Json
+      }
       has_permission: {
         Args: { _acao?: string; _modulo: string; _user_id: string }
         Returns: boolean
