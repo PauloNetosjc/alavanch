@@ -859,7 +859,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
                 </Button>
               )}
               {/* keep below */}
-              <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+              <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
               {!d._readonly && (
