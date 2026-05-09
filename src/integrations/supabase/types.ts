@@ -3273,6 +3273,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      checklist_estagio_concluido: {
+        Args: { _estagio_id: string; _pedido_id: string }
+        Returns: boolean
+      }
       concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
       current_loja_id: { Args: never; Returns: string }
       executar_automacao_acao: {
