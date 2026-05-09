@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowRight } from "lucide-react";
+import { Play, ArrowRight, Zap } from "lucide-react";
 
 const PIPELINES = ["operacional","pos_venda","revisao","montagem","fabrica","leads"];
 const EVENTOS = [
@@ -71,7 +71,7 @@ export default function SimuladorAutomacoes() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Simulador de automações" subtitle="Teste qual regra dispara para um cenário e veja o destino e prazo calculados." />
+      <PageHeader icon={Zap} title="Simulador de automações" subtitle="Teste qual regra dispara para um cenário e veja o destino e prazo calculados." />
 
       <Card>
         <CardHeader><CardTitle className="text-base">Cenário</CardTitle></CardHeader>
