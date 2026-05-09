@@ -25,12 +25,22 @@ type Automacao = {
   pipeline: string;
   estagio_origem_id: string;
   estagio_destino_id: string;
+  pipeline_destino: string | null;
   evento: string;
   condicao_tipo: string;
   condicao_valor: string | null;
   ajustar_prazo_dias: number | null;
   ativo: boolean;
   ordem: number;
+};
+
+const PIPELINE_LABELS: Record<string, string> = {
+  leads: "Leads",
+  operacional: "Operacional",
+  revisao: "Revisão",
+  fabrica: "Fábrica",
+  montagem: "Montagem",
+  pos_venda: "Pós-venda",
 };
 
 const EVENTOS = [
