@@ -425,17 +425,16 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
   };
 
   const onAgendaCriada = async () => {
-    // Busca o evento de medição técnica mais recente para este pedido
     const { data } = await supabase
       .from("agenda_eventos")
-      .select("data_inicio")
+      .select("data")
       .eq("pedido_id", pedido.id)
       .eq("tipo", "medicao_tecnica")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (data?.data_inicio) {
-      const dataStr = String(data.data_inicio).slice(0, 10);
+    if (data?.data) {
+      const dataStr = String(data.data).slice(0, 10);
       setLocal((prev: any) => ({ ...prev, data_medicao_tecnica: dataStr }));
       await salvarPedido({ data_medicao_tecnica: dataStr });
       toast.success("Medição técnica agendada");
