@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy, Eye, ExternalLink, RefreshCcw, Ban, PenLine } from "lucide-react";
+import { Copy, Eye, ExternalLink, RefreshCcw, Ban, PenLine, FileDown, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
@@ -42,6 +42,24 @@ export default function Assinaturas() {
   const [statusF, setStatusF] = useState("all");
   const [evidId, setEvidId] = useState<string | null>(null);
   const [assinarId, setAssinarId] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+
+  const baixarPdf = async (id: string) => {
+    setPdfBusy(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("assinatura-pdf-final", {
+        body: { solicitacao_id: id },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Falha ao gerar PDF");
+      window.open(data.url, "_blank");
+      toast.success("PDF gerado");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar PDF");
+    } finally {
+      setPdfBusy(null);
+    }
+  };
 
   async function load() {
     const { data } = await supabase
@@ -161,6 +179,17 @@ export default function Assinaturas() {
                     {i.status === "aguardando_loja" && can("assinaturas", "assinar_loja") && (
                       <Button size="icon" variant="ghost" title="Assinar pela loja" onClick={() => setAssinarId(i.id)}>
                         <PenLine className="w-4 h-4 text-emerald-600" />
+                      </Button>
+                    )}
+                    {["concluido", "assinado_loja"].includes(i.status) && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Baixar PDF final assinado"
+                        disabled={pdfBusy === i.id}
+                        onClick={() => baixarPdf(i.id)}
+                      >
+                        {pdfBusy === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4 text-emerald-600" />}
                       </Button>
                     )}
                     {!["concluido", "cancelado", "expirado"].includes(i.status) && (
