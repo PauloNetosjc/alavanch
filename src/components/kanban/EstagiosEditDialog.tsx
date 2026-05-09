@@ -65,6 +65,7 @@ export function EstagiosEditDialog({
   onChanged: () => void;
 }) {
   const [rows, setRows] = useState<Estagio[]>([]);
+  const [todosEstagios, setTodosEstagios] = useState<Estagio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [autos, setAutos] = useState<Automacao[]>([]);
   const [autosRemovidas, setAutosRemovidas] = useState<string[]>([]);
@@ -74,12 +75,14 @@ export function EstagiosEditDialog({
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: tpls }, { data: as }] = await Promise.all([
+    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }] = await Promise.all([
       (supabase as any).from("pipeline_estagios").select("*").eq("pipeline", pipeline).order("ordem"),
+      (supabase as any).from("pipeline_estagios").select("*").eq("ativo", true).order("pipeline").order("ordem"),
       supabase.from("checklist_templates").select("id,nome,tipo_servico").eq("ativo", true).order("nome"),
       (supabase as any).from("pipeline_automacoes").select("*").eq("pipeline", pipeline).order("ordem"),
     ]);
     setRows((ests ?? []) as Estagio[]);
+    setTodosEstagios((todos ?? []) as Estagio[]);
     setTemplates((tpls ?? []) as Template[]);
     setAutos((as ?? []) as Automacao[]);
     setAutosRemovidas([]);
@@ -131,6 +134,7 @@ export function EstagiosEditDialog({
         pipeline,
         estagio_origem_id: estagioId,
         estagio_destino_id: destino,
+        pipeline_destino: null,
         evento: "manual",
         condicao_tipo: "nenhuma",
         condicao_valor: null,
