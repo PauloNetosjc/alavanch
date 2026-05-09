@@ -115,8 +115,32 @@ export default function KanbanBoard({
   const profileNome = (id: string | null) =>
     profiles.find((p) => p.user_id === id)?.nome_completo || "—";
 
+  const isConcluidos = (e: Estagio) => e.nome.trim().toLowerCase() === "concluídos" || e.nome.trim().toLowerCase() === "concluidos";
+
+  const visibleEstagios = useMemo(
+    () => (isAdmin ? estagios : estagios.filter((e) => !isConcluidos(e))),
+    [estagios, isAdmin]
+  );
+
+  // Última etapa "real" (antes de Concluídos) — usada para liberar o botão de concluir
+  const lastRealStageId = useMemo(() => {
+    const reais = estagios.filter((e) => !isConcluidos(e));
+    return reais.length ? reais[reais.length - 1].id : null;
+  }, [estagios]);
+
+  const podeConcluir = (card: CardRow) => {
+    // Pós-venda permite concluir em qualquer etapa
+    if (pipeline === "pos_venda") return true;
+    return card.estagio_id === lastRealStageId;
+  };
+
   const filtered = useMemo(() => {
     return cards.filter((c) => {
+      // Esconde cards que já estão em "Concluídos" para não-admin
+      if (!isAdmin) {
+        const est = estagios.find((e) => e.id === c.estagio_id);
+        if (est && isConcluidos(est)) return false;
+      }
       const ped = c.pedido;
       if (!ped) return false;
       const t = search.toLowerCase();
