@@ -736,6 +736,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
   const [arquivoFile, setArquivoFile] = useState<File | null>(null);
   const [assinaturaOpen, setAssinaturaOpen] = useState<any>(null);
   const [renomearPasta, setRenomearPasta] = useState<any>(null);
+  const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
