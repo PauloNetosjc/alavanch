@@ -18,6 +18,9 @@ import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
 import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoja } from "@/contexts/LojaContext";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 type Cliente = { id: string; nome: string };
 type Parceiro = { id: string; nome: string; percentual_padrao: number };
