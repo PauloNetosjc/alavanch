@@ -257,6 +257,8 @@ export function EstagiosEditDialog({
           ajustar_prazo_dias: a.ajustar_prazo_dias,
           ativo: a.ativo,
           ordem: a.ordem,
+          acao: a.acao ?? "mover",
+          acao_config: a.acao_config ?? {},
         };
         if (a.id.startsWith("new-")) {
           const { error } = await (supabase as any).from("pipeline_automacoes").insert(payload);
