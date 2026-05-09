@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
 
@@ -53,6 +55,10 @@ export default function AssinaturaPublica() {
   const [docFoto, setDocFoto] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [recusarOpen, setRecusarOpen] = useState(false);
+  const [motivoRecusa, setMotivoRecusa] = useState("");
+  const [recusando, setRecusando] = useState(false);
+  const [recusado, setRecusado] = useState(false);
   const padRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
@@ -165,6 +171,38 @@ export default function AssinaturaPublica() {
     }
   }
 
+  async function recusar() {
+    if (!solic) return;
+    if (!motivoRecusa.trim()) return toast.error("Informe o motivo da recusa.");
+    setRecusando(true);
+    try {
+      const ua = navigator.userAgent;
+      const { error } = await supabase
+        .from("solicitacoes_assinatura")
+        .update({
+          status: "recusado",
+          motivo_recusa: motivoRecusa,
+          recusado_em: new Date().toISOString(),
+        })
+        .eq("id", solic.id);
+      if (error) throw error;
+      await supabase.from("assinatura_eventos").insert({
+        solicitacao_id: solic.id,
+        tipo_evento: "cliente_recusou",
+        status_anterior: solic.status,
+        status_novo: "recusado",
+        descricao: `Cliente recusou. Motivo: ${motivoRecusa}`,
+        user_agent: ua,
+      });
+      setRecusarOpen(false);
+      setRecusado(true);
+      toast.success("Recusa registrada");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao registrar recusa");
+    } finally {
+      setRecusando(false);
+    }
+  }
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted">
@@ -180,6 +218,22 @@ export default function AssinaturaPublica() {
             <CardTitle className="text-destructive">Não foi possível abrir</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">{erro}</CardContent>
+        </Card>
+      </div>
+    );
+
+  if (recusado)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="w-5 h-5" /> Assinatura recusada
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Sua recusa foi registrada e a equipe da loja foi notificada. Em caso de dúvidas, entre em contato.
+          </CardContent>
         </Card>
       </div>
     );
@@ -268,11 +322,39 @@ export default function AssinaturaPublica() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
-          {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-          Finalizar assinatura
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+          <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
+            {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Finalizar assinatura
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => setRecusarOpen(true)}>
+            <XCircle className="w-4 h-4 mr-1" /> Recusar
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={recusarOpen} onOpenChange={setRecusarOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recusar assinatura</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Motivo da recusa</Label>
+            <Textarea
+              rows={4}
+              value={motivoRecusa}
+              onChange={(e) => setMotivoRecusa(e.target.value)}
+              placeholder="Descreva o motivo (obrigatório)"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRecusarOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={recusando} onClick={recusar}>
+              {recusando && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Confirmar recusa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -3334,9 +3334,11 @@ export type Database = {
           id: string
           loja_assinado_em: string | null
           loja_id: string | null
+          motivo_recusa: string | null
           observacao: string | null
           pedido_documento_id: string | null
           pedido_id: string
+          recusado_em: string | null
           responsavel_interno_id: string | null
           status: Database["public"]["Enums"]["assinatura_status"]
           storage_path: string | null
@@ -3358,9 +3360,11 @@ export type Database = {
           id?: string
           loja_assinado_em?: string | null
           loja_id?: string | null
+          motivo_recusa?: string | null
           observacao?: string | null
           pedido_documento_id?: string | null
           pedido_id: string
+          recusado_em?: string | null
           responsavel_interno_id?: string | null
           status?: Database["public"]["Enums"]["assinatura_status"]
           storage_path?: string | null
@@ -3382,9 +3386,11 @@ export type Database = {
           id?: string
           loja_assinado_em?: string | null
           loja_id?: string | null
+          motivo_recusa?: string | null
           observacao?: string | null
           pedido_documento_id?: string | null
           pedido_id?: string
+          recusado_em?: string | null
           responsavel_interno_id?: string | null
           status?: Database["public"]["Enums"]["assinatura_status"]
           storage_path?: string | null
