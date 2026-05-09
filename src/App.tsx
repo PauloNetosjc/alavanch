@@ -49,6 +49,8 @@ import AnaliseFinanceira from "@/pages/AnaliseFinanceira";
 import NotasFiscais from "@/pages/NotasFiscais";
 import Agenda from "@/pages/Agenda";
 import Autorizacoes from "@/pages/Autorizacoes";
+import AssinaturaPublica from "@/pages/AssinaturaPublica";
+import Assinaturas from "@/pages/Assinaturas";
 import { RequirePermission } from "@/components/RequirePermission";
 
 const queryClient = new QueryClient();
@@ -85,6 +87,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/contrato/:token" element={<ContratoAssinar />} />
+            <Route path="/assinatura/:token" element={<AssinaturaPublica />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -115,6 +118,7 @@ const App = () => (
               <Route path="/operacional/fabrica" element={<Navigate to="/kanban-fabrica" replace />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/autorizacoes" element={<Autorizacoes />} />
+              <Route path="/assinaturas" element={<Assinaturas />} />
               <Route path="/assistencia" element={<Assistencia />} />
               <Route path="/meus-chamados" element={<MeusChamados />} />
               <Route path="/meus-chamados/:id" element={<MeuChamadoDetalhe />} />

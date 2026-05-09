@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   LifeBuoy,
   Zap,
+  PenLine,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -56,6 +57,7 @@ const sections: Section[] = [
     label: "Operação",
     items: [
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
+      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Montagem", path: "/montagem", icon: Hammer },
       { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },
     ],

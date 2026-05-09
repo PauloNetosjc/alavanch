@@ -357,6 +357,178 @@ export type Database = {
           },
         ]
       }
+      assinatura_eventos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          ip: string | null
+          participante_id: string | null
+          solicitacao_id: string
+          status_anterior: string | null
+          status_novo: string | null
+          tipo_evento: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ip?: string | null
+          participante_id?: string | null
+          solicitacao_id: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ip?: string | null
+          participante_id?: string | null
+          solicitacao_id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinatura_eventos_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_assinatura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assinatura_evidencias: {
+        Row: {
+          aceite: boolean
+          aceite_texto: string | null
+          assinado_em: string
+          assinatura_url: string | null
+          created_at: string
+          documento_foto_url: string | null
+          id: string
+          ip: string | null
+          participante_id: string | null
+          selfie_url: string | null
+          solicitacao_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          aceite?: boolean
+          aceite_texto?: string | null
+          assinado_em?: string
+          assinatura_url?: string | null
+          created_at?: string
+          documento_foto_url?: string | null
+          id?: string
+          ip?: string | null
+          participante_id?: string | null
+          selfie_url?: string | null
+          solicitacao_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          aceite?: boolean
+          aceite_texto?: string | null
+          assinado_em?: string
+          assinatura_url?: string | null
+          created_at?: string
+          documento_foto_url?: string | null
+          id?: string
+          ip?: string | null
+          participante_id?: string | null
+          selfie_url?: string | null
+          solicitacao_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinatura_evidencias_participante_id_fkey"
+            columns: ["participante_id"]
+            isOneToOne: false
+            referencedRelation: "assinatura_participantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assinatura_evidencias_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_assinatura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assinatura_participantes: {
+        Row: {
+          assinado_em: string | null
+          cargo: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          id: string
+          ip: string | null
+          nome: string | null
+          solicitacao_id: string
+          status: string
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assinado_em?: string | null
+          cargo?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          ip?: string | null
+          nome?: string | null
+          solicitacao_id: string
+          status?: string
+          telefone?: string | null
+          tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assinado_em?: string | null
+          cargo?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          ip?: string | null
+          nome?: string | null
+          solicitacao_id?: string
+          status?: string
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinatura_participantes_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_assinatura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           assinatura_base64: string
@@ -1257,6 +1429,44 @@ export type Database = {
           ordem?: number
         }
         Relationships: []
+      }
+      documentos_assinados: {
+        Row: {
+          codigo_validacao: string
+          concluido_em: string
+          created_at: string
+          final_file_url: string | null
+          id: string
+          solicitacao_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          codigo_validacao: string
+          concluido_em?: string
+          created_at?: string
+          final_file_url?: string | null
+          id?: string
+          solicitacao_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          codigo_validacao?: string
+          concluido_em?: string
+          created_at?: string
+          final_file_url?: string | null
+          id?: string
+          solicitacao_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_assinados_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_assinatura"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fotos_assistencia: {
         Row: {
@@ -3109,6 +3319,124 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitacoes_assinatura: {
+        Row: {
+          cancelado_em: string | null
+          cliente_assinado_em: string | null
+          cliente_id: string | null
+          concluido_em: string | null
+          contrato_id: string | null
+          created_at: string
+          created_by: string | null
+          expira_em: string
+          file_name: string | null
+          file_url: string | null
+          id: string
+          loja_assinado_em: string | null
+          loja_id: string | null
+          observacao: string | null
+          pedido_documento_id: string | null
+          pedido_id: string
+          responsavel_interno_id: string | null
+          status: Database["public"]["Enums"]["assinatura_status"]
+          storage_path: string | null
+          tipo_documento_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          cliente_assinado_em?: string | null
+          cliente_id?: string | null
+          concluido_em?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expira_em?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          loja_assinado_em?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          pedido_documento_id?: string | null
+          pedido_id: string
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["assinatura_status"]
+          storage_path?: string | null
+          tipo_documento_id: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          cliente_assinado_em?: string | null
+          cliente_id?: string | null
+          concluido_em?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expira_em?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          loja_assinado_em?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          pedido_documento_id?: string | null
+          pedido_id?: string
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["assinatura_status"]
+          storage_path?: string | null
+          tipo_documento_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_assinatura_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_assinatura_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_assinatura_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_assinatura_pedido_documento_id_fkey"
+            columns: ["pedido_documento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_assinatura_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_assinatura_tipo_documento_id_fkey"
+            columns: ["tipo_documento_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_documento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sub_itens_ambiente: {
         Row: {
           altura: number | null
@@ -3225,6 +3553,42 @@ export type Database = {
           metadata?: Json | null
           tipo?: string
           usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      tipos_documento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          origem: Database["public"]["Enums"]["documento_origem_tipo"]
+          requer_assinatura_cliente: boolean
+          requer_assinatura_loja: boolean
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          origem: Database["public"]["Enums"]["documento_origem_tipo"]
+          requer_assinatura_cliente?: boolean
+          requer_assinatura_loja?: boolean
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          origem?: Database["public"]["Enums"]["documento_origem_tipo"]
+          requer_assinatura_cliente?: boolean
+          requer_assinatura_loja?: boolean
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3374,6 +3738,17 @@ export type Database = {
         | "financeiro"
         | "tecnico"
         | "assistencia"
+      assinatura_participante_tipo: "cliente" | "loja"
+      assinatura_status:
+        | "rascunho"
+        | "aguardando_cliente"
+        | "assinado_cliente"
+        | "aguardando_loja"
+        | "assinado_loja"
+        | "concluido"
+        | "recusado"
+        | "cancelado"
+        | "expirado"
       autorizacao_status: "pendente" | "aprovada" | "rejeitada" | "expirada"
       autorizacao_tipo:
         | "desconto_acima_limite"
@@ -3381,6 +3756,7 @@ export type Database = {
         | "agenda_fora_dia"
         | "agenda_lead_time"
         | "outro"
+      documento_origem_tipo: "sistema" | "upload"
       urgencia_nivel: "baixa" | "media" | "alta"
     }
     CompositeTypes: {
@@ -3532,6 +3908,18 @@ export const Constants = {
         "tecnico",
         "assistencia",
       ],
+      assinatura_participante_tipo: ["cliente", "loja"],
+      assinatura_status: [
+        "rascunho",
+        "aguardando_cliente",
+        "assinado_cliente",
+        "aguardando_loja",
+        "assinado_loja",
+        "concluido",
+        "recusado",
+        "cancelado",
+        "expirado",
+      ],
       autorizacao_status: ["pendente", "aprovada", "rejeitada", "expirada"],
       autorizacao_tipo: [
         "desconto_acima_limite",
@@ -3540,6 +3928,7 @@ export const Constants = {
         "agenda_lead_time",
         "outro",
       ],
+      documento_origem_tipo: ["sistema", "upload"],
       urgencia_nivel: ["baixa", "media", "alta"],
     },
   },

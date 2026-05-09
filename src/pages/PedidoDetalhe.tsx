@@ -13,7 +13,7 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
+import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -735,6 +736,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
   const [arquivoFile, setArquivoFile] = useState<File | null>(null);
   const [assinaturaOpen, setAssinaturaOpen] = useState<any>(null);
   const [renomearPasta, setRenomearPasta] = useState<any>(null);
+  const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
@@ -833,10 +835,16 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
             </div>
             <div className="flex items-center gap-1">
               {!d.assinado_em && !d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)}>
+                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)} title="Link rápido">
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
               )}
+              {!d._readonly && (
+                <Button size="sm" variant="ghost" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura digital">
+                  <PenLine className="w-4 h-4 text-primary" />
+                </Button>
+              )}
+              {/* keep below */}
               <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
@@ -956,6 +964,18 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
           })()}
         </DialogContent>
       </Dialog>
+
+      <NovaSolicitacaoAssinaturaDialog
+        open={!!novaAssinDoc}
+        onOpenChange={(v) => !v && setNovaAssinDoc(null)}
+        pedidoId={pedidoId}
+        defaults={novaAssinDoc ? {
+          pedido_documento_id: novaAssinDoc.id,
+          file_name: novaAssinDoc.nome,
+          storage_path: novaAssinDoc.storage_path,
+        } : undefined}
+        onCreated={() => { setNovaAssinDoc(null); onChange(); }}
+      />
     </section>
   );
 }
