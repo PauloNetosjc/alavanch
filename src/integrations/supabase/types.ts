@@ -3205,6 +3205,14 @@ export type Database = {
         Args: { _loja: string; _user_id: string }
         Returns: boolean
       }
+      revisao_avancar_preparo_pj_final: {
+        Args: { _pedido_id: string; _revisao_data: string }
+        Returns: undefined
+      }
+      sub_dias_uteis: {
+        Args: { _fim: string; _loja: string; _n: number }
+        Returns: string
+      }
       user_has_perm: {
         Args: { _acao: string; _modulo: string; _user_id: string }
         Returns: boolean
