@@ -28,7 +28,7 @@ type Card = {
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export default function KanbanComercial() {
+export default function KanbanComercial({ switcher }: { switcher?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -142,6 +142,7 @@ export default function KanbanComercial() {
         subtitle="Funil de orçamentos por estágio"
         actions={
           <div className="flex gap-2">
+            {switcher}
             <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
               <Settings className="w-4 h-4" /> Estágios
             </Button>

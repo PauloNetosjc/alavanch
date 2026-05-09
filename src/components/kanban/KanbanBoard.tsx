@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter, AlertTriangle, Clock, Star, X, Search, type LucideIcon } from "lucide-react";
+import { Filter, AlertTriangle, Clock, Star, X, Search, Flame, Settings, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { KanbanFiltrosDialog, FILTROS_DEFAULT, type KanbanFiltros } from "./KanbanFiltrosDialog";
+import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros, type UrgenciaNivel } from "./KanbanFiltrosDialog";
+
+const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
 
 export type KanbanBoardProps = {
   pipeline: string;
@@ -15,6 +17,12 @@ export type KanbanBoardProps = {
   subtitle?: string;
   icon?: LucideIcon;
   iconVariant?: "blue" | "purple" | "green" | "amber" | "rose";
+  /** Slot de conteúdo extra à esquerda do botão "Estágios" (ex.: switcher de Kanbans) */
+  switcher?: ReactNode;
+  /** Caminho para a tela de gestão de estágios deste pipeline */
+  estagiosPath?: string;
+  /** Conteúdo extra após o botão de Estágios (ex.: Novo Orçamento) */
+  extraActions?: ReactNode;
 };
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string | null };
@@ -28,10 +36,10 @@ type Card = {
   estagio_prazo: string | null;
   estagio_iniciado_em: string | null;
   loja_id: string | null;
-  estrelas: number | null;
+  urgencia: UrgenciaNivel | null;
   arquivado: boolean | null;
   cliente: { nome: string } | null;
-  [k: string]: any; // dynamic stageColumn
+  [k: string]: any;
 };
 type Profile = { user_id: string; nome_completo: string | null };
 
@@ -52,6 +60,9 @@ export default function KanbanBoard({
   subtitle,
   icon,
   iconVariant = "purple",
+  switcher,
+  estagiosPath = "/administracao?tab=pipelines",
+  extraActions,
 }: KanbanBoardProps) {
   const nav = useNavigate();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
@@ -68,7 +79,7 @@ export default function KanbanBoard({
       supabase.from("pipeline_estagios").select("id,nome,ordem,cor").eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
       supabase
         .from("pedidos")
-        .select(`id,codigo,valor_total,vip,critico,${stageColumn},estagio_responsavel_id,estagio_prazo,estagio_iniciado_em,loja_id,estrelas,arquivado,cliente:clientes(nome)`)
+        .select(`id,codigo,valor_total,vip,critico,${stageColumn},estagio_responsavel_id,estagio_prazo,estagio_iniciado_em,loja_id,urgencia,arquivado,cliente:clientes(nome)`)
         .order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id,nome_completo"),
     ]);
@@ -100,7 +111,7 @@ export default function KanbanBoard({
         const prazo = c.estagio_prazo ? new Date(c.estagio_prazo).getTime() : Infinity;
         if (prazo > lim) return false;
       }
-      if (filtros.estrelas && (c.estrelas ?? 0) < filtros.estrelas) return false;
+      if (filtros.urgencia && c.urgencia !== filtros.urgencia) return false;
       return true;
     });
   }, [cards, search, filtros]);
@@ -112,10 +123,11 @@ export default function KanbanBoard({
       const est = c[stageColumn];
       if (est && map.has(est)) map.get(est)!.push(c);
     });
-    // ordenação
     map.forEach((list) => {
       list.sort((a, b) => {
-        if (filtros.ordenarPor === "estrelas") return (b.estrelas || 0) - (a.estrelas || 0);
+        if (filtros.ordenarPor === "urgencia") {
+          return (URGENCIA_RANK[b.urgencia as UrgenciaNivel] || 0) - (URGENCIA_RANK[a.urgencia as UrgenciaNivel] || 0);
+        }
         if (filtros.ordenarPor === "entrega") {
           const da = a.estagio_prazo ? new Date(a.estagio_prazo).getTime() : Infinity;
           const db = b.estagio_prazo ? new Date(b.estagio_prazo).getTime() : Infinity;
@@ -142,18 +154,31 @@ export default function KanbanBoard({
     carregar();
   };
 
-  // Chips de filtros ativos
   const chips: { label: string; onClear: () => void }[] = [];
   chips.push({ label: `Arquivados: ${filtros.arquivados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, arquivados: false })) });
   chips.push({ label: `Atrasados: ${filtros.somenteAtrasados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, somenteAtrasados: false })) });
   chips.push({ label: `Mostrar valores: ${filtros.mostrarValores ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, mostrarValores: !f.mostrarValores })) });
   chips.push({ label: `Mostrar tarefas: ${filtros.mostrarTarefas ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, mostrarTarefas: !f.mostrarTarefas })) });
+  if (filtros.urgencia) chips.push({ label: `Urgência: ${URGENCIA_META[filtros.urgencia].label}`, onClear: () => setFiltros((f) => ({ ...f, urgencia: undefined })) });
 
   return (
     <div className="space-y-4">
-      <PageHeader icon={icon || Filter} iconVariant={iconVariant} title={title} subtitle={subtitle} />
+      <PageHeader
+        icon={icon || Filter}
+        iconVariant={iconVariant}
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <div className="flex gap-2 items-center">
+            {switcher}
+            <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => nav(estagiosPath)}>
+              <Settings className="w-4 h-4" /> Estágios
+            </Button>
+            {extraActions}
+          </div>
+        }
+      />
 
-      {/* Search + filter button */}
       <div className="flex gap-2 items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -164,7 +189,6 @@ export default function KanbanBoard({
         </Button>
       </div>
 
-      {/* Chips */}
       <div className="flex flex-wrap gap-2">
         {chips.map((c, i) => (
           <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-[12px]">
@@ -214,6 +238,7 @@ export default function KanbanBoard({
                         d < 0 ? "bg-red-50 border-red-200 text-red-700" :
                         d <= 5 ? "bg-amber-50 border-amber-200 text-amber-700" :
                         "bg-emerald-50 border-emerald-200 text-emerald-700";
+                      const urg = c.urgencia ? URGENCIA_META[c.urgencia as UrgenciaNivel] : null;
                       return (
                         <div
                           key={c.id}
@@ -225,7 +250,18 @@ export default function KanbanBoard({
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="text-[12px] font-bold text-primary">{c.codigo}</div>
-                            {c.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
+                            <div className="flex items-center gap-1">
+                              {urg && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                  style={{ background: urg.bg, color: urg.color }}
+                                  title={`Urgência ${urg.label}`}
+                                >
+                                  <Flame className="w-3 h-3" /> {urg.label}
+                                </span>
+                              )}
+                              {c.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
+                            </div>
                           </div>
                           <div className="text-[12px] font-medium truncate mt-1">{c.cliente?.nome || "—"}</div>
                           {filtros.mostrarValores && (

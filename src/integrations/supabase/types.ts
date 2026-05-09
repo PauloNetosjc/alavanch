@@ -1444,6 +1444,7 @@ export type Database = {
           endereco: string | null
           id: string
           nome: string
+          sigla: string | null
           telefone: string | null
           updated_at: string
         }
@@ -1455,6 +1456,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome: string
+          sigla?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -1466,6 +1468,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome?: string
+          sigla?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -2594,6 +2597,7 @@ export type Database = {
           pedido_pai_id: string | null
           status: string
           updated_at: string
+          urgencia: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_total: number | null
           vip: boolean | null
           workflow_estagio: string | null
@@ -2628,6 +2632,7 @@ export type Database = {
           pedido_pai_id?: string | null
           status?: string
           updated_at?: string
+          urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_total?: number | null
           vip?: boolean | null
           workflow_estagio?: string | null
@@ -2662,6 +2667,7 @@ export type Database = {
           pedido_pai_id?: string | null
           status?: string
           updated_at?: string
+          urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_total?: number | null
           vip?: boolean | null
           workflow_estagio?: string | null
@@ -3163,6 +3169,7 @@ export type Database = {
         | "agenda_fora_dia"
         | "agenda_lead_time"
         | "outro"
+      urgencia_nivel: "baixa" | "media" | "alta"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3321,6 +3328,7 @@ export const Constants = {
         "agenda_lead_time",
         "outro",
       ],
+      urgencia_nivel: ["baixa", "media", "alta"],
     },
   },
 } as const
