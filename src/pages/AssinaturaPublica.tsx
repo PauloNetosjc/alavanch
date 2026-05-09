@@ -94,9 +94,9 @@ export default function AssinaturaPublica() {
 
       const [{ data: t }, { data: p }, { data: c }, { data: l }] = await Promise.all([
         supabase.from("tipos_documento").select("*").eq("id", s.tipo_documento_id).maybeSingle(),
-        supabase.from("pedidos").select("id,codigo").eq("id", s.pedido_id).maybeSingle(),
+        supabase.from("pedidos").select("id,codigo,valor_total,loja_id").eq("id", s.pedido_id).maybeSingle(),
         s.cliente_id
-          ? supabase.from("clientes").select("nome,email").eq("id", s.cliente_id).maybeSingle()
+          ? supabase.from("clientes").select("nome,email,cpf_cnpj,telefone").eq("id", s.cliente_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
         s.loja_id
           ? supabase.from("lojas").select("nome").eq("id", s.loja_id).maybeSingle()
@@ -107,7 +107,36 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
-      if (c?.nome) setNome(c.nome);
+
+      // Carrega contrato + template e renderiza HTML inline (somente leitura)
+      if (s.contrato_id) {
+        const { data: ct } = await supabase
+          .from("contratos")
+          .select("*")
+          .eq("id", s.contrato_id)
+          .maybeSingle();
+        setContrato(ct);
+        if (ct?.template_id) {
+          const { data: tpls } = await supabase
+            .from("contratos_template")
+            .select("*")
+            .eq("id", ct.template_id)
+            .maybeSingle();
+          setTpl(tpls as any);
+          if (tpls && ct.conteudo_snapshot) {
+            try {
+              setDocHtml(renderContratoHtml(tpls as any, ct.conteudo_snapshot as any));
+            } catch {/* noop */}
+          }
+        }
+      }
+
+      // Prefill com dados do cliente / snapshot do contrato
+      const snapCli = (((await Promise.resolve(null)) as any) || null);
+      const cliNome = c?.nome || "";
+      const cliCpf = c?.cpf_cnpj || "";
+      if (cliNome) setNome(cliNome);
+      if (cliCpf) setDoc(maskDocAuto(cliCpf));
       setLoading(false);
     })();
   }, [token]);
