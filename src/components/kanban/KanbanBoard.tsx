@@ -93,7 +93,7 @@ export default function KanbanBoard({
 
       const [{ data: est }, { data: rows }, { data: profs }] = await Promise.all([
         (supabase as any).from("pipeline_estagios")
-          .select("id,nome,ordem,cor,checklist_template_id")
+          .select("id,nome,ordem,cor,checklist_template_id,concluir_acao,concluir_pipeline_destino,concluir_estagio_destino_id")
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
           .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
