@@ -602,6 +602,32 @@ export function EstagiosEditDialog({
                               </>
                             )}
 
+                            {a.acao === "criar_assistencia" && (
+                              <>
+                                <Input
+                                  className="col-span-6"
+                                  placeholder='Mensagem do popup (ex: "Será necessária assistência para este pedido?")'
+                                  value={a.acao_config?.mensagem ?? ""}
+                                  onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, mensagem: e.target.value } })}
+                                />
+                                <Select
+                                  value={a.acao_config?.estagio_se_nao ?? ""}
+                                  onValueChange={(v) => updateAuto(a.id, { acao_config: { ...a.acao_config, estagio_se_nao: v } })}
+                                >
+                                  <SelectTrigger className="col-span-3" title='Estágio se "Não"'>
+                                    <SelectValue placeholder='Se "Não" → estágio…' />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {todosEstagios
+                                      .filter((x) => x.pipeline === pipeline)
+                                      .map((x) => (
+                                        <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </>
+                            )}
+
                             <Button variant="ghost" size="icon" className="col-span-1 ml-auto text-destructive" onClick={() => removeAuto(a.id)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
