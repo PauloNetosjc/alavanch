@@ -129,27 +129,25 @@ export function KanbanFiltrosDialog({
           </div>
 
           <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground block mb-1">Estrelas (mínimo)</Label>
-            <div className="flex gap-2 items-center">
-              {[0, 1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => set("estrelas", n)}
-                  className="flex flex-col items-center"
-                >
-                  <Star
-                    className={`w-7 h-7 ${
-                      (draft.estrelas ?? 0) >= n && n > 0
-                        ? "fill-amber-400 text-amber-400"
-                        : n === 0 && (draft.estrelas ?? 0) === 0
-                        ? "text-amber-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                  {n > 0 && <span className="text-[10px] -mt-1">{n}</span>}
-                </button>
-              ))}
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground block mb-1">Urgência</Label>
+            <div className="flex gap-2 flex-wrap">
+              <button type="button" onClick={() => set("urgencia", undefined)}
+                className={`px-3 py-1.5 rounded-full border text-[12px] ${!draft.urgencia ? "bg-foreground text-background border-foreground" : "bg-card"}`}>
+                Todas
+              </button>
+              {(["baixa", "media", "alta"] as const).map((u) => {
+                const meta = URGENCIA_META[u];
+                const active = draft.urgencia === u;
+                return (
+                  <button key={u} type="button" onClick={() => set("urgencia", u)}
+                    className="px-3 py-1.5 rounded-full border text-[12px] inline-flex items-center gap-1.5"
+                    style={active
+                      ? { background: meta.color, color: "#fff", borderColor: meta.color }
+                      : { background: meta.bg, color: meta.color, borderColor: meta.color + "55" }}>
+                    <Flame className="w-3 h-3" /> {meta.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
