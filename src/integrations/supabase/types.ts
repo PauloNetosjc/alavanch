@@ -3264,6 +3264,15 @@ export type Database = {
         Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
       }
+      avaliar_condicao_automacao: {
+        Args: {
+          _card_id: string
+          _contexto?: Json
+          _pedido_id: string
+          _regra_id: string
+        }
+        Returns: boolean
+      }
       concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
       current_loja_id: { Args: never; Returns: string }
       executar_automacao_acao: {
