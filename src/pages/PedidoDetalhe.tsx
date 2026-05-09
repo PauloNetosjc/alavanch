@@ -562,6 +562,18 @@ function Cronograma({ pedido, salvarPedido }: any) {
             )}
             <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
           </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        {fieldsLinha2.map((f) => (
+          <div key={f.key}>
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <span>{f.icon}</span> {f.label}
+            </Label>
+            <div className="w-full mt-1.5 h-9 px-3 rounded-md border bg-muted/40 text-[13px] flex items-center">
+              <span className={f.value ? "" : "text-muted-foreground"}>{fmt(f.value)}</span>
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
+          </div>
         ))}
       </div>
 
