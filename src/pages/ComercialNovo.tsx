@@ -487,13 +487,14 @@ export default function ComercialNovo() {
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor = current user (apenas em criação)
+      // default consultor + loja = current user (apenas em criação)
       if (!isEdit) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) setConsultorId(u.user.id);
+        if (profile?.loja_id) setLojaId(profile.loja_id);
       }
     })();
-  }, [isEdit]);
+  }, [isEdit, profile?.loja_id]);
 
   /* ------------------------- load existing orçamento ---------------------- */
   useEffect(() => {
