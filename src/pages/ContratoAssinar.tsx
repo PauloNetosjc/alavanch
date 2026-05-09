@@ -78,50 +78,54 @@ export default function ContratoAssinar() {
     })();
   }, [token]);
 
-  // Setup canvas drawing — touch + mouse
+  // Setup canvas + redimensionamento
   useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv || contrato?.status === "assinado") return;
-    const ctx = cv.getContext("2d");
-    if (!ctx) return;
-    // Resize for crisp drawing
-    const dpr = window.devicePixelRatio || 1;
-    const rect = cv.getBoundingClientRect();
-    cv.width = Math.floor(rect.width * dpr);
-    cv.height = Math.floor(rect.height * dpr);
-    ctx.scale(dpr, dpr);
-    ctx.strokeStyle = "#1A1A1A";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    const pos = (e: PointerEvent) => {
-      const r = cv.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-    };
-    const down = (e: PointerEvent) => {
-      e.preventDefault();
-      drawing.current = true; hasDrawn.current = true;
-      const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
-      cv.setPointerCapture(e.pointerId);
-    };
-    const move = (e: PointerEvent) => { if (!drawing.current) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-    const up = () => { drawing.current = false; };
-    cv.addEventListener("pointerdown", down);
-    cv.addEventListener("pointermove", move);
-    cv.addEventListener("pointerup", up);
-    cv.addEventListener("pointerleave", up);
-    return () => {
-      cv.removeEventListener("pointerdown", down);
-      cv.removeEventListener("pointermove", move);
-      cv.removeEventListener("pointerup", up);
-      cv.removeEventListener("pointerleave", up);
-    };
+    if (!contrato || contrato.status === "assinado") return;
+    setupCanvas();
+    const onResize = () => setupCanvas();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [contrato]);
+
+  const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const cv = canvasRef.current!;
+    const r = cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const cv = canvasRef.current!;
+    const ctx = cv.getContext("2d")!;
+    drawing.current = true; hasDrawn.current = true;
+    const p = getPos(e);
+    lastPos.current = p;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + 0.01, p.y + 0.01); // garante um ponto visível em toques rápidos
+    ctx.stroke();
+    try { cv.setPointerCapture(e.pointerId); } catch {}
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current!.getContext("2d")!;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastPos.current = p;
+  };
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    drawing.current = false;
+    try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch {}
+  };
 
   const limparAssinatura = () => {
     const cv = canvasRef.current; if (!cv) return;
     const ctx = cv.getContext("2d");
-    ctx?.clearRect(0, 0, cv.width, cv.height);
+    if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.restore();
     hasDrawn.current = false;
   };
 
