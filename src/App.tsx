@@ -87,6 +87,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/contrato/:token" element={<ContratoAssinar />} />
+            <Route path="/assinatura/:token" element={<AssinaturaPublica />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
