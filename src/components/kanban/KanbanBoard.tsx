@@ -95,7 +95,7 @@ export default function KanbanBoard({
           .select("id,nome,ordem,cor,checklist_template_id")
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
-          .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,
+          .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
                    pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
           .eq("pipeline", pipeline)
           .order("created_at", { ascending: false }),
