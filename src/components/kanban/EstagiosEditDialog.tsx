@@ -25,12 +25,22 @@ type Automacao = {
   pipeline: string;
   estagio_origem_id: string;
   estagio_destino_id: string;
+  pipeline_destino: string | null;
   evento: string;
   condicao_tipo: string;
   condicao_valor: string | null;
   ajustar_prazo_dias: number | null;
   ativo: boolean;
   ordem: number;
+};
+
+const PIPELINE_LABELS: Record<string, string> = {
+  leads: "Leads",
+  operacional: "Operacional",
+  revisao: "Revisão",
+  fabrica: "Fábrica",
+  montagem: "Montagem",
+  pos_venda: "Pós-venda",
 };
 
 const EVENTOS = [
@@ -55,6 +65,7 @@ export function EstagiosEditDialog({
   onChanged: () => void;
 }) {
   const [rows, setRows] = useState<Estagio[]>([]);
+  const [todosEstagios, setTodosEstagios] = useState<Estagio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [autos, setAutos] = useState<Automacao[]>([]);
   const [autosRemovidas, setAutosRemovidas] = useState<string[]>([]);
@@ -64,12 +75,14 @@ export function EstagiosEditDialog({
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: tpls }, { data: as }] = await Promise.all([
+    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }] = await Promise.all([
       (supabase as any).from("pipeline_estagios").select("*").eq("pipeline", pipeline).order("ordem"),
+      (supabase as any).from("pipeline_estagios").select("*").eq("ativo", true).order("pipeline").order("ordem"),
       supabase.from("checklist_templates").select("id,nome,tipo_servico").eq("ativo", true).order("nome"),
       (supabase as any).from("pipeline_automacoes").select("*").eq("pipeline", pipeline).order("ordem"),
     ]);
     setRows((ests ?? []) as Estagio[]);
+    setTodosEstagios((todos ?? []) as Estagio[]);
     setTemplates((tpls ?? []) as Template[]);
     setAutos((as ?? []) as Automacao[]);
     setAutosRemovidas([]);
@@ -121,6 +134,7 @@ export function EstagiosEditDialog({
         pipeline,
         estagio_origem_id: estagioId,
         estagio_destino_id: destino,
+        pipeline_destino: null,
         evento: "manual",
         condicao_tipo: "nenhuma",
         condicao_valor: null,
@@ -141,14 +155,13 @@ export function EstagiosEditDialog({
   };
 
   const validar = (): string | null => {
-    // SLA: não pode ser negativo
     for (const r of rows) {
       if (r.sla_dias_uteis != null && r.sla_dias_uteis < 0) return `SLA do estágio "${r.nome}" não pode ser negativo.`;
     }
-    // Automações
     const seen = new Map<string, Automacao>();
     for (const a of autos) {
-      if (a.estagio_origem_id === a.estagio_destino_id) {
+      const sameP = !a.pipeline_destino || a.pipeline_destino === pipeline;
+      if (sameP && a.estagio_origem_id === a.estagio_destino_id) {
         return `Regra inválida: estágio de origem e destino são iguais.`;
       }
       const key = `${a.estagio_origem_id}|${a.evento}|${a.condicao_tipo}|${a.condicao_valor ?? ""}`;
@@ -157,10 +170,8 @@ export function EstagiosEditDialog({
         return `Conflito: existem 2 regras ativas no estágio "${origem}" para o mesmo evento/condição. Desative uma ou diferencie a condição.`;
       }
       seen.set(key, a);
-      // SLA do destino + ajuste explícito
-      const dest = rows.find((r) => r.id === a.estagio_destino_id);
+      const dest = todosEstagios.find((r) => r.id === a.estagio_destino_id);
       if (a.ajustar_prazo_dias != null && dest?.sla_dias_uteis != null) {
-        // apenas warning, não bloqueia
         console.warn(`Regra para "${dest.nome}" tem ajuste explícito (${a.ajustar_prazo_dias}du) e o destino também tem SLA (${dest.sla_dias_uteis}du). O ajuste prevalece.`);
       }
     }
@@ -205,6 +216,7 @@ export function EstagiosEditDialog({
           pipeline,
           estagio_origem_id: origemId,
           estagio_destino_id: destinoId,
+          pipeline_destino: a.pipeline_destino && a.pipeline_destino !== pipeline ? a.pipeline_destino : null,
           evento: a.evento,
           condicao_tipo: a.condicao_tipo,
           condicao_valor: a.condicao_valor || null,
@@ -293,7 +305,7 @@ export function EstagiosEditDialog({
                       {regras.map((a) => (
                         <div key={a.id} className="grid grid-cols-12 gap-2 items-center">
                           <Select value={a.evento} onValueChange={(v) => updateAuto(a.id, { evento: v, condicao_tipo: "nenhuma", condicao_valor: null })}>
-                            <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {EVENTOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
                             </SelectContent>
@@ -335,12 +347,33 @@ export function EstagiosEditDialog({
 
                           <span className="col-span-1 text-xs text-center">→</span>
 
-                          <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
-                            <SelectTrigger className="col-span-3"><SelectValue placeholder="Destino" /></SelectTrigger>
+                          <Select
+                            value={a.pipeline_destino ?? pipeline}
+                            onValueChange={(v) => {
+                              const firstStage = todosEstagios.find((s) => s.pipeline === v);
+                              updateAuto(a.id, {
+                                pipeline_destino: v === pipeline ? null : v,
+                                estagio_destino_id: firstStage?.id ?? a.estagio_destino_id,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="col-span-2" title="Kanban destino"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {rows.filter((x) => x.id !== r.id).map((x) => (
-                                <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                              {Array.from(new Set(todosEstagios.map((s) => s.pipeline))).map((p) => (
+                                <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
+                            <SelectTrigger className="col-span-2"><SelectValue placeholder="Destino" /></SelectTrigger>
+                            <SelectContent>
+                              {todosEstagios
+                                .filter((x) => x.pipeline === (a.pipeline_destino ?? pipeline))
+                                .filter((x) => !(x.pipeline === pipeline && x.id === r.id))
+                                .map((x) => (
+                                  <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
 
