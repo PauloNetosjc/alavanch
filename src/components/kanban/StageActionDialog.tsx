@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExternalLink, FileText, Flame, Clock, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
+import { ConcluirCardDialog } from "./ConcluirCardDialog";
 
 type CardLite = {
   id: string;
@@ -66,6 +67,7 @@ export function StageActionDialog({
   const [items, setItems] = useState<ChkItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [concluirOpen, setConcluirOpen] = useState(false);
 
   const isPosVenda = pipeline === "pos_venda";
 
@@ -169,20 +171,9 @@ export function StageActionDialog({
     }
   };
 
-  const concluirCard = async () => {
+  const concluirCard = () => {
     if (!card || !pedido) return;
-    if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
-    setBusy(true);
-    const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: card.id });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    await logPedidoEvento(pedido.id, "kanban_concluido",
-      `[${pipeline}] Card concluído na etapa "${stage?.nome}"`,
-      { pipeline, estagio: stage?.nome, card_id: card.id }
-    );
-    toast.success("Card concluído");
-    onUpdated();
-    onOpenChange(false);
+    setConcluirOpen(true);
   };
 
   if (!card || !stage) return null;
@@ -293,6 +284,18 @@ export function StageActionDialog({
           )}
         </DialogFooter>
       </DialogContent>
+      {card && (
+        <ConcluirCardDialog
+          open={concluirOpen}
+          onOpenChange={setConcluirOpen}
+          cardId={card.id}
+          pedidoId={card.pedido_id}
+          pipeline={pipeline}
+          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem ?? 0 }))}
+          estagioAtualId={card.estagio_id}
+          onDone={() => { onUpdated(); onOpenChange(false); }}
+        />
+      )}
     </Dialog>
   );
 }
