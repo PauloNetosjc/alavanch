@@ -110,9 +110,12 @@ export function StageActionDialog({
 
   useEffect(() => { if (open) load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [open, card?.id, stage?.id]);
 
+  const isConcluidos = (s: Stage) => (s.nome || "").trim().toLowerCase().replace(/í/g, "i") === "concluidos";
+
   const proximoEstagio = (): Stage | null => {
     if (!stage) return null;
-    const sorted = [...estagios].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    // Concluídos é estágio terminal: nunca é destino de "avançar"
+    const sorted = [...estagios].filter((s) => !isConcluidos(s)).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
     const idx = sorted.findIndex((s) => s.id === stage.id);
     if (idx < 0 || idx >= sorted.length - 1) return null;
     return sorted[idx + 1];
