@@ -3263,9 +3263,28 @@ export type Database = {
       loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
-      pipeline_avancar_card: {
-        Args: { _contexto?: Json; _evento: string; _pedido_id: string }
-        Returns: number
+      pipeline_avancar_card:
+        | {
+            Args: { _contexto?: Json; _evento: string; _pedido_id: string }
+            Returns: number
+          }
+        | {
+            Args: {
+              _contexto?: Json
+              _evento: string
+              _pedido_id: string
+              _simular?: boolean
+            }
+            Returns: Json
+          }
+      pipeline_simular: {
+        Args: {
+          _contexto?: Json
+          _estagio_origem_id: string
+          _evento: string
+          _loja?: string
+        }
+        Returns: Json
       }
       pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
       pode_autorizar_excecao_agenda: {
