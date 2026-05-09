@@ -2907,6 +2907,9 @@ export type Database = {
         Row: {
           ativo: boolean | null
           checklist_template_id: string | null
+          concluir_acao: string
+          concluir_estagio_destino_id: string | null
+          concluir_pipeline_destino: string | null
           cor: string | null
           created_at: string
           id: string
@@ -2918,6 +2921,9 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           checklist_template_id?: string | null
+          concluir_acao?: string
+          concluir_estagio_destino_id?: string | null
+          concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -2929,6 +2935,9 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           checklist_template_id?: string | null
+          concluir_acao?: string
+          concluir_estagio_destino_id?: string | null
+          concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -2943,6 +2952,13 @@ export type Database = {
             columns: ["checklist_template_id"]
             isOneToOne: false
             referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_estagios_concluir_estagio_destino_id_fkey"
+            columns: ["concluir_estagio_destino_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
             referencedColumns: ["id"]
           },
         ]
