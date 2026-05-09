@@ -131,12 +131,9 @@ export default function AssinaturaPublica() {
         }
       }
 
-      // Prefill com dados do cliente / snapshot do contrato
-      const snapCli = (((await Promise.resolve(null)) as any) || null);
-      const cliNome = c?.nome || "";
-      const cliCpf = c?.cpf_cnpj || "";
-      if (cliNome) setNome(cliNome);
-      if (cliCpf) setDoc(maskDocAuto(cliCpf));
+      // Prefill com dados do cliente
+      if (c?.nome) setNome(c.nome);
+      if (c?.cpf_cnpj) setDoc(maskDocAuto(c.cpf_cnpj));
       setLoading(false);
     })();
   }, [token]);
