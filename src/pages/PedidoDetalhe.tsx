@@ -404,25 +404,50 @@ export default function PedidoDetalhe() {
 /* ============================================================== */
 /*                        CRONOGRAMA                              */
 /* ============================================================== */
-function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
-  const [local, setLocal] = useState(pedido);
+function Cronograma({ pedido, salvarPedido }: any) {
   const [agendaOpen, setAgendaOpen] = useState(false);
-  useEffect(() => setLocal(pedido), [pedido]);
+  const [dataRevisao, setDataRevisao] = useState<string | null>(null);
+  const [dataAssinaturaPdf, setDataAssinaturaPdf] = useState<string | null>(null);
+  const [dataImplantacaoFabrica, setDataImplantacaoFabrica] = useState<string | null>(null);
 
-  const fields = [
-    { key: "data_medicao_tecnica", label: "Medição Técnica", icon: "📐", agenda: true },
-    { key: "data_envio_fabrica", label: "Envio p/ Fábrica", icon: "🏭" },
-    { key: "data_chegada_material", label: "Chegada Material", icon: "📦" },
-    { key: "data_montagem", label: "Agend. Montagem", icon: "🛠" },
-    { key: "data_limite_finalizacao", label: "Limite Finalização", icon: "✅" },
-  ];
+  const carregar = async () => {
+    // Revisão final: agendada junto com a medição técnica
+    const { data: rev } = await supabase
+      .from("agenda_eventos")
+      .select("data")
+      .eq("pedido_id", pedido.id)
+      .eq("tipo", "revisao_final")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setDataRevisao(rev?.data ? String(rev.data).slice(0, 10) : null);
 
-  const salvar = async () => {
-    const patch: any = {};
-    for (const f of fields) patch[f.key] = local[f.key] || null;
-    await salvarPedido(patch);
-    toast.success("Cronograma salvo");
+    // Assinatura PDF Final: dia em que o card saiu da etapa "Assinatura PDF Final" no kanban revisão
+    const { data: assin } = await (supabase as any)
+      .from("timeline_eventos")
+      .select("created_at, metadata")
+      .eq("entidade_tipo", "pedido")
+      .eq("entidade_id", pedido.id)
+      .eq("tipo", "kanban_movimento")
+      .order("created_at", { ascending: false });
+    const evAssin = (assin || []).find((e: any) =>
+      e.metadata?.pipeline === "revisao" && String(e.metadata?.de || "").toLowerCase().includes("assinatura pdf final")
+    );
+    setDataAssinaturaPdf(evAssin?.created_at ? String(evAssin.created_at).slice(0, 10) : null);
+
+    // Implantação Fábrica: dia em que o card foi concluído no kanban fábrica
+    const { data: fab } = await (supabase as any)
+      .from("timeline_eventos")
+      .select("created_at, metadata")
+      .eq("entidade_tipo", "pedido")
+      .eq("entidade_id", pedido.id)
+      .eq("tipo", "kanban_concluido")
+      .order("created_at", { ascending: false });
+    const evFab = (fab || []).find((e: any) => e.metadata?.pipeline === "fabrica");
+    setDataImplantacaoFabrica(evFab?.created_at ? String(evFab.created_at).slice(0, 10) : null);
   };
+
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id]);
 
   const onAgendaCriada = async () => {
     const { data } = await supabase
@@ -435,11 +460,27 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
       .maybeSingle();
     if (data?.data) {
       const dataStr = String(data.data).slice(0, 10);
-      setLocal((prev: any) => ({ ...prev, data_medicao_tecnica: dataStr }));
       await salvarPedido({ data_medicao_tecnica: dataStr });
       toast.success("Medição técnica agendada");
     }
+    await carregar();
   };
+
+  const fmt = (d?: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+
+  const fields = [
+    {
+      key: "medicao",
+      label: "Medição Técnica",
+      icon: "📐",
+      value: pedido.data_medicao_tecnica,
+      action: () => setAgendaOpen(true),
+      hint: "Agendar via agenda",
+    },
+    { key: "revisao", label: "Revisão", icon: "🧐", value: dataRevisao, hint: "Agendada junto à medição" },
+    { key: "assin", label: "Assinatura PDF Final", icon: "📝", value: dataAssinaturaPdf, hint: "Saída da etapa no Kanban Revisão" },
+    { key: "fabrica", label: "Implantação Fábrica", icon: "🏭", value: dataImplantacaoFabrica, hint: "Conclusão do card no Kanban Fábrica" },
+  ];
 
   return (
     <section className="surface-card p-6">
@@ -448,51 +489,33 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
           <div className="w-11 h-11 rounded-full bg-[#2D6BE5] text-white flex items-center justify-center"><Calendar className="w-5 h-5" /></div>
           <div>
             <h2 className="font-playfair text-[22px] font-semibold">Cronograma e Datas</h2>
-            <p className="text-[12px] text-muted-foreground">Gerencie prazos e datas operacionais da venda</p>
+            <p className="text-[12px] text-muted-foreground">Datas operacionais sincronizadas com Agenda e Kanbans</p>
           </div>
         </div>
-        <Button onClick={salvar} className="bg-[#2D6BE5] hover:bg-[#2459C9] text-white">
-          <Save className="w-4 h-4 mr-1.5" /> SALVAR
-        </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {fields.map((f) => (
           <div key={f.key}>
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
               <span>{f.icon}</span> {f.label}
             </Label>
-            {f.agenda ? (
+            {f.action ? (
               <button
                 type="button"
-                onClick={() => setAgendaOpen(true)}
+                onClick={f.action}
                 className="w-full mt-1.5 h-9 px-3 rounded-md border bg-background text-left text-[13px] hover:border-[#2D6BE5] flex items-center justify-between"
               >
-                <span className={local[f.key] ? "" : "text-muted-foreground"}>
-                  {local[f.key] ? new Date(local[f.key] + "T00:00:00").toLocaleDateString("pt-BR") : "Agendar…"}
+                <span className={f.value ? "" : "text-muted-foreground"}>
+                  {f.value ? fmt(f.value) : "Agendar…"}
                 </span>
                 <Calendar className="w-4 h-4 text-[#2D6BE5]" />
               </button>
             ) : (
-              <Input
-                type="date"
-                value={local[f.key] || ""}
-                onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })}
-                className="mt-1.5"
-              />
+              <div className="w-full mt-1.5 h-9 px-3 rounded-md border bg-muted/40 text-[13px] flex items-center">
+                <span className={f.value ? "" : "text-muted-foreground"}>{fmt(f.value)}</span>
+              </div>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full mt-1.5 text-[11px] text-muted-foreground"
-              onClick={async () => {
-                const today = new Date().toISOString().slice(0, 10);
-                setLocal({ ...local, [f.key]: today });
-                await salvarPedido({ [f.key]: today });
-                toast.success("Marcado como concluído");
-              }}
-            >
-              Marcar como concluído
-            </Button>
+            <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
           </div>
         ))}
       </div>
