@@ -34,6 +34,7 @@ type CardRow = {
   responsavel_id: string | null;
   prazo: string | null;
   iniciado_em: string | null;
+  created_at: string | null;
   pedido: {
     id: string;
     codigo: string;
