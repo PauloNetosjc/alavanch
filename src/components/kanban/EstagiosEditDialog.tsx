@@ -54,7 +54,8 @@ const EVENTOS = [
   { value: "agenda_criada", label: "Agenda criada" },
   { value: "medicao_agendada", label: "Medição técnica agendada" },
   { value: "revisao_agendada", label: "Revisão final agendada" },
-  { value: "checklist_concluido", label: "Checklist concluído" },
+  { value: "checklist_item_marcado", label: "Item de checklist marcado" },
+  { value: "checklist_concluido", label: "Checklist concluído (todos itens)" },
   { value: "assinatura_concluida", label: "Assinatura concluída" },
   { value: "manual", label: "Disparo manual" },
 ];
@@ -93,6 +94,7 @@ export function EstagiosEditDialog({
   const [rows, setRows] = useState<Estagio[]>([]);
   const [todosEstagios, setTodosEstagios] = useState<Estagio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [templateItens, setTemplateItens] = useState<Record<string, { descricao: string }[]>>({});
   const [autos, setAutos] = useState<Automacao[]>([]);
   const [autosRemovidas, setAutosRemovidas] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -102,16 +104,22 @@ export function EstagiosEditDialog({
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }, { data: profs }] = await Promise.all([
+    const [{ data: ests }, { data: todos }, { data: tpls }, { data: as }, { data: profs }, { data: itens }] = await Promise.all([
       (supabase as any).from("pipeline_estagios").select("*").eq("pipeline", pipeline).order("ordem"),
       (supabase as any).from("pipeline_estagios").select("*").eq("ativo", true).order("pipeline").order("ordem"),
       supabase.from("checklist_templates").select("id,nome,tipo_servico").eq("ativo", true).order("nome"),
       (supabase as any).from("pipeline_automacoes").select("*").eq("pipeline", pipeline).order("ordem"),
       supabase.from("profiles").select("user_id,nome_completo").order("nome_completo"),
+      supabase.from("checklist_template_itens").select("template_id,descricao,ordem").order("ordem"),
     ]);
     setRows((ests ?? []) as Estagio[]);
     setTodosEstagios((todos ?? []) as Estagio[]);
     setTemplates((tpls ?? []) as Template[]);
+    const itensMap: Record<string, { descricao: string }[]> = {};
+    ((itens ?? []) as any[]).forEach((it) => {
+      (itensMap[it.template_id] ||= []).push({ descricao: it.descricao });
+    });
+    setTemplateItens(itensMap);
     setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {} })) as Automacao[]);
     setProfiles((profs ?? []) as Profile[]);
     setAutosRemovidas([]);
@@ -437,6 +445,40 @@ export function EstagiosEditDialog({
                                   {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                                 </SelectContent>
                               </Select>
+                            ) : (a.evento === "checklist_item_marcado" || a.evento === "card_chegou") ? (
+                              (() => {
+                                const itens = r.checklist_template_id ? (templateItens[r.checklist_template_id] ?? []) : [];
+                                if (itens.length === 0) {
+                                  return (
+                                    <Input
+                                      className="col-span-3"
+                                      placeholder="Descrição exata do item"
+                                      value={a.condicao_tipo === "item_checklist" ? (a.condicao_valor ?? "") : ""}
+                                      onChange={(e) => updateAuto(a.id, {
+                                        condicao_tipo: e.target.value ? "item_checklist" : "nenhuma",
+                                        condicao_valor: e.target.value || null,
+                                      })}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <Select
+                                    value={a.condicao_tipo === "item_checklist" ? (a.condicao_valor ?? "any") : "any"}
+                                    onValueChange={(v) => updateAuto(a.id, {
+                                      condicao_tipo: v === "any" ? "nenhuma" : "item_checklist",
+                                      condicao_valor: v === "any" ? null : v,
+                                    })}
+                                  >
+                                    <SelectTrigger className="col-span-3"><SelectValue placeholder="Item do checklist" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="any">Qualquer item</SelectItem>
+                                      {itens.map((it, idx) => (
+                                        <SelectItem key={idx} value={it.descricao}>{it.descricao}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })()
                             ) : (
                               <div className="col-span-3 text-xs text-muted-foreground">sem condição</div>
                             )}
