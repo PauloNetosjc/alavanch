@@ -1420,6 +1420,18 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, onChange }: any) {
           status: "concluido", concluido_em: new Date().toISOString(),
         }).eq("id", solic.id);
       }
+      const pastaDocumentos = pastas.find((p: any) => !p._virtual && p.nome.toLowerCase() === "documentos");
+      await supabase.from("pedido_documentos").insert({
+        pedido_id: pedido.id,
+        pasta_id: pastaDocumentos?.id || null,
+        nome: `Contrato assinado - ${contrato.numero}`,
+        storage_path: path,
+        bucket_name: "contratos-assinatura",
+        tamanho: file.size,
+        mime_type: file.type || "application/pdf",
+        assinado_em: new Date().toISOString(),
+        assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
+      });
       toast.success("Contrato impresso assinado anexado e confirmado");
       onChange();
     } catch (e: any) {
