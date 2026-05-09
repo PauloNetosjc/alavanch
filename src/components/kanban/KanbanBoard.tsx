@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter, AlertTriangle, Clock, Star, X, Search, Flame, Settings, type LucideIcon } from "lucide-react";
+import { Filter, AlertTriangle, Clock, Star, X, Search, Flame, Settings, Check, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros, type UrgenciaNivel } from "./KanbanFiltrosDialog";
 
@@ -12,34 +12,36 @@ const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa:
 
 export type KanbanBoardProps = {
   pipeline: string;
-  stageColumn: string;
+  /** mantido por compatibilidade — não é mais usado (cards agora vêm de kanban_cards) */
+  stageColumn?: string;
   title: string;
   subtitle?: string;
   icon?: LucideIcon;
   iconVariant?: "blue" | "purple" | "green" | "amber" | "rose";
-  /** Slot de conteúdo extra à esquerda do botão "Estágios" (ex.: switcher de Kanbans) */
   switcher?: ReactNode;
-  /** Caminho para a tela de gestão de estágios deste pipeline */
   estagiosPath?: string;
-  /** Conteúdo extra após o botão de Estágios (ex.: Novo Orçamento) */
   extraActions?: ReactNode;
 };
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string | null };
-type Card = {
-  id: string;
-  codigo: string;
-  valor_total: number | null;
-  vip: boolean | null;
-  critico: boolean | null;
-  estagio_responsavel_id: string | null;
-  estagio_prazo: string | null;
-  estagio_iniciado_em: string | null;
-  loja_id: string | null;
-  urgencia: UrgenciaNivel | null;
-  arquivado: boolean | null;
-  cliente: { nome: string } | null;
-  [k: string]: any;
+type CardRow = {
+  id: string;                  // kanban_cards.id
+  pedido_id: string;
+  estagio_id: string;
+  responsavel_id: string | null;
+  prazo: string | null;
+  iniciado_em: string | null;
+  pedido: {
+    id: string;
+    codigo: string;
+    valor_total: number | null;
+    vip: boolean | null;
+    critico: boolean | null;
+    loja_id: string | null;
+    urgencia: UrgenciaNivel | null;
+    arquivado: boolean | null;
+    cliente: { nome: string } | null;
+  } | null;
 };
 type Profile = { user_id: string; nome_completo: string | null };
 
@@ -55,7 +57,6 @@ const diffDays = (iso?: string | null) => {
 
 export default function KanbanBoard({
   pipeline,
-  stageColumn,
   title,
   subtitle,
   icon,
@@ -66,7 +67,7 @@ export default function KanbanBoard({
 }: KanbanBoardProps) {
   const nav = useNavigate();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<CardRow[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -75,16 +76,20 @@ export default function KanbanBoard({
 
   const carregar = async () => {
     setLoading(true);
-    const [{ data: est }, { data: peds }, { data: profs }] = await Promise.all([
+    // dispara verificação de atrasos (idempotente)
+    await (supabase as any).rpc("kanban_processar_atrasos").catch(() => {});
+    const [{ data: est }, { data: rows }, { data: profs }] = await Promise.all([
       supabase.from("pipeline_estagios").select("id,nome,ordem,cor").eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
-      supabase
-        .from("pedidos")
-        .select(`id,codigo,valor_total,vip,critico,${stageColumn},estagio_responsavel_id,estagio_prazo,estagio_iniciado_em,loja_id,urgencia,arquivado,cliente:clientes(nome)`)
+      (supabase as any)
+        .from("kanban_cards")
+        .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,
+                 pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
+        .eq("pipeline", pipeline)
         .order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id,nome_completo"),
     ]);
     setEstagios((est ?? []) as Estagio[]);
-    setCards((peds ?? []) as any);
+    setCards((rows ?? []) as CardRow[]);
     setProfiles((profs ?? []) as any);
     setLoading(false);
   };
@@ -96,61 +101,73 @@ export default function KanbanBoard({
 
   const filtered = useMemo(() => {
     return cards.filter((c) => {
+      const ped = c.pedido;
+      if (!ped) return false;
       const t = search.toLowerCase();
-      const matchTxt = !t || c.codigo.toLowerCase().includes(t) || (c.cliente?.nome || "").toLowerCase().includes(t);
+      const matchTxt = !t || ped.codigo.toLowerCase().includes(t) || (ped.cliente?.nome || "").toLowerCase().includes(t);
       if (!matchTxt) return false;
 
-      if (!filtros.arquivados && c.arquivado) return false;
-      if (filtros.unidadeId && c.loja_id !== filtros.unidadeId) return false;
-      if (filtros.responsavelId && c.estagio_responsavel_id !== filtros.responsavelId) return false;
+      if (!filtros.arquivados && ped.arquivado) return false;
+      if (filtros.unidadeId && ped.loja_id !== filtros.unidadeId) return false;
+      if (filtros.responsavelId && c.responsavel_id !== filtros.responsavelId) return false;
 
-      const d = diffDays(c.estagio_prazo);
+      const d = diffDays(c.prazo);
       if (filtros.somenteAtrasados && (d == null || d >= 0)) return false;
       if (filtros.dataFim) {
         const lim = new Date(filtros.dataFim + "T23:59:59").getTime();
-        const prazo = c.estagio_prazo ? new Date(c.estagio_prazo).getTime() : Infinity;
+        const prazo = c.prazo ? new Date(c.prazo).getTime() : Infinity;
         if (prazo > lim) return false;
       }
-      if (filtros.urgencia && c.urgencia !== filtros.urgencia) return false;
+      if (filtros.urgencia && ped.urgencia !== filtros.urgencia) return false;
       return true;
     });
   }, [cards, search, filtros]);
 
   const cardsPorEstagio = useMemo(() => {
-    const map = new Map<string, Card[]>();
+    const map = new Map<string, CardRow[]>();
     estagios.forEach((e) => map.set(e.id, []));
     filtered.forEach((c) => {
-      const est = c[stageColumn];
-      if (est && map.has(est)) map.get(est)!.push(c);
+      if (map.has(c.estagio_id)) map.get(c.estagio_id)!.push(c);
     });
     map.forEach((list) => {
       list.sort((a, b) => {
         if (filtros.ordenarPor === "urgencia") {
-          return (URGENCIA_RANK[b.urgencia as UrgenciaNivel] || 0) - (URGENCIA_RANK[a.urgencia as UrgenciaNivel] || 0);
+          return (URGENCIA_RANK[b.pedido?.urgencia as UrgenciaNivel] || 0) - (URGENCIA_RANK[a.pedido?.urgencia as UrgenciaNivel] || 0);
         }
         if (filtros.ordenarPor === "entrega") {
-          const da = a.estagio_prazo ? new Date(a.estagio_prazo).getTime() : Infinity;
-          const db = b.estagio_prazo ? new Date(b.estagio_prazo).getTime() : Infinity;
+          const da = a.prazo ? new Date(a.prazo).getTime() : Infinity;
+          const db = b.prazo ? new Date(b.prazo).getTime() : Infinity;
           return da - db;
         }
         return 0;
       });
     });
     return map;
-  }, [filtered, estagios, filtros.ordenarPor, stageColumn]);
+  }, [filtered, estagios, filtros.ordenarPor]);
 
   const totaisPorEstagio = useMemo(() => {
     const t = new Map<string, number>();
     cardsPorEstagio.forEach((list, k) => {
-      t.set(k, list.reduce((s, c) => s + (Number(c.valor_total) || 0), 0));
+      t.set(k, list.reduce((s, c) => s + (Number(c.pedido?.valor_total) || 0), 0));
     });
     return t;
   }, [cardsPorEstagio]);
 
   const moverCard = async (cardId: string, novoEstagio: string) => {
-    const { error } = await supabase.from("pedidos").update({ [stageColumn]: novoEstagio } as any).eq("id", cardId);
+    const { error } = await (supabase as any).from("kanban_cards")
+      .update({ estagio_id: novoEstagio, iniciado_em: new Date().toISOString(), notificacao_atraso_em: null })
+      .eq("id", cardId);
     if (error) return toast.error(error.message);
     toast.success("Card movido");
+    carregar();
+  };
+
+  const concluirCard = async (cardId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
+    const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: cardId });
+    if (error) return toast.error(error.message);
+    toast.success("Card concluído");
     carregar();
   };
 
@@ -233,23 +250,28 @@ export default function KanbanBoard({
                     }}
                   >
                     {list.map((c) => {
-                      const d = diffDays(c.estagio_prazo);
+                      const ped = c.pedido!;
+                      const d = diffDays(c.prazo);
+                      const atrasado = d != null && d < 0;
+                      const cardBg = atrasado
+                        ? "bg-red-50 border-red-300"
+                        : "bg-card border-border";
                       const prazoColor = d == null ? "" :
-                        d < 0 ? "bg-red-50 border-red-200 text-red-700" :
-                        d <= 5 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                        d < 0 ? "bg-red-100 border-red-300 text-red-700" :
+                        d <= 2 ? "bg-amber-50 border-amber-200 text-amber-700" :
                         "bg-emerald-50 border-emerald-200 text-emerald-700";
-                      const urg = c.urgencia ? URGENCIA_META[c.urgencia as UrgenciaNivel] : null;
+                      const urg = ped.urgencia ? URGENCIA_META[ped.urgencia as UrgenciaNivel] : null;
                       return (
                         <div
                           key={c.id}
                           draggable
                           onDragStart={(ev) => ev.dataTransfer.setData("text/card", c.id)}
-                          onClick={() => nav(`/pedidos/${c.id}`)}
-                          className="bg-card border-l-4 border border-border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => nav(`/pedidos/${ped.id}`)}
+                          className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
                           style={{ borderLeftColor: e.cor || "#6b7280" }}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <div className="text-[12px] font-bold text-primary">{c.codigo}</div>
+                            <div className="text-[12px] font-bold text-primary">{ped.codigo}</div>
                             <div className="flex items-center gap-1">
                               {urg && (
                                 <span
@@ -260,25 +282,32 @@ export default function KanbanBoard({
                                   <Flame className="w-3 h-3" /> {urg.label}
                                 </span>
                               )}
-                              {c.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
+                              {ped.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
+                              <button
+                                onClick={(ev) => concluirCard(c.id, ev)}
+                                title="Concluir card"
+                                className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="text-[12px] font-medium truncate mt-1">{c.cliente?.nome || "—"}</div>
+                          <div className="text-[12px] font-medium truncate mt-1">{ped.cliente?.nome || "—"}</div>
                           {filtros.mostrarValores && (
-                            <div className="text-[11px] text-muted-foreground mt-1">{fmtBrl(Number(c.valor_total) || 0)}</div>
+                            <div className="text-[11px] text-muted-foreground mt-1">{fmtBrl(Number(ped.valor_total) || 0)}</div>
                           )}
-                          {c.estagio_responsavel_id && (
+                          {c.responsavel_id && (
                             <div className="text-[10px] text-muted-foreground mt-1 truncate">
-                              👤 {profileNome(c.estagio_responsavel_id)}
+                              👤 {profileNome(c.responsavel_id)}
                             </div>
                           )}
-                          {c.estagio_prazo && (
+                          {c.prazo && (
                             <div className={`mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${prazoColor}`}>
-                              {d != null && d < 0 ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                              {d == null ? "—" : d < 0 ? `${Math.abs(d)}d atraso` : d === 0 ? "hoje" : `${d}d restantes`}
+                              {atrasado ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                              {d == null ? "—" : d < 0 ? `${Math.abs(d)}d atraso` : d === 0 ? "vence hoje" : `${d}d restantes`}
                             </div>
                           )}
-                          {c.critico && (
+                          {ped.critico && (
                             <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-medium">
                               <AlertTriangle className="w-3 h-3" /> Crítico
                             </div>
