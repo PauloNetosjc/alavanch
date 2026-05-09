@@ -283,9 +283,11 @@ export function StageActionDialog({
               Avançar para "{prox.nome}"
             </Button>
           )}
-          <Button disabled={busy} onClick={concluirCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="w-4 h-4 mr-1" /> Concluir card
-          </Button>
+          {(isPosVenda || !prox) && (
+            <Button disabled={busy} onClick={concluirCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Check className="w-4 h-4 mr-1" /> Concluir card
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
