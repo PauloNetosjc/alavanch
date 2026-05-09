@@ -4,17 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter, AlertTriangle, Clock, Star, X, Search } from "lucide-react";
+import { Filter, AlertTriangle, Clock, Star, X, Search, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanFiltrosDialog, FILTROS_DEFAULT, type KanbanFiltros } from "./KanbanFiltrosDialog";
 
 export type KanbanBoardProps = {
-  pipeline: string;            // pos_venda | revisao | montagem | fabrica | operacional
-  stageColumn: string;         // pedidos column for this pipeline
+  pipeline: string;
+  stageColumn: string;
   title: string;
   subtitle?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  iconVariant?: "blue" | "purple" | "orange" | "green" | "amber";
+  icon?: LucideIcon;
+  iconVariant?: "blue" | "purple" | "green" | "amber" | "rose";
 };
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string | null };
