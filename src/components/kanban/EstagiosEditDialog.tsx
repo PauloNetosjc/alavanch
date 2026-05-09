@@ -445,6 +445,40 @@ export function EstagiosEditDialog({
                                   {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                                 </SelectContent>
                               </Select>
+                            ) : (a.evento === "checklist_item_marcado" || a.evento === "card_chegou") ? (
+                              (() => {
+                                const itens = r.checklist_template_id ? (templateItens[r.checklist_template_id] ?? []) : [];
+                                if (itens.length === 0) {
+                                  return (
+                                    <Input
+                                      className="col-span-3"
+                                      placeholder="Descrição exata do item"
+                                      value={a.condicao_tipo === "item_checklist" ? (a.condicao_valor ?? "") : ""}
+                                      onChange={(e) => updateAuto(a.id, {
+                                        condicao_tipo: e.target.value ? "item_checklist" : "nenhuma",
+                                        condicao_valor: e.target.value || null,
+                                      })}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <Select
+                                    value={a.condicao_tipo === "item_checklist" ? (a.condicao_valor ?? "any") : "any"}
+                                    onValueChange={(v) => updateAuto(a.id, {
+                                      condicao_tipo: v === "any" ? "nenhuma" : "item_checklist",
+                                      condicao_valor: v === "any" ? null : v,
+                                    })}
+                                  >
+                                    <SelectTrigger className="col-span-3"><SelectValue placeholder="Item do checklist" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="any">Qualquer item</SelectItem>
+                                      {itens.map((it, idx) => (
+                                        <SelectItem key={idx} value={it.descricao}>{it.descricao}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })()
                             ) : (
                               <div className="col-span-3 text-xs text-muted-foreground">sem condição</div>
                             )}
