@@ -175,7 +175,7 @@ export function KanbanFiltrosDialog({
             <div className="space-y-1.5">
               {([
                 ["indices", "Ordenar pelos índices"],
-                ["estrelas", "Ordenar pelas estrelas"],
+                ["urgencia", "Ordenar pela urgência"],
                 ["entrega", "Ordenar pelas datas de entrega"],
               ] as const).map(([v, l]) => (
                 <label key={v} className="flex items-center gap-2 text-[13px] cursor-pointer">
