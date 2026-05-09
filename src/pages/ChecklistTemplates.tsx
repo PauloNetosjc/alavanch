@@ -48,6 +48,7 @@ export default function ChecklistTemplates() {
     const { data } = await supabase
       .from("checklist_templates")
       .select("*")
+      .not("tipo_servico", "in", `(${TIPOS_ASSISTENCIA.join(",")})`)
       .order("ordem");
     setTemplates((data || []) as any);
   };
