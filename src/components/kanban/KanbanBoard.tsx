@@ -27,7 +27,7 @@ export type KanbanBoardProps = {
   useStageDialog?: boolean;
 };
 
-type Estagio = { id: string; nome: string; ordem: number; cor: string | null; checklist_template_id: string | null };
+type Estagio = { id: string; nome: string; ordem: number; cor: string | null; checklist_template_id: string | null; concluir_acao: string | null; concluir_pipeline_destino: string | null; concluir_estagio_destino_id: string | null };
 type CardRow = {
   id: string;
   pedido_id: string;
