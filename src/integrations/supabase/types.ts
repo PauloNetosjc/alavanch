@@ -1290,6 +1290,63 @@ export type Database = {
           },
         ]
       }
+      kanban_cards: {
+        Row: {
+          created_at: string
+          estagio_id: string
+          id: string
+          iniciado_em: string
+          notificacao_atraso_em: string | null
+          pedido_id: string
+          pipeline: string
+          prazo: string | null
+          responsavel_id: string | null
+          sla_dias_uteis: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estagio_id: string
+          id?: string
+          iniciado_em?: string
+          notificacao_atraso_em?: string | null
+          pedido_id: string
+          pipeline: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          sla_dias_uteis?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estagio_id?: string
+          id?: string
+          iniciado_em?: string
+          notificacao_atraso_em?: string | null
+          pedido_id?: string
+          pipeline?: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          sla_dias_uteis?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_cards_estagio_id_fkey"
+            columns: ["estagio_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_cards_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lancamentos_financeiros: {
         Row: {
           adendo_pedido_id: string | null
@@ -3108,6 +3165,7 @@ export type Database = {
         Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
       }
+      concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
       current_loja_id: { Args: never; Returns: string }
       has_permission: {
         Args: { _acao?: string; _modulo: string; _user_id: string }
@@ -3121,6 +3179,7 @@ export type Database = {
         Returns: boolean
       }
       is_dia_util: { Args: { _data: string; _loja: string }; Returns: boolean }
+      kanban_processar_atrasos: { Args: never; Returns: number }
       loja_de_ambiente: { Args: { _ambiente_id: string }; Returns: string }
       loja_de_assistencia: {
         Args: { _assistencia_id: string }
