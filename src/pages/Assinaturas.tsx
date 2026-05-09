@@ -92,7 +92,7 @@ export default function Assinaturas() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Assinaturas Digitais" subtitle="Solicitações enviadas para clientes e loja" />
+      <PageHeader icon={PenLine} iconVariant="green" title="Assinaturas Digitais" subtitle="Solicitações enviadas para clientes e loja" />
 
       <Card>
         <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-2">
