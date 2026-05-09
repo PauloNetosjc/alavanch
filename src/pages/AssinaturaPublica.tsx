@@ -75,11 +75,19 @@ export default function AssinaturaPublica() {
     (async () => {
       if (!token) return;
       setLoading(true);
-      const { data: s } = await supabase
+      const cacheBust = Date.now().toString();
+      const { data: s, error: solicError } = await supabase
         .from("solicitacoes_assinatura")
         .select("*")
+        .filter("id", "not.is", null)
         .eq("token", token)
+        .limit(1)
         .maybeSingle();
+      if (solicError) {
+        setErro("Não foi possível carregar a assinatura. Tente abrir o link novamente.");
+        setLoading(false);
+        return;
+      }
       if (!s) {
         setErro("Link inválido.");
         setLoading(false);
@@ -94,7 +102,7 @@ export default function AssinaturaPublica() {
 
       const [{ data: t }, { data: p }, { data: c }, { data: l }] = await Promise.all([
         supabase.from("tipos_documento").select("*").eq("id", s.tipo_documento_id).maybeSingle(),
-        supabase.from("pedidos").select("id,codigo,valor_total,loja_id").eq("id", s.pedido_id).maybeSingle(),
+        supabase.from("pedidos").select("id,codigo,valor_total,loja_id,orcamento_id").eq("id", s.pedido_id).limit(1).maybeSingle(),
         s.cliente_id
           ? supabase.from("clientes").select("nome,email,cpf_cnpj,telefone").eq("id", s.cliente_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -125,7 +133,7 @@ export default function AssinaturaPublica() {
           setTpl(tpls as any);
           if (tpls && ct.conteudo_snapshot) {
             try {
-              setDocHtml(renderContratoHtml(tpls as any, ct.conteudo_snapshot as any));
+              setDocHtml(renderContratoHtml(tpls as any, { ...(ct.conteudo_snapshot as any), signing_url: `${window.location.origin}/assinatura/${token}?v=${cacheBust}` }));
             } catch {/* noop */}
           }
         }
@@ -185,7 +193,8 @@ export default function AssinaturaPublica() {
       const novoStatus = requerLoja ? "aguardando_loja" : "concluido";
       const upd: any = { status: novoStatus, cliente_assinado_em: new Date().toISOString() };
       if (!requerLoja) upd.concluido_em = new Date().toISOString();
-      await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
+      const { error: errUpd } = await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
+      if (errUpd) throw errUpd;
 
       // Evento
       await supabase.from("assinatura_eventos").insert({
@@ -241,7 +250,7 @@ export default function AssinaturaPublica() {
   }
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted">
+      <div className="min-h-screen flex items-center justify-center bg-muted" role="status" aria-label="Carregando assinatura">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
