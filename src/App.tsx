@@ -21,6 +21,7 @@ import KanbanPosVenda from "@/pages/KanbanPosVenda";
 import KanbanRevisao from "@/pages/KanbanRevisao";
 import KanbanMontagem from "@/pages/KanbanMontagem";
 import KanbanFabrica from "@/pages/KanbanFabrica";
+import Kanbans from "@/pages/Kanbans";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/contratos/:id" element={<ContratoVisualizar />} />
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
+              <Route path="/kanbans" element={<Kanbans />} />
               <Route path="/operacional/kanban" element={<KanbanOperacional />} />
               <Route path="/operacional/pos-venda" element={<KanbanPosVenda />} />
               <Route path="/operacional/revisao" element={<KanbanRevisao />} />
