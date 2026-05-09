@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
 
@@ -53,6 +55,10 @@ export default function AssinaturaPublica() {
   const [docFoto, setDocFoto] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [recusarOpen, setRecusarOpen] = useState(false);
+  const [motivoRecusa, setMotivoRecusa] = useState("");
+  const [recusando, setRecusando] = useState(false);
+  const [recusado, setRecusado] = useState(false);
   const padRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
