@@ -2840,6 +2840,66 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_automacoes: {
+        Row: {
+          ajustar_prazo_dias: number | null
+          ativo: boolean
+          condicao_tipo: string
+          condicao_valor: string | null
+          created_at: string
+          estagio_destino_id: string
+          estagio_origem_id: string
+          evento: string
+          id: string
+          ordem: number
+          pipeline: string
+          updated_at: string
+        }
+        Insert: {
+          ajustar_prazo_dias?: number | null
+          ativo?: boolean
+          condicao_tipo?: string
+          condicao_valor?: string | null
+          created_at?: string
+          estagio_destino_id: string
+          estagio_origem_id: string
+          evento: string
+          id?: string
+          ordem?: number
+          pipeline: string
+          updated_at?: string
+        }
+        Update: {
+          ajustar_prazo_dias?: number | null
+          ativo?: boolean
+          condicao_tipo?: string
+          condicao_valor?: string | null
+          created_at?: string
+          estagio_destino_id?: string
+          estagio_origem_id?: string
+          evento?: string
+          id?: string
+          ordem?: number
+          pipeline?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_automacoes_estagio_destino_id_fkey"
+            columns: ["estagio_destino_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automacoes_estagio_origem_id_fkey"
+            columns: ["estagio_origem_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_estagios: {
         Row: {
           ativo: boolean | null
@@ -2850,6 +2910,7 @@ export type Database = {
           nome: string
           ordem: number
           pipeline: string
+          sla_dias_uteis: number | null
         }
         Insert: {
           ativo?: boolean | null
@@ -2860,6 +2921,7 @@ export type Database = {
           nome: string
           ordem?: number
           pipeline: string
+          sla_dias_uteis?: number | null
         }
         Update: {
           ativo?: boolean | null
@@ -2870,6 +2932,7 @@ export type Database = {
           nome?: string
           ordem?: number
           pipeline?: string
+          sla_dias_uteis?: number | null
         }
         Relationships: [
           {
@@ -3200,6 +3263,10 @@ export type Database = {
       loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
+      pipeline_avancar_card: {
+        Args: { _contexto?: Json; _evento: string; _pedido_id: string }
+        Returns: number
+      }
       pode_acessar_loja: { Args: { _loja_id: string }; Returns: boolean }
       pode_autorizar_excecao_agenda: {
         Args: { _loja: string; _user_id: string }
