@@ -67,7 +67,7 @@ export function StageActionDialog({
   const [items, setItems] = useState<ChkItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [concluirOpen, setConcluirOpen] = useState(false);
+  
 
   const isPosVenda = pipeline === "pos_venda";
 
