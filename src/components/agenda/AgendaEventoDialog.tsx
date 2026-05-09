@@ -159,7 +159,6 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           }
           setPedidosCliente([{ id: (ped as any).id, codigo: (ped as any).codigo || null, status: (ped as any).status || null }]);
           setPedidoSelId((ped as any).id);
-          if ((ped as any).endereco_entrega) setEndereco((ped as any).endereco_entrega);
         }
       }
     })();
