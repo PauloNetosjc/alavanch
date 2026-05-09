@@ -12,7 +12,12 @@ import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "l
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
-import { maskCpfCnpj } from "@/lib/masks";
+import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
+
+function maskDocAuto(v: string) {
+  const d = unmask(v);
+  return d.length <= 11 ? maskCpf(v) : maskCnpj(v);
+}
 
 const ACEITE_TEXT =
   "Declaro que li e estou de acordo com o conteúdo deste documento. Confirmo que os dados enviados são verdadeiros e autorizo o uso desta assinatura digital para validação deste documento.";
