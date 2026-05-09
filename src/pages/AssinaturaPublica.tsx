@@ -322,11 +322,39 @@ export default function AssinaturaPublica() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
-          {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-          Finalizar assinatura
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+          <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
+            {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Finalizar assinatura
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => setRecusarOpen(true)}>
+            <XCircle className="w-4 h-4 mr-1" /> Recusar
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={recusarOpen} onOpenChange={setRecusarOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recusar assinatura</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Motivo da recusa</Label>
+            <Textarea
+              rows={4}
+              value={motivoRecusa}
+              onChange={(e) => setMotivoRecusa(e.target.value)}
+              placeholder="Descreva o motivo (obrigatório)"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRecusarOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={recusando} onClick={recusar}>
+              {recusando && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Confirmar recusa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
