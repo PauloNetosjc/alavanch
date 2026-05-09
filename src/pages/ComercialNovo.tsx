@@ -761,6 +761,7 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           desconto_perc: 0,
           desconto_valor: 0,
