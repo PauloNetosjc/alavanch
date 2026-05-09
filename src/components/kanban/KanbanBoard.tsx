@@ -247,6 +247,8 @@ export default function KanbanBoard({
         onOpenChange={(v) => { if (!v) { setActiveCard(null); setActiveStage(null); } }}
         card={activeCard}
         stage={activeStage}
+        pipeline={pipeline}
+        estagios={estagios}
         onUpdated={carregar}
       />
 
