@@ -377,6 +377,16 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         } else {
           toast.success(`Evento e ${TIPO_LABEL[followupTipo]} agendados`);
         }
+        // Avança card do pipeline Revisão para "Preparo PJ Final" quando medição técnica + revisão final são agendadas
+        if (tipo === "medicao_tecnica" && followupTipo === "revisao_final") {
+          const pid = pedidoSelId || pedidoId;
+          if (pid) {
+            const { error: avErr } = await (supabase as any).rpc("revisao_avancar_preparo_pj_final", {
+              _pedido_id: pid, _revisao_data: followupData,
+            });
+            if (avErr) console.error("revisao_avancar_preparo_pj_final", avErr);
+          }
+        }
       } else {
         toast.success("Evento agendado");
       }
