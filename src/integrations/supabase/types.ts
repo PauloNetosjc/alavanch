@@ -2537,6 +2537,7 @@ export type Database = {
           assinatura_cpf: string | null
           assinatura_data_url: string | null
           assinatura_nome: string | null
+          bucket_name: string
           created_at: string
           created_by: string | null
           enviado_para_assinatura: boolean | null
@@ -2554,6 +2555,7 @@ export type Database = {
           assinatura_cpf?: string | null
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
+          bucket_name?: string
           created_at?: string
           created_by?: string | null
           enviado_para_assinatura?: boolean | null
@@ -2571,6 +2573,7 @@ export type Database = {
           assinatura_cpf?: string | null
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
+          bucket_name?: string
           created_at?: string
           created_by?: string | null
           enviado_para_assinatura?: boolean | null

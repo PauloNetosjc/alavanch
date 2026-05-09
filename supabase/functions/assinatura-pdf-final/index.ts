@@ -192,6 +192,27 @@ Deno.serve(async (req) => {
       codigo_validacao: codigo,
     });
 
+    const { data: pastaDocs } = await sb
+      .from("pedido_pastas")
+      .select("id")
+      .eq("pedido_id", s.pedido_id)
+      .ilike("nome", "Documentos")
+      .maybeSingle();
+
+    const nomeArquivo = `Assinatura final - ${(s as any).pedidos?.codigo ?? "pedido"} - ${s.file_name ?? (s as any).tipos_documento?.nome ?? "documento"}.pdf`;
+    await sb.from("pedido_documentos").insert({
+      pedido_id: s.pedido_id,
+      pasta_id: pastaDocs?.id ?? null,
+      nome: nomeArquivo,
+      storage_path: path,
+      bucket_name: "assinaturas-finais",
+      tamanho: finalBytes.length,
+      mime_type: "application/pdf",
+      assinado_em: s.cliente_assinado_em ?? s.concluido_em ?? new Date().toISOString(),
+      assinatura_nome: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.nome ?? null,
+      assinatura_cpf: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.documento ?? null,
+    });
+
     return new Response(JSON.stringify({ url, path }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

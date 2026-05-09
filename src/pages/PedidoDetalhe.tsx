@@ -273,7 +273,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} onChange={carregar} />
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -859,7 +859,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
                 </Button>
               )}
               {/* keep below */}
-              <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+              <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
               {!d._readonly && (
@@ -1352,7 +1352,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
-function ContratoEnvioBar({ contrato, cliente, pedido, solic, onChange }: any) {
+function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
   const [uploading, setUploading] = useState(false);
   const [criando, setCriando] = useState(false);
 
@@ -1420,6 +1420,18 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, onChange }: any) {
           status: "concluido", concluido_em: new Date().toISOString(),
         }).eq("id", solic.id);
       }
+      const pastaDocumentos = pastas.find((p: any) => !p._virtual && p.nome.toLowerCase() === "documentos");
+      await supabase.from("pedido_documentos").insert({
+        pedido_id: pedido.id,
+        pasta_id: pastaDocumentos?.id || null,
+        nome: `Contrato assinado - ${contrato.numero}`,
+        storage_path: path,
+        bucket_name: "contratos-assinatura",
+        tamanho: file.size,
+        mime_type: file.type || "application/pdf",
+        assinado_em: new Date().toISOString(),
+        assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
+      } as any);
       toast.success("Contrato impresso assinado anexado e confirmado");
       onChange();
     } catch (e: any) {
