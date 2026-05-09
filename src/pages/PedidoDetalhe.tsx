@@ -562,6 +562,7 @@ function Cronograma({ pedido, salvarPedido }: any) {
             )}
             <p className="mt-1 text-[10px] text-muted-foreground">{f.hint}</p>
           </div>
+        ))}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
         {fieldsLinha2.map((f) => (
