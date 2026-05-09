@@ -27,7 +27,8 @@ import { Navigate } from "react-router-dom";
 type Template = { id: string; nome: string; tipo_servico: string; ativo: boolean; ordem: number };
 type Item = { id?: string; descricao: string; obrigatorio: boolean; ordem: number };
 
-const TIPOS = ["garantia", "reparo", "ajuste", "substituicao", "outro"];
+const TIPOS = ["kanban", "operacional", "comercial", "outro"];
+const TIPOS_ASSISTENCIA = ["garantia", "reparo", "ajuste", "substituicao"];
 
 export default function ChecklistTemplates() {
   const { role } = useAuth();
