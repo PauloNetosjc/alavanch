@@ -4,8 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Workflow, AlertTriangle, Clock, Star } from "lucide-react";
+import { Workflow, AlertTriangle, Clock, Star, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
+import { EstagiosEditDialog } from "@/components/kanban/EstagiosEditDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string | null };
 type Card = {
@@ -41,6 +45,9 @@ export default function KanbanOperacional() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editEstOpen, setEditEstOpen] = useState(false);
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
 
   // filtros
   const [search, setSearch] = useState("");
@@ -111,7 +118,18 @@ export default function KanbanOperacional() {
         iconVariant="purple"
         title="Kanban Operacional"
         subtitle="Workflow vinculado ao pedido de venda"
+        actions={
+          <div className="flex gap-2 items-center">
+            <KanbanSwitcher active="operacional" />
+            {isAdmin && (
+              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => setEditEstOpen(true)}>
+                <Settings className="w-4 h-4" /> Editar estágios
+              </Button>
+            )}
+          </div>
+        }
       />
+      <EstagiosEditDialog open={editEstOpen} onOpenChange={setEditEstOpen} pipeline="operacional" onChanged={carregar} />
 
       {/* Filtros */}
       <div className="surface-card p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
