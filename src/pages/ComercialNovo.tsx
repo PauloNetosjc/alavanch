@@ -448,13 +448,12 @@ export default function ComercialNovo() {
 
   // ---- step 1 ----
   const [nomeProjeto, setNomeProjeto] = useState("");
-  const [nomeProjeto, setNomeProjeto] = useState("");
   const [clienteId, setClienteId] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
   const [projetistaNome, setProjetistaNome] = useState<string>("");
   const [consultorId, setConsultorId] = useState<string>("");
-  const { profile, role } = useAuth();
+  const { profile } = useAuth();
   const { lojas } = useLoja();
   const isAdmin = role === "admin" || role === "diretor";
   const [lojaId, setLojaId] = useState<string>("");
