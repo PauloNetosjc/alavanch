@@ -3634,6 +3634,10 @@ export type Database = {
         Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
       }
+      auto_criar_solic_contrato: {
+        Args: { p_contrato_id?: string; p_pedido_id: string }
+        Returns: string
+      }
       avaliar_condicao_automacao: {
         Args: {
           _card_id: string
