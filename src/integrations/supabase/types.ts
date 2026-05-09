@@ -2566,6 +2566,7 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          arquivado: boolean | null
           cliente_id: string
           codigo: string
           created_at: string
@@ -2576,10 +2577,15 @@ export type Database = {
           data_medicao_tecnica: string | null
           data_montagem: string | null
           data_vistoria: string | null
+          estagio_fabrica_id: string | null
           estagio_iniciado_em: string | null
+          estagio_montagem_id: string | null
           estagio_operacional_id: string | null
+          estagio_pos_venda_id: string | null
           estagio_prazo: string | null
           estagio_responsavel_id: string | null
+          estagio_revisao_id: string | null
+          estrelas: number | null
           id: string
           is_adendo: boolean | null
           loja_id: string | null
@@ -2594,6 +2600,7 @@ export type Database = {
           workflow_iniciado_em: string | null
         }
         Insert: {
+          arquivado?: boolean | null
           cliente_id: string
           codigo: string
           created_at?: string
@@ -2604,10 +2611,15 @@ export type Database = {
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
+          estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
+          estagio_montagem_id?: string | null
           estagio_operacional_id?: string | null
+          estagio_pos_venda_id?: string | null
           estagio_prazo?: string | null
           estagio_responsavel_id?: string | null
+          estagio_revisao_id?: string | null
+          estrelas?: number | null
           id?: string
           is_adendo?: boolean | null
           loja_id?: string | null
@@ -2622,6 +2634,7 @@ export type Database = {
           workflow_iniciado_em?: string | null
         }
         Update: {
+          arquivado?: boolean | null
           cliente_id?: string
           codigo?: string
           created_at?: string
@@ -2632,10 +2645,15 @@ export type Database = {
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_vistoria?: string | null
+          estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
+          estagio_montagem_id?: string | null
           estagio_operacional_id?: string | null
+          estagio_pos_venda_id?: string | null
           estagio_prazo?: string | null
           estagio_responsavel_id?: string | null
+          estagio_revisao_id?: string | null
+          estrelas?: number | null
           id?: string
           is_adendo?: boolean | null
           loja_id?: string | null
@@ -2658,8 +2676,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pedidos_estagio_fabrica_id_fkey"
+            columns: ["estagio_fabrica_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_montagem_id_fkey"
+            columns: ["estagio_montagem_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_estagio_operacional_id_fkey"
             columns: ["estagio_operacional_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_pos_venda_id_fkey"
+            columns: ["estagio_pos_venda_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_revisao_id_fkey"
+            columns: ["estagio_revisao_id"]
             isOneToOne: false
             referencedRelation: "pipeline_estagios"
             referencedColumns: ["id"]
