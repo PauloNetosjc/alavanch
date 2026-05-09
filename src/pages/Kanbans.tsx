@@ -65,11 +65,7 @@ export default function Kanbans() {
     return <KanbanComercial switcher={Switcher} />;
   }
 
-  const extra = active === "comercial" ? (
-    <Button onClick={() => navigate("/comercial/novo")} variant="outline" className="gap-1.5 rounded-xl">
-      <Plus className="w-4 h-4" /> Novo Orçamento
-    </Button>
-  ) : null;
+  const extra = null;
 
   return (
     <KanbanBoard
