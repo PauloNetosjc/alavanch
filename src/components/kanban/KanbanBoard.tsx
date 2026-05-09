@@ -301,18 +301,6 @@ export default function KanbanBoard({
         estagios={estagios}
         onUpdated={carregar}
       />
-      {concluirCardId && (
-        <ConcluirCardDialog
-          open={!!concluirCardId}
-          onOpenChange={(v) => { if (!v) setConcluirCardId(null); }}
-          cardId={concluirCardId.id}
-          pedidoId={concluirCardId.pedido_id}
-          pipeline={pipeline}
-          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem }))}
-          estagioAtualId={concluirCardId.estagio_id}
-          onDone={carregar}
-        />
-      )}
 
       {loading ? (
         <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>
