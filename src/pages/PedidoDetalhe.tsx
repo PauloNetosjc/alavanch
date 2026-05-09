@@ -1262,34 +1262,51 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any
 /* ============================================================== */
 /*                       PIPELINES PANEL                          */
 /* ============================================================== */
+const OP_PIPELINES: Array<{ key: string; label: string; pipeline: string; column: string }> = [
+  { key: "operacional", label: "Operacional (Produção)", pipeline: "operacional", column: "estagio_operacional_id" },
+  { key: "pos_venda",   label: "Pós-Venda e Financeiro", pipeline: "pos_venda",   column: "estagio_pos_venda_id" },
+  { key: "revisao",     label: "Revisão de Projeto",     pipeline: "revisao",     column: "estagio_revisao_id" },
+  { key: "montagem",    label: "Montagem",               pipeline: "montagem",    column: "estagio_montagem_id" },
+  { key: "fabrica",     label: "Fábrica",                pipeline: "fabrica",     column: "estagio_fabrica_id" },
+];
+
 function PipelinesPanel({ pedido }: { pedido: any }) {
   const [crmEstagios, setCrmEstagios] = useState<any[]>([]);
   const [crmEstagioAtual, setCrmEstagioAtual] = useState<any>(null);
-  const [opEstagios, setOpEstagios] = useState<any[]>([]);
-  const [opAtual, setOpAtual] = useState<any>(null);
+  const [pipelines, setPipelines] = useState<Record<string, any[]>>({});
+  const [atuais, setAtuais] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (!pedido) return;
     (async () => {
-      const [{ data: orc }, { data: crm }, { data: ops }] = await Promise.all([
+      const [{ data: orc }, { data: crm }, { data: allEst }] = await Promise.all([
         pedido.orcamento_id
           ? supabase.from("orcamentos").select("estagio_id").eq("id", pedido.orcamento_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
         supabase.from("crm_estagios").select("id, nome, cor, ordem").eq("ativo", true).order("ordem"),
-        supabase.from("pipeline_estagios").select("id, nome, cor, ordem").eq("pipeline", "operacional").eq("ativo", true).order("ordem"),
+        supabase.from("pipeline_estagios").select("id, nome, cor, ordem, pipeline").eq("ativo", true).order("ordem"),
       ]);
       setCrmEstagios(crm ?? []);
-      setOpEstagios(ops ?? []);
       if (orc?.estagio_id) setCrmEstagioAtual((crm ?? []).find((e: any) => e.id === orc.estagio_id) ?? null);
-      if (pedido.estagio_operacional_id) setOpAtual((ops ?? []).find((e: any) => e.id === pedido.estagio_operacional_id) ?? null);
-    })();
-  }, [pedido?.id, pedido?.estagio_operacional_id, pedido?.orcamento_id]);
 
-  const moverOp = async (novoId: string) => {
-    const { error } = await supabase.from("pedidos").update({ estagio_operacional_id: novoId }).eq("id", pedido.id);
+      const byPipeline: Record<string, any[]> = {};
+      const ats: Record<string, any> = {};
+      for (const p of OP_PIPELINES) {
+        const list = (allEst ?? []).filter((e: any) => e.pipeline === p.pipeline);
+        byPipeline[p.key] = list;
+        const currentId = pedido[p.column];
+        if (currentId) ats[p.key] = list.find((e: any) => e.id === currentId) ?? null;
+      }
+      setPipelines(byPipeline);
+      setAtuais(ats);
+    })();
+  }, [pedido?.id, pedido?.orcamento_id, pedido?.estagio_operacional_id, pedido?.estagio_pos_venda_id, pedido?.estagio_revisao_id, pedido?.estagio_montagem_id, pedido?.estagio_fabrica_id]);
+
+  const mover = async (col: string, novoId: string, key: string) => {
+    const { error } = await supabase.from("pedidos").update({ [col]: novoId } as any).eq("id", pedido.id);
     if (error) return toast.error(error.message);
-    toast.success("Estágio operacional atualizado");
-    setOpAtual(opEstagios.find((e: any) => e.id === novoId) ?? null);
+    toast.success("Estágio atualizado");
+    setAtuais((a) => ({ ...a, [key]: pipelines[key].find((e: any) => e.id === novoId) ?? null }));
   };
 
   return (
@@ -1298,7 +1315,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
         <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-[12px] font-semibold">P</div>
         <div>
           <h3 className="font-playfair text-[18px] font-semibold leading-none">Pipelines & Estágios</h3>
-          <p className="text-[11px] text-muted-foreground mt-1">Posição deste pedido nos kanbans ativos</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Posição deste pedido em cada kanban ativo</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1320,30 +1337,36 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
             )}
           </div>
         </div>
-        <div className="border rounded-lg p-3 bg-muted/20">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Operacional (Produção)</div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: opAtual?.cor || "#94a3b8" }} />
-            <span className="font-semibold text-[14px] truncate">{opAtual?.nome || "Não iniciado"}</span>
-            {opEstagios.length > 0 && (
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {opAtual ? `${opAtual.ordem}/${opEstagios.length}` : `0/${opEstagios.length}`}
-              </span>
-            )}
-          </div>
-          {opEstagios.length > 0 && (
-            <select
-              value={opAtual?.id || ""}
-              onChange={(e) => moverOp(e.target.value)}
-              className="mt-2 w-full text-[12px] border border-border rounded px-2 py-1 bg-background"
-            >
-              <option value="" disabled>Selecione um estágio…</option>
-              {opEstagios.map((e: any) => (
-                <option key={e.id} value={e.id}>{e.ordem}. {e.nome}</option>
-              ))}
-            </select>
-          )}
-        </div>
+        {OP_PIPELINES.map((p) => {
+          const list = pipelines[p.key] ?? [];
+          const atual = atuais[p.key];
+          return (
+            <div key={p.key} className="border rounded-lg p-3 bg-muted/20">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban {p.label}</div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: atual?.cor || "#94a3b8" }} />
+                <span className="font-semibold text-[14px] truncate">{atual?.nome || "Não iniciado"}</span>
+                {list.length > 0 && (
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {atual ? `${atual.ordem}/${list.length}` : `0/${list.length}`}
+                  </span>
+                )}
+              </div>
+              {list.length > 0 && (
+                <select
+                  value={atual?.id || ""}
+                  onChange={(e) => mover(p.column, e.target.value, p.key)}
+                  className="mt-2 w-full text-[12px] border border-border rounded px-2 py-1 bg-background"
+                >
+                  <option value="" disabled>Selecione um estágio…</option>
+                  {list.map((e: any) => (
+                    <option key={e.id} value={e.id}>{e.ordem}. {e.nome}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
