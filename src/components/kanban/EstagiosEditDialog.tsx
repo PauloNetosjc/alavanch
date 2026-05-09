@@ -155,14 +155,13 @@ export function EstagiosEditDialog({
   };
 
   const validar = (): string | null => {
-    // SLA: não pode ser negativo
     for (const r of rows) {
       if (r.sla_dias_uteis != null && r.sla_dias_uteis < 0) return `SLA do estágio "${r.nome}" não pode ser negativo.`;
     }
-    // Automações
     const seen = new Map<string, Automacao>();
     for (const a of autos) {
-      if (a.estagio_origem_id === a.estagio_destino_id) {
+      const sameP = !a.pipeline_destino || a.pipeline_destino === pipeline;
+      if (sameP && a.estagio_origem_id === a.estagio_destino_id) {
         return `Regra inválida: estágio de origem e destino são iguais.`;
       }
       const key = `${a.estagio_origem_id}|${a.evento}|${a.condicao_tipo}|${a.condicao_valor ?? ""}`;
@@ -171,10 +170,8 @@ export function EstagiosEditDialog({
         return `Conflito: existem 2 regras ativas no estágio "${origem}" para o mesmo evento/condição. Desative uma ou diferencie a condição.`;
       }
       seen.set(key, a);
-      // SLA do destino + ajuste explícito
-      const dest = rows.find((r) => r.id === a.estagio_destino_id);
+      const dest = todosEstagios.find((r) => r.id === a.estagio_destino_id);
       if (a.ajustar_prazo_dias != null && dest?.sla_dias_uteis != null) {
-        // apenas warning, não bloqueia
         console.warn(`Regra para "${dest.nome}" tem ajuste explícito (${a.ajustar_prazo_dias}du) e o destino também tem SLA (${dest.sla_dias_uteis}du). O ajuste prevalece.`);
       }
     }
