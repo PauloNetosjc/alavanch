@@ -87,6 +87,19 @@ export default function PedidoDetalhe() {
     }
     const { data: ct } = await supabase.from("contratos").select("*").eq("orcamento_id", ped.orcamento_id).maybeSingle();
     setContrato(ct);
+    if (ct) {
+      const { data: sa } = await supabase
+        .from("solicitacoes_assinatura")
+        .select("*")
+        .eq("pedido_id", id)
+        .eq("contrato_id", ct.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setSolicAssin(sa);
+    } else {
+      setSolicAssin(null);
+    }
     let { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
     pst = pst || [];
     // Auto-cria as pastas padrão se não existirem
