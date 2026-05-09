@@ -24,6 +24,34 @@ export default function ContratoAssinar() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Inicializa/redimensiona o canvas preservando o desenho
+  const setupCanvas = () => {
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width * dpr));
+    const h = Math.max(1, Math.floor(rect.height * dpr));
+    if (cv.width !== w || cv.height !== h) {
+      // Preserva conteúdo
+      const prev = cv.width && cv.height ? cv.toDataURL() : null;
+      cv.width = w; cv.height = h;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.strokeStyle = "#1A1A1A";
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (prev) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        img.src = prev;
+      }
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
