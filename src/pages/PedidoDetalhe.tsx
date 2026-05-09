@@ -273,7 +273,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} onChange={carregar} />
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} onChange={carregar} />
           )}
         </div>
         <div className="flex items-center gap-2">
