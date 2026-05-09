@@ -1,5 +1,6 @@
 import KanbanBoard from "@/components/kanban/KanbanBoard";
-import { Hammer } from "lucide-react";
+import { findKanban } from "@/components/kanban/kanbanRegistry";
+const def = findKanban("montagem");
 export default function KanbanMontagem() {
-  return <KanbanBoard pipeline="montagem" stageColumn="estagio_montagem_id" title="Montagem" subtitle="Entregas, montagens agendadas e vistorias" icon={Hammer} iconVariant="amber" />;
+  return <KanbanBoard activeKey="montagem" pipeline={def.pipeline!} title={def.label} subtitle={def.subtitle} icon={def.icon} iconVariant={def.variant} useStageDialog />;
 }

@@ -1,5 +1,6 @@
 import KanbanBoard from "@/components/kanban/KanbanBoard";
-import { ClipboardCheck } from "lucide-react";
+import { findKanban } from "@/components/kanban/kanbanRegistry";
+const def = findKanban("revisao");
 export default function KanbanRevisao() {
-  return <KanbanBoard pipeline="revisao" stageColumn="estagio_revisao_id" title="Revisão de Projeto" subtitle="Análise, conferência e assinatura do PDF final" icon={ClipboardCheck} iconVariant="blue" />;
+  return <KanbanBoard activeKey="revisao" pipeline={def.pipeline!} title={def.label} subtitle={def.subtitle} icon={def.icon} iconVariant={def.variant} useStageDialog />;
 }
