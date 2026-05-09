@@ -30,6 +30,7 @@ import Assistencia from "@/pages/Assistencia";
 import MeusChamados from "@/pages/MeusChamados";
 import MeuChamadoDetalhe from "@/pages/MeuChamadoDetalhe";
 import ChecklistTemplates from "@/pages/ChecklistTemplates";
+import ChecklistAssistencia from "@/pages/ChecklistAssistencia";
 import Montagem from "@/pages/Montagem";
 import Ocorrencias from "@/pages/Ocorrencias";
 import Ranking from "@/pages/Ranking";
