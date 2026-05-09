@@ -66,6 +66,7 @@ const ACOES = [
   { value: "checar_dados", label: "Checar dados do pedido" },
   { value: "comunicado", label: "Disparar comunicado interno" },
   { value: "notificar", label: "Notificar responsável" },
+  { value: "criar_assistencia", label: "Perguntar/criar assistência" },
 ];
 
 const CHECAR_CAMPOS = [
@@ -598,6 +599,32 @@ export function EstagiosEditDialog({
                                   value={a.acao_config?.mensagem ?? ""}
                                   onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, mensagem: e.target.value } })}
                                 />
+                              </>
+                            )}
+
+                            {a.acao === "criar_assistencia" && (
+                              <>
+                                <Input
+                                  className="col-span-6"
+                                  placeholder='Mensagem do popup (ex: "Será necessária assistência para este pedido?")'
+                                  value={a.acao_config?.mensagem ?? ""}
+                                  onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, mensagem: e.target.value } })}
+                                />
+                                <Select
+                                  value={a.acao_config?.estagio_se_nao ?? ""}
+                                  onValueChange={(v) => updateAuto(a.id, { acao_config: { ...a.acao_config, estagio_se_nao: v } })}
+                                >
+                                  <SelectTrigger className="col-span-3" title='Estágio se "Não"'>
+                                    <SelectValue placeholder='Se "Não" → estágio…' />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {todosEstagios
+                                      .filter((x) => x.pipeline === pipeline)
+                                      .map((x) => (
+                                        <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
                               </>
                             )}
 

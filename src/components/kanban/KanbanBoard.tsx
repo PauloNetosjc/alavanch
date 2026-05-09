@@ -11,6 +11,7 @@ import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros
 import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
+import { CriarAssistenciaPromptDialog } from "./CriarAssistenciaPromptDialog";
 import { executarConcluirAction } from "./concluirAction";
 import type { KanbanKey } from "./kanbanRegistry";
 
@@ -84,6 +85,14 @@ export default function KanbanBoard({
 
   const [activeCard, setActiveCard] = useState<CardRow | null>(null);
   const [activeStage, setActiveStage] = useState<Estagio | null>(null);
+
+  const [assistPrompt, setAssistPrompt] = useState<{
+    open: boolean;
+    pedidoId: string | null;
+    cardId: string | null;
+    mensagem: string;
+    estagioSeNao: string | null;
+  }>({ open: false, pedidoId: null, cardId: null, mensagem: "", estagioSeNao: null });
 
   const carregar = async () => {
     setLoading(true);
@@ -221,6 +230,33 @@ export default function KanbanBoard({
         { pipeline, de: deEst?.nome, para: paraEst?.nome, card_id: cardId, drag: true });
     }
     toast.success("Card movido");
+
+    // Verifica automações "criar_assistencia" para o estágio destino
+    if (card?.pedido_id) {
+      try {
+        const { data: regras } = await (supabase as any)
+          .from("pipeline_automacoes")
+          .select("acao_config")
+          .eq("pipeline", pipeline)
+          .eq("estagio_origem_id", novoEstagio)
+          .eq("evento", "card_chegou")
+          .eq("acao", "criar_assistencia")
+          .eq("ativo", true)
+          .limit(1);
+        const regra = (regras ?? [])[0];
+        if (regra) {
+          const cfg = regra.acao_config || {};
+          setAssistPrompt({
+            open: true,
+            pedidoId: card.pedido_id,
+            cardId,
+            mensagem: cfg.mensagem || "Será necessário abrir um chamado de assistência para este pedido?",
+            estagioSeNao: cfg.estagio_se_nao || null,
+          });
+          return; // não recarrega ainda; recarrega após resposta
+        }
+      } catch (e) { console.error(e); }
+    }
     carregar();
   };
 
@@ -301,6 +337,29 @@ export default function KanbanBoard({
         pipeline={pipeline}
         estagios={estagios}
         onUpdated={carregar}
+      />
+
+      <CriarAssistenciaPromptDialog
+        open={assistPrompt.open}
+        onOpenChange={(v) => setAssistPrompt((s) => ({ ...s, open: v }))}
+        pedidoId={assistPrompt.pedidoId}
+        mensagem={assistPrompt.mensagem}
+        onSimCriada={() => { carregar(); }}
+        onNao={async () => {
+          if (assistPrompt.cardId && assistPrompt.estagioSeNao) {
+            await (supabase as any).from("kanban_cards")
+              .update({ estagio_id: assistPrompt.estagioSeNao, iniciado_em: new Date().toISOString(), notificacao_atraso_em: null })
+              .eq("id", assistPrompt.cardId);
+            const dest = estagios.find((e) => e.id === assistPrompt.estagioSeNao);
+            if (assistPrompt.pedidoId) {
+              await logEvento(assistPrompt.pedidoId, "kanban_automacao",
+                `[${pipeline}] Sem assistência → ${dest?.nome ?? "—"} (auto)`,
+                { pipeline, para: dest?.nome, card_id: assistPrompt.cardId, evento: "criar_assistencia_nao" });
+            }
+            toast.success(`Card movido para ${dest?.nome ?? "destino"}`);
+          }
+          carregar();
+        }}
       />
 
       {loading ? (
