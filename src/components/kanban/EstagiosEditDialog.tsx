@@ -161,12 +161,14 @@ export function EstagiosEditDialog({
         estagio_origem_id: estagioId,
         estagio_destino_id: destino,
         pipeline_destino: null,
-        evento: "manual",
+        evento: "card_chegou",
         condicao_tipo: "nenhuma",
         condicao_valor: null,
         ajustar_prazo_dias: null,
         ativo: true,
         ordem: 0,
+        acao: "mover",
+        acao_config: {},
       },
     ]);
   };
