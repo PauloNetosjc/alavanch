@@ -171,6 +171,38 @@ export default function AssinaturaPublica() {
     }
   }
 
+  async function recusar() {
+    if (!solic) return;
+    if (!motivoRecusa.trim()) return toast.error("Informe o motivo da recusa.");
+    setRecusando(true);
+    try {
+      const ua = navigator.userAgent;
+      const { error } = await supabase
+        .from("solicitacoes_assinatura")
+        .update({
+          status: "recusado",
+          motivo_recusa: motivoRecusa,
+          recusado_em: new Date().toISOString(),
+        })
+        .eq("id", solic.id);
+      if (error) throw error;
+      await supabase.from("assinatura_eventos").insert({
+        solicitacao_id: solic.id,
+        tipo_evento: "cliente_recusou",
+        status_anterior: solic.status,
+        status_novo: "recusado",
+        descricao: `Cliente recusou. Motivo: ${motivoRecusa}`,
+        user_agent: ua,
+      });
+      setRecusarOpen(false);
+      setRecusado(true);
+      toast.success("Recusa registrada");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao registrar recusa");
+    } finally {
+      setRecusando(false);
+    }
+  }
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted">
