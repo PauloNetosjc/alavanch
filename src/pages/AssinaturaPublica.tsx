@@ -222,6 +222,22 @@ export default function AssinaturaPublica() {
       </div>
     );
 
+  if (recusado)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="w-5 h-5" /> Assinatura recusada
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Sua recusa foi registrada e a equipe da loja foi notificada. Em caso de dúvidas, entre em contato.
+          </CardContent>
+        </Card>
+      </div>
+    );
+
   if (done)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted p-6">
