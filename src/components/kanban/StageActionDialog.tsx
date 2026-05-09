@@ -288,12 +288,12 @@ export function StageActionDialog({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          {!isPosVenda && prox && (
+          {prox && (
             <Button variant="secondary" disabled={busy} onClick={() => moverParaProximo(false)}>
               Avançar para "{prox.nome}"
             </Button>
           )}
-          {(isPosVenda || !prox) && (
+          {(stage.concluir_acao ?? "proxima") !== "desativado" && (
             <Button disabled={busy} onClick={concluirCard} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Check className="w-4 h-4 mr-1" /> Concluir card
             </Button>
