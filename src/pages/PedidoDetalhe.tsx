@@ -711,7 +711,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {!d.assinado_em && (
+              {!d.assinado_em && !d._readonly && (
                 <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)}>
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
@@ -719,20 +719,28 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
-              <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </Button>
+              {!d._readonly && (
+                <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={() => setUploadOpen(true)}
-        className="w-full mt-4 py-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50/30 hover:bg-purple-50 text-purple-700 font-semibold text-[13px] flex items-center justify-center gap-2"
-      >
-        <Plus className="w-4 h-4" /> Adicionar Arquivo
-      </button>
+      {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
+        <div className="mt-4 text-center text-[11px] text-muted-foreground italic">
+          Documentos importados na fase de orçamento (somente leitura)
+        </div>
+      ) : (
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="w-full mt-4 py-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50/30 hover:bg-purple-50 text-purple-700 font-semibold text-[13px] flex items-center justify-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Adicionar Arquivo
+        </button>
+      )}
 
       {/* Nova pasta */}
       <Dialog open={novaPastaOpen} onOpenChange={setNovaPastaOpen}>
