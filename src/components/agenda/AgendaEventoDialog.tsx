@@ -237,6 +237,14 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     if (followupTipo) {
       if (!followupData || !followupHora) return `É necessário agendar também a ${TIPO_LABEL[followupTipo]} na sequência.`;
       if (followupData < data) return `A ${TIPO_LABEL[followupTipo]} deve ser na mesma data ou após a ${TIPO_LABEL[tipo]}.`;
+      // Regra: revisão final deve ser ao menos 8 dias úteis após a medição técnica
+      if (tipo === "medicao_tecnica" && followupTipo === "revisao_final") {
+        const { data: minRev } = await supabase.rpc("add_dias_uteis" as any, {
+          _inicio: data, _n: 8, _loja: lojaEventoId,
+        });
+        if (minRev && followupData < (minRev as string))
+          return `A Revisão deve ser agendada para no mínimo 8 dias úteis após a Medição Técnica (a partir de ${minRev}).`;
+      }
     }
 
     if (!config) return null;
@@ -368,6 +376,16 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           toast.warning(`Evento principal criado, mas falhou ao agendar ${TIPO_LABEL[followupTipo]}: ${fErr.message}`);
         } else {
           toast.success(`Evento e ${TIPO_LABEL[followupTipo]} agendados`);
+        }
+        // Avança card do pipeline Revisão para "Preparo PJ Final" quando medição técnica + revisão final são agendadas
+        if (tipo === "medicao_tecnica" && followupTipo === "revisao_final") {
+          const pid = pedidoSelId || pedidoId;
+          if (pid) {
+            const { error: avErr } = await (supabase as any).rpc("revisao_avancar_preparo_pj_final", {
+              _pedido_id: pid, _revisao_data: followupData,
+            });
+            if (avErr) console.error("revisao_avancar_preparo_pj_final", avErr);
+          }
         }
       } else {
         toast.success("Evento agendado");
