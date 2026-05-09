@@ -53,6 +53,10 @@ const sections: Section[] = [
     label: "Operação",
     items: [
       { label: "Kanban Operacional", path: "/operacional/kanban", icon: Hammer },
+      { label: "Pós-Venda e Financeiro", path: "/operacional/pos-venda", icon: Wallet },
+      { label: "Revisão de Projeto", path: "/operacional/revisao", icon: ClipboardCheck },
+      { label: "Montagem (Kanban)", path: "/operacional/montagem-kanban", icon: Hammer },
+      { label: "Fábrica", path: "/operacional/fabrica", icon: Building2 },
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "Montagem", path: "/montagem", icon: Hammer },
       { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },

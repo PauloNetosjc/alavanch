@@ -17,6 +17,10 @@ import Leads from "@/pages/Leads";
 import Comercial from "@/pages/Comercial";
 import KanbanComercial from "@/pages/KanbanComercial";
 import KanbanOperacional from "@/pages/KanbanOperacional";
+import KanbanPosVenda from "@/pages/KanbanPosVenda";
+import KanbanRevisao from "@/pages/KanbanRevisao";
+import KanbanMontagem from "@/pages/KanbanMontagem";
+import KanbanFabrica from "@/pages/KanbanFabrica";
 import ComercialNovo from "@/pages/ComercialNovo";
 import ComercialNegociacao from "@/pages/ComercialNegociacao";
 import Administracao from "@/pages/Administracao";
@@ -94,6 +98,10 @@ const App = () => (
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/operacional/kanban" element={<KanbanOperacional />} />
+              <Route path="/operacional/pos-venda" element={<KanbanPosVenda />} />
+              <Route path="/operacional/revisao" element={<KanbanRevisao />} />
+              <Route path="/operacional/montagem-kanban" element={<KanbanMontagem />} />
+              <Route path="/operacional/fabrica" element={<KanbanFabrica />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/autorizacoes" element={<Autorizacoes />} />
               <Route path="/assistencia" element={<Assistencia />} />
