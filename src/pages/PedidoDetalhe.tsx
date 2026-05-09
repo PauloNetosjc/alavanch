@@ -520,6 +520,13 @@ function Cronograma({ pedido, salvarPedido }: any) {
     { key: "fabrica", label: "Implantação Fábrica", icon: "🏭", value: dataImplantacaoFabrica, hint: "Conclusão do card no Kanban Fábrica" },
   ];
 
+  const fieldsLinha2 = [
+    { key: "chegada", label: "Chegada Depósito", icon: "📦", value: dataChegadaDeposito, hint: "Entrada na etapa Agendamento Entrega-Depósito" },
+    { key: "entrega", label: "Entrega", icon: "🚚", value: dataEntrega, hint: "Entrada na etapa Entregue (Kanban Montagem)" },
+    { key: "mont_fim", label: "Montagem Finalizada", icon: "🛠️", value: dataMontagemFinalizada, hint: "Entrada na etapa Vistoria Pendente" },
+    { key: "vistoria", label: "Vistoria", icon: "✅", value: dataVistoria, hint: "Conclusão na etapa Vistoria Agendada" },
+  ];
+
   return (
     <section className="surface-card p-6">
       <div className="flex items-center justify-between mb-5">
