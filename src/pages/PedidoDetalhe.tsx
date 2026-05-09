@@ -409,6 +409,10 @@ function Cronograma({ pedido, salvarPedido }: any) {
   const [dataRevisao, setDataRevisao] = useState<string | null>(null);
   const [dataAssinaturaPdf, setDataAssinaturaPdf] = useState<string | null>(null);
   const [dataImplantacaoFabrica, setDataImplantacaoFabrica] = useState<string | null>(null);
+  const [dataChegadaDeposito, setDataChegadaDeposito] = useState<string | null>(null);
+  const [dataEntrega, setDataEntrega] = useState<string | null>(null);
+  const [dataMontagemFinalizada, setDataMontagemFinalizada] = useState<string | null>(null);
+  const [dataVistoria, setDataVistoria] = useState<string | null>(null);
 
   const carregar = async () => {
     // Revisão final: agendada junto com a medição técnica
@@ -422,29 +426,63 @@ function Cronograma({ pedido, salvarPedido }: any) {
       .maybeSingle();
     setDataRevisao(rev?.data ? String(rev.data).slice(0, 10) : null);
 
-    // Assinatura PDF Final: dia em que o card saiu da etapa "Assinatura PDF Final" no kanban revisão
-    const { data: assin } = await (supabase as any)
+    // Buscar todos os eventos kanban deste pedido
+    const { data: evts } = await (supabase as any)
       .from("timeline_eventos")
-      .select("created_at, metadata")
+      .select("created_at, tipo, metadata")
       .eq("entidade_tipo", "pedido")
       .eq("entidade_id", pedido.id)
-      .eq("tipo", "kanban_movimento")
-      .order("created_at", { ascending: false });
-    const evAssin = (assin || []).find((e: any) =>
-      e.metadata?.pipeline === "revisao" && String(e.metadata?.de || "").toLowerCase().includes("assinatura pdf final")
-    );
+      .in("tipo", ["kanban_movimento", "kanban_concluido"])
+      .order("created_at", { ascending: true });
+    const all: any[] = evts || [];
+
+    const movFor = (pipeline: string, paraSubstr: string, asc = true) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_movimento" &&
+          e.metadata?.pipeline === pipeline &&
+          String(e.metadata?.para || "").toLowerCase().includes(paraSubstr.toLowerCase())
+      );
+      return asc ? arr[0] : arr[arr.length - 1];
+    };
+    const saidaFor = (pipeline: string, deSubstr: string) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_movimento" &&
+          e.metadata?.pipeline === pipeline &&
+          String(e.metadata?.de || "").toLowerCase().includes(deSubstr.toLowerCase())
+      );
+      return arr[arr.length - 1];
+    };
+    const concluidoFor = (pipeline: string, estagioSubstr?: string) => {
+      const arr = all.filter(
+        (e) =>
+          e.tipo === "kanban_concluido" &&
+          e.metadata?.pipeline === pipeline &&
+          (!estagioSubstr ||
+            String(e.metadata?.estagio || "").toLowerCase().includes(estagioSubstr.toLowerCase()))
+      );
+      return arr[arr.length - 1];
+    };
+
+    const evAssin = saidaFor("revisao", "assinatura pdf final");
     setDataAssinaturaPdf(evAssin?.created_at ? String(evAssin.created_at).slice(0, 10) : null);
 
-    // Implantação Fábrica: dia em que o card foi concluído no kanban fábrica
-    const { data: fab } = await (supabase as any)
-      .from("timeline_eventos")
-      .select("created_at, metadata")
-      .eq("entidade_tipo", "pedido")
-      .eq("entidade_id", pedido.id)
-      .eq("tipo", "kanban_concluido")
-      .order("created_at", { ascending: false });
-    const evFab = (fab || []).find((e: any) => e.metadata?.pipeline === "fabrica");
+    const evFab = concluidoFor("fabrica");
     setDataImplantacaoFabrica(evFab?.created_at ? String(evFab.created_at).slice(0, 10) : null);
+
+    // Linha 2 — pipeline montagem
+    const evChegada = movFor("montagem", "agendamento entrega") ?? movFor("montagem", "depósito");
+    setDataChegadaDeposito(evChegada?.created_at ? String(evChegada.created_at).slice(0, 10) : null);
+
+    const evEntrega = movFor("montagem", "entregue");
+    setDataEntrega(evEntrega?.created_at ? String(evEntrega.created_at).slice(0, 10) : null);
+
+    const evMontFim = movFor("montagem", "vistoria pendente");
+    setDataMontagemFinalizada(evMontFim?.created_at ? String(evMontFim.created_at).slice(0, 10) : null);
+
+    const evVistoria = concluidoFor("montagem", "vistoria agendada");
+    setDataVistoria(evVistoria?.created_at ? String(evVistoria.created_at).slice(0, 10) : null);
   };
 
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id]);
