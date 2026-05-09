@@ -1431,7 +1431,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
         mime_type: file.type || "application/pdf",
         assinado_em: new Date().toISOString(),
         assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
-      });
+      } as any);
       toast.success("Contrato impresso assinado anexado e confirmado");
       onChange();
     } catch (e: any) {
