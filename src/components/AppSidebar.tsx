@@ -9,6 +9,7 @@ import {
   Clock,
   Wrench,
   Hammer,
+  KanbanSquare,
   AlertTriangle,
   Settings,
   FileText,
