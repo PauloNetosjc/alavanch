@@ -14,8 +14,14 @@ export type StageConcluirConfig = {
 
 export type StageBasic = { id: string; nome: string; ordem?: number };
 
-const isConcluidos = (nome: string) =>
+export const isConcluidosStageName = (nome: string) =>
   (nome || "").trim().toLowerCase().replace(/í/g, "i") === "concluidos";
+
+export function getProximoEstagio<T extends StageBasic>(estagios: T[], estagioAtualId: string): T | null {
+  const sorted = [...estagios].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const idx = sorted.findIndex((s) => s.id === estagioAtualId);
+  return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+}
 
 async function logEvento(pedidoId: string | null, tipo: string, descricao: string, metadata: Record<string, any>) {
   if (!pedidoId) return;
@@ -55,11 +61,7 @@ export async function executarConcluirAction(params: {
     }
 
     if (acao === "proxima") {
-      const sorted = [...estagiosPipeline]
-        .filter((s) => !isConcluidos(s.nome))
-        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
-      const idx = sorted.findIndex((s) => s.id === estagioAtual.id);
-      const prox = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+      const prox = getProximoEstagio(estagiosPipeline, estagioAtual.id);
       if (!prox) {
         toast.info("Não há próxima etapa neste kanban.");
         return false;
