@@ -224,20 +224,9 @@ export default function KanbanBoard({
     carregar();
   };
 
-  const concluirCard = async (cardId: string, e: React.MouseEvent) => {
+  const abrirConcluir = (card: CardRow, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
-    const card = cards.find((c) => c.id === cardId);
-    const est = estagios.find((es) => es.id === card?.estagio_id);
-    const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: cardId });
-    if (error) return toast.error(error.message);
-    if (card?.pedido_id) {
-      await logEvento(card.pedido_id, "kanban_concluido",
-        `[${pipeline}] Card concluído na etapa "${est?.nome ?? "—"}"`,
-        { pipeline, estagio: est?.nome, card_id: cardId });
-    }
-    toast.success("Card concluído");
-    carregar();
+    setConcluirCardId(card);
   };
 
   const onCardClick = (c: CardRow, est: Estagio) => {
