@@ -17,6 +17,9 @@ type Estagio = {
   ativo: boolean;
   checklist_template_id: string | null;
   sla_dias_uteis: number | null;
+  concluir_acao: string | null;
+  concluir_pipeline_destino: string | null;
+  concluir_estagio_destino_id: string | null;
 };
 type Template = { id: string; nome: string; tipo_servico: string };
 
