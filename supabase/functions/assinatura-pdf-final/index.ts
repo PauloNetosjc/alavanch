@@ -183,16 +183,14 @@ Deno.serve(async (req) => {
     const { data: pub } = sb.storage.from("assinaturas-finais").getPublicUrl(path);
     const url = pub.publicUrl;
 
-    await sb.from("documentos_assinados").upsert(
-      {
-        solicitacao_id: s.id,
-        pedido_id: s.pedido_id,
-        storage_path: path,
-        file_url: url,
-        file_name: `assinado-${s.id}.pdf`,
-      },
-      { onConflict: "solicitacao_id" }
-    );
+    await sb.from("documentos_assinados").delete().eq("solicitacao_id", s.id);
+    const codigo = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+    await sb.from("documentos_assinados").insert({
+      solicitacao_id: s.id,
+      storage_path: path,
+      final_file_url: url,
+      codigo_validacao: codigo,
+    });
 
     return new Response(JSON.stringify({ url, path }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
