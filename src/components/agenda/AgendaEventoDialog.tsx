@@ -115,6 +115,8 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [followupEndereco, setFollowupEndereco] = useState("");
   const [followupDescricao, setFollowupDescricao] = useState("");
 
+  const lockedFromPedido = !!pedidoId;
+
   useEffect(() => {
     if (!open) return;
     setTipo(defaultTipo);
@@ -137,15 +139,38 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       ]);
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
+
+      // Quando aberto a partir de um pedido, trava tipo/loja/cliente/pedido
+      if (pedidoId) {
+        const { data: ped } = await supabase
+          .from("pedidos")
+          .select("id, codigo, status, loja_id, cliente_id, endereco_entrega, clientes:cliente_id(id, nome, telefone)")
+          .eq("id", pedidoId)
+          .maybeSingle();
+        if (ped) {
+          if ((ped as any).loja_id) setLojaEventoId((ped as any).loja_id);
+          const cli: any = (ped as any).clientes;
+          if (cli) {
+            setClienteId(cli.id);
+            setClienteNome(cli.nome || "");
+            setClienteFone(cli.telefone || "");
+            setClienteBusca(cli.nome || "");
+            setNovoCliente(false);
+          }
+          setPedidosCliente([{ id: (ped as any).id, codigo: (ped as any).codigo || null, status: (ped as any).status || null }]);
+          setPedidoSelId((ped as any).id);
+          if ((ped as any).endereco_entrega) setEndereco((ped as any).endereco_entrega);
+        }
+      }
     })();
   }, [open, defaultTipo, defaultDate, user?.id, lojaCtxId, pedidoId, orcamentoId]);
 
   // Em mudança de tipo, reseta cliente novo apenas para apresentação (default novo)
   useEffect(() => {
-    if (!open) return;
+    if (!open || lockedFromPedido) return;
     setNovoCliente(TIPOS_NOVO_CLIENTE.includes(tipo));
     setPedidoSelId(""); setOrcamentoSelId("");
-  }, [tipo, open]);
+  }, [tipo, open, lockedFromPedido]);
 
   // busca incremental de clientes
   useEffect(() => {
