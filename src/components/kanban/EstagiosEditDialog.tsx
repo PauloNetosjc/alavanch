@@ -66,6 +66,7 @@ const ACOES = [
   { value: "checar_dados", label: "Checar dados do pedido" },
   { value: "comunicado", label: "Disparar comunicado interno" },
   { value: "notificar", label: "Notificar responsável" },
+  { value: "criar_assistencia", label: "Perguntar/criar assistência" },
 ];
 
 const CHECAR_CAMPOS = [
