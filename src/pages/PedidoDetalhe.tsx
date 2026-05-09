@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
+import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -84,8 +85,20 @@ export default function PedidoDetalhe() {
     }
     const { data: ct } = await supabase.from("contratos").select("*").eq("orcamento_id", ped.orcamento_id).maybeSingle();
     setContrato(ct);
-    const { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
-    setPastas(pst || []);
+    let { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
+    pst = pst || [];
+    // Auto-cria as pastas padrão se não existirem
+    const padroes = ["Projetos/PDF", "Documentos", "Check-in Obra", "Fotos/Entrega"];
+    const faltando = padroes.filter((nome) => !pst!.some((p: any) => p.nome.toLowerCase() === nome.toLowerCase()));
+    if (faltando.length) {
+      const baseOrdem = pst.length;
+      const novas = faltando.map((nome, i) => ({ pedido_id: id, nome, ordem: baseOrdem + i }));
+      const { data: criadas } = await supabase.from("pedido_pastas").insert(novas).select("*");
+      pst = [...pst, ...(criadas || [])];
+    }
+    // Pasta virtual para projetos importados (read-only)
+    const PROJ_VIRTUAL_ID = "__virtual_projetos_importados__";
+    setPastas([{ id: PROJ_VIRTUAL_ID, nome: "Projetos Importados", _virtual: true }, ...pst]);
     const { data: dcs } = await supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false });
     // Também traz documentos anexados na fase de orçamento (Promob, XML, Excel etc.)
     let docsCombinados: any[] = dcs || [];
@@ -97,8 +110,9 @@ export default function PedidoDetalhe() {
         .order("created_at", { ascending: false });
       const mapped = (orcDocs || []).map((d: any) => ({
         ...d,
-        pasta_id: null,
+        pasta_id: PROJ_VIRTUAL_ID,
         _bucket: "orcamento-docs",
+        _readonly: true,
         nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
       }));
       docsCombinados = [...mapped, ...docsCombinados];
@@ -392,10 +406,11 @@ export default function PedidoDetalhe() {
 /* ============================================================== */
 function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
   const [local, setLocal] = useState(pedido);
+  const [agendaOpen, setAgendaOpen] = useState(false);
   useEffect(() => setLocal(pedido), [pedido]);
 
   const fields = [
-    { key: "data_medicao_tecnica", label: "Medição Técnica", icon: "📐" },
+    { key: "data_medicao_tecnica", label: "Medição Técnica", icon: "📐", agenda: true },
     { key: "data_envio_fabrica", label: "Envio p/ Fábrica", icon: "🏭" },
     { key: "data_chegada_material", label: "Chegada Material", icon: "📦" },
     { key: "data_montagem", label: "Agend. Montagem", icon: "🛠" },
@@ -407,6 +422,23 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
     for (const f of fields) patch[f.key] = local[f.key] || null;
     await salvarPedido(patch);
     toast.success("Cronograma salvo");
+  };
+
+  const onAgendaCriada = async () => {
+    const { data } = await supabase
+      .from("agenda_eventos")
+      .select("data")
+      .eq("pedido_id", pedido.id)
+      .eq("tipo", "medicao_tecnica")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.data) {
+      const dataStr = String(data.data).slice(0, 10);
+      setLocal((prev: any) => ({ ...prev, data_medicao_tecnica: dataStr }));
+      await salvarPedido({ data_medicao_tecnica: dataStr });
+      toast.success("Medição técnica agendada");
+    }
   };
 
   return (
@@ -429,12 +461,25 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
               <span>{f.icon}</span> {f.label}
             </Label>
-            <Input
-              type="date"
-              value={local[f.key] || ""}
-              onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })}
-              className="mt-1.5"
-            />
+            {f.agenda ? (
+              <button
+                type="button"
+                onClick={() => setAgendaOpen(true)}
+                className="w-full mt-1.5 h-9 px-3 rounded-md border bg-background text-left text-[13px] hover:border-[#2D6BE5] flex items-center justify-between"
+              >
+                <span className={local[f.key] ? "" : "text-muted-foreground"}>
+                  {local[f.key] ? new Date(local[f.key] + "T00:00:00").toLocaleDateString("pt-BR") : "Agendar…"}
+                </span>
+                <Calendar className="w-4 h-4 text-[#2D6BE5]" />
+              </button>
+            ) : (
+              <Input
+                type="date"
+                value={local[f.key] || ""}
+                onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })}
+                className="mt-1.5"
+              />
+            )}
             <Button
               size="sm"
               variant="outline"
@@ -451,6 +496,14 @@ function Cronograma({ pedido, salvarPedido, onIniciar }: any) {
           </div>
         ))}
       </div>
+
+      <AgendaEventoDialog
+        open={agendaOpen}
+        onOpenChange={setAgendaOpen}
+        pedidoId={pedido.id}
+        defaultTipo="medicao_tecnica"
+        onCreated={onAgendaCriada}
+      />
     </section>
   );
 }
@@ -659,22 +712,24 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold uppercase tracking-wider ${pastaAtiva === p.id ? "bg-purple-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
               {p.nome}
             </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="absolute -top-1 -right-1 p-0.5 rounded-full bg-white border opacity-0 group-hover:opacity-100">
-                  <MoreVertical className="w-3 h-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setRenomearPasta(p)}>✏️ Renomear Pasta</DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600" onClick={async () => {
-                  if (!confirm(`Deletar pasta "${p.nome}" e todos seus documentos?`)) return;
-                  await supabase.from("pedido_documentos").delete().eq("pasta_id", p.id);
-                  await supabase.from("pedido_pastas").delete().eq("id", p.id);
-                  toast.success("Pasta removida"); onChange();
-                }}>🗑 Deletar Pasta</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!p._virtual && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="absolute -top-1 -right-1 p-0.5 rounded-full bg-white border opacity-0 group-hover:opacity-100">
+                    <MoreVertical className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setRenomearPasta(p)}>✏️ Renomear Pasta</DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600" onClick={async () => {
+                    if (!confirm(`Deletar pasta "${p.nome}" e todos seus documentos?`)) return;
+                    await supabase.from("pedido_documentos").delete().eq("pasta_id", p.id);
+                    await supabase.from("pedido_pastas").delete().eq("id", p.id);
+                    toast.success("Pasta removida"); onChange();
+                  }}>🗑 Deletar Pasta</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         ))}
         <Button size="sm" variant="outline" className="rounded-full text-emerald-700 border-emerald-300 bg-emerald-50" onClick={() => setNovaPastaOpen(true)}>
@@ -696,7 +751,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {!d.assinado_em && (
+              {!d.assinado_em && !d._readonly && (
                 <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)}>
                   <Send className="w-4 h-4 text-emerald-600" />
                 </Button>
@@ -704,20 +759,28 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
               <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
-              <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </Button>
+              {!d._readonly && (
+                <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={() => setUploadOpen(true)}
-        className="w-full mt-4 py-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50/30 hover:bg-purple-50 text-purple-700 font-semibold text-[13px] flex items-center justify-center gap-2"
-      >
-        <Plus className="w-4 h-4" /> Adicionar Arquivo
-      </button>
+      {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
+        <div className="mt-4 text-center text-[11px] text-muted-foreground italic">
+          Documentos importados na fase de orçamento (somente leitura)
+        </div>
+      ) : (
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="w-full mt-4 py-4 rounded-lg border-2 border-dashed border-purple-300 bg-purple-50/30 hover:bg-purple-50 text-purple-700 font-semibold text-[13px] flex items-center justify-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Adicionar Arquivo
+        </button>
+      )}
 
       {/* Nova pasta */}
       <Dialog open={novaPastaOpen} onOpenChange={setNovaPastaOpen}>
