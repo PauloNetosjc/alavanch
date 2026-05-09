@@ -169,11 +169,30 @@ export default function KanbanBoard({
     return t;
   }, [cardsPorEstagio]);
 
+  const logEvento = async (pedidoId: string, tipo: string, descricao: string, metadata: Record<string, any> = {}) => {
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      await (supabase as any).from("timeline_eventos").insert({
+        entidade_tipo: "pedido", entidade_id: pedidoId, tipo, descricao,
+        usuario_id: u.user?.id ?? null, metadata,
+      });
+    } catch (e) { console.error(e); }
+  };
+
   const moverCard = async (cardId: string, novoEstagio: string) => {
+    const card = cards.find((c) => c.id === cardId);
+    const deEst = estagios.find((e) => e.id === card?.estagio_id);
+    const paraEst = estagios.find((e) => e.id === novoEstagio);
+    if (card?.estagio_id === novoEstagio) return;
     const { error } = await (supabase as any).from("kanban_cards")
       .update({ estagio_id: novoEstagio, iniciado_em: new Date().toISOString(), notificacao_atraso_em: null })
       .eq("id", cardId);
     if (error) return toast.error(error.message);
+    if (card?.pedido_id) {
+      await logEvento(card.pedido_id, "kanban_movimento",
+        `[${pipeline}] ${deEst?.nome ?? "—"} → ${paraEst?.nome ?? "—"} (drag & drop)`,
+        { pipeline, de: deEst?.nome, para: paraEst?.nome, card_id: cardId, drag: true });
+    }
     toast.success("Card movido");
     carregar();
   };
@@ -181,8 +200,15 @@ export default function KanbanBoard({
   const concluirCard = async (cardId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
+    const card = cards.find((c) => c.id === cardId);
+    const est = estagios.find((es) => es.id === card?.estagio_id);
     const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: cardId });
     if (error) return toast.error(error.message);
+    if (card?.pedido_id) {
+      await logEvento(card.pedido_id, "kanban_concluido",
+        `[${pipeline}] Card concluído na etapa "${est?.nome ?? "—"}"`,
+        { pipeline, estagio: est?.nome, card_id: cardId });
+    }
     toast.success("Card concluído");
     carregar();
   };
