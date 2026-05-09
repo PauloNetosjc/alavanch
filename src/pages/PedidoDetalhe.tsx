@@ -273,7 +273,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} onChange={carregar} />
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -1352,7 +1352,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
-function ContratoEnvioBar({ contrato, cliente, pedido, solic, onChange }: any) {
+function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
   const [uploading, setUploading] = useState(false);
   const [criando, setCriando] = useState(false);
 
