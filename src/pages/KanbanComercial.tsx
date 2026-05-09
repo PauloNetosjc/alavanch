@@ -142,6 +142,7 @@ export default function KanbanComercial({ switcher }: { switcher?: React.ReactNo
         subtitle="Funil de orçamentos por estágio"
         actions={
           <div className="flex gap-2">
+            {switcher}
             <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
               <Settings className="w-4 h-4" /> Estágios
             </Button>
