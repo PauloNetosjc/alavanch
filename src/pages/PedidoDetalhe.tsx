@@ -964,6 +964,18 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
           })()}
         </DialogContent>
       </Dialog>
+
+      <NovaSolicitacaoAssinaturaDialog
+        open={!!novaAssinDoc}
+        onOpenChange={(v) => !v && setNovaAssinDoc(null)}
+        pedidoId={pedidoId}
+        defaults={novaAssinDoc ? {
+          pedido_documento_id: novaAssinDoc.id,
+          file_name: novaAssinDoc.nome,
+          storage_path: novaAssinDoc.storage_path,
+        } : undefined}
+        onCreated={() => { setNovaAssinDoc(null); onChange(); }}
+      />
     </section>
   );
 }
