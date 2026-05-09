@@ -54,7 +54,8 @@ const EVENTOS = [
   { value: "agenda_criada", label: "Agenda criada" },
   { value: "medicao_agendada", label: "Medição técnica agendada" },
   { value: "revisao_agendada", label: "Revisão final agendada" },
-  { value: "checklist_concluido", label: "Checklist concluído" },
+  { value: "checklist_item_marcado", label: "Item de checklist marcado" },
+  { value: "checklist_concluido", label: "Checklist concluído (todos itens)" },
   { value: "assinatura_concluida", label: "Assinatura concluída" },
   { value: "manual", label: "Disparo manual" },
 ];
