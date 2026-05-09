@@ -163,6 +163,11 @@ export function EstagiosEditDialog({
 
   const automacoesDoEstagio = (estagioId: string) => autos.filter((a) => a.estagio_origem_id === estagioId);
 
+  const estagiosDisponiveis = [
+    ...todosEstagios.filter((e) => !rows.some((r) => r.id === e.id)),
+    ...rows,
+  ];
+
   const addAutomacao = (estagioId: string) => {
     const destino = rows.find((r) => r.id !== estagioId)?.id ?? estagioId;
     setAutos((a) => [
@@ -255,6 +260,10 @@ export function EstagiosEditDialog({
         const origemId = idMap[a.estagio_origem_id] ?? a.estagio_origem_id;
         const destinoId = idMap[a.estagio_destino_id] ?? a.estagio_destino_id;
         if (origemId.startsWith("new-") || destinoId.startsWith("new-")) continue;
+        const acaoConfig = { ...(a.acao_config ?? {}) };
+        if (acaoConfig.estagio_se_nao) {
+          acaoConfig.estagio_se_nao = idMap[acaoConfig.estagio_se_nao] ?? acaoConfig.estagio_se_nao;
+        }
         const payload: any = {
           pipeline,
           estagio_origem_id: origemId,
@@ -267,7 +276,7 @@ export function EstagiosEditDialog({
           ativo: a.ativo,
           ordem: a.ordem,
           acao: a.acao ?? "mover",
-          acao_config: a.acao_config ?? {},
+          acao_config: acaoConfig,
         };
         if (a.id.startsWith("new-")) {
           const { error } = await (supabase as any).from("pipeline_automacoes").insert(payload);
