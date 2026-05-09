@@ -131,9 +131,10 @@ export default function KanbanBoard({
   }, [estagios]);
 
   const podeConcluir = (card: CardRow) => {
-    // Pós-venda permite concluir em qualquer etapa
-    if (pipeline === "pos_venda") return true;
-    return card.estagio_id === lastRealStageId;
+    const est = estagios.find((e) => e.id === card.estagio_id);
+    if (!est) return false;
+    // Só esconde quando explicitamente desativado na configuração do estágio
+    return (est.concluir_acao ?? "proxima") !== "desativado";
   };
 
   const filtered = useMemo(() => {
