@@ -171,9 +171,25 @@ export function StageActionDialog({
     }
   };
 
-  const concluirCard = () => {
-    if (!card || !pedido) return;
-    setConcluirOpen(true);
+  const concluirCard = async () => {
+    if (!card || !pedido || !stage) return;
+    setBusy(true);
+    const ok = await executarConcluirAction({
+      cardId: card.id,
+      pedidoId: card.pedido_id,
+      pipeline,
+      estagioAtual: {
+        id: stage.id,
+        nome: stage.nome,
+        ordem: stage.ordem,
+        concluir_acao: (stage.concluir_acao as any) ?? "proxima",
+        concluir_pipeline_destino: stage.concluir_pipeline_destino ?? null,
+        concluir_estagio_destino_id: stage.concluir_estagio_destino_id ?? null,
+      },
+      estagiosPipeline: estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem })),
+    });
+    setBusy(false);
+    if (ok) { onUpdated(); onOpenChange(false); }
   };
 
   if (!card || !stage) return null;
