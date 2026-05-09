@@ -339,6 +339,29 @@ export default function KanbanBoard({
         onUpdated={carregar}
       />
 
+      <CriarAssistenciaPromptDialog
+        open={assistPrompt.open}
+        onOpenChange={(v) => setAssistPrompt((s) => ({ ...s, open: v }))}
+        pedidoId={assistPrompt.pedidoId}
+        mensagem={assistPrompt.mensagem}
+        onSimCriada={() => { carregar(); }}
+        onNao={async () => {
+          if (assistPrompt.cardId && assistPrompt.estagioSeNao) {
+            await (supabase as any).from("kanban_cards")
+              .update({ estagio_id: assistPrompt.estagioSeNao, iniciado_em: new Date().toISOString(), notificacao_atraso_em: null })
+              .eq("id", assistPrompt.cardId);
+            const dest = estagios.find((e) => e.id === assistPrompt.estagioSeNao);
+            if (assistPrompt.pedidoId) {
+              await logEvento(assistPrompt.pedidoId, "kanban_automacao",
+                `[${pipeline}] Sem assistência → ${dest?.nome ?? "—"} (auto)`,
+                { pipeline, para: dest?.nome, card_id: assistPrompt.cardId, evento: "criar_assistencia_nao" });
+            }
+            toast.success(`Card movido para ${dest?.nome ?? "destino"}`);
+          }
+          carregar();
+        }}
+      />
+
       {loading ? (
         <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>
       ) : (
