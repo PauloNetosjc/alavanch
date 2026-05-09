@@ -84,8 +84,20 @@ export default function PedidoDetalhe() {
     }
     const { data: ct } = await supabase.from("contratos").select("*").eq("orcamento_id", ped.orcamento_id).maybeSingle();
     setContrato(ct);
-    const { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
-    setPastas(pst || []);
+    let { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
+    pst = pst || [];
+    // Auto-cria as pastas padrão se não existirem
+    const padroes = ["Projetos/PDF", "Documentos", "Check-in Obra", "Fotos/Entrega"];
+    const faltando = padroes.filter((nome) => !pst!.some((p: any) => p.nome.toLowerCase() === nome.toLowerCase()));
+    if (faltando.length) {
+      const baseOrdem = pst.length;
+      const novas = faltando.map((nome, i) => ({ pedido_id: id, nome, ordem: baseOrdem + i }));
+      const { data: criadas } = await supabase.from("pedido_pastas").insert(novas).select("*");
+      pst = [...pst, ...(criadas || [])];
+    }
+    // Pasta virtual para projetos importados (read-only)
+    const PROJ_VIRTUAL_ID = "__virtual_projetos_importados__";
+    setPastas([{ id: PROJ_VIRTUAL_ID, nome: "Projetos Importados", _virtual: true }, ...pst]);
     const { data: dcs } = await supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false });
     // Também traz documentos anexados na fase de orçamento (Promob, XML, Excel etc.)
     let docsCombinados: any[] = dcs || [];
@@ -97,8 +109,9 @@ export default function PedidoDetalhe() {
         .order("created_at", { ascending: false });
       const mapped = (orcDocs || []).map((d: any) => ({
         ...d,
-        pasta_id: null,
+        pasta_id: PROJ_VIRTUAL_ID,
         _bucket: "orcamento-docs",
+        _readonly: true,
         nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
       }));
       docsCombinados = [...mapped, ...docsCombinados];
