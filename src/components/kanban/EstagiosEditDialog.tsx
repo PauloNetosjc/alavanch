@@ -305,7 +305,7 @@ export function EstagiosEditDialog({
                       {regras.map((a) => (
                         <div key={a.id} className="grid grid-cols-12 gap-2 items-center">
                           <Select value={a.evento} onValueChange={(v) => updateAuto(a.id, { evento: v, condicao_tipo: "nenhuma", condicao_valor: null })}>
-                            <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {EVENTOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
                             </SelectContent>
