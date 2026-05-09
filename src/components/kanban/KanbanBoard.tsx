@@ -367,16 +367,23 @@ export default function KanbanBoard({
                                 </span>
                               )}
                               {ped.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
-                              <button
-                                onClick={(ev) => concluirCard(c.id, ev)}
-                                title="Concluir card"
-                                className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
+                              {podeConcluir(c) && !isConcluidos(e) && (
+                                <button
+                                  onClick={(ev) => concluirCard(c.id, ev)}
+                                  title="Concluir card"
+                                  className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="text-[12px] font-medium truncate mt-1">{ped.cliente?.nome || "—"}</div>
+                          {c.created_at && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Criado em {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                            </div>
+                          )}
                           {filtros.mostrarValores && (
                             <div className="text-[11px] text-muted-foreground mt-1">{fmtBrl(Number(ped.valor_total) || 0)}</div>
                           )}
