@@ -84,7 +84,6 @@ export default function KanbanBoard({
 
   const [activeCard, setActiveCard] = useState<CardRow | null>(null);
   const [activeStage, setActiveStage] = useState<Estagio | null>(null);
-  const [concluirCardId, setConcluirCardId] = useState<CardRow | null>(null);
 
   const carregar = async () => {
     setLoading(true);
