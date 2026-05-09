@@ -11,7 +11,7 @@ import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros
 import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
-import { ConcluirCardDialog } from "./ConcluirCardDialog";
+import { executarConcluirAction } from "./concluirAction";
 import type { KanbanKey } from "./kanbanRegistry";
 
 const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
