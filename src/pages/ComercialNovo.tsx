@@ -945,6 +945,24 @@ export default function ComercialNovo() {
                 />
               </div>
 
+              {/* Loja */}
+              <div>
+                <Label>Loja</Label>
+                {isAdmin ? (
+                  <Select value={lojaId} onValueChange={setLojaId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a loja" /></SelectTrigger>
+                    <SelectContent>
+                      {lojas.map((l) => (
+                        <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={lojas.find((l) => l.id === lojaId)?.nome || "—"} disabled />
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">Padrão: loja do usuário logado</p>
+              </div>
+
               {/* Cliente */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
