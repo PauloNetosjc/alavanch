@@ -18,6 +18,9 @@ import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
 import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoja } from "@/contexts/LojaContext";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 type Cliente = { id: string; nome: string };
 type Parceiro = { id: string; nome: string; percentual_padrao: number };
@@ -450,6 +453,10 @@ export default function ComercialNovo() {
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
   const [projetistaNome, setProjetistaNome] = useState<string>("");
   const [consultorId, setConsultorId] = useState<string>("");
+  const { profile } = useAuth();
+  const { lojas } = useLoja();
+  const isAdmin = role === "admin" || role === "diretor";
+  const [lojaId, setLojaId] = useState<string>("");
 
   // dialog flags
   const [openCliente, setOpenCliente] = useState(false);
@@ -480,13 +487,14 @@ export default function ComercialNovo() {
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor = current user (apenas em criação)
+      // default consultor + loja = current user (apenas em criação)
       if (!isEdit) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) setConsultorId(u.user.id);
+        if (profile?.loja_id) setLojaId(profile.loja_id);
       }
     })();
-  }, [isEdit]);
+  }, [isEdit, profile?.loja_id]);
 
   /* ------------------------- load existing orçamento ---------------------- */
   useEffect(() => {
@@ -494,7 +502,7 @@ export default function ComercialNovo() {
     (async () => {
       const { data: orc } = await supabase
         .from("orcamentos")
-        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id")
         .eq("id", editId)
         .maybeSingle();
       if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
@@ -514,6 +522,7 @@ export default function ComercialNovo() {
       setParceiroId(orc.parceiro_id || "");
       setParceiroPerc(Number(orc.parceiro_perc) || 0);
       setConsultorId(orc.consultor_id || "");
+      setLojaId((orc as any).loja_id || profile?.loja_id || "");
 
       const { data: ambs } = await supabase
         .from("ambientes")
@@ -726,6 +735,7 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           total,
         })
@@ -751,6 +761,7 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           desconto_perc: 0,
           desconto_valor: 0,
@@ -932,6 +943,24 @@ export default function ComercialNovo() {
                   onChange={(e) => setNomeProjeto(e.target.value)}
                   placeholder="Digite o nome do projeto (opcional)"
                 />
+              </div>
+
+              {/* Loja */}
+              <div>
+                <Label>Loja</Label>
+                {isAdmin ? (
+                  <Select value={lojaId} onValueChange={setLojaId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a loja" /></SelectTrigger>
+                    <SelectContent>
+                      {lojas.map((l) => (
+                        <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={lojas.find((l) => l.id === lojaId)?.nome || "—"} disabled />
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">Padrão: loja do usuário logado</p>
               </div>
 
               {/* Cliente */}
