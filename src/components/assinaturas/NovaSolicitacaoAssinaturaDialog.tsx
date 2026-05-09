@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, MessageCircle, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
@@ -130,10 +130,41 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
             <p className="text-sm text-muted-foreground">Link gerado. Compartilhe com o cliente:</p>
             <div className="flex gap-2">
               <Input value={link} readOnly />
-              <Button onClick={() => { navigator.clipboard.writeText(link); toast.success("Copiado!"); }}>
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(link); toast.success("Copiado!"); }}>
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                disabled={!telefone}
+                onClick={() => {
+                  const tel = (telefone || "").replace(/\D/g, "");
+                  const msg = encodeURIComponent(
+                    `Olá${cliente?.nome ? " " + cliente.nome.split(" ")[0] : ""}! Segue o link para assinatura digital do seu documento: ${link}`
+                  );
+                  window.open(`https://wa.me/${tel.startsWith("55") ? tel : "55" + tel}?text=${msg}`, "_blank");
+                }}
+              >
+                <MessageCircle className="w-4 h-4 mr-1" /> Enviar WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!email}
+                onClick={() => {
+                  const subj = encodeURIComponent("Assinatura digital de documento");
+                  const body = encodeURIComponent(
+                    `Olá${cliente?.nome ? " " + cliente.nome.split(" ")[0] : ""},\n\nAcesse o link abaixo para assinar seu documento de forma segura:\n\n${link}\n\nAtenciosamente.`
+                  );
+                  window.open(`mailto:${email}?subject=${subj}&body=${body}`);
+                }}
+              >
+                <Mail className="w-4 h-4 mr-1" /> Enviar e-mail
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O WhatsApp abre com a mensagem pronta para envio. Para envio automático por e-mail integrado, configure o domínio de e-mails em Lovable Cloud → E-mails.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
