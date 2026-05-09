@@ -15,7 +15,7 @@ type CardLite = {
   prazo: string | null;
   iniciado_em: string | null;
 };
-type Stage = { id: string; nome: string; ordem?: number; cor: string | null; checklist_template_id: string | null };
+type Stage = { id: string; nome: string; ordem?: number; cor: string | null; checklist_template_id: string | null; concluir_acao?: string | null; concluir_pipeline_destino?: string | null; concluir_estagio_destino_id?: string | null };
 type Pedido = {
   id: string; codigo: string; valor_total: number | null;
   urgencia: string | null;
