@@ -360,7 +360,7 @@ export default function KanbanBoard({
                               {ped.vip && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />}
                               {podeConcluir(c) && !isConcluidos(e) && (
                                 <button
-                                  onClick={(ev) => concluirCard(c.id, ev)}
+                                  onClick={(ev) => abrirConcluir(c, ev)}
                                   title="Concluir card"
                                   className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600"
                                 >
