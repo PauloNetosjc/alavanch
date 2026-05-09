@@ -12,7 +12,7 @@ import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
 import { CriarAssistenciaPromptDialog } from "./CriarAssistenciaPromptDialog";
-import { executarConcluirAction } from "./concluirAction";
+import { executarConcluirAction, getProximoEstagio } from "./concluirAction";
 import type { KanbanKey } from "./kanbanRegistry";
 
 const URGENCIA_RANK: Record<UrgenciaNivel, number> = { alta: 3, media: 2, baixa: 1 };
@@ -215,6 +215,41 @@ export default function KanbanBoard({
     } catch (e) { console.error(e); }
   };
 
+  const estagioDestinoValido = (id?: string | null, fallbackId?: string | null) => {
+    if (id && estagios.some((e) => e.id === id)) return id;
+    const concluidos = estagios.find(isConcluidos)?.id;
+    return concluidos || fallbackId || null;
+  };
+
+  const dispararPromptAssistencia = async (cardId: string, pedidoId: string | null, estagioDestinoId: string) => {
+    if (!pedidoId) return false;
+    try {
+      const { data: regras } = await (supabase as any)
+        .from("pipeline_automacoes")
+        .select("acao_config")
+        .eq("pipeline", pipeline)
+        .eq("estagio_origem_id", estagioDestinoId)
+        .eq("evento", "card_chegou")
+        .eq("acao", "criar_assistencia")
+        .eq("ativo", true)
+        .limit(1);
+      const regra = (regras ?? [])[0];
+      if (!regra) return false;
+      const cfg = regra.acao_config || {};
+      setAssistPrompt({
+        open: true,
+        pedidoId,
+        cardId,
+        mensagem: cfg.mensagem || "Será necessário abrir um chamado de assistência para este pedido?",
+        estagioSeNao: estagioDestinoValido(cfg.estagio_se_nao, estagioDestinoId),
+      });
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
   const moverCard = async (cardId: string, novoEstagio: string) => {
     const card = cards.find((c) => c.id === cardId);
     const deEst = estagios.find((e) => e.id === card?.estagio_id);
@@ -231,32 +266,7 @@ export default function KanbanBoard({
     }
     toast.success("Card movido");
 
-    // Verifica automações "criar_assistencia" para o estágio destino
-    if (card?.pedido_id) {
-      try {
-        const { data: regras } = await (supabase as any)
-          .from("pipeline_automacoes")
-          .select("acao_config")
-          .eq("pipeline", pipeline)
-          .eq("estagio_origem_id", novoEstagio)
-          .eq("evento", "card_chegou")
-          .eq("acao", "criar_assistencia")
-          .eq("ativo", true)
-          .limit(1);
-        const regra = (regras ?? [])[0];
-        if (regra) {
-          const cfg = regra.acao_config || {};
-          setAssistPrompt({
-            open: true,
-            pedidoId: card.pedido_id,
-            cardId,
-            mensagem: cfg.mensagem || "Será necessário abrir um chamado de assistência para este pedido?",
-            estagioSeNao: cfg.estagio_se_nao || null,
-          });
-          return; // não recarrega ainda; recarrega após resposta
-        }
-      } catch (e) { console.error(e); }
-    }
+    if (await dispararPromptAssistencia(cardId, card?.pedido_id ?? null, novoEstagio)) return;
     carregar();
   };
 
@@ -264,6 +274,9 @@ export default function KanbanBoard({
     e.stopPropagation();
     const est = estagios.find((s) => s.id === card.estagio_id);
     if (!est) return;
+    const destino = (est.concluir_acao ?? "proxima") === "proxima"
+      ? getProximoEstagio(estagios, est.id)?.id ?? null
+      : null;
     const ok = await executarConcluirAction({
       cardId: card.id,
       pedidoId: card.pedido_id,
@@ -271,6 +284,7 @@ export default function KanbanBoard({
       estagioAtual: est as any,
       estagiosPipeline: estagios,
     });
+    if (ok && destino && await dispararPromptAssistencia(card.id, card.pedido_id, destino)) return;
     if (ok) carregar();
   };
 
