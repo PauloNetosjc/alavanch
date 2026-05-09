@@ -844,7 +844,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
                   <PenLine className="w-4 h-4 text-primary" />
                 </Button>
               )}
-              {false && (
+              {/* keep below */}
               <a href={supabase.storage.from(d._bucket || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
               </a>
