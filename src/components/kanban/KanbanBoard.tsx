@@ -11,6 +11,7 @@ import { KanbanFiltrosDialog, FILTROS_DEFAULT, URGENCIA_META, type KanbanFiltros
 import { KanbanSwitcher } from "./KanbanSwitcher";
 import { EstagiosEditDialog } from "./EstagiosEditDialog";
 import { StageActionDialog } from "./StageActionDialog";
+import { CriarAssistenciaPromptDialog } from "./CriarAssistenciaPromptDialog";
 import { executarConcluirAction } from "./concluirAction";
 import type { KanbanKey } from "./kanbanRegistry";
 
