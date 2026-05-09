@@ -315,13 +315,20 @@ export default function AssinaturaPublica() {
             <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
             <div><span className="text-muted-foreground">Pedido:</span> {pedido?.codigo || "—"}</div>
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
-            {solic?.file_url && (
-              <a href={solic.file_url} target="_blank" rel="noreferrer" className="inline-block mt-2 text-primary underline text-xs">
-                Visualizar documento
-              </a>
-            )}
           </CardContent>
         </Card>
+
+        {docHtml && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+            <CardContent>
+              <div
+                className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
+                dangerouslySetInnerHTML={{ __html: docHtml }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Identificação</CardTitle></CardHeader>
@@ -331,8 +338,8 @@ export default function AssinaturaPublica() {
               <Input value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
             <div>
-              <Label>CPF/Documento</Label>
-              <Input value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="000.000.000-00" />
+              <Label>CPF/CNPJ</Label>
+              <Input value={doc} onChange={(e) => setDoc(maskDocAuto(e.target.value))} placeholder="000.000.000-00" />
             </div>
             <div>
               <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Foto do documento (RG/CNH)</Label>
