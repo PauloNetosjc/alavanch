@@ -395,98 +395,176 @@ export function EstagiosEditDialog({
                       <div className="text-xs font-medium text-muted-foreground pt-2 border-t">
                         Automações — quando o card está em "{r.nome}":
                       </div>
-                      {regras.map((a) => (
-                        <div key={a.id} className="grid grid-cols-12 gap-2 items-center">
-                          <Select value={a.evento} onValueChange={(v) => updateAuto(a.id, { evento: v, condicao_tipo: "nenhuma", condicao_valor: null })}>
-                            <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {EVENTOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-
-                          {(a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") && (
-                            <Select
-                              value={a.condicao_tipo === "tipo_evento_agenda" ? (a.condicao_valor ?? "any") : "any"}
-                              onValueChange={(v) => updateAuto(a.id, {
-                                condicao_tipo: v === "any" ? "nenhuma" : "tipo_evento_agenda",
-                                condicao_valor: v === "any" ? null : v,
-                              })}
-                            >
-                              <SelectTrigger className="col-span-2"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                      {regras.map((a) => {
+                        const usaDestino = a.acao === "mover" || a.acao === "duplicar";
+                        return (
+                        <div key={a.id} className="border rounded p-2 space-y-2 bg-background">
+                          {/* Linha 1: Evento + condição + Ação + ativo + remover */}
+                          <div className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2 text-xs text-muted-foreground">Quando</div>
+                            <Select value={a.evento} onValueChange={(v) => updateAuto(a.id, { evento: v, condicao_tipo: "nenhuma", condicao_valor: null })}>
+                              <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="any">Qualquer tipo</SelectItem>
-                                {TIPOS_AGENDA.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                {EVENTOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
                               </SelectContent>
                             </Select>
-                          )}
-                          {a.evento === "checklist_concluido" && (
-                            <Select
-                              value={a.condicao_tipo === "template_checklist" ? (a.condicao_valor ?? "any") : "any"}
-                              onValueChange={(v) => updateAuto(a.id, {
-                                condicao_tipo: v === "any" ? "nenhuma" : "template_checklist",
-                                condicao_valor: v === "any" ? null : v,
-                              })}
-                            >
-                              <SelectTrigger className="col-span-2"><SelectValue placeholder="Template" /></SelectTrigger>
+
+                            {(a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") ? (
+                              <Select
+                                value={a.condicao_tipo === "tipo_evento_agenda" ? (a.condicao_valor ?? "any") : "any"}
+                                onValueChange={(v) => updateAuto(a.id, {
+                                  condicao_tipo: v === "any" ? "nenhuma" : "tipo_evento_agenda",
+                                  condicao_valor: v === "any" ? null : v,
+                                })}
+                              >
+                                <SelectTrigger className="col-span-3"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="any">Qualquer tipo</SelectItem>
+                                  {TIPOS_AGENDA.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            ) : a.evento === "checklist_concluido" ? (
+                              <Select
+                                value={a.condicao_tipo === "template_checklist" ? (a.condicao_valor ?? "any") : "any"}
+                                onValueChange={(v) => updateAuto(a.id, {
+                                  condicao_tipo: v === "any" ? "nenhuma" : "template_checklist",
+                                  condicao_valor: v === "any" ? null : v,
+                                })}
+                              >
+                                <SelectTrigger className="col-span-3"><SelectValue placeholder="Template" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="any">Qualquer</SelectItem>
+                                  {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <div className="col-span-3 text-xs text-muted-foreground">sem condição</div>
+                            )}
+
+                            <Select value={a.acao} onValueChange={(v) => updateAuto(a.id, { acao: v, acao_config: {} })}>
+                              <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="any">Qualquer</SelectItem>
-                                {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                                {ACOES.map((x) => <SelectItem key={x.value} value={x.value}>{x.label}</SelectItem>)}
                               </SelectContent>
                             </Select>
-                          )}
-                          {!["medicao_agendada","revisao_agendada","agenda_criada","checklist_concluido"].includes(a.evento) && (
-                            <div className="col-span-2 text-xs text-muted-foreground">sem condição</div>
-                          )}
 
-                          <span className="col-span-1 text-xs text-center">→</span>
-
-                          <Select
-                            value={a.pipeline_destino ?? pipeline}
-                            onValueChange={(v) => {
-                              const firstStage = todosEstagios.find((s) => s.pipeline === v);
-                              updateAuto(a.id, {
-                                pipeline_destino: v === pipeline ? null : v,
-                                estagio_destino_id: firstStage?.id ?? a.estagio_destino_id,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="col-span-2" title="Kanban destino"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {Array.from(new Set(todosEstagios.map((s) => s.pipeline))).map((p) => (
-                                <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
-                            <SelectTrigger className="col-span-2"><SelectValue placeholder="Destino" /></SelectTrigger>
-                            <SelectContent>
-                              {todosEstagios
-                                .filter((x) => x.pipeline === (a.pipeline_destino ?? pipeline))
-                                .filter((x) => !(x.pipeline === pipeline && x.id === r.id))
-                                .map((x) => (
-                                  <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-
-                          <Input
-                            className="col-span-1"
-                            type="number"
-                            placeholder="±dias"
-                            value={a.ajustar_prazo_dias ?? ""}
-                            onChange={(e) => updateAuto(a.id, { ajustar_prazo_dias: e.target.value === "" ? null : Number(e.target.value) })}
-                            title="Ajuste de prazo em dias úteis (negativo = antes da data de referência)"
-                          />
-
-                          <div className="col-span-1 flex items-center justify-center">
-                            <Switch checked={a.ativo} onCheckedChange={(v) => updateAuto(a.id, { ativo: v })} />
+                            <div className="col-span-1 flex items-center justify-center">
+                              <Switch checked={a.ativo} onCheckedChange={(v) => updateAuto(a.id, { ativo: v })} />
+                            </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="col-span-1 text-destructive" onClick={() => removeAuto(a.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+
+                          {/* Linha 2: parâmetros específicos da ação */}
+                          <div className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2 text-xs text-muted-foreground">→ Configuração</div>
+
+                            {usaDestino && (
+                              <>
+                                <Select
+                                  value={a.pipeline_destino ?? pipeline}
+                                  onValueChange={(v) => {
+                                    const firstStage = todosEstagios.find((s) => s.pipeline === v);
+                                    updateAuto(a.id, {
+                                      pipeline_destino: v === pipeline ? null : v,
+                                      estagio_destino_id: firstStage?.id ?? a.estagio_destino_id,
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="col-span-3" title="Kanban destino"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from(new Set(todosEstagios.map((s) => s.pipeline))).map((p) => (
+                                      <SelectItem key={p} value={p}>{PIPELINE_LABELS[p] ?? p}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select value={a.estagio_destino_id} onValueChange={(v) => updateAuto(a.id, { estagio_destino_id: v })}>
+                                  <SelectTrigger className="col-span-4"><SelectValue placeholder="Estágio destino" /></SelectTrigger>
+                                  <SelectContent>
+                                    {todosEstagios
+                                      .filter((x) => x.pipeline === (a.pipeline_destino ?? pipeline))
+                                      .filter((x) => !(a.acao === "mover" && x.pipeline === pipeline && x.id === r.id))
+                                      .map((x) => (
+                                        <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  className="col-span-2"
+                                  type="number"
+                                  placeholder="±dias úteis"
+                                  value={a.ajustar_prazo_dias ?? ""}
+                                  onChange={(e) => updateAuto(a.id, { ajustar_prazo_dias: e.target.value === "" ? null : Number(e.target.value) })}
+                                />
+                              </>
+                            )}
+
+                            {a.acao === "checar_dados" && (
+                              <>
+                                <Select
+                                  value={a.acao_config?.campo ?? ""}
+                                  onValueChange={(v) => updateAuto(a.id, { acao_config: { ...a.acao_config, campo: v } })}
+                                >
+                                  <SelectTrigger className="col-span-5"><SelectValue placeholder="Campo a verificar" /></SelectTrigger>
+                                  <SelectContent>
+                                    {CHECAR_CAMPOS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                                {a.acao_config?.campo === "pedido_status" && (
+                                  <Input
+                                    className="col-span-4"
+                                    placeholder="Valor esperado (ex: em_producao)"
+                                    value={a.acao_config?.valor_esperado ?? ""}
+                                    onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, valor_esperado: e.target.value } })}
+                                  />
+                                )}
+                              </>
+                            )}
+
+                            {a.acao === "comunicado" && (
+                              <>
+                                <Input
+                                  className="col-span-6"
+                                  placeholder="Mensagem do comunicado"
+                                  value={a.acao_config?.mensagem ?? ""}
+                                  onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, mensagem: e.target.value } })}
+                                />
+                                <Select
+                                  value={a.acao_config?.role ?? "admin"}
+                                  onValueChange={(v) => updateAuto(a.id, { acao_config: { ...a.acao_config, role: v } })}
+                                >
+                                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Cargo destino" /></SelectTrigger>
+                                  <SelectContent>
+                                    {ROLES_COMUNICADO.map((r2) => <SelectItem key={r2} value={r2}>{r2}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              </>
+                            )}
+
+                            {a.acao === "notificar" && (
+                              <>
+                                <Select
+                                  value={a.acao_config?.user_id ?? ""}
+                                  onValueChange={(v) => updateAuto(a.id, { acao_config: { ...a.acao_config, user_id: v } })}
+                                >
+                                  <SelectTrigger className="col-span-4"><SelectValue placeholder="Usuário a notificar" /></SelectTrigger>
+                                  <SelectContent>
+                                    {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome_completo ?? p.user_id.slice(0,6)}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  className="col-span-5"
+                                  placeholder="Mensagem (opcional)"
+                                  value={a.acao_config?.mensagem ?? ""}
+                                  onChange={(e) => updateAuto(a.id, { acao_config: { ...a.acao_config, mensagem: e.target.value } })}
+                                />
+                              </>
+                            )}
+
+                            <Button variant="ghost" size="icon" className="col-span-1 ml-auto text-destructive" onClick={() => removeAuto(a.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      ))}
+                      );})}
                       <Button variant="outline" size="sm" onClick={() => addAutomacao(r.id)}>
                         <Plus className="w-3 h-3 mr-1" /> Adicionar regra
                       </Button>
