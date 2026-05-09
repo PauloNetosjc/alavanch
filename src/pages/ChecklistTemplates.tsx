@@ -59,7 +59,7 @@ export default function ChecklistTemplates() {
   const openNew = () => {
     setEdit(null);
     setNome("");
-    setTipo("garantia");
+    setTipo("kanban");
     setAtivo(true);
     setItens([]);
     setOpen(true);
