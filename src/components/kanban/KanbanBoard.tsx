@@ -161,7 +161,7 @@ export default function KanbanBoard({
       if (filtros.urgencia && ped.urgencia !== filtros.urgencia) return false;
       return true;
     });
-  }, [cards, search, filtros]);
+  }, [cards, search, filtros, isAdmin, estagios]);
 
   const cardsPorEstagio = useMemo(() => {
     const map = new Map<string, CardRow[]>();
