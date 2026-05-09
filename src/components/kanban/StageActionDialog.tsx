@@ -284,6 +284,18 @@ export function StageActionDialog({
           )}
         </DialogFooter>
       </DialogContent>
+      {card && (
+        <ConcluirCardDialog
+          open={concluirOpen}
+          onOpenChange={setConcluirOpen}
+          cardId={card.id}
+          pedidoId={card.pedido_id}
+          pipeline={pipeline}
+          estagios={estagios.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem ?? 0 }))}
+          estagioAtualId={card.estagio_id}
+          onDone={() => { onUpdated(); onOpenChange(false); }}
+        />
+      )}
     </Dialog>
   );
 }
