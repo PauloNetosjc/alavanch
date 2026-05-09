@@ -91,7 +91,7 @@ const App = () => (
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/comercial" element={<Comercial />} />
-              <Route path="/comercial/kanban" element={<KanbanComercial />} />
+              <Route path="/comercial/kanban" element={<Navigate to="/kanban-comercial" replace />} />
               <Route path="/comercial/novo" element={<ComercialNovo />} />
               <Route path="/comercial/:id" element={<ComercialNovo />} />
               <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
@@ -99,11 +99,18 @@ const App = () => (
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/kanbans" element={<Kanbans />} />
-              <Route path="/operacional/kanban" element={<KanbanOperacional />} />
-              <Route path="/operacional/pos-venda" element={<KanbanPosVenda />} />
-              <Route path="/operacional/revisao" element={<KanbanRevisao />} />
-              <Route path="/operacional/montagem-kanban" element={<KanbanMontagem />} />
-              <Route path="/operacional/fabrica" element={<KanbanFabrica />} />
+              <Route path="/kanban-comercial" element={<KanbanComercial />} />
+              <Route path="/kanban-operacional" element={<KanbanOperacional />} />
+              <Route path="/kanban-pos-venda" element={<KanbanPosVenda />} />
+              <Route path="/kanban-revisao" element={<KanbanRevisao />} />
+              <Route path="/kanban-montagem" element={<KanbanMontagem />} />
+              <Route path="/kanban-fabrica" element={<KanbanFabrica />} />
+              {/* Aliases antigos */}
+              <Route path="/operacional/kanban" element={<Navigate to="/kanban-operacional" replace />} />
+              <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
+              <Route path="/operacional/revisao" element={<Navigate to="/kanban-revisao" replace />} />
+              <Route path="/operacional/montagem-kanban" element={<Navigate to="/kanban-montagem" replace />} />
+              <Route path="/operacional/fabrica" element={<Navigate to="/kanban-fabrica" replace />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/autorizacoes" element={<Autorizacoes />} />
               <Route path="/assistencia" element={<Assistencia />} />
