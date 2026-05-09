@@ -171,20 +171,9 @@ export function StageActionDialog({
     }
   };
 
-  const concluirCard = async () => {
+  const concluirCard = () => {
     if (!card || !pedido) return;
-    if (!confirm("Concluir e remover este card? O pedido permanece no sistema.")) return;
-    setBusy(true);
-    const { error } = await (supabase as any).rpc("concluir_kanban_card", { _card_id: card.id });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    await logPedidoEvento(pedido.id, "kanban_concluido",
-      `[${pipeline}] Card concluído na etapa "${stage?.nome}"`,
-      { pipeline, estagio: stage?.nome, card_id: card.id }
-    );
-    toast.success("Card concluído");
-    onUpdated();
-    onOpenChange(false);
+    setConcluirOpen(true);
   };
 
   if (!card || !stage) return null;
