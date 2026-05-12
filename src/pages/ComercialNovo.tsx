@@ -449,7 +449,7 @@ export default function ComercialNovo() {
 
   // ---- step 1 ----
   const [nomeProjeto, setNomeProjeto] = useState("");
-  const [clienteId, setClienteId] = useState<string>("");
+  const [clienteId, setClienteId] = useState<string>(preselectCliente || "");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
   const [projetistaNome, setProjetistaNome] = useState<string>("");
