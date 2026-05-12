@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText } from "lucide-react";
+import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText, Phone, MapPin, User, Tag, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean; ativo: boolean };
 
@@ -53,6 +54,11 @@ export default function KanbanComercial() {
   const [perdaCard, setPerdaCard] = useState<Card | null>(null);
   const [perdaEstId, setPerdaEstId] = useState<string | null>(null);
   const [perdaMotivo, setPerdaMotivo] = useState("");
+
+  const [detalheOpen, setDetalheOpen] = useState(false);
+  const [detalheCard, setDetalheCard] = useState<Card | null>(null);
+  const [detalheData, setDetalheData] = useState<any>(null);
+  const [detalheLoading, setDetalheLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -193,13 +199,39 @@ export default function KanbanComercial() {
     navigate(`/comercial/novo?cliente=${c.cliente_id}`);
   };
 
-  const handleCardClick = (c: Card) => {
-    if (c.kind === "lead") {
-      navigate("/leads");
-      return;
+  const handleCardClick = async (c: Card) => {
+    setDetalheCard(c);
+    setDetalheData(null);
+    setDetalheOpen(true);
+    setDetalheLoading(true);
+    try {
+      if (c.kind === "lead") {
+        const { data: lead } = await supabase
+          .from("leads" as any)
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome)")
+          .eq("id", c.id)
+          .maybeSingle();
+        const vendedorNome = vendedores.find((v) => v.user_id === (lead as any)?.usuario_id)?.nome_completo ?? null;
+        setDetalheData({ ...(lead as any), vendedor: { nome_completo: vendedorNome } });
+      } else {
+        const { data: orc } = await supabase
+          .from("orcamentos")
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), ambientes(id, nome, valor_total), pagamentos:pagamentos_orcamento(id, valor, forma_pagamento)")
+          .eq("id", c.id)
+          .maybeSingle();
+        const vendedorNome = vendedores.find((v) => v.user_id === (orc as any)?.vendedor_id)?.nome_completo ?? null;
+        setDetalheData({ ...(orc as any), vendedor: { nome_completo: vendedorNome } });
+      }
+    } finally {
+      setDetalheLoading(false);
     }
-    if (c.pedido_id) navigate(`/pedidos/${c.pedido_id}`);
-    else navigate(`/comercial/${c.id}/negociacao`);
+  };
+
+  const irParaOrcamento = () => {
+    if (!detalheCard) return;
+    setDetalheOpen(false);
+    if (detalheCard.pedido_id) navigate(`/pedidos/${detalheCard.pedido_id}`);
+    else navigate(`/comercial/${detalheCard.id}/negociacao`);
   };
 
   return (
@@ -338,6 +370,153 @@ export default function KanbanComercial() {
             <Button variant="outline" onClick={() => setPerdaOpen(false)}>Cancelar</Button>
             <Button onClick={confirmarPerda}>Confirmar perda</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detalheOpen} onOpenChange={setDetalheOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {detalheCard?.kind === "lead" ? <CalendarDays className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+              {detalheCard?.kind === "lead" ? "Lead Agendado" : "Orçamento"}
+              <span className="text-xs text-muted-foreground font-mono ml-1">{detalheCard?.codigo}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {detalheLoading ? (
+            <div className="space-y-2 py-4">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : detalheCard?.kind === "lead" && detalheData ? (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
+                  <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? detalheData.nome ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">WhatsApp / Telefone</div>
+                  <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.whatsapp || detalheData.cliente?.telefone || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Data Apresentação</div>
+                  <div className="font-medium">
+                    {detalheData.data_apresentacao
+                      ? `${new Date(detalheData.data_apresentacao + "T00:00:00").toLocaleDateString("pt-BR")}${detalheData.hora_apresentacao ? ` às ${String(detalheData.hora_apresentacao).slice(0,5)}` : ""}`
+                      : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
+                  <div className="font-medium">{detalheData.loja?.nome ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Vendedor</div>
+                  <div className="font-medium">{detalheData.vendedor?.nome_completo ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Indicador</div>
+                  <div className="font-medium">{detalheData.indicador ?? "—"}</div>
+                </div>
+              </div>
+              {detalheData.endereco && (
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço</div>
+                  <div className="font-medium flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 mt-0.5" />{detalheData.endereco}</div>
+                </div>
+              )}
+              {Array.isArray(detalheData.interesse) && detalheData.interesse.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Interesse</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detalheData.interesse.map((i: string, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="text-[11px]"><Tag className="w-3 h-3 mr-1" />{i}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detalheData.notas && (
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Notas</div>
+                  <div className="text-sm bg-muted/40 rounded-lg p-2 whitespace-pre-wrap">{detalheData.notas}</div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetalheOpen(false)}>Fechar</Button>
+                {detalheCard?.cliente_id && (
+                  <Button onClick={() => { setDetalheOpen(false); criarOrcamentoFromLead(detalheCard); }}>
+                    <Plus className="w-4 h-4" /> Criar Orçamento
+                  </Button>
+                )}
+              </DialogFooter>
+            </div>
+          ) : detalheCard?.kind === "orcamento" && detalheData ? (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
+                  <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Telefone</div>
+                  <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.cliente?.telefone ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Projeto</div>
+                  <div className="font-medium">{detalheData.nome_projeto ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
+                  <div className="font-medium">{detalheData.loja?.nome ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Vendedor</div>
+                  <div className="font-medium">{detalheData.vendedor?.nome_completo ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Status</div>
+                  <div className="font-medium capitalize">{detalheData.status ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
+                  <div className="font-semibold text-base">{fmtBrl(Number(detalheData.total) || 0)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Desconto</div>
+                  <div className="font-medium">{fmtBrl(Number(detalheData.desconto) || 0)}</div>
+                </div>
+              </div>
+              {Array.isArray(detalheData.ambientes) && detalheData.ambientes.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Ambientes ({detalheData.ambientes.length})</div>
+                  <div className="border rounded-lg divide-y">
+                    {detalheData.ambientes.map((a: any) => (
+                      <div key={a.id} className="flex justify-between p-2 text-xs">
+                        <span>{a.nome}</span>
+                        <span className="font-mono">{fmtBrl(Number(a.valor_total) || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detalheData.observacoes && (
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Observações</div>
+                  <div className="text-sm bg-muted/40 rounded-lg p-2 whitespace-pre-wrap">{detalheData.observacoes}</div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetalheOpen(false)}>Fechar</Button>
+                <Button onClick={irParaOrcamento}>
+                  <ExternalLink className="w-4 h-4" /> {detalheCard?.pedido_id ? "Abrir Pedido" : "Abrir Orçamento"}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="py-6 text-center text-muted-foreground text-sm">Sem dados.</div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

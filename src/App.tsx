@@ -13,7 +13,7 @@ import NotFound from "@/pages/NotFound";
 import Placeholder from "@/pages/Placeholder";
 import Dashboard from "@/pages/Dashboard";
 import Clientes from "@/pages/Clientes";
-import Leads from "@/pages/Leads";
+
 import Comercial from "@/pages/Comercial";
 import KanbanComercial from "@/pages/KanbanComercial";
 import KanbanOperacional from "@/pages/KanbanOperacional";
@@ -95,7 +95,7 @@ const App = () => (
               <Route path="/ranking" element={<Ranking />} />
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/clientes" element={<Clientes />} />
-              <Route path="/leads" element={<Leads />} />
+              <Route path="/leads" element={<Navigate to="/kanban-comercial" replace />} />
               <Route path="/comercial" element={<Comercial />} />
               <Route path="/comercial/kanban" element={<Navigate to="/kanban-comercial" replace />} />
               <Route path="/comercial/novo" element={<ComercialNovo />} />

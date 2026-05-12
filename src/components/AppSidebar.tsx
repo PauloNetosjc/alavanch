@@ -45,9 +45,9 @@ const sections: Section[] = [
     label: "Gestão",
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
-      { label: "CRM / Leads", path: "/leads", icon: MessageSquare },
+      { label: "CRM / Leads", path: "/kanban-comercial", icon: MessageSquare },
       { label: "Comercial", path: "/comercial", icon: Briefcase },
-      { label: "Kanbans", path: "/kanban-comercial", icon: KanbanSquare },
+      { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
       { label: "Radar de Prazos", path: "/radar", icon: Clock },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
       { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
