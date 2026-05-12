@@ -94,8 +94,18 @@ export default function PedidoDetalhe() {
       if (orc) {
         const { data: ambs } = await supabase.from("ambientes").select("*").eq("orcamento_id", orc.id).order("ordem");
         setAmbientes(ambs || []);
+        const ambIds = (ambs || []).map((a: any) => a.id);
+        if (ambIds.length) {
+          const { data: subs } = await supabase.from("sub_itens_ambiente").select("*").in("ambiente_id", ambIds);
+          setSubItens(subs || []);
+        } else { setSubItens([]); }
+        const { data: pags } = await supabase.from("pagamentos_orcamento").select("*").eq("orcamento_id", orc.id);
+        setPagamentos(pags || []);
       }
     }
+    // Itens avulsos do pedido
+    const { data: ias } = await supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem");
+    setItensAvulsos(ias || []);
     if (ped.cliente_id) {
       const { data: cli } = await supabase.from("clientes").select("*").eq("id", ped.cliente_id).maybeSingle();
       setCliente(cli);
