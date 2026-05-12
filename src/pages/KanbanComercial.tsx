@@ -247,7 +247,7 @@ export default function KanbanComercial() {
           <div className="flex gap-2">
             <KanbanSwitcher active="comercial" />
             {isAdmin && (
-              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
+              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => setEstagiosOpen(true)}>
                 <Settings className="w-4 h-4" /> Editar estágios
               </Button>
             )}
