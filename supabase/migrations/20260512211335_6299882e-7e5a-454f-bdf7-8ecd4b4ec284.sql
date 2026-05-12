@@ -1,0 +1,1 @@
+DELETE FROM public.leads WHERE id::text LIKE 'ea130f%';

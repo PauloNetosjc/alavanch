@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { CrmEstagiosEditDialog } from "@/components/CrmEstagiosEditDialog";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean; ativo: boolean };
 
@@ -59,6 +60,7 @@ export default function KanbanComercial() {
   const [detalheCard, setDetalheCard] = useState<Card | null>(null);
   const [detalheData, setDetalheData] = useState<any>(null);
   const [detalheLoading, setDetalheLoading] = useState(false);
+  const [estagiosOpen, setEstagiosOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -245,7 +247,7 @@ export default function KanbanComercial() {
           <div className="flex gap-2">
             <KanbanSwitcher active="comercial" />
             {isAdmin && (
-              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => navigate("/administracao?tab=crm")}>
+              <Button variant="outline" className="gap-1.5 rounded-xl" onClick={() => setEstagiosOpen(true)}>
                 <Settings className="w-4 h-4" /> Editar estágios
               </Button>
             )}
@@ -519,6 +521,8 @@ export default function KanbanComercial() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CrmEstagiosEditDialog open={estagiosOpen} onOpenChange={setEstagiosOpen} onChanged={load} />
     </div>
   );
 }
