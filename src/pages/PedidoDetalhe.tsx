@@ -917,38 +917,81 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
       <div className="space-y-2">
         {docsDaPasta.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
-        ) : docsDaPasta.map((d: any) => (
-          <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-purple-600" />
-              <div>
-                <div className="text-[13px] font-medium">{d.nome}</div>
-                <div className="text-[10px] text-muted-foreground">{fmtDateTime(d.created_at)}{d.assinado_em ? ` • ✓ Assinado por ${d.assinatura_nome}` : ""}</div>
+        ) : docsDaPasta.map((d: any) => {
+          const sol = solicByDoc[d.id];
+          const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+            rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
+            aguardando_cliente: { label: "Aguardando cliente", tone: "bg-amber-100 text-amber-800" },
+            assinado_cliente: { label: "Cliente assinou", tone: "bg-blue-100 text-blue-800" },
+            aguardando_loja: { label: "Aguardando loja", tone: "bg-indigo-100 text-indigo-800" },
+            assinado_loja: { label: "Loja assinou", tone: "bg-blue-100 text-blue-800" },
+            concluido: { label: "Concluído", tone: "bg-emerald-100 text-emerald-800" },
+            recusado: { label: "Recusado", tone: "bg-red-100 text-red-800" },
+            cancelado: { label: "Cancelado", tone: "bg-muted text-muted-foreground" },
+            expirado: { label: "Expirado", tone: "bg-muted text-muted-foreground" },
+          };
+          const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
+          const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
+          const podeAssinarLoja = sol && requerLoja && (sol.status === "assinado_cliente" || sol.status === "aguardando_loja");
+          const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
+          return (
+            <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <FileText className="w-5 h-5 text-purple-600 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
+                    <span className="truncate">{d.nome}</span>
+                    {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
+                    {requerLoja && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {fmtDateTime(d.created_at)}
+                    {sol?.cliente_assinado_em && ` • Cliente: ${new Date(sol.cliente_assinado_em).toLocaleString("pt-BR")}`}
+                    {sol?.loja_assinado_em && ` • Loja: ${new Date(sol.loja_assinado_em).toLocaleString("pt-BR")}`}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-wrap justify-end">
+                {!sol && !d._readonly && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => enviarParaAssinatura(d)} title="Gerar link rápido">
+                      <Send className="w-3.5 h-3.5 mr-1" /> Gerar link
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura (avançado)">
+                      <PenLine className="w-3.5 h-3.5 mr-1" /> Solicitar
+                    </Button>
+                  </>
+                )}
+                {sol && linkPub && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(linkPub); toast.success("Link copiado"); }}>
+                      <Copy className="w-3.5 h-3.5 mr-1" /> Copiar link
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => window.open(linkPub, "_blank")}>
+                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Evidências
+                    </Button>
+                    {podeAssinarLoja && (
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAssinarLojaId(sol.id)}>
+                        <PenLine className="w-3.5 h-3.5 mr-1" /> Assinar pela loja
+                      </Button>
+                    )}
+                  </>
+                )}
+                <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="ghost" title="Baixar arquivo"><FileText className="w-4 h-4" /></Button>
+                </a>
+                {!d._readonly && (
+                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              {!d.assinado_em && !d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)} title="Link rápido">
-                  <Send className="w-4 h-4 text-emerald-600" />
-                </Button>
-              )}
-              {!d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura digital">
-                  <PenLine className="w-4 h-4 text-primary" />
-                </Button>
-              )}
-              {/* keep below */}
-              <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
-              </a>
-              {!d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
