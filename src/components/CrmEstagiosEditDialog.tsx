@@ -116,39 +116,48 @@ export function CrmEstagiosEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader><DialogTitle>Editar estágios — CRM Comercial</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader><DialogTitle>Editar pipes — CRM Comercial</DialogTitle></DialogHeader>
         {loading ? (
           <div className="text-center py-8 text-muted-foreground text-sm">Carregando…</div>
         ) : (
           <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {rows.map((r, i) => (
-              <div key={r.id} className="border rounded-lg p-2">
+            {rows.map((r, i) => {
+              const aberto = !!expandido[r.id];
+              return (
+              <div key={r.id} className="border rounded-lg p-2 space-y-2">
                 <div className="grid grid-cols-12 gap-2 items-center">
                   <div className="col-span-1 flex flex-col items-center gap-0.5 text-muted-foreground">
                     <button onClick={() => move(i, -1)} className="hover:text-foreground"><ArrowUp className="w-3 h-3" /></button>
                     <GripVertical className="w-3 h-3" />
                     <button onClick={() => move(i, 1)} className="hover:text-foreground"><ArrowDown className="w-3 h-3" /></button>
                   </div>
-                  <Input className="col-span-4" value={r.nome} onChange={(e) => update(i, { nome: e.target.value })} placeholder="Nome do estágio" />
+                  <Input className="col-span-6" value={r.nome} onChange={(e) => update(i, { nome: e.target.value })} placeholder="Nome do estágio" />
                   <Input className="col-span-1" type="color" value={r.cor || "#6366F1"} onChange={(e) => update(i, { cor: e.target.value })} />
-                  <div className="col-span-2 flex items-center gap-2">
-                    <Switch checked={r.is_ganho} onCheckedChange={(c) => update(i, { is_ganho: c, is_perdido: c ? false : r.is_perdido })} />
-                    <Label className="text-xs">Ganho</Label>
+                  <div className="col-span-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex h-2 w-2 rounded-full" style={{ background: r.cor || "#6b7280" }} />
+                    {r.ativo ? "Ativo" : "Inativo"}
                   </div>
-                  <div className="col-span-2 flex items-center gap-2">
-                    <Switch checked={r.is_perdido} onCheckedChange={(c) => update(i, { is_perdido: c, is_ganho: c ? false : r.is_ganho })} />
-                    <Label className="text-xs">Perdido</Label>
-                  </div>
-                  <div className="col-span-1 flex items-center gap-1">
-                    <Switch checked={r.ativo} onCheckedChange={(c) => update(i, { ativo: c })} />
-                  </div>
+                  <Button variant="ghost" size="sm" className="col-span-1" onClick={() => setExpandido((x) => ({ ...x, [r.id]: !aberto }))} title="Configurações">
+                    {aberto ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    <Settings className="w-3 h-3 ml-0.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="col-span-1 text-destructive" onClick={() => remove(i)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
+                {aberto && (
+                  <div className="ml-8 border-l-2 pl-3 bg-muted/20 p-2 rounded">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="flex items-center gap-2"><Switch checked={r.is_ganho} onCheckedChange={(c) => update(i, { is_ganho: c, is_perdido: c ? false : r.is_perdido })} /><Label className="text-xs">Pipe de ganho/concluído</Label></div>
+                      <div className="flex items-center gap-2"><Switch checked={r.is_perdido} onCheckedChange={(c) => update(i, { is_perdido: c, is_ganho: c ? false : r.is_ganho })} /><Label className="text-xs">Pipe de perdido</Label></div>
+                      <div className="flex items-center gap-2"><Switch checked={r.ativo} onCheckedChange={(c) => update(i, { ativo: c })} /><Label className="text-xs">Pipe ativo</Label></div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <Button variant="outline" className="w-full gap-1" onClick={addNew}>
               <Plus className="w-4 h-4" /> Novo estágio
             </Button>
