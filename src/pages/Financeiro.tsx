@@ -80,8 +80,13 @@ export default function Financeiro() {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
 
   // Filtros
+  const [searchParams] = useSearchParams();
   const [tipoFiltro, setTipoFiltro] = useState<"todos" | "entrada" | "saida">("todos");
-  const [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState(searchParams.get("busca") || "");
+  useEffect(() => {
+    const q = searchParams.get("busca");
+    if (q) setBusca(q);
+  }, [searchParams]);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
