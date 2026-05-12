@@ -68,6 +68,10 @@ export default function PedidoDetalhe() {
   const [pedidoPai, setPedidoPai] = useState<any>(null);
   const [adendos, setAdendos] = useState<any[]>([]);
   const [criandoAdendo, setCriandoAdendo] = useState(false);
+  const [loja, setLoja] = useState<any>(null);
+  const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
+  const [vendedor, setVendedor] = useState<any>(null);
+  const [responsavel, setResponsavel] = useState<any>(null);
 
   const totalProjeto = useMemo(
     () => ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0),
