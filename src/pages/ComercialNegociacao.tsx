@@ -347,11 +347,12 @@ function ConfirmarPedidoDialog({
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   observacoesPadrao: string;
-  onConfirm: (obs: string) => void;
+  onConfirm: (obs: string, previsaoMedicao: string | null) => void;
   loading: boolean;
 }) {
   const [obs, setObs] = useState("");
-  useEffect(() => { if (open) setObs(observacoesPadrao || ""); }, [open, observacoesPadrao]);
+  const [previsaoMedicao, setPrevisaoMedicao] = useState("");
+  useEffect(() => { if (open) { setObs(observacoesPadrao || ""); setPrevisaoMedicao(""); } }, [open, observacoesPadrao]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
@@ -364,12 +365,17 @@ function ConfirmarPedidoDialog({
               <DialogTitle>Gerar Contrato</DialogTitle>
             </DialogHeader>
             <p className="text-[13px] text-muted-foreground mt-1">
-              Adicione observações ou cláusulas extras que devem aparecer no final do contrato.
+              Adicione observações e a previsão de medição que devem aparecer no pedido e contrato.
             </p>
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label>Observações e informações adicionais</Label>
+          <Label>Previsão de medição</Label>
+          <Input type="date" value={previsaoMedicao} onChange={(e) => setPrevisaoMedicao(e.target.value)} />
+          <p className="text-[11px] text-muted-foreground">Data prevista para realização da medição técnica.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Notas / Observações adicionais</Label>
           <Textarea
             rows={8}
             value={obs}
@@ -377,12 +383,12 @@ function ConfirmarPedidoDialog({
             placeholder="Ex.: Prazo de entrega de 45 dias úteis após assinatura do caderno técnico…"
           />
           <p className="text-[11px] text-muted-foreground">
-            Estas observações aparecerão na seção "Observações e Informações Adicionais" do contrato.
+            Estas notas aparecerão no contrato e ficarão registradas no pedido (somente leitura).
           </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onConfirm(obs)} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={() => onConfirm(obs, previsaoMedicao || null)} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <FileText className="w-4 h-4 mr-1.5" /> {loading ? "Gerando…" : "Confirmar e Gerar Contrato"}
           </Button>
         </DialogFooter>
