@@ -31,33 +31,35 @@ export default function ContratoAssinar() {
       }
 
       // Procura solicitação de assinatura mais recente para este contrato
-      let { data: solic } = await supabase
+      let solicToken: string | null = null;
+      const r1 = await supabase
         .from("solicitacoes_assinatura")
-        .select("token, status")
+        .select("token")
         .eq("contrato_id", ct.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      solicToken = r1.data?.token ?? null;
 
-      // Se não existe, tenta criar automaticamente (precisa user autenticado para RLS,
-      // mas a função SECURITY DEFINER abaixo cria mesmo sem auth)
-      if (!solic?.token) {
-        await supabase.rpc("auto_criar_solic_contrato", {
-          p_pedido_id: null as any,
-          p_contrato_id: ct.id,
-        }).catch(() => {/* sem auth: ignora */});
-        const re = await supabase
+      if (!solicToken) {
+        try {
+          await supabase.rpc("auto_criar_solic_contrato", {
+            p_pedido_id: null as any,
+            p_contrato_id: ct.id,
+          });
+        } catch { /* sem auth: ignora */ }
+        const r2 = await supabase
           .from("solicitacoes_assinatura")
           .select("token")
           .eq("contrato_id", ct.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        solic = re.data;
+        solicToken = r2.data?.token ?? null;
       }
 
-      if (solic?.token) {
-        setRedirectTo(`/assinatura/${solic.token}`);
+      if (solicToken) {
+        setRedirectTo(`/assinatura/${solicToken}`);
       } else {
         setErro("Solicitação de assinatura ainda não disponível. Entre em contato com a loja.");
       }
