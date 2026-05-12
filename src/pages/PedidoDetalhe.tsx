@@ -164,12 +164,13 @@ export default function PedidoDetalhe() {
     setRevisoes(rv || []);
     const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
     setUsuarios(prof || []);
-    // Pedido pai (se este for adendo) e adendos filhos
+    // Pedido pai (se este for adendo) e adendos vinculados ao pedido raiz
     if (ped.pedido_pai_id) {
       const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
       setPedidoPai(pai);
     } else { setPedidoPai(null); }
-    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", id as string).order("created_at");
+    const raizId = ped.pedido_pai_id || (id as string);
+    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
     setAdendos(filhos || []);
 
     // Loja
@@ -260,31 +261,36 @@ export default function PedidoDetalhe() {
     toast.success(`Workflow iniciado em: ${estagio.toUpperCase()}`);
   };
 
-  /* ----- criar adendo (novo orçamento atrelado a este pedido) ----- */
+  /* ----- criar adendo (novo orçamento atrelado ao pedido RAIZ) ----- */
   const criarAdendo = async () => {
     if (!pedido || !pedido.orcamento_id) return;
-    if (!confirm("Criar um novo Adendo a partir deste pedido?\n\nO adendo é um orçamento complementar vinculado ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros independentes — sem alterar a venda já fechada.")) return;
+    // adendos sempre nascem a partir do pedido raiz (pai), nunca de outro adendo
+    const raizId = pedido.pedido_pai_id || pedido.id;
+    const raiz = pedido.pedido_pai_id ? (pedidoPai || { id: raizId, codigo: "" }) : pedido;
+    if (!confirm("Criar um novo Adendo deste pedido?\n\nO adendo é uma atualização vinculada ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros, mas continua acessível dentro do mesmo pedido (em uma aba).")) return;
     setCriandoAdendo(true);
     try {
-      const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
-      if (!orc) throw new Error("Orçamento original não encontrado");
-      const seq = (adendos.length + 1).toString().padStart(2, "0");
-      const novoCodigo = `${orc.codigo}-ADD-${seq}`;
+      const { data: orcRaiz } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orcRaiz) throw new Error("Orçamento original não encontrado");
+      // numeração do adendo é por pedido raiz
+      const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("pedido_pai_id", raizId);
+      const seq = ((count || 0) + 1).toString().padStart(2, "0");
+      const novoCodigo = `${orcRaiz.codigo}-ADD-${seq}`;
       const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
         codigo: novoCodigo,
-        cliente_id: orc.cliente_id,
-        loja_id: orc.loja_id,
-        nome_projeto: `[ADENDO ${seq} de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+        cliente_id: orcRaiz.cliente_id,
+        loja_id: orcRaiz.loja_id,
+        nome_projeto: `[ADENDO ${seq} de ${raiz.codigo || ""}] ${orcRaiz.nome_projeto || ""}`,
         status: "negociacao",
         subtotal: 0, total: 0,
-        parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
-        consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+        parceiro_id: orcRaiz.parceiro_id, parceiro_perc: orcRaiz.parceiro_perc,
+        consultor_id: orcRaiz.consultor_id, vendedor_id: orcRaiz.vendedor_id, origem_id: orcRaiz.origem_id,
         is_adendo: true,
-        pedido_origem_id: pedido.id,
+        pedido_origem_id: raizId,
         created_by: user?.id,
       } as any).select().maybeSingle();
       if (error || !novoOrc) throw error || new Error("Falha ao criar adendo");
-      toast.success(`Adendo ${novoCodigo} criado`);
+      toast.success(`Adendo ${novoCodigo} criado — finalize-o e ele aparecerá como aba dentro do pedido ${raiz.codigo || ""}`);
       navigate(`/comercial/${novoOrc.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar adendo");
@@ -300,8 +306,43 @@ export default function PedidoDetalhe() {
   const assinaturaPendente = contrato && contrato.status === "aguardando_assinatura";
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
+  const ehAdendo = !!pedido.pedido_pai_id;
+  const temAdendos = adendos.length > 0;
+  const raizParaTabs = pedidoPai
+    ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
+    : { id: pedido.id, codigo: pedido.codigo };
+  // abas: pedido raiz + todos os adendos
+  const abas = [raizParaTabs, ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo }))];
+
   return (
     <div className="space-y-5">
+      {/* TARJA VERMELHA — adendos vinculados */}
+      {(temAdendos || ehAdendo) && (
+        <div className="rounded-md bg-red-600 text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {ehAdendo ? (
+            <span>
+              Você está visualizando um <b>ADENDO</b> ({pedido.codigo}) do pedido{" "}
+              {pedidoPai && (
+                <Link to={`/pedidos/${pedidoPai.id}`} className="underline font-semibold hover:text-white/90">
+                  {pedidoPai.codigo}
+                </Link>
+              )}.
+            </span>
+          ) : (
+            <span>
+              Este pedido possui <b>{adendos.length}</b> adendo{adendos.length > 1 ? "s" : ""} vinculado{adendos.length > 1 ? "s" : ""} — acesse{" "}
+              {adendos.map((a: any, i: number) => (
+                <span key={a.id}>
+                  <Link to={`/pedidos/${a.id}`} className="underline font-semibold hover:text-white/90">{a.codigo}</Link>
+                  {i < adendos.length - 1 ? ", " : ""}
+                </span>
+              ))}{" "}pelas abas abaixo.
+            </span>
+          )}
+        </div>
+      )}
+
       {/* HEADER COMPACTO */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -316,9 +357,9 @@ export default function PedidoDetalhe() {
                 <Clock className="w-3.5 h-3.5" /> Assinatura pendente
               </span>
             )}
-            {pedido.is_adendo && (
-              <span className="inline-flex items-center gap-1 text-purple-600 font-medium px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200">
-                <Sparkles className="w-3.5 h-3.5" /> Adendo
+            {ehAdendo && (
+              <span className="inline-flex items-center gap-1 text-red-700 font-semibold px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                <Sparkles className="w-3.5 h-3.5" /> Adendo {pedidoPai ? `de ${pedidoPai.codigo}` : ""}
               </span>
             )}
           </div>
@@ -357,6 +398,30 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {/* ABAS — pedido raiz + adendos */}
+      {abas.length > 1 && (
+        <div className="flex items-center gap-1 border-b overflow-x-auto">
+          {abas.map((a: any, idx: number) => {
+            const ativo = a.id === pedido.id;
+            const isRaiz = idx === 0;
+            return (
+              <Link
+                key={a.id}
+                to={`/pedidos/${a.id}`}
+                className={`px-4 py-2 text-[13px] font-medium uppercase tracking-wider border-b-2 -mb-px whitespace-nowrap ${
+                  ativo
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {isRaiz ? <FileText className="w-3.5 h-3.5 inline mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />}
+                {a.codigo}{isRaiz ? " · Original" : ""}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       {/* PAINEL PRINCIPAL — DADOS DO PEDIDO + CLIENTE/LOJA */}
       <PedidoHeaderPanel
         pedido={pedido}
@@ -369,33 +434,7 @@ export default function PedidoDetalhe() {
         adendos={adendos}
       />
 
-      {/* VÍNCULO DE ADENDO / PEDIDO PAI */}
-      {(pedidoPai || adendos.length > 0) && (
-        <section className="surface-card p-4 border-l-4 border-purple-400">
-          <div className="flex items-start gap-4 flex-wrap">
-            {pedidoPai && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Pedido original</div>
-                <Link to={`/pedidos/${pedidoPai.id}`} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple-700 hover:underline">
-                  <FileText className="w-4 h-4" /> {pedidoPai.codigo} · {fmtBrl(Number(pedidoPai.valor_total) || 0)}
-                </Link>
-              </div>
-            )}
-            {adendos.length > 0 && (
-              <div className="flex-1 min-w-[280px]">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Adendos vinculados ({adendos.length})</div>
-                <div className="flex flex-wrap gap-2">
-                  {adendos.map((a) => (
-                    <Link key={a.id} to={`/pedidos/${a.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 border border-purple-200 text-[12px] text-purple-700 hover:bg-purple-100">
-                      <Sparkles className="w-3.5 h-3.5" /> {a.codigo} · {fmtBrl(Number(a.valor_total) || 0)} <span className="text-muted-foreground">· {a.status}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
       {/* PIPELINES & ESTÁGIOS */}
       <PipelinesPanel pedido={pedido} />
