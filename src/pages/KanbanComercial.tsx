@@ -132,8 +132,17 @@ export default function KanbanComercial() {
     return arr;
   }, []);
 
+  const visibleEstagios = useMemo(
+    () => (isAdmin ? estagios : estagios.filter((e) => !e.is_ganho && !e.is_perdido)),
+    [estagios, isAdmin]
+  );
+
   const filtered = useMemo(() => {
     return cards.filter((c) => {
+      if (!isAdmin) {
+        const est = estagios.find((e) => e.id === c.estagio_id);
+        if (est && (est.is_ganho || est.is_perdido)) return false;
+      }
       if (filtroLoja !== "todas" && c.loja_id !== filtroLoja) return false;
       if (filtroVend !== "todos" && c.vendedor_id !== filtroVend) return false;
       if (filtroMes !== "todos") {
@@ -148,10 +157,13 @@ export default function KanbanComercial() {
       }
       return true;
     });
-  }, [cards, filtroLoja, filtroVend, filtroMes, search]);
+  }, [cards, filtroLoja, filtroVend, filtroMes, search, isAdmin, estagios]);
 
   const moverCard = async (card: Card, novoEstId: string) => {
     const est = estagios.find((e) => e.id === novoEstId);
+    if (!isAdmin && est && (est.is_ganho || est.is_perdido)) {
+      return toast.error("Apenas admin pode mover cards para Ganho/Perdido");
+    }
     if (est?.is_perdido) {
       setPerdaCard(card);
       setPerdaEstId(novoEstId);
@@ -307,7 +319,7 @@ export default function KanbanComercial() {
         <div className="grid grid-cols-3 gap-3">{[1,2,3,4,5,6].map((i) => <Skeleton key={i} className="h-64" />)}</div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
-          {estagios.map((est) => {
+          {visibleEstagios.map((est) => {
             const items = filtered.filter((c) => c.estagio_id === est.id);
             const total = items.reduce((s, c) => s + c.total, 0);
             return (
