@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, Loader2, MessageCircle, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 type Props = {
   open: boolean;
@@ -108,7 +109,7 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         descricao: "Solicitação de assinatura criada",
       });
 
-      const url = `${window.location.origin}/assinatura/${data.token}`;
+      const url = getPublicSignatureUrl(data.token);
       setLink(url);
       onCreated?.(data.id, url);
       toast.success("Solicitação criada");

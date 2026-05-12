@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 export default function ContratoVisualizar() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +29,7 @@ export default function ContratoVisualizar() {
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!contrato) return <div className="text-center py-20 text-muted-foreground text-[13px]">Contrato não encontrado.</div>;
 
-  const signingUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
+  const signingUrl = getLegacyPublicContractUrl(contrato.signing_token);
 
   const copiarLink = async () => {
     await navigator.clipboard.writeText(signingUrl);

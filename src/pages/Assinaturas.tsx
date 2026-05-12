@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
@@ -92,7 +93,7 @@ export default function Assinaturas() {
   });
 
   const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/assinatura/${token}`);
+    navigator.clipboard.writeText(getPublicSignatureUrl(token));
     toast.success("Link copiado");
   };
 
@@ -169,7 +170,7 @@ export default function Assinaturas() {
                       <Copy className="w-4 h-4" />
                     </Button>
                     <Button size="icon" variant="ghost" title="Abrir link" asChild>
-                      <a href={`/assinatura/${i.token}`} target="_blank" rel="noreferrer">
+                      <a href={getPublicSignatureUrl(i.token)} target="_blank" rel="noreferrer">
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </Button>
