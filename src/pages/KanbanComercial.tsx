@@ -319,7 +319,7 @@ export default function KanbanComercial() {
         <div className="grid grid-cols-3 gap-3">{[1,2,3,4,5,6].map((i) => <Skeleton key={i} className="h-64" />)}</div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
-          {estagios.map((est) => {
+          {visibleEstagios.map((est) => {
             const items = filtered.filter((c) => c.estagio_id === est.id);
             const total = items.reduce((s, c) => s + c.total, 0);
             return (
