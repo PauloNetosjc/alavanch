@@ -306,8 +306,43 @@ export default function PedidoDetalhe() {
   const assinaturaPendente = contrato && contrato.status === "aguardando_assinatura";
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
+  const ehAdendo = !!pedido.pedido_pai_id;
+  const temAdendos = adendos.length > 0;
+  const raizParaTabs = pedidoPai
+    ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
+    : { id: pedido.id, codigo: pedido.codigo };
+  // abas: pedido raiz + todos os adendos
+  const abas = [raizParaTabs, ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo }))];
+
   return (
     <div className="space-y-5">
+      {/* TARJA VERMELHA — adendos vinculados */}
+      {(temAdendos || ehAdendo) && (
+        <div className="rounded-md bg-red-600 text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {ehAdendo ? (
+            <span>
+              Você está visualizando um <b>ADENDO</b> ({pedido.codigo}) do pedido{" "}
+              {pedidoPai && (
+                <Link to={`/pedidos/${pedidoPai.id}`} className="underline font-semibold hover:text-white/90">
+                  {pedidoPai.codigo}
+                </Link>
+              )}.
+            </span>
+          ) : (
+            <span>
+              Este pedido possui <b>{adendos.length}</b> adendo{adendos.length > 1 ? "s" : ""} vinculado{adendos.length > 1 ? "s" : ""} — acesse{" "}
+              {adendos.map((a: any, i: number) => (
+                <span key={a.id}>
+                  <Link to={`/pedidos/${a.id}`} className="underline font-semibold hover:text-white/90">{a.codigo}</Link>
+                  {i < adendos.length - 1 ? ", " : ""}
+                </span>
+              ))}{" "}pelas abas abaixo.
+            </span>
+          )}
+        </div>
+      )}
+
       {/* HEADER COMPACTO */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -322,9 +357,9 @@ export default function PedidoDetalhe() {
                 <Clock className="w-3.5 h-3.5" /> Assinatura pendente
               </span>
             )}
-            {pedido.is_adendo && (
-              <span className="inline-flex items-center gap-1 text-purple-600 font-medium px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200">
-                <Sparkles className="w-3.5 h-3.5" /> Adendo
+            {ehAdendo && (
+              <span className="inline-flex items-center gap-1 text-red-700 font-semibold px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                <Sparkles className="w-3.5 h-3.5" /> Adendo {pedidoPai ? `de ${pedidoPai.codigo}` : ""}
               </span>
             )}
           </div>
@@ -362,6 +397,30 @@ export default function PedidoDetalhe() {
           </Button>
         </div>
       </div>
+
+      {/* ABAS — pedido raiz + adendos */}
+      {abas.length > 1 && (
+        <div className="flex items-center gap-1 border-b overflow-x-auto">
+          {abas.map((a: any, idx: number) => {
+            const ativo = a.id === pedido.id;
+            const isRaiz = idx === 0;
+            return (
+              <Link
+                key={a.id}
+                to={`/pedidos/${a.id}`}
+                className={`px-4 py-2 text-[13px] font-medium uppercase tracking-wider border-b-2 -mb-px whitespace-nowrap ${
+                  ativo
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {isRaiz ? <FileText className="w-3.5 h-3.5 inline mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />}
+                {a.codigo}{isRaiz ? " · Original" : ""}
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* PAINEL PRINCIPAL — DADOS DO PEDIDO + CLIENTE/LOJA */}
       <PedidoHeaderPanel
