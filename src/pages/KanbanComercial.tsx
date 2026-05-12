@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText, Phone, MapPin, User, Tag, ExternalLink } from "lucide-react";
+import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText, Phone, MapPin, User, Tag, ExternalLink, Clock, Mail, Home, Store } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +36,11 @@ type Card = {
 };
 
 const fmtBrl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+
+const tipoAgendaLabel = (tipo?: string | null) => {
+  if (!tipo) return "—";
+  return tipo.split("_").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+};
 
 export default function KanbanComercial() {
   const navigate = useNavigate();
@@ -210,11 +215,23 @@ export default function KanbanComercial() {
       if (c.kind === "lead") {
         const { data: lead } = await supabase
           .from("leads" as any)
-          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome)")
+          .select("*, cliente:clientes(nome, telefone, email, cpf_cnpj, endereco_entrega, endereco_cobranca), loja:lojas(nome)")
           .eq("id", c.id)
           .maybeSingle();
+        let agendaQuery = (supabase as any)
+          .from("agenda_eventos")
+          .select("id,titulo,tipo,descricao,data,hora_inicio,hora_fim,endereco,status,responsavel_id,created_at,loja:lojas(nome), cliente:clientes(nome, telefone, email, cpf_cnpj, endereco_entrega, endereco_cobranca)")
+          .eq("cliente_id", c.cliente_id)
+          .eq("tipo", "apresentacao_comercial")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (c.data_apresentacao) agendaQuery = agendaQuery.eq("data", c.data_apresentacao);
+        if (c.hora_apresentacao) agendaQuery = agendaQuery.eq("hora_inicio", c.hora_apresentacao);
+        const { data: agendas } = await agendaQuery;
         const vendedorNome = vendedores.find((v) => v.user_id === (lead as any)?.usuario_id)?.nome_completo ?? null;
-        setDetalheData({ ...(lead as any), vendedor: { nome_completo: vendedorNome } });
+        const agenda = Array.isArray(agendas) ? agendas[0] : null;
+        const responsavelNome = vendedores.find((v) => v.user_id === agenda?.responsavel_id)?.nome_completo ?? null;
+        setDetalheData({ ...(lead as any), agenda: agenda ? { ...agenda, responsavel: { nome_completo: responsavelNome } } : null, vendedor: { nome_completo: vendedorNome } });
       } else {
         const { data: orc } = await supabase
           .from("orcamentos")
@@ -393,42 +410,64 @@ export default function KanbanComercial() {
             </div>
           ) : detalheCard?.kind === "lead" && detalheData ? (
             <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
-                  <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? detalheData.nome ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">WhatsApp / Telefone</div>
-                  <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.whatsapp || detalheData.cliente?.telefone || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Data Apresentação</div>
-                  <div className="font-medium">
-                    {detalheData.data_apresentacao
-                      ? `${new Date(detalheData.data_apresentacao + "T00:00:00").toLocaleDateString("pt-BR")}${detalheData.hora_apresentacao ? ` às ${String(detalheData.hora_apresentacao).slice(0,5)}` : ""}`
-                      : "—"}
+              <div className="rounded-xl border bg-muted/20 p-3 space-y-3">
+                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Dados do agendamento</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Tipo</div>
+                    <div className="font-medium flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{tipoAgendaLabel(detalheData.agenda?.tipo) || "Apresentação Comercial"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Data e horário</div>
+                    <div className="font-medium flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />
+                      {(detalheData.agenda?.data || detalheData.data_apresentacao)
+                        ? `${new Date((detalheData.agenda?.data || detalheData.data_apresentacao) + "T00:00:00").toLocaleDateString("pt-BR")}${(detalheData.agenda?.hora_inicio || detalheData.hora_apresentacao) ? ` às ${String(detalheData.agenda?.hora_inicio || detalheData.hora_apresentacao).slice(0,5)}` : ""}`
+                        : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Responsável</div>
+                    <div className="font-medium">{detalheData.agenda?.responsavel?.nome_completo ?? detalheData.vendedor?.nome_completo ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
+                    <div className="font-medium flex items-center gap-1.5"><Store className="w-3.5 h-3.5" />{detalheData.agenda?.loja?.nome ?? detalheData.loja?.nome ?? "—"}</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
-                  <div className="font-medium">{detalheData.loja?.nome ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Vendedor</div>
-                  <div className="font-medium">{detalheData.vendedor?.nome_completo ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Indicador</div>
-                  <div className="font-medium">{detalheData.indicador ?? "—"}</div>
+                {(detalheData.agenda?.endereco || detalheData.endereco) && (
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço do agendamento</div>
+                    <div className="font-medium flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 mt-0.5" />{detalheData.agenda?.endereco || detalheData.endereco}</div>
+                  </div>
+                )}
+                {detalheData.agenda?.descricao && <div className="text-sm bg-background rounded-lg p-2 whitespace-pre-wrap">{detalheData.agenda.descricao}</div>}
+              </div>
+
+              <div className="rounded-xl border p-3 space-y-3">
+                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Card do cliente</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
+                    <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? detalheData.nome ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">WhatsApp / Telefone</div>
+                    <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.whatsapp || detalheData.cliente?.telefone || detalheData.agenda?.cliente?.telefone || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">E-mail</div>
+                    <div className="font-medium flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{detalheData.cliente?.email || detalheData.agenda?.cliente?.email || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">CPF/CNPJ</div>
+                    <div className="font-medium">{detalheData.cliente?.cpf_cnpj || detalheData.agenda?.cliente?.cpf_cnpj || "—"}</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço do cliente</div>
+                    <div className="font-medium flex items-start gap-1.5"><Home className="w-3.5 h-3.5 mt-0.5" />{detalheData.cliente?.endereco_entrega || detalheData.cliente?.endereco_cobranca || detalheData.agenda?.cliente?.endereco_entrega || "—"}</div>
+                  </div>
                 </div>
               </div>
-              {detalheData.endereco && (
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço</div>
-                  <div className="font-medium flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 mt-0.5" />{detalheData.endereco}</div>
-                </div>
-              )}
               {Array.isArray(detalheData.interesse) && detalheData.interesse.length > 0 && (
                 <div>
                   <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Interesse</div>
