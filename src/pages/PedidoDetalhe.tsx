@@ -287,7 +287,7 @@ export default function PedidoDetalhe() {
 
   return (
     <div className="space-y-5">
-      {/* HEADER */}
+      {/* HEADER COMPACTO */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <Link to="/comercial" className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
@@ -311,7 +311,7 @@ export default function PedidoDetalhe() {
             <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-[13px] cursor-pointer">
             <Checkbox checked={!!pedido.vip} onCheckedChange={(v) => salvarPedido({ vip: !!v })} />
             <Star className="w-4 h-4 text-amber-500" /> VIP
@@ -341,6 +341,18 @@ export default function PedidoDetalhe() {
           </Button>
         </div>
       </div>
+
+      {/* PAINEL PRINCIPAL — DADOS DO PEDIDO + CLIENTE/LOJA */}
+      <PedidoHeaderPanel
+        pedido={pedido}
+        orcamento={orcamento}
+        cliente={cliente}
+        loja={loja}
+        contrato={contrato}
+        vendedor={vendedor}
+        responsavel={responsavel}
+        adendos={adendos}
+      />
 
       {/* VÍNCULO DE ADENDO / PEDIDO PAI */}
       {(pedidoPai || adendos.length > 0) && (
