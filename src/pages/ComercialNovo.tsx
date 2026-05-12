@@ -435,6 +435,7 @@ export default function ComercialNovo() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEdit = !!editId;
+  const preselectCliente = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("cliente") : null;
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
@@ -448,7 +449,7 @@ export default function ComercialNovo() {
 
   // ---- step 1 ----
   const [nomeProjeto, setNomeProjeto] = useState("");
-  const [clienteId, setClienteId] = useState<string>("");
+  const [clienteId, setClienteId] = useState<string>(preselectCliente || "");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
   const [projetistaNome, setProjetistaNome] = useState<string>("");
