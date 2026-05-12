@@ -795,7 +795,7 @@ function WhatsappCard({ cliente }: any) {
 /* ============================================================== */
 /*                  CENTRAL DE DOCUMENTOS                         */
 /* ============================================================== */
-function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
+function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange }: any) {
   const [pastaAtiva, setPastaAtiva] = useState<string | null>(pastas[0]?.id || null);
   const [novaPastaOpen, setNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
@@ -805,6 +805,15 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
   const [assinaturaOpen, setAssinaturaOpen] = useState<any>(null);
   const [renomearPasta, setRenomearPasta] = useState<any>(null);
   const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
+  const [evidId, setEvidId] = useState<string | null>(null);
+  const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
+
+  // Mapa: pedido_documento_id -> última solicitação
+  const solicByDoc = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const s of solicitacoes) if (s.pedido_documento_id && !m[s.pedido_documento_id]) m[s.pedido_documento_id] = s;
+    return m;
+  }, [solicitacoes]);
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
