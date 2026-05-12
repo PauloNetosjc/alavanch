@@ -718,20 +718,20 @@ function Cronograma({ pedido, salvarPedido }: any) {
 /* ============================================================== */
 /*                       OBSERVAÇÕES                              */
 /* ============================================================== */
-function Observacoes({ pedido, salvarPedido }: any) {
-  const [text, setText] = useState(pedido.observacoes_venda || "");
-  useEffect(() => setText(pedido.observacoes_venda || ""), [pedido.id]);
+function Observacoes({ pedido }: any) {
+  const text = pedido.observacoes_venda || "";
   return (
     <div className="surface-card p-5 flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <FileText className="w-5 h-5 text-amber-600" />
         <h3 className="font-playfair text-[18px] font-semibold">Notas</h3>
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">{text ? "Estas notas serão incluídas no contrato." : "Sem notas — o conteúdo será anexado ao contrato."}</p>
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Digite aqui as notas que aparecerão no contrato…" className="flex-1 min-h-[160px] bg-amber-50/30 border-amber-200" />
-      <Button onClick={async () => { await salvarPedido({ observacoes_venda: text }); toast.success("Notas salvas"); }} className="mt-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300">
-        <CheckCircle2 className="w-4 h-4 mr-1.5" /> Salvar
-      </Button>
+      <p className="text-[11px] text-muted-foreground mb-3">
+        {text ? "Notas definidas na geração do pedido — incluídas no contrato." : "Nenhuma nota foi adicionada na geração do pedido."}
+      </p>
+      <div className="flex-1 min-h-[160px] bg-amber-50/30 border border-amber-200 rounded-md p-3 text-[13px] whitespace-pre-wrap text-foreground/80">
+        {text || <span className="text-muted-foreground italic">Sem notas.</span>}
+      </div>
     </div>
   );
 }
