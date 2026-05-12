@@ -132,8 +132,17 @@ export default function KanbanComercial() {
     return arr;
   }, []);
 
+  const visibleEstagios = useMemo(
+    () => (isAdmin ? estagios : estagios.filter((e) => !e.is_ganho && !e.is_perdido)),
+    [estagios, isAdmin]
+  );
+
   const filtered = useMemo(() => {
     return cards.filter((c) => {
+      if (!isAdmin) {
+        const est = estagios.find((e) => e.id === c.estagio_id);
+        if (est && (est.is_ganho || est.is_perdido)) return false;
+      }
       if (filtroLoja !== "todas" && c.loja_id !== filtroLoja) return false;
       if (filtroVend !== "todos" && c.vendedor_id !== filtroVend) return false;
       if (filtroMes !== "todos") {

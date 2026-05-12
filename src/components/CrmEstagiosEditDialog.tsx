@@ -117,7 +117,7 @@ export function CrmEstagiosEditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl">
-        <DialogHeader><DialogTitle>Editar pipes — CRM Comercial</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Editar estágios — CRM Comercial</DialogTitle></DialogHeader>
         {loading ? (
           <div className="text-center py-8 text-muted-foreground text-sm">Carregando…</div>
         ) : (
