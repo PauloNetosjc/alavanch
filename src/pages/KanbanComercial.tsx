@@ -410,42 +410,64 @@ export default function KanbanComercial() {
             </div>
           ) : detalheCard?.kind === "lead" && detalheData ? (
             <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
-                  <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? detalheData.nome ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">WhatsApp / Telefone</div>
-                  <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.whatsapp || detalheData.cliente?.telefone || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Data Apresentação</div>
-                  <div className="font-medium">
-                    {detalheData.data_apresentacao
-                      ? `${new Date(detalheData.data_apresentacao + "T00:00:00").toLocaleDateString("pt-BR")}${detalheData.hora_apresentacao ? ` às ${String(detalheData.hora_apresentacao).slice(0,5)}` : ""}`
-                      : "—"}
+              <div className="rounded-xl border bg-muted/20 p-3 space-y-3">
+                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Dados do agendamento</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Tipo</div>
+                    <div className="font-medium flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{tipoAgendaLabel(detalheData.agenda?.tipo) || "Apresentação Comercial"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Data e horário</div>
+                    <div className="font-medium flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />
+                      {(detalheData.agenda?.data || detalheData.data_apresentacao)
+                        ? `${new Date((detalheData.agenda?.data || detalheData.data_apresentacao) + "T00:00:00").toLocaleDateString("pt-BR")}${(detalheData.agenda?.hora_inicio || detalheData.hora_apresentacao) ? ` às ${String(detalheData.agenda?.hora_inicio || detalheData.hora_apresentacao).slice(0,5)}` : ""}`
+                        : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Responsável</div>
+                    <div className="font-medium">{detalheData.agenda?.responsavel?.nome_completo ?? detalheData.vendedor?.nome_completo ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
+                    <div className="font-medium flex items-center gap-1.5"><Store className="w-3.5 h-3.5" />{detalheData.agenda?.loja?.nome ?? detalheData.loja?.nome ?? "—"}</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Loja</div>
-                  <div className="font-medium">{detalheData.loja?.nome ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Vendedor</div>
-                  <div className="font-medium">{detalheData.vendedor?.nome_completo ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Indicador</div>
-                  <div className="font-medium">{detalheData.indicador ?? "—"}</div>
+                {(detalheData.agenda?.endereco || detalheData.endereco) && (
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço do agendamento</div>
+                    <div className="font-medium flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 mt-0.5" />{detalheData.agenda?.endereco || detalheData.endereco}</div>
+                  </div>
+                )}
+                {detalheData.agenda?.descricao && <div className="text-sm bg-background rounded-lg p-2 whitespace-pre-wrap">{detalheData.agenda.descricao}</div>}
+              </div>
+
+              <div className="rounded-xl border p-3 space-y-3">
+                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Card do cliente</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Cliente</div>
+                    <div className="font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{detalheData.cliente?.nome ?? detalheData.nome ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">WhatsApp / Telefone</div>
+                    <div className="font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{detalheData.whatsapp || detalheData.cliente?.telefone || detalheData.agenda?.cliente?.telefone || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">E-mail</div>
+                    <div className="font-medium flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{detalheData.cliente?.email || detalheData.agenda?.cliente?.email || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">CPF/CNPJ</div>
+                    <div className="font-medium">{detalheData.cliente?.cpf_cnpj || detalheData.agenda?.cliente?.cpf_cnpj || "—"}</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço do cliente</div>
+                    <div className="font-medium flex items-start gap-1.5"><Home className="w-3.5 h-3.5 mt-0.5" />{detalheData.cliente?.endereco_entrega || detalheData.cliente?.endereco_cobranca || detalheData.agenda?.cliente?.endereco_entrega || "—"}</div>
+                  </div>
                 </div>
               </div>
-              {detalheData.endereco && (
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Endereço</div>
-                  <div className="font-medium flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 mt-0.5" />{detalheData.endereco}</div>
-                </div>
-              )}
               {Array.isArray(detalheData.interesse) && detalheData.interesse.length > 0 && (
                 <div>
                   <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Interesse</div>
