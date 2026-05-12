@@ -170,7 +170,7 @@ export default function AssinaturaPublica() {
       const selfieExt = (selfie.name.split(".").pop() || "jpg").toLowerCase();
       const docPath = `${solic.id}/documento-${ts}.${docExt}`;
       const selfiePath = `${solic.id}/selfie-${ts}.${selfieExt}`;
-      const sigBlob = await (await fetch(padRef.current!.toDataURL("image/png"))).blob();
+      const sigBlob = await (await fetch(padRef.current!.toDataURL())).blob();
       const sigPath = `${solic.id}/assinatura-${ts}.png`;
 
       const ups = await Promise.all([
