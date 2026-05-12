@@ -1414,11 +1414,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   };
 
   const copiarLink = async () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     await navigator.clipboard.writeText(signingUrl);
     toast.success("Link copiado");
   };
 
   const enviarEmail = () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     if (!cliente?.email) return toast.error("Cliente sem e-mail cadastrado");
     const assunto = encodeURIComponent(`Contrato ${contrato.numero} - assinatura`);
     const corpo = encodeURIComponent(
@@ -1428,6 +1430,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   };
 
   const enviarWhatsapp = () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     if (!cliente?.telefone) return toast.error("Cliente sem telefone cadastrado");
     const fone = String(cliente.telefone).replace(/\D/g, "");
     const msg = encodeURIComponent(
