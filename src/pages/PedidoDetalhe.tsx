@@ -509,6 +509,9 @@ export default function PedidoDetalhe() {
       {/* PARCELAS — fluxo financeiro */}
       <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
+      {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
+      <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
+
       {/* AVISO: edição de pedido fechado gera adendo */}
       <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
         <Sparkles className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
@@ -1387,6 +1390,182 @@ function ParcelasTabela({ pagamentos, total }: any) {
             </tr>
           </tfoot>
         </table>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================== */
+/*                RESUMO FINANCEIRO DO PEDIDO                     */
+/* ============================================================== */
+function ResumoFinanceiroPedido({ pedido, ambientes, salvarPedido }: any) {
+  const [lancs, setLancs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dataPag, setDataPag] = useState<string>(pedido.data_pagamento_fabrica || "");
+  const [savingDate, setSavingDate] = useState(false);
+  const [marcandoEnvio, setMarcandoEnvio] = useState(false);
+
+  const carregar = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("lancamentos_financeiros")
+      .select("id, tipo, descricao, valor, data_vencimento, data_pagamento, status, categoria_id")
+      .eq("pedido_id", pedido.id)
+      .order("data_vencimento", { ascending: true });
+    setLancs(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id, pedido.workflow_estagio, pedido.data_envio_fabrica]);
+  useEffect(() => { setDataPag(pedido.data_pagamento_fabrica || ""); }, [pedido.data_pagamento_fabrica]);
+
+  const custoFabricaProjetado = (ambientes || []).reduce(
+    (s: number, a: any) => s + (Number(a.custo_fabrica) || 0), 0
+  );
+
+  const entradas = lancs.filter((l) => l.tipo === "entrada");
+  const saidas = lancs.filter((l) => l.tipo === "saida");
+  const totalEntradas = entradas.reduce((s, l) => s + Number(l.valor || 0), 0);
+  const totalSaidas = saidas.reduce((s, l) => s + Number(l.valor || 0), 0);
+  const recebido = entradas.filter((l) => l.status === "pago" || l.status === "conciliado").reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pago = saidas.filter((l) => l.status === "pago" || l.status === "conciliado").reduce((s, l) => s + Number(l.valor || 0), 0);
+
+  const fabricaJaGerada = saidas.some((l) => /custo fábrica/i.test(l.descricao || ""));
+
+  const salvarDataPagamento = async () => {
+    setSavingDate(true);
+    await salvarPedido({ data_pagamento_fabrica: dataPag || null });
+    setSavingDate(false);
+    toast.success("Data de pagamento à fábrica salva");
+  };
+
+  const marcarEnvioFabrica = async () => {
+    if (fabricaJaGerada) { toast.info("Cobrança já foi gerada"); return; }
+    setMarcandoEnvio(true);
+    await salvarPedido({
+      data_envio_fabrica: new Date().toISOString().slice(0, 10),
+      data_pagamento_fabrica: dataPag || null,
+    });
+    setMarcandoEnvio(false);
+    toast.success("Envio à fábrica registrado — cobrança gerada");
+    setTimeout(carregar, 600);
+  };
+
+  const statusBadge = (s: string) => {
+    const map: any = {
+      pendente: "bg-amber-50 text-amber-700 border-amber-200",
+      pago: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      conciliado: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      cancelado: "bg-rose-50 text-rose-700 border-rose-200",
+    };
+    return <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase tracking-wider border ${map[s] || "bg-muted text-muted-foreground"}`}>{s || "—"}</span>;
+  };
+
+  return (
+    <section className="surface-card p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider">Resumo Financeiro</h2>
+          <p className="text-[12px] text-muted-foreground">Receitas e custos vinculados ao pedido — sincronizado com o Financeiro</p>
+        </div>
+        <Link to={`/pedidos/${pedido.id}/receita`} className="text-[12px] text-[#1F5235] hover:underline inline-flex items-center gap-1">
+          <ExternalLink className="w-3 h-3" /> Ver receita
+        </Link>
+      </div>
+
+      {/* Cards resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-lg border bg-emerald-50/40 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-emerald-700">A Receber (entradas)</div>
+          <div className="text-[18px] font-semibold text-emerald-700">{fmtBrl(totalEntradas)}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Recebido: {fmtBrl(recebido)}</div>
+        </div>
+        <div className="rounded-lg border bg-rose-50/40 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-rose-700">Custo Fábrica (gerado)</div>
+          <div className="text-[18px] font-semibold text-rose-700">{fmtBrl(totalSaidas)}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Pago: {fmtBrl(pago)}</div>
+        </div>
+        <div className="rounded-lg border bg-amber-50/40 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-amber-700">Custo Fábrica (projetado)</div>
+          <div className="text-[18px] font-semibold text-amber-700">{fmtBrl(custoFabricaProjetado)}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Soma dos ambientes</div>
+        </div>
+        <div className="rounded-lg border bg-[#1F5235]/5 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-[#1F5235]">Margem Projetada</div>
+          <div className="text-[18px] font-semibold text-[#1F5235]">{fmtBrl(totalEntradas - custoFabricaProjetado)}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Receita − custo fábrica</div>
+        </div>
+      </div>
+
+      {/* Pagamento à fábrica */}
+      <div className="rounded-lg border bg-muted/20 p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Data de Pagamento à Fábrica</Label>
+            <Input type="date" value={dataPag} onChange={(e) => setDataPag(e.target.value)} className="mt-1.5 h-9" />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Fica em aberto até você definir. Usada como vencimento da cobrança da fábrica.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={salvarDataPagamento} disabled={savingDate}>
+            <Save className="w-3.5 h-3.5 mr-1" /> Salvar data
+          </Button>
+          <Button
+            size="sm"
+            onClick={marcarEnvioFabrica}
+            disabled={marcandoEnvio || fabricaJaGerada}
+            className="bg-rose-600 hover:bg-rose-700 text-white"
+          >
+            <Factory className="w-3.5 h-3.5 mr-1" />
+            {fabricaJaGerada ? "Cobrança gerada" : marcandoEnvio ? "Gerando…" : "Marcar envio à fábrica (gerar cobrança)"}
+          </Button>
+        </div>
+        {pedido.data_envio_fabrica && (
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Envio à fábrica registrado em <b>{fmtDate(pedido.data_envio_fabrica)}</b>.
+          </p>
+        )}
+      </div>
+
+      {/* Lançamentos vinculados */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground">Lançamentos vinculados</h3>
+          <Link to={`/financeiro?busca=${encodeURIComponent(pedido.codigo)}`} className="text-[11px] text-[#2D6BE5] hover:underline">
+            Abrir no Financeiro →
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead className="text-[10px] uppercase tracking-wider text-muted-foreground border-b">
+              <tr>
+                <th className="text-left py-2 pr-2 w-24">Tipo</th>
+                <th className="text-left py-2 pr-2">Descrição</th>
+                <th className="text-left py-2 pr-2 w-28">Vencimento</th>
+                <th className="text-left py-2 pr-2 w-24">Status</th>
+                <th className="text-right py-2 w-28">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Carregando…</td></tr>}
+              {!loading && lancs.length === 0 && (
+                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Nenhum lançamento ainda. Receitas são geradas ao confirmar o pedido; custo de fábrica ao marcar o envio.</td></tr>
+              )}
+              {lancs.map((l) => (
+                <tr key={l.id} className="border-b hover:bg-muted/20">
+                  <td className="py-2 pr-2">
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${l.tipo === "entrada" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                      {l.tipo}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-2">{l.descricao}</td>
+                  <td className="py-2 pr-2">{fmtDate(l.data_vencimento)}</td>
+                  <td className="py-2 pr-2">{statusBadge(l.status)}</td>
+                  <td className={`py-2 text-right font-medium ${l.tipo === "entrada" ? "text-emerald-700" : "text-rose-700"}`}>{fmtBrl(Number(l.valor))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

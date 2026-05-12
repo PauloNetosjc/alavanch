@@ -2849,6 +2849,7 @@ export type Database = {
           data_limite_finalizacao: string | null
           data_medicao_tecnica: string | null
           data_montagem: string | null
+          data_pagamento_fabrica: string | null
           data_vistoria: string | null
           estagio_fabrica_id: string | null
           estagio_iniciado_em: string | null
@@ -2885,6 +2886,7 @@ export type Database = {
           data_limite_finalizacao?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
+          data_pagamento_fabrica?: string | null
           data_vistoria?: string | null
           estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
@@ -2921,6 +2923,7 @@ export type Database = {
           data_limite_finalizacao?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
+          data_pagamento_fabrica?: string | null
           data_vistoria?: string | null
           estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
