@@ -969,7 +969,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
         <DialogContent>
           <DialogHeader><DialogTitle>Enviar para Assinatura</DialogTitle></DialogHeader>
           {assinaturaOpen && (() => {
-            const url = `${window.location.origin}/contrato/${assinaturaOpen.signing_token}`;
+            const url = `${window.location.origin}/assinatura/${assinaturaOpen.signing_token}`;
             const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
             return (
               <div className="space-y-3">
@@ -1395,10 +1395,9 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   const [uploading, setUploading] = useState(false);
   const [criando, setCriando] = useState(false);
 
-  // Preferir o link do NOVO módulo (solicitações de assinatura)
+  // SEMPRE usa o novo módulo público /assinatura/:token
   const newSigningUrl = solic?.token ? `${window.location.origin}/assinatura/${solic.token}` : null;
-  const legacyUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
-  const signingUrl = newSigningUrl || legacyUrl;
+  const signingUrl = newSigningUrl;
 
   const criarSolicitacao = async () => {
     setCriando(true);
