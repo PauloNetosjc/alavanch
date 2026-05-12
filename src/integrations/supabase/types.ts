@@ -1654,39 +1654,66 @@ export type Database = {
       }
       leads: {
         Row: {
+          arquivado: boolean
+          cliente_id: string | null
           created_at: string
+          crm_estagio_id: string | null
+          data_apresentacao: string | null
+          endereco: string | null
+          hora_apresentacao: string | null
           id: string
           indicador: string | null
           interesse: string[] | null
           loja_id: string | null
+          motivo_perda: string | null
           nome: string
           notas: string | null
+          orcamento_id: string | null
+          responsavel_id: string | null
           status: string
           updated_at: string
           usuario_id: string | null
           whatsapp: string
         }
         Insert: {
+          arquivado?: boolean
+          cliente_id?: string | null
           created_at?: string
+          crm_estagio_id?: string | null
+          data_apresentacao?: string | null
+          endereco?: string | null
+          hora_apresentacao?: string | null
           id?: string
           indicador?: string | null
           interesse?: string[] | null
           loja_id?: string | null
+          motivo_perda?: string | null
           nome: string
           notas?: string | null
+          orcamento_id?: string | null
+          responsavel_id?: string | null
           status?: string
           updated_at?: string
           usuario_id?: string | null
           whatsapp: string
         }
         Update: {
+          arquivado?: boolean
+          cliente_id?: string | null
           created_at?: string
+          crm_estagio_id?: string | null
+          data_apresentacao?: string | null
+          endereco?: string | null
+          hora_apresentacao?: string | null
           id?: string
           indicador?: string | null
           interesse?: string[] | null
           loja_id?: string | null
+          motivo_perda?: string | null
           nome?: string
           notas?: string | null
+          orcamento_id?: string | null
+          responsavel_id?: string | null
           status?: string
           updated_at?: string
           usuario_id?: string | null
@@ -1694,10 +1721,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "leads_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_crm_estagio_id_fkey"
+            columns: ["crm_estagio_id"]
+            isOneToOne: false
+            referencedRelation: "crm_estagios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_loja_id_fkey"
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
             referencedColumns: ["id"]
           },
         ]
