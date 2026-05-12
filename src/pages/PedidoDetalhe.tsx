@@ -457,8 +457,11 @@ export default function PedidoDetalhe() {
       />
 
 
-      {/* ITENS DO PROJETO */}
-      <ItensProjeto ambientes={ambientes} total={totalProjeto} />
+      {/* PRODUTOS — lista detalhada (ambientes + itens avulsos) com sub-itens importados */}
+      <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
+
+      {/* PARCELAS — fluxo financeiro */}
+      <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
       {/* AVISO: edição de pedido fechado gera adendo */}
       <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
