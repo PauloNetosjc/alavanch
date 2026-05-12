@@ -818,11 +818,21 @@ export default function ComercialNegociacao() {
 
     setOpenConfirmar(false);
     toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
-    // Tenta abrir direto na venda criada pelo trigger
+    // Atualiza o pedido (criado pelo trigger) com notas, previsão de medição e responsável
+    const { data: { user } } = await supabase.auth.getUser();
     setTimeout(async () => {
       const { data: ped } = await supabase.from("pedidos").select("id").eq("orcamento_id", id).maybeSingle();
-      if (ped?.id) navigate(`/pedidos/${ped.id}`);
-      else navigate(`/contratos/${created.id}`);
+      if (ped?.id) {
+        const patch: any = {
+          observacoes_venda: observacoes || null,
+          estagio_responsavel_id: user?.id || null,
+        };
+        if (previsaoMedicao) patch.data_medicao_tecnica = previsaoMedicao;
+        await supabase.from("pedidos").update(patch).eq("id", ped.id);
+        navigate(`/pedidos/${ped.id}`);
+      } else {
+        navigate(`/contratos/${created.id}`);
+      }
     }, 600);
   };
 
