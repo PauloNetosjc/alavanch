@@ -435,6 +435,7 @@ export default function ComercialNovo() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEdit = !!editId;
+  const preselectCliente = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("cliente") : null;
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
