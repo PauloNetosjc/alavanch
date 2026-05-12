@@ -13,7 +13,7 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
