@@ -60,6 +60,7 @@ export default function KanbanComercial() {
   const [detalheCard, setDetalheCard] = useState<Card | null>(null);
   const [detalheData, setDetalheData] = useState<any>(null);
   const [detalheLoading, setDetalheLoading] = useState(false);
+  const [estagiosOpen, setEstagiosOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
