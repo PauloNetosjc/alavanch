@@ -156,6 +156,31 @@ export default function PedidoDetalhe() {
     } else { setPedidoPai(null); }
     const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", id as string).order("created_at");
     setAdendos(filhos || []);
+
+    // Loja
+    if (ped.loja_id) {
+      const { data: lj } = await supabase.from("lojas").select("*").eq("id", ped.loja_id).maybeSingle();
+      setLoja(lj);
+    }
+    // Solicitações de assinatura (todas) deste pedido
+    const { data: sols } = await supabase
+      .from("solicitacoes_assinatura")
+      .select("*, tipos_documento(nome,slug,requer_assinatura_loja)")
+      .eq("pedido_id", id)
+      .order("created_at", { ascending: false });
+    setSolicitacoes(sols || []);
+
+    // Vendedor / Responsável
+    const ids: string[] = [];
+    if (orcamento?.vendedor_id) ids.push(orcamento.vendedor_id);
+    if (ped.estagio_responsavel_id) ids.push(ped.estagio_responsavel_id);
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles").select("user_id, nome_completo, cargo").in("user_id", ids);
+      setVendedor((profs || []).find((p: any) => p.user_id === orcamento?.vendedor_id) || null);
+      setResponsavel((profs || []).find((p: any) => p.user_id === ped.estagio_responsavel_id) || null);
+    } else { setVendedor(null); setResponsavel(null); }
+
     setLoading(false);
   };
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
