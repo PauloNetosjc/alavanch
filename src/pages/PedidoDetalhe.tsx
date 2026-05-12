@@ -509,6 +509,9 @@ export default function PedidoDetalhe() {
       {/* PARCELAS — fluxo financeiro */}
       <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
+      {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
+      <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
+
       {/* AVISO: edição de pedido fechado gera adendo */}
       <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
         <Sparkles className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
