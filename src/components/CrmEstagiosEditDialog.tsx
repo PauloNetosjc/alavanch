@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Plus, GripVertical, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 type Estagio = {
@@ -29,12 +29,14 @@ export function CrmEstagiosEditDialog({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removidos, setRemovidos] = useState<string[]>([]);
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("crm_estagios").select("*").order("ordem");
     setRows((data ?? []) as Estagio[]);
     setRemovidos([]);
+    setExpandido({});
     setLoading(false);
   };
 
@@ -70,7 +72,7 @@ export function CrmEstagiosEditDialog({
         id: `new-${Date.now()}`,
         nome: "Novo estágio",
         ordem: r.length + 1,
-        cor: "#6366F1",
+        cor: "#6b7280",
         is_ganho: false,
         is_perdido: false,
         ativo: true,
