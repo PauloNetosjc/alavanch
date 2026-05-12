@@ -208,17 +208,19 @@ export default function KanbanComercial() {
       if (c.kind === "lead") {
         const { data: lead } = await supabase
           .from("leads" as any)
-          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), responsavel:profiles!leads_responsavel_id_fkey(nome_completo), vendedor:profiles!leads_usuario_id_fkey(nome_completo)")
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome)")
           .eq("id", c.id)
           .maybeSingle();
-        setDetalheData(lead);
+        const vendedorNome = vendedores.find((v) => v.user_id === (lead as any)?.usuario_id)?.nome_completo ?? null;
+        setDetalheData({ ...(lead as any), vendedor: { nome_completo: vendedorNome } });
       } else {
         const { data: orc } = await supabase
           .from("orcamentos")
-          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), vendedor:profiles!orcamentos_vendedor_id_fkey(nome_completo), ambientes(id, nome, valor_total), pagamentos:pagamentos_orcamento(id, valor, forma_pagamento)")
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), ambientes(id, nome, valor_total), pagamentos:pagamentos_orcamento(id, valor, forma_pagamento)")
           .eq("id", c.id)
           .maybeSingle();
-        setDetalheData(orc);
+        const vendedorNome = vendedores.find((v) => v.user_id === (orc as any)?.vendedor_id)?.nome_completo ?? null;
+        setDetalheData({ ...(orc as any), vendedor: { nome_completo: vendedorNome } });
       }
     } finally {
       setDetalheLoading(false);
