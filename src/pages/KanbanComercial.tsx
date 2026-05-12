@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText } from "lucide-react";
+import { Briefcase, Plus, Search, KanbanSquare, Settings, CalendarDays, FileText, Phone, MapPin, User, Tag, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean; ativo: boolean };
 
@@ -53,6 +54,11 @@ export default function KanbanComercial() {
   const [perdaCard, setPerdaCard] = useState<Card | null>(null);
   const [perdaEstId, setPerdaEstId] = useState<string | null>(null);
   const [perdaMotivo, setPerdaMotivo] = useState("");
+
+  const [detalheOpen, setDetalheOpen] = useState(false);
+  const [detalheCard, setDetalheCard] = useState<Card | null>(null);
+  const [detalheData, setDetalheData] = useState<any>(null);
+  const [detalheLoading, setDetalheLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -193,13 +199,37 @@ export default function KanbanComercial() {
     navigate(`/comercial/novo?cliente=${c.cliente_id}`);
   };
 
-  const handleCardClick = (c: Card) => {
-    if (c.kind === "lead") {
-      navigate("/leads");
-      return;
+  const handleCardClick = async (c: Card) => {
+    setDetalheCard(c);
+    setDetalheData(null);
+    setDetalheOpen(true);
+    setDetalheLoading(true);
+    try {
+      if (c.kind === "lead") {
+        const { data: lead } = await supabase
+          .from("leads" as any)
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), responsavel:profiles!leads_responsavel_id_fkey(nome_completo), vendedor:profiles!leads_usuario_id_fkey(nome_completo)")
+          .eq("id", c.id)
+          .maybeSingle();
+        setDetalheData(lead);
+      } else {
+        const { data: orc } = await supabase
+          .from("orcamentos")
+          .select("*, cliente:clientes(nome, telefone, email), loja:lojas(nome), vendedor:profiles!orcamentos_vendedor_id_fkey(nome_completo), ambientes(id, nome, valor_total), pagamentos:pagamentos_orcamento(id, valor, forma_pagamento)")
+          .eq("id", c.id)
+          .maybeSingle();
+        setDetalheData(orc);
+      }
+    } finally {
+      setDetalheLoading(false);
     }
-    if (c.pedido_id) navigate(`/pedidos/${c.pedido_id}`);
-    else navigate(`/comercial/${c.id}/negociacao`);
+  };
+
+  const irParaOrcamento = () => {
+    if (!detalheCard) return;
+    setDetalheOpen(false);
+    if (detalheCard.pedido_id) navigate(`/pedidos/${detalheCard.pedido_id}`);
+    else navigate(`/comercial/${detalheCard.id}/negociacao`);
   };
 
   return (
