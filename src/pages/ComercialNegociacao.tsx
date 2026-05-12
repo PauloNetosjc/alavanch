@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
+import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -764,7 +765,6 @@ export default function ComercialNegociacao() {
     });
 
     // Cria contrato
-    const origin = window.location.origin;
     const { data: created, error: e1 } = await supabase
       .from("contratos")
       .insert({
@@ -796,7 +796,7 @@ export default function ComercialNegociacao() {
     if (e1 || !created) { toast.error(e1?.message || "Erro ao criar contrato"); return; }
 
     // Atualiza signing_url no snapshot
-    const signing_url = `${origin}/contrato/${created.signing_token}`;
+    const signing_url = getLegacyPublicContractUrl(created.signing_token);
     await supabase.from("contratos").update({
       conteudo_snapshot: {
         ...(((await supabase.from("contratos").select("conteudo_snapshot").eq("id", created.id).single()).data?.conteudo_snapshot) as any),
