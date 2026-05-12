@@ -481,7 +481,7 @@ export default function PedidoDetalhe() {
 
       {/* NOTAS + CHAT INTERNO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Observacoes pedido={pedido} salvarPedido={salvarPedido} />
+        <Observacoes pedido={pedido} />
         <ChatInterno pedidoId={pedido.id} userId={user?.id || ""} chat={chat} usuarios={usuarios} onSent={carregar} />
       </div>
 
@@ -718,20 +718,20 @@ function Cronograma({ pedido, salvarPedido }: any) {
 /* ============================================================== */
 /*                       OBSERVAÇÕES                              */
 /* ============================================================== */
-function Observacoes({ pedido, salvarPedido }: any) {
-  const [text, setText] = useState(pedido.observacoes_venda || "");
-  useEffect(() => setText(pedido.observacoes_venda || ""), [pedido.id]);
+function Observacoes({ pedido }: any) {
+  const text = pedido.observacoes_venda || "";
   return (
     <div className="surface-card p-5 flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <FileText className="w-5 h-5 text-amber-600" />
         <h3 className="font-playfair text-[18px] font-semibold">Notas</h3>
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">{text ? "Estas notas serão incluídas no contrato." : "Sem notas — o conteúdo será anexado ao contrato."}</p>
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Digite aqui as notas que aparecerão no contrato…" className="flex-1 min-h-[160px] bg-amber-50/30 border-amber-200" />
-      <Button onClick={async () => { await salvarPedido({ observacoes_venda: text }); toast.success("Notas salvas"); }} className="mt-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300">
-        <CheckCircle2 className="w-4 h-4 mr-1.5" /> Salvar
-      </Button>
+      <p className="text-[11px] text-muted-foreground mb-3">
+        {text ? "Notas definidas na geração do pedido — incluídas no contrato." : "Nenhuma nota foi adicionada na geração do pedido."}
+      </p>
+      <div className="flex-1 min-h-[160px] bg-amber-50/30 border border-amber-200 rounded-md p-3 text-[13px] whitespace-pre-wrap text-foreground/80">
+        {text || <span className="text-muted-foreground italic">Sem notas.</span>}
+      </div>
     </div>
   );
 }
@@ -1876,9 +1876,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
 function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos }: any) {
-  const versao = 1 + (adendos?.length || 0);
   const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
-  const previsaoEntrega = pedido.data_limite_finalizacao;
   const previsaoMedicao = pedido.data_medicao_tecnica;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
   const Field = ({ label, children }: any) => (
@@ -1887,17 +1885,14 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
       <div className="text-[13px] font-medium truncate">{children ?? "—"}</div>
     </div>
   );
+  const responsavelNome = (responsavel?.nome_completo) || (vendedor?.nome_completo) || "—";
   return (
     <section className="surface-card p-5 space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Field label="Código">{pedido.codigo}</Field>
         <Field label="Data da venda">{fmtDate(dataVenda)}</Field>
-        <Field label="Previsão de entrega">{fmtDate(previsaoEntrega)}</Field>
-        <Field label="Previsão atualizada">{fmtDate(pedido.data_chegada_material) !== "—" ? fmtDate(pedido.data_chegada_material) : "—"}</Field>
-        <Field label="Versão">{versao}</Field>
         <Field label="Cliente final">{(cliente as any)?.cliente_final || "—"}</Field>
-
-        <Field label="Responsável">{(responsavel?.nome_completo) || (vendedor?.nome_completo) || "—"}</Field>
+        <Field label="Responsável">{responsavelNome}</Field>
         <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
         <Field label="Orçamento">
           {orcamento?.id ? (
@@ -1905,21 +1900,12 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
           ) : "—"}
         </Field>
         <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
-        <Field label="Receita">{fmtBrl(Number(pedido.valor_total) || 0)}</Field>
+        <Field label="Receita">
+          <Link to={`/financeiro?busca=${encodeURIComponent(pedido.codigo || "")}`} className="text-primary hover:underline">
+            {fmtBrl(Number(pedido.valor_total) || 0)}
+          </Link>
+        </Field>
         <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
-      </div>
-
-      {/* Estágios chips */}
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Estágios</div>
-        <div className="flex flex-wrap gap-1.5">
-          {[pedido.estagio_operacional_id && "Operacional", pedido.estagio_revisao_id && "Revisão", pedido.estagio_montagem_id && "Montagem", pedido.estagio_fabrica_id && "Fábrica", pedido.estagio_pos_venda_id && "Pós-venda"].filter(Boolean).map((s: any) => (
-            <Badge key={s} variant="secondary" className="text-[11px]">{s}</Badge>
-          ))}
-          {![pedido.estagio_operacional_id, pedido.estagio_revisao_id, pedido.estagio_montagem_id, pedido.estagio_fabrica_id, pedido.estagio_pos_venda_id].some(Boolean) && (
-            <span className="text-[12px] text-muted-foreground">—</span>
-          )}
-        </div>
       </div>
 
       {/* PARA / DE */}
