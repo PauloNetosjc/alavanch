@@ -1112,6 +1112,16 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         } : undefined}
         onCreated={() => { setNovaAssinDoc(null); onChange(); }}
       />
+
+      {evidId && (
+        <EvidenciasDialog open={!!evidId} onOpenChange={(v) => !v && setEvidId(null)} solicitacaoId={evidId} />
+      )}
+      <AssinarPelaLojaDialog
+        open={!!assinarLojaId}
+        onOpenChange={(v) => !v && setAssinarLojaId(null)}
+        solicitacaoId={assinarLojaId}
+        onDone={() => { setAssinarLojaId(null); onChange(); }}
+      />
     </section>
   );
 }
