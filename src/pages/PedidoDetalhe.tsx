@@ -22,8 +22,12 @@ import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
-import { AssinaturasDigitaisPanel } from "@/components/assinaturas/AssinaturasDigitaisPanel";
+import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
+import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
+import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
+
+const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
