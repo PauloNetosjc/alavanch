@@ -39,6 +39,7 @@ import Relatorios from "@/pages/Relatorios";
 import ContratoAssinar from "@/pages/ContratoAssinar";
 import ContratoVisualizar from "@/pages/ContratoVisualizar";
 import PedidoDetalhe from "@/pages/PedidoDetalhe";
+import PedidoReceita from "@/pages/PedidoReceita";
 import ContasCorrentes from "@/pages/ContasCorrentes";
 import ExtratoConta from "@/pages/ExtratoConta";
 import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
