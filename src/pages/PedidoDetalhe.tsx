@@ -388,6 +388,9 @@ export default function PedidoDetalhe() {
       {/* CENTRAL DE DOCUMENTOS */}
       <CentralDocs pedidoId={pedido.id} pastas={pastas} docs={docs} onChange={carregar} />
 
+      {/* ASSINATURAS DIGITAIS */}
+      <AssinaturasDigitaisPanel pedidoId={pedido.id} />
+
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
 
