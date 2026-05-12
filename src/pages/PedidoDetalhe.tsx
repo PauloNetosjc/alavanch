@@ -1908,8 +1908,8 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
         </Field>
         <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
         <Field label="Receita">
-          <Link to={`/financeiro?busca=${encodeURIComponent(pedido.codigo || "")}`} className="text-primary hover:underline">
-            {fmtBrl(Number(pedido.valor_total) || 0)}
+          <Link to={`/pedidos/${pedido.id}/receita`} className="text-primary hover:underline">
+            {pedido.receita_codigo ? `#${pedido.receita_codigo} · ` : ""}{fmtBrl(Number(pedido.valor_total) || 0)}
           </Link>
         </Field>
         <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
