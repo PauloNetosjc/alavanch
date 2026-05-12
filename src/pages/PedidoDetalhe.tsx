@@ -1145,41 +1145,202 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
 }
 
 /* ============================================================== */
-/*                       ITENS DO PROJETO                         */
+/*                  PRODUTOS — TABELA (image style)               */
 /* ============================================================== */
-function ItensProjeto({ ambientes, total }: any) {
+function ProdutosTabela({ ambientes, subItens, itensAvulsos, total }: any) {
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
+  type Linha = {
+    id: string; tipo: "Ambiente" | "Avulso"; codigo?: string | null;
+    descricao: string; quantidade: number; unitario: number; total: number;
+    descLonga?: string | null; sub?: any[];
+  };
+  const linhas: Linha[] = [
+    ...ambientes.map((a: any) => {
+      const subs = (subItens || []).filter((s: any) => s.ambiente_id === a.id);
+      const v = Number(a.preco_sugerido || 0);
+      return {
+        id: a.id, tipo: "Ambiente" as const, codigo: null,
+        descricao: a.nome, quantidade: 1, unitario: v, total: v,
+        descLonga: a.descricao, sub: subs,
+      };
+    }),
+    ...(itensAvulsos || []).map((i: any) => ({
+      id: i.id, tipo: "Avulso" as const, codigo: null,
+      descricao: i.nome, quantidade: 1,
+      unitario: Number(i.valor_venda || 0), total: Number(i.valor_venda || 0),
+      descLonga: i.descricao, sub: [],
+    })),
+  ];
+
   return (
     <section className="surface-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider">Itens do Projeto</h2>
+        <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider">Produtos</h2>
         <div className="text-right">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total</div>
           <div className="text-[22px] font-semibold text-emerald-700">{fmtBrl(total)}</div>
         </div>
       </div>
-      <div className="space-y-2">
-        {ambientes.map((a: any) => {
-          const original = Number(a.preco_sugerido || 0);
-          const aberta = !!aberto[a.id];
-          return (
-            <div key={a.id} className="border rounded-lg overflow-hidden">
-              <button onClick={() => setAberto({ ...aberto, [a.id]: !aberta })} className="w-full flex items-center justify-between p-4 hover:bg-muted/30">
-                <div className="flex items-center gap-3">
-                  {aberta ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  <span className="font-semibold uppercase">{a.nome}</span>
-                </div>
-                <div className="text-right text-[12px]">
-                  <div className="text-muted-foreground">de <span className="line-through">{fmtBrl(original)}</span></div>
-                  <div className="text-emerald-700 font-semibold">por {fmtBrl(original)}</div>
-                </div>
-              </button>
-              {aberta && a.descricao && (
-                <div className="p-4 border-t bg-muted/20 text-[12px] whitespace-pre-wrap">{a.descricao}</div>
-              )}
-            </div>
-          );
-        })}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px]">
+          <thead className="text-[11px] uppercase tracking-wider text-muted-foreground border-b">
+            <tr>
+              <th className="text-left py-2 pr-2 w-10">#</th>
+              <th className="text-left py-2 pr-2 w-24">Código</th>
+              <th className="text-left py-2 pr-2 w-24">Tipo</th>
+              <th className="text-left py-2 pr-2">Descrição</th>
+              <th className="text-right py-2 pr-2 w-24">Quantidade</th>
+              <th className="text-right py-2 pr-2 w-32">Preço unitário</th>
+              <th className="text-right py-2 w-32">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l, idx) => {
+              const exp = !!aberto[l.id];
+              const podeExpandir = (l.sub && l.sub.length > 0) || !!l.descLonga;
+              return (
+                <>
+                  <tr key={l.id} className="border-b hover:bg-muted/20">
+                    <td className="py-3 pr-2 text-muted-foreground">{idx + 1}</td>
+                    <td className="py-3 pr-2 text-muted-foreground">{l.codigo || "—"}</td>
+                    <td className="py-3 pr-2">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${
+                        l.tipo === "Avulso" ? "bg-red-500 text-white" : "bg-emerald-600 text-white"
+                      }`}>{l.tipo}</span>
+                    </td>
+                    <td className="py-3 pr-2">
+                      <button
+                        onClick={() => podeExpandir && setAberto({ ...aberto, [l.id]: !exp })}
+                        className={`text-left uppercase ${podeExpandir ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                      >
+                        {l.descricao}
+                        {podeExpandir && (exp
+                          ? <ChevronUp className="w-3.5 h-3.5 inline ml-1" />
+                          : <ChevronDown className="w-3.5 h-3.5 inline ml-1" />)}
+                      </button>
+                    </td>
+                    <td className="py-3 pr-2 text-right">{l.quantidade} un</td>
+                    <td className="py-3 pr-2 text-right">{fmtBrl(l.unitario)}</td>
+                    <td className="py-3 text-right font-medium">{fmtBrl(l.total)}</td>
+                  </tr>
+                  {exp && (
+                    <tr className="bg-muted/20 border-b">
+                      <td colSpan={7} className="py-3 px-4">
+                        {l.descLonga && (
+                          <div className="text-[12px] text-muted-foreground whitespace-pre-wrap mb-2">{l.descLonga}</div>
+                        )}
+                        {l.sub && l.sub.length > 0 && (
+                          <table className="w-full text-[12px]">
+                            <thead className="text-[10px] uppercase text-muted-foreground">
+                              <tr>
+                                <th className="text-left py-1 pr-2">Código</th>
+                                <th className="text-left py-1 pr-2">Categoria</th>
+                                <th className="text-left py-1 pr-2">Descrição</th>
+                                <th className="text-right py-1 pr-2">Qtd</th>
+                                <th className="text-right py-1">Custo cliente</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {l.sub.map((s: any) => (
+                                <tr key={s.id} className="border-t border-border/50">
+                                  <td className="py-1 pr-2">{s.codigo || "—"}</td>
+                                  <td className="py-1 pr-2">{s.categoria || "—"}</td>
+                                  <td className="py-1 pr-2">{s.descricao}</td>
+                                  <td className="py-1 pr-2 text-right">{s.quantidade || 1}</td>
+                                  <td className="py-1 text-right">{fmtBrl(Number(s.custo_cliente || 0))}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
+            {!linhas.length && (
+              <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum item.</td></tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="border-t">
+              <td colSpan={6} className="py-3 text-right text-[12px] uppercase tracking-wider text-muted-foreground">Valor final</td>
+              <td className="py-3 text-right font-semibold text-emerald-700">{fmtBrl(total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================== */
+/*                  PARCELAS — FLUXO FINANCEIRO                   */
+/* ============================================================== */
+function ParcelasTabela({ pagamentos, total }: any) {
+  // expande pagamentos em parcelas individuais com data
+  const linhas: { idx: number; data: string | null; metodo: string; valor: number; documento?: string | null }[] = [];
+  (pagamentos || []).forEach((p: any) => {
+    const n = p.parcelas || 1;
+    const det: number[] = Array.isArray(p.parcelas_detalhe) && p.parcelas_detalhe.length === n
+      ? p.parcelas_detalhe.map(Number)
+      : (() => {
+          const base = Number((Number(p.valor) / n).toFixed(2));
+          const arr = Array(n).fill(base);
+          arr[n - 1] = Number((Number(p.valor) - base * (n - 1)).toFixed(2));
+          return arr;
+        })();
+    const venc = p.data_vencimento ? new Date(p.data_vencimento + "T00:00:00") : null;
+    for (let i = 0; i < n; i++) {
+      let dt: string | null = null;
+      if (venc) {
+        const d = new Date(venc);
+        d.setMonth(d.getMonth() + i);
+        dt = d.toISOString().slice(0, 10);
+      }
+      linhas.push({ idx: linhas.length + 1, data: dt, metodo: p.metodo, valor: det[i] || 0 });
+    }
+  });
+  const somaParcelas = linhas.reduce((s, l) => s + l.valor, 0);
+
+  return (
+    <section className="surface-card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider">Parcelas</h2>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px]">
+          <thead className="text-[11px] uppercase tracking-wider text-muted-foreground border-b">
+            <tr>
+              <th className="text-left py-2 pr-2 w-10">#</th>
+              <th className="text-left py-2 pr-2 w-32">Data</th>
+              <th className="text-left py-2 pr-2">Forma de pagamento</th>
+              <th className="text-left py-2 pr-2 w-40">Documento</th>
+              <th className="text-right py-2 w-32">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l) => (
+              <tr key={l.idx} className="border-b hover:bg-muted/20">
+                <td className="py-3 pr-2 text-muted-foreground">{l.idx}</td>
+                <td className="py-3 pr-2">{l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                <td className="py-3 pr-2">{l.metodo}</td>
+                <td className="py-3 pr-2 text-muted-foreground">—</td>
+                <td className="py-3 text-right font-medium">{fmtBrl(l.valor)}</td>
+              </tr>
+            ))}
+            {!linhas.length && (
+              <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">Nenhuma parcela cadastrada.</td></tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="border-t">
+              <td colSpan={4} className="py-3 text-right text-[12px] uppercase tracking-wider text-muted-foreground">Total</td>
+              <td className="py-3 text-right font-semibold">{fmtBrl(somaParcelas || total)}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </section>
   );
