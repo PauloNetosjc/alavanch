@@ -481,7 +481,7 @@ export default function PedidoDetalhe() {
 
       {/* NOTAS + CHAT INTERNO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Observacoes pedido={pedido} salvarPedido={salvarPedido} />
+        <Observacoes pedido={pedido} />
         <ChatInterno pedidoId={pedido.id} userId={user?.id || ""} chat={chat} usuarios={usuarios} onSent={carregar} />
       </div>
 
