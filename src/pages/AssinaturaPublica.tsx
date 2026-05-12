@@ -156,9 +156,33 @@ export default function AssinaturaPublica() {
 
     setEnviando(true);
     try {
-      const [docUrl, selfieUrl] = await Promise.all([fileToDataUrl(docFoto), fileToDataUrl(selfie)]);
-      const assinaturaUrl = padRef.current!.toDataURL();
       const ua = navigator.userAgent;
+      // Captura de IP (best effort, sem bloquear)
+      let ip: string | null = null;
+      try {
+        const r = await fetch("https://api.ipify.org?format=json");
+        ip = (await r.json())?.ip || null;
+      } catch { /* ignore */ }
+
+      // Sobe arquivos para storage `assinaturas-evidencias/{solic_id}/...`
+      const ts = Date.now();
+      const docExt = (docFoto.name.split(".").pop() || "jpg").toLowerCase();
+      const selfieExt = (selfie.name.split(".").pop() || "jpg").toLowerCase();
+      const docPath = `${solic.id}/documento-${ts}.${docExt}`;
+      const selfiePath = `${solic.id}/selfie-${ts}.${selfieExt}`;
+      const sigBlob = await (await fetch(padRef.current!.toDataURL())).blob();
+      const sigPath = `${solic.id}/assinatura-${ts}.png`;
+
+      const ups = await Promise.all([
+        supabase.storage.from("assinaturas-evidencias").upload(docPath, docFoto, { upsert: true, contentType: docFoto.type }),
+        supabase.storage.from("assinaturas-evidencias").upload(selfiePath, selfie, { upsert: true, contentType: selfie.type }),
+        supabase.storage.from("assinaturas-evidencias").upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" }),
+      ]);
+      const upErr = ups.find((u) => u.error);
+      if (upErr?.error) throw upErr.error;
+      const docUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(docPath).data.publicUrl;
+      const selfieUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(selfiePath).data.publicUrl;
+      const assinaturaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
 
       // Cria participante
       const { data: part, error: errP } = await supabase
@@ -189,9 +213,18 @@ export default function AssinaturaPublica() {
       });
       if (errE) throw errE;
 
-      // Atualiza status
+      // Atualiza status + snapshot
       const novoStatus = requerLoja ? "aguardando_loja" : "concluido";
-      const upd: any = { status: novoStatus, cliente_assinado_em: new Date().toISOString() };
+      const upd: any = {
+        status: novoStatus,
+        cliente_assinado_em: new Date().toISOString(),
+        cliente_nome: nome,
+        cliente_ip: ip,
+        cliente_user_agent: ua,
+        assinatura_cliente_url: assinaturaUrl,
+        doc_foto_url: docUrl,
+        selfie_url: selfieUrl,
+      };
       if (!requerLoja) upd.concluido_em = new Date().toISOString();
       const { error: errUpd } = await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
       if (errUpd) throw errUpd;

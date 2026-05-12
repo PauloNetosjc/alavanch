@@ -22,6 +22,7 @@ import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
+import { AssinaturasDigitaisPanel } from "@/components/assinaturas/AssinaturasDigitaisPanel";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -387,6 +388,9 @@ export default function PedidoDetalhe() {
 
       {/* CENTRAL DE DOCUMENTOS */}
       <CentralDocs pedidoId={pedido.id} pastas={pastas} docs={docs} onChange={carregar} />
+
+      {/* ASSINATURAS DIGITAIS */}
+      <AssinaturasDigitaisPanel pedidoId={pedido.id} />
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
@@ -778,9 +782,25 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
   };
 
   const enviarParaAssinatura = async (doc: any) => {
-    const token = crypto.randomUUID().replace(/-/g, "");
-    await supabase.from("pedido_documentos").update({ enviado_para_assinatura: true, signing_token: token }).eq("id", doc.id);
-    setAssinaturaOpen({ ...doc, signing_token: token });
+    // Determina o tipo: contrato se for adendo/complemento, senão "projeto_inicial" como padrão
+    const tipoSlug = (doc.tipo_documento_slug as string) || "projeto_inicial";
+    const { data, error } = await supabase.rpc("criar_solic_assinatura_documento", {
+      p_pedido_id: pedidoId,
+      p_pedido_documento_id: doc.id,
+      p_tipo_slug: tipoSlug,
+      p_dias_validade: 30,
+    });
+    if (error) { toast.error(error.message); return; }
+    // Busca o token recém criado (ou existente)
+    const { data: solic } = await supabase
+      .from("solicitacoes_assinatura")
+      .select("token")
+      .eq("id", data as string)
+      .maybeSingle();
+    if (!solic?.token) { toast.error("Não foi possível obter o link de assinatura."); return; }
+    await supabase.from("pedido_documentos").update({ enviado_para_assinatura: true }).eq("id", doc.id);
+    setAssinaturaOpen({ ...doc, signing_token: solic.token });
+    toast.success("Solicitação de assinatura criada");
     onChange();
   };
 
@@ -953,7 +973,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
         <DialogContent>
           <DialogHeader><DialogTitle>Enviar para Assinatura</DialogTitle></DialogHeader>
           {assinaturaOpen && (() => {
-            const url = `${window.location.origin}/contrato/${assinaturaOpen.signing_token}`;
+            const url = `${window.location.origin}/assinatura/${assinaturaOpen.signing_token}`;
             const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
             return (
               <div className="space-y-3">
@@ -1379,10 +1399,9 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   const [uploading, setUploading] = useState(false);
   const [criando, setCriando] = useState(false);
 
-  // Preferir o link do NOVO módulo (solicitações de assinatura)
+  // SEMPRE usa o novo módulo público /assinatura/:token
   const newSigningUrl = solic?.token ? `${window.location.origin}/assinatura/${solic.token}` : null;
-  const legacyUrl = `${window.location.origin}/contrato/${contrato.signing_token}`;
-  const signingUrl = newSigningUrl || legacyUrl;
+  const signingUrl = newSigningUrl;
 
   const criarSolicitacao = async () => {
     setCriando(true);
@@ -1399,11 +1418,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   };
 
   const copiarLink = async () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     await navigator.clipboard.writeText(signingUrl);
     toast.success("Link copiado");
   };
 
   const enviarEmail = () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     if (!cliente?.email) return toast.error("Cliente sem e-mail cadastrado");
     const assunto = encodeURIComponent(`Contrato ${contrato.numero} - assinatura`);
     const corpo = encodeURIComponent(
@@ -1413,6 +1434,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   };
 
   const enviarWhatsapp = () => {
+    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
     if (!cliente?.telefone) return toast.error("Cliente sem telefone cadastrado");
     const fone = String(cliente.telefone).replace(/\D/g, "");
     const msg = encodeURIComponent(

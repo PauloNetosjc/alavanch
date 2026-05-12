@@ -3324,13 +3324,21 @@ export type Database = {
       }
       solicitacoes_assinatura: {
         Row: {
+          assinatura_cliente_url: string | null
+          assinatura_loja_url: string | null
           cancelado_em: string | null
           cliente_assinado_em: string | null
+          cliente_email: string | null
           cliente_id: string | null
+          cliente_ip: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          cliente_user_agent: string | null
           concluido_em: string | null
           contrato_id: string | null
           created_at: string
           created_by: string | null
+          doc_foto_url: string | null
           expira_em: string
           file_name: string | null
           file_url: string | null
@@ -3343,6 +3351,7 @@ export type Database = {
           pedido_id: string
           recusado_em: string | null
           responsavel_interno_id: string | null
+          selfie_url: string | null
           status: Database["public"]["Enums"]["assinatura_status"]
           storage_path: string | null
           tipo_documento_id: string
@@ -3350,13 +3359,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_cliente_url?: string | null
+          assinatura_loja_url?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
+          cliente_email?: string | null
           cliente_id?: string | null
+          cliente_ip?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          cliente_user_agent?: string | null
           concluido_em?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          doc_foto_url?: string | null
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
@@ -3369,6 +3386,7 @@ export type Database = {
           pedido_id: string
           recusado_em?: string | null
           responsavel_interno_id?: string | null
+          selfie_url?: string | null
           status?: Database["public"]["Enums"]["assinatura_status"]
           storage_path?: string | null
           tipo_documento_id: string
@@ -3376,13 +3394,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_cliente_url?: string | null
+          assinatura_loja_url?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
+          cliente_email?: string | null
           cliente_id?: string | null
+          cliente_ip?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          cliente_user_agent?: string | null
           concluido_em?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          doc_foto_url?: string | null
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
@@ -3395,6 +3421,7 @@ export type Database = {
           pedido_id?: string
           recusado_em?: string | null
           responsavel_interno_id?: string | null
+          selfie_url?: string | null
           status?: Database["public"]["Enums"]["assinatura_status"]
           storage_path?: string | null
           tipo_documento_id?: string
@@ -3655,6 +3682,15 @@ export type Database = {
         Returns: boolean
       }
       concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
+      criar_solic_assinatura_documento: {
+        Args: {
+          p_dias_validade?: number
+          p_pedido_documento_id: string
+          p_pedido_id: string
+          p_tipo_slug?: string
+        }
+        Returns: string
+      }
       current_loja_id: { Args: never; Returns: string }
       executar_automacao_acao: {
         Args: {
