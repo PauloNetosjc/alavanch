@@ -157,10 +157,13 @@ export default function KanbanComercial() {
       }
       return true;
     });
-  }, [cards, filtroLoja, filtroVend, filtroMes, search]);
+  }, [cards, filtroLoja, filtroVend, filtroMes, search, isAdmin, estagios]);
 
   const moverCard = async (card: Card, novoEstId: string) => {
     const est = estagios.find((e) => e.id === novoEstId);
+    if (!isAdmin && est && (est.is_ganho || est.is_perdido)) {
+      return toast.error("Apenas admin pode mover cards para Ganho/Perdido");
+    }
     if (est?.is_perdido) {
       setPerdaCard(card);
       setPerdaEstId(novoEstId);
