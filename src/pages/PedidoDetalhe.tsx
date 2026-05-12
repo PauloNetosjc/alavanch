@@ -1591,3 +1591,75 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
     </div>
   );
 }
+
+/* ============================================================== */
+/*               PEDIDO HEADER PANEL (modelo imagem 2)            */
+/* ============================================================== */
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos }: any) {
+  const versao = 1 + (adendos?.length || 0);
+  const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
+  const previsaoEntrega = pedido.data_limite_finalizacao;
+  const previsaoMedicao = pedido.data_medicao_tecnica;
+  const dataVenda = orcamento?.confirmado_em || pedido.created_at;
+  const Field = ({ label, children }: any) => (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
+      <div className="text-[13px] font-medium truncate">{children ?? "—"}</div>
+    </div>
+  );
+  return (
+    <section className="surface-card p-5 space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Field label="Código">{pedido.codigo}</Field>
+        <Field label="Data da venda">{fmtDate(dataVenda)}</Field>
+        <Field label="Previsão de entrega">{fmtDate(previsaoEntrega)}</Field>
+        <Field label="Previsão atualizada">{fmtDate(pedido.data_chegada_material) !== "—" ? fmtDate(pedido.data_chegada_material) : "—"}</Field>
+        <Field label="Versão">{versao}</Field>
+        <Field label="Cliente final">{(cliente as any)?.cliente_final || "—"}</Field>
+
+        <Field label="Responsável">{(responsavel?.nome_completo) || (vendedor?.nome_completo) || "—"}</Field>
+        <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
+        <Field label="Orçamento">
+          {orcamento?.id ? (
+            <Link to={`/comercial/${orcamento.id}`} className="text-primary hover:underline">{orcamento.codigo}</Link>
+          ) : "—"}
+        </Field>
+        <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
+        <Field label="Receita">{fmtBrl(Number(pedido.valor_total) || 0)}</Field>
+        <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
+      </div>
+
+      {/* Estágios chips */}
+      <div>
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Estágios</div>
+        <div className="flex flex-wrap gap-1.5">
+          {[pedido.estagio_operacional_id && "Operacional", pedido.estagio_revisao_id && "Revisão", pedido.estagio_montagem_id && "Montagem", pedido.estagio_fabrica_id && "Fábrica", pedido.estagio_pos_venda_id && "Pós-venda"].filter(Boolean).map((s: any) => (
+            <Badge key={s} variant="secondary" className="text-[11px]">{s}</Badge>
+          ))}
+          {![pedido.estagio_operacional_id, pedido.estagio_revisao_id, pedido.estagio_montagem_id, pedido.estagio_fabrica_id, pedido.estagio_pos_venda_id].some(Boolean) && (
+            <span className="text-[12px] text-muted-foreground">—</span>
+          )}
+        </div>
+      </div>
+
+      {/* PARA / DE */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Para</div>
+          <div className="font-semibold text-[14px] uppercase">{cliente?.nome || "—"}</div>
+          {cliente?.telefone && <div className="text-[12px] text-muted-foreground">{cliente.telefone}</div>}
+          {cliente?.email && <div className="text-[12px] text-muted-foreground">{cliente.email}</div>}
+          {cliente?.cpf_cnpj && <div className="text-[12px] text-muted-foreground">{cliente.cpf_cnpj.length > 14 ? "CNPJ " : "CPF "}{cliente.cpf_cnpj}</div>}
+          {cliente?.endereco_entrega && <div className="text-[12px] text-muted-foreground whitespace-pre-wrap">{cliente.endereco_entrega}</div>}
+        </div>
+        <div className="md:text-right">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">De</div>
+          <div className="font-semibold text-[14px] uppercase">{loja?.nome || "—"}</div>
+          {loja?.sigla && <div className="text-[12px] text-muted-foreground">{loja.sigla}</div>}
+          {loja?.cnpj && <div className="text-[12px] text-muted-foreground">{loja.cnpj}</div>}
+          {loja?.endereco && <div className="text-[12px] text-muted-foreground">{loja.endereco}</div>}
+        </div>
+      </div>
+    </section>
+  );
+}
