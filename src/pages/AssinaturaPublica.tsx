@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
+import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 function maskDocAuto(v: string) {
   const d = unmask(v);
@@ -133,7 +134,7 @@ export default function AssinaturaPublica() {
           setTpl(tpls as any);
           if (tpls && ct.conteudo_snapshot) {
             try {
-              setDocHtml(renderContratoHtml(tpls as any, { ...(ct.conteudo_snapshot as any), signing_url: `${window.location.origin}/assinatura/${token}?v=${cacheBust}` }));
+              setDocHtml(renderContratoHtml(tpls as any, { ...(ct.conteudo_snapshot as any), signing_url: `${getPublicSignatureUrl(token)}?v=${cacheBust}` }));
             } catch {/* noop */}
           }
         }
