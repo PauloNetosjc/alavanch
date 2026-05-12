@@ -739,7 +739,7 @@ export default function ComercialNegociacao() {
     setOpenConfirmar(true);
   };
 
-  const gerarContrato = async (observacoes: string) => {
+  const gerarContrato = async (observacoes: string, previsaoMedicao: string | null) => {
     if (!orc || !id) return;
     setConfirmando(true);
     // garante que orçamento está atualizado e marcado como aprovado
