@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { KanbanSwitcher } from "@/components/kanban/KanbanSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { CrmEstagiosEditDialog } from "@/components/CrmEstagiosEditDialog";
 
 type Estagio = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean; ativo: boolean };
 
