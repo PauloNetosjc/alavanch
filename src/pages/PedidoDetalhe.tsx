@@ -425,18 +425,22 @@ export default function PedidoDetalhe() {
         ) : null}
       </section>
 
-      {/* OBSERVAÇÕES + CHAT INTERNO + WHATSAPP */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* NOTAS + CHAT INTERNO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Observacoes pedido={pedido} salvarPedido={salvarPedido} />
         <ChatInterno pedidoId={pedido.id} userId={user?.id || ""} chat={chat} usuarios={usuarios} onSent={carregar} />
-        <WhatsappCard cliente={cliente} />
       </div>
 
-      {/* CENTRAL DE DOCUMENTOS */}
-      <CentralDocs pedidoId={pedido.id} pastas={pastas} docs={docs} onChange={carregar} />
+      {/* CENTRAL DE DOCUMENTOS (com assinaturas integradas por documento) */}
+      <CentralDocs
+        pedidoId={pedido.id}
+        pastas={pastas}
+        docs={docs}
+        solicitacoes={solicitacoes}
+        cliente={cliente}
+        onChange={carregar}
+      />
 
-      {/* ASSINATURAS DIGITAIS */}
-      <AssinaturasDigitaisPanel pedidoId={pedido.id} />
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
