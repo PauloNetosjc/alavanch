@@ -368,14 +368,21 @@ export default function PedidoDetalhe() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-[13px] cursor-pointer">
-            <Checkbox checked={!!pedido.vip} onCheckedChange={(v) => salvarPedido({ vip: !!v })} />
-            <Star className="w-4 h-4 text-amber-500" /> VIP
-          </label>
-          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-[13px] cursor-pointer">
-            <Checkbox checked={!!pedido.critico} onCheckedChange={(v) => salvarPedido({ critico: !!v })} />
-            <AlertTriangle className="w-4 h-4 text-red-500" /> Crítico
-          </label>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card text-[13px]">
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Urgência</span>
+            <select
+              value={pedido.urgencia || "baixa"}
+              onChange={(e) => salvarPedido({ urgencia: e.target.value })}
+              className={`bg-transparent text-[13px] font-medium outline-none cursor-pointer ${
+                pedido.urgencia === "alta" ? "text-red-600" :
+                pedido.urgencia === "media" ? "text-amber-600" : "text-emerald-700"
+              }`}
+            >
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
           <Button variant="outline" className="text-red-600 border-red-300"
             onClick={async () => {
               if (!confirm("Cancelar este pedido?")) return;
@@ -1901,8 +1908,8 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
         </Field>
         <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
         <Field label="Receita">
-          <Link to={`/financeiro?busca=${encodeURIComponent(pedido.codigo || "")}`} className="text-primary hover:underline">
-            {fmtBrl(Number(pedido.valor_total) || 0)}
+          <Link to={`/pedidos/${pedido.id}/receita`} className="text-primary hover:underline">
+            {pedido.receita_codigo ? `#${pedido.receita_codigo} · ` : ""}{fmtBrl(Number(pedido.valor_total) || 0)}
           </Link>
         </Field>
         <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>

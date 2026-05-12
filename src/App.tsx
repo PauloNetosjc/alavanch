@@ -39,6 +39,7 @@ import Relatorios from "@/pages/Relatorios";
 import ContratoAssinar from "@/pages/ContratoAssinar";
 import ContratoVisualizar from "@/pages/ContratoVisualizar";
 import PedidoDetalhe from "@/pages/PedidoDetalhe";
+import PedidoReceita from "@/pages/PedidoReceita";
 import ContasCorrentes from "@/pages/ContasCorrentes";
 import ExtratoConta from "@/pages/ExtratoConta";
 import CategoriasFinanceiras from "@/pages/CategoriasFinanceiras";
@@ -102,6 +103,7 @@ const App = () => (
               <Route path="/comercial/:id/negociacao" element={<ComercialNegociacao />} />
               <Route path="/contratos/:id" element={<ContratoVisualizar />} />
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
+              <Route path="/pedidos/:id/receita" element={<PedidoReceita />} />
               <Route path="/radar" element={<RadarPrazos />} />
               <Route path="/kanbans" element={<Kanbans />} />
               <Route path="/kanban-comercial" element={<KanbanComercial />} />
