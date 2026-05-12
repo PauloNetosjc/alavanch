@@ -2865,6 +2865,7 @@ export type Database = {
           observacoes_venda: string | null
           orcamento_id: string | null
           pedido_pai_id: string | null
+          receita_codigo: string | null
           status: string
           updated_at: string
           urgencia: Database["public"]["Enums"]["urgencia_nivel"] | null
@@ -2900,6 +2901,7 @@ export type Database = {
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_pai_id?: string | null
+          receita_codigo?: string | null
           status?: string
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
@@ -2935,6 +2937,7 @@ export type Database = {
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_pai_id?: string | null
+          receita_codigo?: string | null
           status?: string
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
