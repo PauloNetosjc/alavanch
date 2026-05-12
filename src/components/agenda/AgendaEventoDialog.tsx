@@ -351,6 +351,42 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       const { error } = await supabase.from("agenda_eventos" as any).insert(payload);
       if (error) throw error;
 
+      // CRM: ao agendar uma Apresentação, registra um Lead Agendado no CRM Comercial
+      if (tipo === "apresentacao_comercial" && cliId) {
+        try {
+          const { data: estLead } = await supabase
+            .from("crm_estagios")
+            .select("id")
+            .eq("nome", "Lead Agendado")
+            .maybeSingle();
+          // evita duplicar lead aberto para o mesmo cliente
+          const { data: existente } = await supabase
+            .from("leads" as any)
+            .select("id")
+            .eq("cliente_id", cliId)
+            .eq("arquivado", false)
+            .is("orcamento_id", null)
+            .maybeSingle();
+          if (!existente) {
+            await supabase.from("leads" as any).insert({
+              nome: cliNomeFinal || "Lead",
+              whatsapp: clienteFone || "",
+              cliente_id: cliId,
+              loja_id: lojaEventoId,
+              usuario_id: user?.id || null,
+              responsavel_id: responsavelId || user?.id || null,
+              crm_estagio_id: (estLead as any)?.id || null,
+              data_apresentacao: data,
+              hora_apresentacao: hora,
+              endereco: endereco || null,
+              status: "novos",
+            });
+          }
+        } catch (e) {
+          console.warn("Falha ao criar lead no CRM:", e);
+        }
+      }
+
       if (followupTipo) {
         const followupTitulo = cliNomeFinal
           ? `${TIPO_LABEL[followupTipo]} – ${cliNomeFinal}`
