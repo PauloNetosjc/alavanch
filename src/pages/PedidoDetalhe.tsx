@@ -72,10 +72,15 @@ export default function PedidoDetalhe() {
   const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
   const [vendedor, setVendedor] = useState<any>(null);
   const [responsavel, setResponsavel] = useState<any>(null);
+  const [itensAvulsos, setItensAvulsos] = useState<any[]>([]);
+  const [subItens, setSubItens] = useState<any[]>([]);
+  const [pagamentos, setPagamentos] = useState<any[]>([]);
 
   const totalProjeto = useMemo(
-    () => ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0),
-    [ambientes],
+    () =>
+      ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0) +
+      itensAvulsos.reduce((s, i) => s + Number(i.valor_venda || 0), 0),
+    [ambientes, itensAvulsos],
   );
 
   const carregar = async () => {
