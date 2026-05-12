@@ -260,31 +260,36 @@ export default function PedidoDetalhe() {
     toast.success(`Workflow iniciado em: ${estagio.toUpperCase()}`);
   };
 
-  /* ----- criar adendo (novo orçamento atrelado a este pedido) ----- */
+  /* ----- criar adendo (novo orçamento atrelado ao pedido RAIZ) ----- */
   const criarAdendo = async () => {
     if (!pedido || !pedido.orcamento_id) return;
-    if (!confirm("Criar um novo Adendo a partir deste pedido?\n\nO adendo é um orçamento complementar vinculado ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros independentes — sem alterar a venda já fechada.")) return;
+    // adendos sempre nascem a partir do pedido raiz (pai), nunca de outro adendo
+    const raizId = pedido.pedido_pai_id || pedido.id;
+    const raiz = pedido.pedido_pai_id ? (pedidoPai || { id: raizId, codigo: "" }) : pedido;
+    if (!confirm("Criar um novo Adendo deste pedido?\n\nO adendo é uma atualização vinculada ao pedido original. Ele gera um novo contrato e novos lançamentos financeiros, mas continua acessível dentro do mesmo pedido (em uma aba).")) return;
     setCriandoAdendo(true);
     try {
-      const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
-      if (!orc) throw new Error("Orçamento original não encontrado");
-      const seq = (adendos.length + 1).toString().padStart(2, "0");
-      const novoCodigo = `${orc.codigo}-ADD-${seq}`;
+      const { data: orcRaiz } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orcRaiz) throw new Error("Orçamento original não encontrado");
+      // numeração do adendo é por pedido raiz
+      const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("pedido_pai_id", raizId);
+      const seq = ((count || 0) + 1).toString().padStart(2, "0");
+      const novoCodigo = `${orcRaiz.codigo}-ADD-${seq}`;
       const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
         codigo: novoCodigo,
-        cliente_id: orc.cliente_id,
-        loja_id: orc.loja_id,
-        nome_projeto: `[ADENDO ${seq} de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+        cliente_id: orcRaiz.cliente_id,
+        loja_id: orcRaiz.loja_id,
+        nome_projeto: `[ADENDO ${seq} de ${raiz.codigo || ""}] ${orcRaiz.nome_projeto || ""}`,
         status: "negociacao",
         subtotal: 0, total: 0,
-        parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
-        consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+        parceiro_id: orcRaiz.parceiro_id, parceiro_perc: orcRaiz.parceiro_perc,
+        consultor_id: orcRaiz.consultor_id, vendedor_id: orcRaiz.vendedor_id, origem_id: orcRaiz.origem_id,
         is_adendo: true,
-        pedido_origem_id: pedido.id,
+        pedido_origem_id: raizId,
         created_by: user?.id,
       } as any).select().maybeSingle();
       if (error || !novoOrc) throw error || new Error("Falha ao criar adendo");
-      toast.success(`Adendo ${novoCodigo} criado`);
+      toast.success(`Adendo ${novoCodigo} criado — finalize-o e ele aparecerá como aba dentro do pedido ${raiz.codigo || ""}`);
       navigate(`/comercial/${novoOrc.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar adendo");
