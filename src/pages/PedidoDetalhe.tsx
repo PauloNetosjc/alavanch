@@ -23,6 +23,7 @@ import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { AssinaturasDigitaisPanel } from "@/components/assinaturas/AssinaturasDigitaisPanel";
+import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -973,7 +974,7 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
         <DialogContent>
           <DialogHeader><DialogTitle>Enviar para Assinatura</DialogTitle></DialogHeader>
           {assinaturaOpen && (() => {
-            const url = `${window.location.origin}/assinatura/${assinaturaOpen.signing_token}`;
+            const url = getPublicSignatureUrl(assinaturaOpen.signing_token);
             const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
             return (
               <div className="space-y-3">
@@ -1400,7 +1401,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
   const [criando, setCriando] = useState(false);
 
   // SEMPRE usa o novo módulo público /assinatura/:token
-  const newSigningUrl = solic?.token ? `${window.location.origin}/assinatura/${solic.token}` : null;
+  const newSigningUrl = solic?.token ? getPublicSignatureUrl(solic.token) : null;
   const signingUrl = newSigningUrl;
 
   const criarSolicitacao = async () => {
