@@ -13,7 +13,7 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,8 +22,12 @@ import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
-import { AssinaturasDigitaisPanel } from "@/components/assinaturas/AssinaturasDigitaisPanel";
+import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
+import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
+import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
+
+const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -64,6 +68,10 @@ export default function PedidoDetalhe() {
   const [pedidoPai, setPedidoPai] = useState<any>(null);
   const [adendos, setAdendos] = useState<any[]>([]);
   const [criandoAdendo, setCriandoAdendo] = useState(false);
+  const [loja, setLoja] = useState<any>(null);
+  const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
+  const [vendedor, setVendedor] = useState<any>(null);
+  const [responsavel, setResponsavel] = useState<any>(null);
 
   const totalProjeto = useMemo(
     () => ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0),
@@ -148,6 +156,31 @@ export default function PedidoDetalhe() {
     } else { setPedidoPai(null); }
     const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", id as string).order("created_at");
     setAdendos(filhos || []);
+
+    // Loja
+    if (ped.loja_id) {
+      const { data: lj } = await supabase.from("lojas").select("*").eq("id", ped.loja_id).maybeSingle();
+      setLoja(lj);
+    }
+    // Solicitações de assinatura (todas) deste pedido
+    const { data: sols } = await supabase
+      .from("solicitacoes_assinatura")
+      .select("*, tipos_documento(nome,slug,requer_assinatura_loja)")
+      .eq("pedido_id", id)
+      .order("created_at", { ascending: false });
+    setSolicitacoes(sols || []);
+
+    // Vendedor / Responsável
+    const ids: string[] = [];
+    if (orcamento?.vendedor_id) ids.push(orcamento.vendedor_id);
+    if (ped.estagio_responsavel_id) ids.push(ped.estagio_responsavel_id);
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles").select("user_id, nome_completo, cargo").in("user_id", ids);
+      setVendedor((profs || []).find((p: any) => p.user_id === orcamento?.vendedor_id) || null);
+      setResponsavel((profs || []).find((p: any) => p.user_id === ped.estagio_responsavel_id) || null);
+    } else { setVendedor(null); setResponsavel(null); }
+
     setLoading(false);
   };
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
@@ -254,7 +287,7 @@ export default function PedidoDetalhe() {
 
   return (
     <div className="space-y-5">
-      {/* HEADER */}
+      {/* HEADER COMPACTO */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <Link to="/comercial" className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
@@ -278,7 +311,7 @@ export default function PedidoDetalhe() {
             <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-[13px] cursor-pointer">
             <Checkbox checked={!!pedido.vip} onCheckedChange={(v) => salvarPedido({ vip: !!v })} />
             <Star className="w-4 h-4 text-amber-500" /> VIP
@@ -308,6 +341,18 @@ export default function PedidoDetalhe() {
           </Button>
         </div>
       </div>
+
+      {/* PAINEL PRINCIPAL — DADOS DO PEDIDO + CLIENTE/LOJA */}
+      <PedidoHeaderPanel
+        pedido={pedido}
+        orcamento={orcamento}
+        cliente={cliente}
+        loja={loja}
+        contrato={contrato}
+        vendedor={vendedor}
+        responsavel={responsavel}
+        adendos={adendos}
+      />
 
       {/* VÍNCULO DE ADENDO / PEDIDO PAI */}
       {(pedidoPai || adendos.length > 0) && (
@@ -380,18 +425,22 @@ export default function PedidoDetalhe() {
         ) : null}
       </section>
 
-      {/* OBSERVAÇÕES + CHAT INTERNO + WHATSAPP */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* NOTAS + CHAT INTERNO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Observacoes pedido={pedido} salvarPedido={salvarPedido} />
         <ChatInterno pedidoId={pedido.id} userId={user?.id || ""} chat={chat} usuarios={usuarios} onSent={carregar} />
-        <WhatsappCard cliente={cliente} />
       </div>
 
-      {/* CENTRAL DE DOCUMENTOS */}
-      <CentralDocs pedidoId={pedido.id} pastas={pastas} docs={docs} onChange={carregar} />
+      {/* CENTRAL DE DOCUMENTOS (com assinaturas integradas por documento) */}
+      <CentralDocs
+        pedidoId={pedido.id}
+        pastas={pastas}
+        docs={docs}
+        solicitacoes={solicitacoes}
+        cliente={cliente}
+        onChange={carregar}
+      />
 
-      {/* ASSINATURAS DIGITAIS */}
-      <AssinaturasDigitaisPanel pedidoId={pedido.id} />
 
       {/* ITENS DO PROJETO */}
       <ItensProjeto ambientes={ambientes} total={totalProjeto} />
@@ -619,11 +668,11 @@ function Observacoes({ pedido, salvarPedido }: any) {
     <div className="surface-card p-5 flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <FileText className="w-5 h-5 text-amber-600" />
-        <h3 className="font-playfair text-[18px] font-semibold">Observações</h3>
+        <h3 className="font-playfair text-[18px] font-semibold">Notas</h3>
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">{text ? "" : "Sem observações"}</p>
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Digite aqui…" className="flex-1 min-h-[160px] bg-amber-50/30 border-amber-200" />
-      <Button onClick={async () => { await salvarPedido({ observacoes_venda: text }); toast.success("Observações salvas"); }} className="mt-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300">
+      <p className="text-[11px] text-muted-foreground mb-3">{text ? "Estas notas serão incluídas no contrato." : "Sem notas — o conteúdo será anexado ao contrato."}</p>
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Digite aqui as notas que aparecerão no contrato…" className="flex-1 min-h-[160px] bg-amber-50/30 border-amber-200" />
+      <Button onClick={async () => { await salvarPedido({ observacoes_venda: text }); toast.success("Notas salvas"); }} className="mt-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300">
         <CheckCircle2 className="w-4 h-4 mr-1.5" /> Salvar
       </Button>
     </div>
@@ -746,7 +795,7 @@ function WhatsappCard({ cliente }: any) {
 /* ============================================================== */
 /*                  CENTRAL DE DOCUMENTOS                         */
 /* ============================================================== */
-function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
+function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange }: any) {
   const [pastaAtiva, setPastaAtiva] = useState<string | null>(pastas[0]?.id || null);
   const [novaPastaOpen, setNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
@@ -756,6 +805,15 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
   const [assinaturaOpen, setAssinaturaOpen] = useState<any>(null);
   const [renomearPasta, setRenomearPasta] = useState<any>(null);
   const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
+  const [evidId, setEvidId] = useState<string | null>(null);
+  const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
+
+  // Mapa: pedido_documento_id -> última solicitação
+  const solicByDoc = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const s of solicitacoes) if (s.pedido_documento_id && !m[s.pedido_documento_id]) m[s.pedido_documento_id] = s;
+    return m;
+  }, [solicitacoes]);
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
@@ -859,38 +917,81 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
       <div className="space-y-2">
         {docsDaPasta.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
-        ) : docsDaPasta.map((d: any) => (
-          <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-purple-600" />
-              <div>
-                <div className="text-[13px] font-medium">{d.nome}</div>
-                <div className="text-[10px] text-muted-foreground">{fmtDateTime(d.created_at)}{d.assinado_em ? ` • ✓ Assinado por ${d.assinatura_nome}` : ""}</div>
+        ) : docsDaPasta.map((d: any) => {
+          const sol = solicByDoc[d.id];
+          const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+            rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
+            aguardando_cliente: { label: "Aguardando cliente", tone: "bg-amber-100 text-amber-800" },
+            assinado_cliente: { label: "Cliente assinou", tone: "bg-blue-100 text-blue-800" },
+            aguardando_loja: { label: "Aguardando loja", tone: "bg-indigo-100 text-indigo-800" },
+            assinado_loja: { label: "Loja assinou", tone: "bg-blue-100 text-blue-800" },
+            concluido: { label: "Concluído", tone: "bg-emerald-100 text-emerald-800" },
+            recusado: { label: "Recusado", tone: "bg-red-100 text-red-800" },
+            cancelado: { label: "Cancelado", tone: "bg-muted text-muted-foreground" },
+            expirado: { label: "Expirado", tone: "bg-muted text-muted-foreground" },
+          };
+          const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
+          const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
+          const podeAssinarLoja = sol && requerLoja && (sol.status === "assinado_cliente" || sol.status === "aguardando_loja");
+          const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
+          return (
+            <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <FileText className="w-5 h-5 text-purple-600 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
+                    <span className="truncate">{d.nome}</span>
+                    {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
+                    {requerLoja && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {fmtDateTime(d.created_at)}
+                    {sol?.cliente_assinado_em && ` • Cliente: ${new Date(sol.cliente_assinado_em).toLocaleString("pt-BR")}`}
+                    {sol?.loja_assinado_em && ` • Loja: ${new Date(sol.loja_assinado_em).toLocaleString("pt-BR")}`}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-wrap justify-end">
+                {!sol && !d._readonly && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => enviarParaAssinatura(d)} title="Gerar link rápido">
+                      <Send className="w-3.5 h-3.5 mr-1" /> Gerar link
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura (avançado)">
+                      <PenLine className="w-3.5 h-3.5 mr-1" /> Solicitar
+                    </Button>
+                  </>
+                )}
+                {sol && linkPub && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(linkPub); toast.success("Link copiado"); }}>
+                      <Copy className="w-3.5 h-3.5 mr-1" /> Copiar link
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => window.open(linkPub, "_blank")}>
+                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Evidências
+                    </Button>
+                    {podeAssinarLoja && (
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAssinarLojaId(sol.id)}>
+                        <PenLine className="w-3.5 h-3.5 mr-1" /> Assinar pela loja
+                      </Button>
+                    )}
+                  </>
+                )}
+                <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="ghost" title="Baixar arquivo"><FileText className="w-4 h-4" /></Button>
+                </a>
+                {!d._readonly && (
+                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              {!d.assinado_em && !d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => enviarParaAssinatura(d)} title="Link rápido">
-                  <Send className="w-4 h-4 text-emerald-600" />
-                </Button>
-              )}
-              {!d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => setNovaAssinDoc(d)} title="Solicitar assinatura digital">
-                  <PenLine className="w-4 h-4 text-primary" />
-                </Button>
-              )}
-              {/* keep below */}
-              <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="ghost"><FileText className="w-4 h-4" /></Button>
-              </a>
-              {!d._readonly && (
-                <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
@@ -1010,6 +1111,16 @@ function CentralDocs({ pedidoId, pastas, docs, onChange }: any) {
           storage_path: novaAssinDoc.storage_path,
         } : undefined}
         onCreated={() => { setNovaAssinDoc(null); onChange(); }}
+      />
+
+      {evidId && (
+        <EvidenciasDialog open={!!evidId} onOpenChange={(v) => !v && setEvidId(null)} solicitacaoId={evidId} />
+      )}
+      <AssinarPelaLojaDialog
+        open={!!assinarLojaId}
+        onOpenChange={(v) => !v && setAssinarLojaId(null)}
+        solicitacaoId={assinarLojaId}
+        onDone={() => { setAssinarLojaId(null); onChange(); }}
       />
     </section>
   );
@@ -1540,5 +1651,77 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
         </div>
       )}
     </div>
+  );
+}
+
+/* ============================================================== */
+/*               PEDIDO HEADER PANEL (modelo imagem 2)            */
+/* ============================================================== */
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos }: any) {
+  const versao = 1 + (adendos?.length || 0);
+  const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
+  const previsaoEntrega = pedido.data_limite_finalizacao;
+  const previsaoMedicao = pedido.data_medicao_tecnica;
+  const dataVenda = orcamento?.confirmado_em || pedido.created_at;
+  const Field = ({ label, children }: any) => (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
+      <div className="text-[13px] font-medium truncate">{children ?? "—"}</div>
+    </div>
+  );
+  return (
+    <section className="surface-card p-5 space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Field label="Código">{pedido.codigo}</Field>
+        <Field label="Data da venda">{fmtDate(dataVenda)}</Field>
+        <Field label="Previsão de entrega">{fmtDate(previsaoEntrega)}</Field>
+        <Field label="Previsão atualizada">{fmtDate(pedido.data_chegada_material) !== "—" ? fmtDate(pedido.data_chegada_material) : "—"}</Field>
+        <Field label="Versão">{versao}</Field>
+        <Field label="Cliente final">{(cliente as any)?.cliente_final || "—"}</Field>
+
+        <Field label="Responsável">{(responsavel?.nome_completo) || (vendedor?.nome_completo) || "—"}</Field>
+        <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
+        <Field label="Orçamento">
+          {orcamento?.id ? (
+            <Link to={`/comercial/${orcamento.id}`} className="text-primary hover:underline">{orcamento.codigo}</Link>
+          ) : "—"}
+        </Field>
+        <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
+        <Field label="Receita">{fmtBrl(Number(pedido.valor_total) || 0)}</Field>
+        <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
+      </div>
+
+      {/* Estágios chips */}
+      <div>
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Estágios</div>
+        <div className="flex flex-wrap gap-1.5">
+          {[pedido.estagio_operacional_id && "Operacional", pedido.estagio_revisao_id && "Revisão", pedido.estagio_montagem_id && "Montagem", pedido.estagio_fabrica_id && "Fábrica", pedido.estagio_pos_venda_id && "Pós-venda"].filter(Boolean).map((s: any) => (
+            <Badge key={s} variant="secondary" className="text-[11px]">{s}</Badge>
+          ))}
+          {![pedido.estagio_operacional_id, pedido.estagio_revisao_id, pedido.estagio_montagem_id, pedido.estagio_fabrica_id, pedido.estagio_pos_venda_id].some(Boolean) && (
+            <span className="text-[12px] text-muted-foreground">—</span>
+          )}
+        </div>
+      </div>
+
+      {/* PARA / DE */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Para</div>
+          <div className="font-semibold text-[14px] uppercase">{cliente?.nome || "—"}</div>
+          {cliente?.telefone && <div className="text-[12px] text-muted-foreground">{cliente.telefone}</div>}
+          {cliente?.email && <div className="text-[12px] text-muted-foreground">{cliente.email}</div>}
+          {cliente?.cpf_cnpj && <div className="text-[12px] text-muted-foreground">{cliente.cpf_cnpj.length > 14 ? "CNPJ " : "CPF "}{cliente.cpf_cnpj}</div>}
+          {cliente?.endereco_entrega && <div className="text-[12px] text-muted-foreground whitespace-pre-wrap">{cliente.endereco_entrega}</div>}
+        </div>
+        <div className="md:text-right">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">De</div>
+          <div className="font-semibold text-[14px] uppercase">{loja?.nome || "—"}</div>
+          {loja?.sigla && <div className="text-[12px] text-muted-foreground">{loja.sigla}</div>}
+          {loja?.cnpj && <div className="text-[12px] text-muted-foreground">{loja.cnpj}</div>}
+          {loja?.endereco && <div className="text-[12px] text-muted-foreground">{loja.endereco}</div>}
+        </div>
+      </div>
+    </section>
   );
 }
