@@ -521,6 +521,8 @@ export default function KanbanComercial() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CrmEstagiosEditDialog open={estagiosOpen} onOpenChange={setEstagiosOpen} onChanged={load} />
     </div>
   );
 }
