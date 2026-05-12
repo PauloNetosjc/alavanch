@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, ExternalLink, Eye, RefreshCcw, Send, FileText, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
+import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 type Solic = {
   id: string;
@@ -55,7 +56,7 @@ export function AssinaturasDigitaisPanel({ pedidoId }: { pedidoId: string }) {
 
   useEffect(() => { carregar(); }, [pedidoId]);
 
-  const linkPublico = (s: Solic) => `${window.location.origin}/assinatura/${s.token}`;
+  const linkPublico = (s: Solic) => getPublicSignatureUrl(s.token);
 
   const copiar = (s: Solic) => {
     navigator.clipboard.writeText(linkPublico(s));
