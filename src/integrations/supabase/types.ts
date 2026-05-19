@@ -1098,6 +1098,7 @@ export type Database = {
           cnpj: string | null
           comissao_bronze_ate: number | null
           comissao_bronze_perc: number | null
+          comissao_loja_perc: number | null
           comissao_ouro_perc: number | null
           comissao_prata_ate: number | null
           comissao_prata_perc: number | null
@@ -1106,6 +1107,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           frete_compra_perc: number | null
+          frete_venda_perc: number | null
           icms_compra_perc: number | null
           id: string
           imp_saida_perc: number | null
@@ -1124,12 +1126,14 @@ export type Database = {
           taxa_responsavel: string | null
           telefone: string | null
           updated_at: string
+          usar_markup: boolean | null
           website: string | null
         }
         Insert: {
           cnpj?: string | null
           comissao_bronze_ate?: number | null
           comissao_bronze_perc?: number | null
+          comissao_loja_perc?: number | null
           comissao_ouro_perc?: number | null
           comissao_prata_ate?: number | null
           comissao_prata_perc?: number | null
@@ -1138,6 +1142,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           frete_compra_perc?: number | null
+          frete_venda_perc?: number | null
           icms_compra_perc?: number | null
           id?: string
           imp_saida_perc?: number | null
@@ -1156,12 +1161,14 @@ export type Database = {
           taxa_responsavel?: string | null
           telefone?: string | null
           updated_at?: string
+          usar_markup?: boolean | null
           website?: string | null
         }
         Update: {
           cnpj?: string | null
           comissao_bronze_ate?: number | null
           comissao_bronze_perc?: number | null
+          comissao_loja_perc?: number | null
           comissao_ouro_perc?: number | null
           comissao_prata_ate?: number | null
           comissao_prata_perc?: number | null
@@ -1170,6 +1177,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           frete_compra_perc?: number | null
+          frete_venda_perc?: number | null
           icms_compra_perc?: number | null
           id?: string
           imp_saida_perc?: number | null
@@ -1188,6 +1196,7 @@ export type Database = {
           taxa_responsavel?: string | null
           telefone?: string | null
           updated_at?: string
+          usar_markup?: boolean | null
           website?: string | null
         }
         Relationships: []
@@ -2212,6 +2221,7 @@ export type Database = {
         Row: {
           adendo_descricao: string | null
           adendo_tipo: string | null
+          cliente_final: string | null
           cliente_id: string | null
           codigo: string
           confirmado_em: string | null
@@ -2243,6 +2253,7 @@ export type Database = {
         Insert: {
           adendo_descricao?: string | null
           adendo_tipo?: string | null
+          cliente_final?: string | null
           cliente_id?: string | null
           codigo: string
           confirmado_em?: string | null
@@ -2274,6 +2285,7 @@ export type Database = {
         Update: {
           adendo_descricao?: string | null
           adendo_tipo?: string | null
+          cliente_final?: string | null
           cliente_id?: string | null
           codigo?: string
           confirmado_em?: string | null
@@ -3028,6 +3040,7 @@ export type Database = {
           adendo_descricao: string | null
           adendo_tipo: string | null
           arquivado: boolean | null
+          cliente_final: string | null
           cliente_id: string
           codigo: string
           created_at: string
@@ -3057,6 +3070,7 @@ export type Database = {
           orcamento_id: string | null
           pedido_origem_complemento_id: string | null
           pedido_pai_id: string | null
+          projetista_id: string | null
           receita_codigo: string | null
           rt_repassado: number
           status: string
@@ -3072,6 +3086,7 @@ export type Database = {
           adendo_descricao?: string | null
           adendo_tipo?: string | null
           arquivado?: boolean | null
+          cliente_final?: string | null
           cliente_id: string
           codigo: string
           created_at?: string
@@ -3101,6 +3116,7 @@ export type Database = {
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
+          projetista_id?: string | null
           receita_codigo?: string | null
           rt_repassado?: number
           status?: string
@@ -3116,6 +3132,7 @@ export type Database = {
           adendo_descricao?: string | null
           adendo_tipo?: string | null
           arquivado?: boolean | null
+          cliente_final?: string | null
           cliente_id?: string
           codigo?: string
           created_at?: string
@@ -3145,6 +3162,7 @@ export type Database = {
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
+          projetista_id?: string | null
           receita_codigo?: string | null
           rt_repassado?: number
           status?: string

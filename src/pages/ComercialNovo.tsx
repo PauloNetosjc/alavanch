@@ -448,14 +448,21 @@ export default function ComercialNovo() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
+  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null }[]>([]);
+  const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
 
   // ---- step 1 ----
   const [nomeProjeto, setNomeProjeto] = useState("");
   const [clienteId, setClienteId] = useState<string>(preselectCliente || "");
+  const [clienteFinal, setClienteFinal] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
-  const [projetistaNome, setProjetistaNome] = useState<string>("");
+  const [projetistaId, setProjetistaId] = useState<string>("");
+  const [origemId, setOrigemId] = useState<string>("");
   const [consultorId, setConsultorId] = useState<string>("");
+  const [tipoOrcamento, setTipoOrcamento] = useState<"pedido" | "adendo" | "complemento">("pedido");
+  const [pedidoPaiId, setPedidoPaiId] = useState<string>("");
   const { profile } = useAuth();
   const { lojas } = useLoja();
   const isAdmin = role === "admin" || role === "diretor";
@@ -474,7 +481,7 @@ export default function ComercialNovo() {
   const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
   // ---- adendo (modo financeiro: sem ambientes, apenas descrição + valor + tipo) ----
-  const [isAdendo, setIsAdendo] = useState(false);
+  const isAdendo = tipoOrcamento === "adendo";
   const [pedidoOrigemId, setPedidoOrigemId] = useState<string | null>(null);
   const [adendoDescricao, setAdendoDescricao] = useState("");
   const [adendoValor, setAdendoValor] = useState<number>(0);
@@ -484,24 +491,30 @@ export default function ComercialNovo() {
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
   const [mDescricao, setMDescricao] = useState("");
-  const [mPrazo, setMPrazo] = useState<string>("");
-  const [mCusto, setMCusto] = useState<string>("");
+  const [mVenda, setMVenda] = useState<string>("");
+
 
   /* --------------------------------- load --------------------------------- */
   useEffect(() => {
     (async () => {
-      const [c, p, pr] = await Promise.all([
+      const [c, p, pr, og, peds, cfg] = await Promise.all([
         supabase.from("clientes").select("id, nome").order("nome"),
         supabase.from("parceiros").select("id, nome, percentual_padrao").eq("ativo", true).order("nome"),
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
+        supabase.from("origens_lead").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("pedidos").select("id, codigo, cliente_id").order("created_at", { ascending: false }).limit(500),
+        supabase.from("configuracoes_empresa" as any).select("usar_markup").limit(1).maybeSingle(),
       ]);
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor + loja = current user (apenas em criação)
+      setOrigens((og.data ?? []) as any);
+      setPedidosExistentes((peds.data ?? []) as any);
+      setUsarMarkup(!!(cfg.data as any)?.usar_markup);
+      // defaults em criação: consultor=usuário, projetista=usuário, loja=loja do usuário
       if (!isEdit) {
         const { data: u } = await supabase.auth.getUser();
-        if (u.user) setConsultorId(u.user.id);
+        if (u.user) { setConsultorId(u.user.id); setProjetistaId(u.user.id); }
         if (profile?.loja_id) setLojaId(profile.loja_id);
       }
     })();
@@ -534,7 +547,11 @@ export default function ComercialNovo() {
       setParceiroPerc(Number(orc.parceiro_perc) || 0);
       setConsultorId(orc.consultor_id || "");
       setLojaId((orc as any).loja_id || profile?.loja_id || "");
-      setIsAdendo(!!(orc as any).is_adendo);
+      setTipoOrcamento((orc as any).is_adendo ? "adendo" : (orc as any).is_complemento ? "complemento" : "pedido");
+      setClienteFinal((orc as any).cliente_final || "");
+      setProjetistaId((orc as any).projetista_id || "");
+      setOrigemId((orc as any).origem_id || "");
+      setPedidoPaiId((orc as any).pedido_origem_id || (orc as any).pedido_origem_complemento_id || "");
       setPedidoOrigemId((orc as any).pedido_origem_id || null);
       setAdendoDescricao((orc as any).adendo_descricao || "");
       setAdendoTipo(((orc as any).adendo_tipo as any) || "receber");
@@ -710,20 +727,20 @@ export default function ComercialNovo() {
 
   const addManualAmbiente = () => {
     if (!mNome.trim()) return toast.error("Nome do ambiente é obrigatório");
-    const custo = Number(mCusto) || 0;
+    const venda = Number(mVenda) || 0;
     const novo: Ambiente = {
       id: uid(),
       nome: mNome.trim(),
       descricao: mDescricao,
-      prazo_dias: mPrazo ? Number(mPrazo) : null,
-      custo_aquisicao: custo,
-      preco_sugerido: custo, // cliente pode editar abaixo
+      prazo_dias: null,
+      custo_aquisicao: 0,
+      preco_sugerido: venda,
       markup: 0,
       itens: [],
       manual: true,
     };
     setAmbientes((prev) => [...prev, novo]);
-    setMNome(""); setMDescricao(""); setMPrazo(""); setMCusto("");
+    setMNome(""); setMDescricao(""); setMVenda("");
     toast.success("Ambiente adicionado");
   };
 
@@ -751,6 +768,8 @@ export default function ComercialNovo() {
     let orcId = editId || "";
     let codigo = orcCodigo;
 
+    const isComplemento = tipoOrcamento === "complemento";
+
     if (isEdit && editId) {
       const { error: upErr } = await supabase
         .from("orcamentos")
@@ -760,9 +779,16 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          projetista_id: projetistaId || null,
+          origem_id: origemId || null,
+          cliente_final: clienteFinal || null,
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           total,
+          is_adendo: isAdendo,
+          is_complemento: isComplemento,
+          pedido_origem_id: isAdendo ? (pedidoPaiId || null) : null,
+          pedido_origem_complemento_id: isComplemento ? (pedidoPaiId || null) : null,
           adendo_descricao: isAdendo ? adendoDescricao : null,
           adendo_tipo: isAdendo ? adendoTipo : null,
         } as any)
@@ -790,13 +816,22 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          projetista_id: projetistaId || null,
+          origem_id: origemId || null,
+          cliente_final: clienteFinal || null,
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           desconto_perc: 0,
           desconto_valor: 0,
           total,
           status: "negociacao",
-        })
+          is_adendo: isAdendo,
+          is_complemento: isComplemento,
+          pedido_origem_id: isAdendo ? (pedidoPaiId || null) : null,
+          pedido_origem_complemento_id: isComplemento ? (pedidoPaiId || null) : null,
+          adendo_descricao: isAdendo ? adendoDescricao : null,
+          adendo_tipo: isAdendo ? adendoTipo : null,
+        } as any)
         .select("id")
         .single();
 
@@ -902,10 +937,10 @@ export default function ComercialNovo() {
           </div>
         </div>
       )}
-      {projetistaNome && (
+      {projetistaId && (
         <div>
           <div className="text-muted-foreground text-[11px]">Projetista</div>
-          <div className="font-semibold">{projetistaNome}</div>
+          <div className="font-semibold">{profiles.find((p) => p.user_id === projetistaId)?.nome_completo ?? "—"}</div>
         </div>
       )}
       {consultor && (
@@ -1076,14 +1111,72 @@ export default function ComercialNovo() {
                 )}
               </div>
 
-              {/* Projetista (texto livre) */}
+              {/* Cliente Final (apelido / quem usará) */}
+              <div>
+                <Label>Cliente Final (Opcional)</Label>
+                <Input
+                  value={clienteFinal}
+                  onChange={(e) => setClienteFinal(e.target.value)}
+                  placeholder="Quem efetivamente utilizará — aparece no resumo do pedido"
+                />
+              </div>
+
+              {/* Origem do Cliente */}
+              <div>
+                <Label>Origem do Cliente</Label>
+                <Select value={origemId || "none"} onValueChange={(v) => setOrigemId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Como o cliente chegou até nós?" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Sem origem —</SelectItem>
+                    {origens.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Tipo de Orçamento */}
+              <div>
+                <Label>Tipo de Orçamento</Label>
+                <Select value={tipoOrcamento} onValueChange={(v) => { setTipoOrcamento(v as any); if (v === "pedido") setPedidoPaiId(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pedido">Pedido (PV)</SelectItem>
+                    <SelectItem value="adendo">Adendo (AD) — formalização financeira</SelectItem>
+                    <SelectItem value="complemento">Complemento (CP) — novo pedido</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {tipoOrcamento === "adendo" && "Adendo gera apenas lançamento financeiro vinculado ao pedido pai."}
+                  {tipoOrcamento === "complemento" && "Complemento gera um novo pedido referenciando o original."}
+                  {tipoOrcamento === "pedido" && "Pedido normal com ambientes."}
+                </p>
+              </div>
+
+              {/* Pedido pai (somente para adendo / complemento) */}
+              {tipoOrcamento !== "pedido" && (
+                <div>
+                  <Label>Pedido de Origem</Label>
+                  <Select value={pedidoPaiId} onValueChange={setPedidoPaiId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o pedido pai" /></SelectTrigger>
+                    <SelectContent>
+                      {pedidosExistentes
+                        .filter((p) => !clienteId || p.cliente_id === clienteId)
+                        .map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Projetista */}
               <div>
                 <Label>Projetista (Opcional)</Label>
-                <Input
-                  value={projetistaNome}
-                  onChange={(e) => setProjetistaNome(e.target.value)}
-                  placeholder="Selecione ou digite o nome do projetista"
-                />
+                <Select value={projetistaId || "none"} onValueChange={(v) => setProjetistaId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o projetista" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Sem projetista —</SelectItem>
+                    {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome_completo ?? "—"}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">Padrão: usuário logado</p>
               </div>
 
               {/* Consultor */}
@@ -1228,22 +1321,14 @@ export default function ComercialNovo() {
                       <Label>Descrição</Label>
                       <Input value={mDescricao} onChange={(e) => setMDescricao(e.target.value)} placeholder="Opcional" />
                     </div>
-                    <div className={podeVerCusto ? "grid grid-cols-2 gap-3" : ""}>
-                      <div>
-                        <Label>Prazo (dias úteis)</Label>
-                        <Input type="number" value={mPrazo} onChange={(e) => setMPrazo(e.target.value)} placeholder="Ex: 20 (0 ou vazio)" />
-                      </div>
-                      {podeVerCusto && (
-                        <div>
-                          <Label>Custo de Aquisição</Label>
-                          <Input
-                            type="number" step="0.01"
-                            value={mCusto}
-                            onChange={(e) => setMCusto(e.target.value)}
-                            placeholder="R$ 0,00"
-                          />
-                        </div>
-                      )}
+                    <div>
+                      <Label>Valor de Venda</Label>
+                      <Input
+                        type="number" step="0.01"
+                        value={mVenda}
+                        onChange={(e) => setMVenda(e.target.value)}
+                        placeholder="R$ 0,00"
+                      />
                     </div>
                     <Button onClick={addManualAmbiente} className="w-full">
                       <Plus className="w-4 h-4 mr-1.5" /> Adicionar
@@ -1403,11 +1488,11 @@ export default function ComercialNovo() {
               )}
 
               {/* Projetista */}
-              {projetistaNome && (
+              {projetistaId && (
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Projetista</div>
                   <div className="bg-[#E8F4ED] border border-[#D2E8DB] rounded-md px-4 py-3 text-[15px] font-medium">
-                    {projetistaNome}
+                    {profiles.find((p) => p.user_id === projetistaId)?.nome_completo ?? "—"}
                   </div>
                 </div>
               )}
