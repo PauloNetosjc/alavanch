@@ -1,56 +1,116 @@
-## Contexto atual
+## Visão geral
 
-Hoje o sistema tem dois caminhos:
+Refatoração das telas analíticas do sistema para padronizar filtros, separar métricas brutas/líquidas e introduzir gamificação no Ranking. Os tipos de pedido (PV/AD/COMP) já existem no banco e serão usados como dimensão de análise.
 
-- **PV-{SIGLA}-####** — pedido novo, gerado quando o orçamento é confirmado (trigger `gerar_pedido_codigo_e_inserir`).
-- **AD-{SIGLA}-####** — adendo, criado por "Criar Adendo" no `PedidoDetalhe`. Vive como aba do pedido raiz (`pedido_pai_id`), gera contrato/financeiro vinculados ao mesmo pedido.
+## 1. Filtro de período + loja (componente compartilhado)
 
-Falta o terceiro fluxo: **Complemento (COMP)** — venda nova do mesmo ambiente/cliente, com contrato próprio, apenas referenciando o pedido anterior nas notas. Não compartilha contrato/financeiro.
+- Criar `<PageFilters>` reutilizável: chip de período (Mês, Ano, Tudo, Personalizado) + seletor de loja com Avatar (Todas as lojas / loja X).
+- Remover o `LojaSelector` global do `Topbar` (passa a ser por página).
+- Aplicar em: Dashboard, Relatórios, Financeiro, Ranking, Kanbans (em telas onde já existe filtro próprio, substituir).
 
-## Comportamento desejado
+## 2. Dashboard (`src/pages/Dashboard.tsx`)
 
-| Tipo | Prefixo | Contrato | Financeiro | Vínculo | Onde aparece |
-|---|---|---|---|---|---|
-| Pedido novo | `PV-SIGLA-####` | Próprio | Próprio | Nenhum | Pedido autônomo |
-| Complemento | `COMP-SIGLA-####` | **Próprio** (menciona o pedido original nas observações) | **Próprio** | `pedido_origem_complemento_id` (somente consulta) | Pedido autônomo, com link "Complemento de PV-…" no header |
-| Adendo | `AD-SIGLA-####` | Mesmo contrato do pai (aditivo) | Lançamentos somam ao pai | `pedido_pai_id` + `is_adendo` | Aba dentro do pedido raiz |
+**Topo:** `<PageFilters>` com período (default mês corrente) + loja.
 
-## Mudanças
+**Meta de Vendas:**
+- "Venda Bruta": soma `valor_total` dos pedidos do período (atual VPL).
+- "Venda Líquida": `valor_total - juros - rt_repassado` por pedido.
+  - Juros: derivado do plano de pagamento (`parcelas.juros` em `lancamentos_financeiros`), ou somatório dos juros das parcelas com `tipo='juros'`.
+  - RT: somatório de `parceiro_comissoes.valor_calculado` do pedido, quando `repassado=true`.
+- Meta: configurada em Administração (já existe `metas` por loja/mês).
 
-### 1. Banco (migration)
+**Receitas e despesas:** mantém os cards, mas agora respondem ao filtro do topo (dia/semana/mês/personalizado).
 
-- `orcamentos`: adicionar `is_complemento boolean default false` e `pedido_origem_complemento_id uuid` (FK lógica para `pedidos.id`).
-- `pedidos`: adicionar `is_complemento boolean default false` e `pedido_origem_complemento_id uuid`.
-- Atualizar `gerar_pedido_codigo_e_inserir`:
-  - Decidir prefixo: `AD` se `is_adendo`, `COMP` se `is_complemento`, senão `PV`.
-  - Sequência independente por prefixo+sigla.
-  - Complemento **cria pastas próprias** (igual PV), adendo continua sem pastas.
-  - Copia `pedido_origem_complemento_id` do orçamento para o pedido.
+**Fluxo de trabalho (cards de estágio):**
+- Cada card exibe: `qtd`, `valor`, `vencidos` (badge vermelha).
+- Clique → navega para o Kanban correspondente filtrado pelo estágio.
+- Cálculo de vencidos: `pedidos` com `data_limite_finalizacao < hoje` E ainda no estágio.
 
-### 2. `PedidoDetalhe.tsx`
+## 3. Política de juros (Administração)
 
-- Adicionar botão **"Criar Complemento"** ao lado de "Criar Adendo" (cor distinta, ícone diferente).
-- `criarComplemento()`: clona o orçamento raiz com `is_complemento=true` + `pedido_origem_complemento_id=<pedido atual>`, copia ambientes/itens como template, redireciona para `ComercialNovo` para o usuário negociar normalmente. Resulta em pedido COMP-… autônomo.
-- Se o pedido atual for um complemento (`pedido_origem_complemento_id`), mostrar no header uma tarja/badge **"Complemento de PV-…"** com link de consulta ao pedido original. Sem abas (diferente de adendo).
-- Atualizar o aviso "Pedido fechado" para mencionar os dois caminhos: Adendo (mesmo contrato) vs Complemento (contrato novo).
+- Nova aba em `Administracao.tsx`: "Política de Juros".
+  - Toggle por loja: "Juros assumido pela loja" x "Juros repassado ao cliente".
+  - Campo % padrão por nº de parcelas (1x, 2x, 3-6x, 7-12x, 13x+).
+- Tabela `politica_juros` (loja_id, faixa_min, faixa_max, perc, responsavel).
+- Usado pelo calculador de pedido na hora de gerar o plano de pagamento.
 
-### 3. `ComercialNovo.tsx`
+## 4. Ranking (`src/pages/Ranking.tsx`) — Gamificado
 
-- Selecionar e gravar `is_complemento` e `pedido_origem_complemento_id` no orçamento.
-- Não bloquear edição em complementos (são pedidos novos).
-- Ao gerar contrato/snapshot de um orçamento complemento, incluir nas observações: *"Complemento ao pedido {codigo_origem} — refere-se ao mesmo ambiente."*
+- `<PageFilters>` com período + loja + grupo (Vendedor / Loja).
+- **Pódio top 3:** colunas com alturas 2-1-3, medalhas ouro/prata/bronze, avatar grande, valor vendido, animação de entrada em escada (framer-motion).
+- **Confete** no topo no carregamento (canvas-confetti).
+- **Tabela restante (4º+):** linha animada, badge de evolução vs período anterior (▲ ▼ %).
+- **Cards de métrica por vendedor:** contratos apresentados, contratos vendidos, taxa de conversão (gauge), ticket médio.
+- **Ranking de loja:** mesmo padrão de pódio, com agregação por `loja_id`.
 
-### 4. Listagens e Kanban
+## 5. Relatórios (`src/pages/Relatorios.tsx`)
 
-- Coluna/badge na lista de pedidos identificando tipo (PV / AD / COMP).
-- KanbanComercial / Pedidos: complementos aparecem como cards próprios (porque são pedidos novos); adendos continuam ocultos (vivem dentro do pai).
+**Topo:** `<PageFilters>` (período: Este Mês / Este Ano / Tudo / Personalizado) + filtro de loja.
 
-### 5. Contrato
+**KPIs (substitui os 5 atuais):**
+- Faturamento Bruto (soma `valor_total`)
+- Faturamento Líquido (bruto − juros − RT)
+- Margem Líquida % (substituindo "Markup Médio"): `(líquido − custo) / líquido`
+- Ticket Médio (substituindo "Bilheteria")
+- Taxa de Conversão
+- Cancelados
 
-- `contratoTemplate.ts`: já usa snapshot; adicionar variável opcional `pedido_origem_codigo`. Para complementos, injetar no header/observações automaticamente.
+**Tabela por tipo de pedido** (nova seção):
+| Tipo | Qtd | Faturamento | Margem | Ticket Médio |
+|------|-----|-------------|--------|--------------|
+| Pedido (PV) | … | … | … | … |
+| Adendo (AD) | … | … | … | … |
+| Complemento (COMP)| … | … | … | … |
+
+Agrupa pedidos por `is_adendo`/`is_complemento`.
+
+**Agendamentos por Tipo:**
+- Adiciona filtro de origem do lead (multi-select de `origens`).
+- Junta `agenda_eventos` → `pedido_id` → `orcamentos.origem_id`.
+
+## 6. Banco (migração)
+
+```sql
+CREATE TABLE public.politica_juros (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  loja_id uuid REFERENCES lojas(id),
+  responsavel text NOT NULL DEFAULT 'cliente', -- 'cliente' | 'loja'
+  faixa_min int NOT NULL DEFAULT 1,
+  faixa_max int NOT NULL DEFAULT 12,
+  perc_mes numeric NOT NULL DEFAULT 0,
+  ativo boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.parceiro_comissoes
+  ADD COLUMN IF NOT EXISTS repassado boolean DEFAULT false;
+
+-- (opcional) cache em pedidos para acelerar relatórios:
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS juros_total numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rt_repassado numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS valor_liquido numeric GENERATED ALWAYS AS (valor_total - COALESCE(juros_total,0) - COALESCE(rt_repassado,0)) STORED;
+```
+
+RLS: política `politica_juros` admin-only para mutação, leitura por loja.
+
+## 7. Arquivos afetados
+
+**Novos:**
+- `src/components/PageFilters.tsx`
+- `src/components/ranking/Podium.tsx`
+- `src/pages/PoliticaJurosAdmin.tsx` (aba em Administração)
+- migração SQL
+
+**Editados:**
+- `src/components/Topbar.tsx` — remove `LojaSelector`
+- `src/pages/Dashboard.tsx` — filtros, venda líquida, cards com vencidos clicáveis
+- `src/pages/Ranking.tsx` — pódio + confete + gamificação
+- `src/pages/Relatorios.tsx` — KPIs líquidos, tabela PV/AD/COMP, filtro origem
+- `src/pages/Administracao.tsx` — nova aba Juros
+- `src/lib/financeiro.ts` — helpers `calcJurosPedido`, `calcRtRepassado`, `calcMargem`
 
 ## Fora do escopo
-
-- Não mudar fluxo de adendo existente.
-- Não migrar pedidos antigos — só novos.
-- Sem alterações em permissões (segue o mesmo perfil que cria pedido).
+- Refazer cálculo de comissão por parceiro (já existe e fica como está).
+- Migrar histórico de pedidos para preencher `juros_total`/`rt_repassado` retroativos — fica `0` para pedidos antigos até reabrir/recalcular.
+- Alterações de design system, ícones do sidebar, ou outras telas além das listadas.
