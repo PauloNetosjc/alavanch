@@ -190,10 +190,40 @@ export default function Comercial() {
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
+      const pedIds = (peds || []).map((p: any) => p.id);
       const ctMap = new Map((cts || []).map((c: any) => [c.orcamento_id, c.status]));
+
+      // Carrega assinaturas de revisão (PDF final / vistoria assinados ⇒ revisado)
+      let revisadoSet = new Set<string>();
+      let etiquetasPorPedido = new Map<string, { id: string; nome: string; cor: string }[]>();
+      if (pedIds.length > 0) {
+        const [{ data: sols }, { data: vincs }] = await Promise.all([
+          supabase.from("solicitacoes_assinatura")
+            .select("pedido_id, status, tipos_documento(slug)")
+            .in("pedido_id", pedIds),
+          supabase.from("pedido_etiquetas" as any)
+            .select("pedido_id, etiquetas(id, nome, cor)")
+            .in("pedido_id", pedIds),
+        ]);
+        for (const s of (sols as any[]) || []) {
+          const slug = s.tipos_documento?.slug;
+          if (slug !== "pdf_final" && slug !== "vistoria") continue;
+          if (["assinado_cliente", "assinado_loja", "concluido"].includes(s.status)) {
+            revisadoSet.add(s.pedido_id);
+          }
+        }
+        for (const v of (vincs as any[]) || []) {
+          const arr = etiquetasPorPedido.get(v.pedido_id) || [];
+          if (v.etiquetas) arr.push(v.etiquetas);
+          etiquetasPorPedido.set(v.pedido_id, arr);
+        }
+      }
+
       for (const o of orcs) {
         o.pedido_id = pedMap.get(o.id) || null;
         o.contrato_status = ctMap.get(o.id) || null;
+        o.revisado = o.pedido_id ? revisadoSet.has(o.pedido_id) : false;
+        o.etiquetas = o.pedido_id ? (etiquetasPorPedido.get(o.pedido_id) || []) : [];
       }
     }
     setRows(orcs as unknown as OrcRow[]);
