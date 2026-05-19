@@ -497,18 +497,24 @@ export default function ComercialNovo() {
   /* --------------------------------- load --------------------------------- */
   useEffect(() => {
     (async () => {
-      const [c, p, pr] = await Promise.all([
+      const [c, p, pr, og, peds, cfg] = await Promise.all([
         supabase.from("clientes").select("id, nome").order("nome"),
         supabase.from("parceiros").select("id, nome, percentual_padrao").eq("ativo", true).order("nome"),
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
+        supabase.from("origens_lead").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("pedidos").select("id, codigo, cliente_id").order("created_at", { ascending: false }).limit(500),
+        supabase.from("configuracoes_empresa" as any).select("usar_markup").limit(1).maybeSingle(),
       ]);
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
-      // default consultor + loja = current user (apenas em criação)
+      setOrigens((og.data ?? []) as any);
+      setPedidosExistentes((peds.data ?? []) as any);
+      setUsarMarkup(!!(cfg.data as any)?.usar_markup);
+      // defaults em criação: consultor=usuário, projetista=usuário, loja=loja do usuário
       if (!isEdit) {
         const { data: u } = await supabase.auth.getUser();
-        if (u.user) setConsultorId(u.user.id);
+        if (u.user) { setConsultorId(u.user.id); setProjetistaId(u.user.id); }
         if (profile?.loja_id) setLojaId(profile.loja_id);
       }
     })();
