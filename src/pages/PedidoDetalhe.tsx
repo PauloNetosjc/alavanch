@@ -2013,8 +2013,8 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="border rounded-lg p-3 bg-muted/20">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Comercial (CRM)</div>
+        <Link to="/kanban-comercial" className="border rounded-lg p-3 bg-muted/20 block hover:bg-muted/40 hover:border-foreground/30 transition-colors">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 underline-offset-2 hover:underline">Kanban Comercial (CRM)</div>
           <div className="flex items-center gap-2">
             {crmEstagioAtual ? (
               <>
@@ -2030,13 +2030,15 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
               </span>
             )}
           </div>
-        </div>
+        </Link>
         {OP_PIPELINES.map((p) => {
           const list = pipelines[p.key] ?? [];
           const atual = atuais[p.key];
           return (
             <div key={p.key} className="border rounded-lg p-3 bg-muted/20">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban {p.label}</div>
+              <Link to={`/kanban-${p.key.replace("_", "-")}`} className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1 hover:underline underline-offset-2 hover:text-foreground">
+                Kanban {p.label}
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: atual?.cor || "#94a3b8" }} />
                 <span className="font-semibold text-[14px] truncate">{atual?.nome || "Não iniciado"}</span>
