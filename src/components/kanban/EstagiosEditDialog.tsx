@@ -276,6 +276,7 @@ export function EstagiosEditDialog({
           condicao_tipo: a.condicao_tipo,
           condicao_valor: a.condicao_valor || null,
           ajustar_prazo_dias: a.ajustar_prazo_dias,
+          dias: a.dias,
           ativo: a.ativo,
           ordem: a.ordem,
           acao: a.acao ?? "mover",
