@@ -1840,7 +1840,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
   );
 }
 
-function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any) {
+function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarComplemento }: any) {
   const [tab, setTab] = useState<"resumo" | "mantidos" | "alterados" | "adicionados" | "removidos">("resumo");
   const diff = rev.diff as DiffResult;
   const totals = diff?.totals || { mantidos: 0, alterados: 0, adicionados: 0, removidos: 0, valorOriginal: 0, valorRevisado: 0, variacao: 0, variacaoPerc: 0 };
