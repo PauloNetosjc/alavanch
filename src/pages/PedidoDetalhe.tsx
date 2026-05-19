@@ -1830,7 +1830,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
                 rev={verRevisao}
                 ambienteNome={amb?.nome}
                 onAprovar={() => { aprovar(verRevisao); setVerRevisao(null); }}
-                onNegociarAdendo={() => { negociarAdendo(verRevisao); setVerRevisao(null); }}
+                onNegociarComplemento={() => { negociarComplemento(verRevisao); setVerRevisao(null); }}
               />
             );
           })()}
