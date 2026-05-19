@@ -89,12 +89,12 @@ export default function Relatorios() {
     return { bruto, liquido, juros, rt, custoTotal, margem, ticket, qtd: pedidos.length, conv, cancelados };
   }, [orcs, pedidos]);
 
-  // ===== Tabela por tipo (PV / AD / COMP) =====
+  // ===== Tabela por tipo (PV / AD / CP) =====
   const porTipo = useMemo(() => {
     const buckets = [
       { tipo: "Pedido", code: "PV", match: (p: any) => !p.is_adendo && !p.is_complemento },
       { tipo: "Adendo", code: "AD", match: (p: any) => !!p.is_adendo },
-      { tipo: "Complemento", code: "COMP", match: (p: any) => !!p.is_complemento },
+      { tipo: "Complemento", code: "CP", match: (p: any) => !!p.is_complemento },
     ];
     return buckets.map((b) => {
       const arr = pedidos.filter(b.match);
@@ -200,7 +200,7 @@ export default function Relatorios() {
         <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" />
       </div>
 
-      {/* Tabela por tipo (PV / AD / COMP) */}
+      {/* Tabela por tipo (PV / AD / CP) */}
       <div className="surface-card p-5">
         <div className="text-[14px] font-medium mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary" />

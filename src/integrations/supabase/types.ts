@@ -2120,6 +2120,8 @@ export type Database = {
       }
       orcamentos: {
         Row: {
+          adendo_descricao: string | null
+          adendo_tipo: string | null
           cliente_id: string | null
           codigo: string
           confirmado_em: string | null
@@ -2149,6 +2151,8 @@ export type Database = {
           vendedor_id: string | null
         }
         Insert: {
+          adendo_descricao?: string | null
+          adendo_tipo?: string | null
           cliente_id?: string | null
           codigo: string
           confirmado_em?: string | null
@@ -2178,6 +2182,8 @@ export type Database = {
           vendedor_id?: string | null
         }
         Update: {
+          adendo_descricao?: string | null
+          adendo_tipo?: string | null
           cliente_id?: string | null
           codigo?: string
           confirmado_em?: string | null
@@ -2896,6 +2902,8 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          adendo_descricao: string | null
+          adendo_tipo: string | null
           arquivado: boolean | null
           cliente_id: string
           codigo: string
@@ -2938,6 +2946,8 @@ export type Database = {
           workflow_iniciado_em: string | null
         }
         Insert: {
+          adendo_descricao?: string | null
+          adendo_tipo?: string | null
           arquivado?: boolean | null
           cliente_id: string
           codigo: string
@@ -2980,6 +2990,8 @@ export type Database = {
           workflow_iniciado_em?: string | null
         }
         Update: {
+          adendo_descricao?: string | null
+          adendo_tipo?: string | null
           arquivado?: boolean | null
           cliente_id?: string
           codigo?: string

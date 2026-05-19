@@ -60,22 +60,24 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
 function StepsCard({
-  step, setStep, canGoTo, summary, title,
+  step, setStep, canGoTo, summary, title, adendoMode,
 }: {
   step: number;
   setStep: (n: number) => void;
   canGoTo: (n: number) => boolean;
   summary: React.ReactNode;
   title?: string;
+  adendoMode?: boolean;
 }) {
   const items = [
     { n: 1, label: "Cliente" },
-    { n: 2, label: "Ambientes" },
+    { n: 2, label: adendoMode ? "Adendo" : "Ambientes" },
     { n: 3, label: "Resumo" },
   ];
   return (
     <div className="surface-card p-5 sticky top-4">
       <div className="text-[18px] font-semibold mb-4">{title || "Novo Orçamento"}</div>
+
       <div className="space-y-2 mb-5">
         {items.map((it) => {
           const active = step === it.n;
@@ -471,6 +473,14 @@ export default function ComercialNovo() {
   // arquivos importados pendentes de upload (após criação do orçamento)
   const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
+  // ---- adendo (modo financeiro: sem ambientes, apenas descrição + valor + tipo) ----
+  const [isAdendo, setIsAdendo] = useState(false);
+  const [pedidoOrigemId, setPedidoOrigemId] = useState<string | null>(null);
+  const [adendoDescricao, setAdendoDescricao] = useState("");
+  const [adendoValor, setAdendoValor] = useState<number>(0);
+  const [adendoTipo, setAdendoTipo] = useState<"receber" | "pagar">("receber");
+
+
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
   const [mDescricao, setMDescricao] = useState("");
@@ -503,7 +513,7 @@ export default function ComercialNovo() {
     (async () => {
       const { data: orc } = await supabase
         .from("orcamentos")
-        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id, pedido_origem_id, adendo_descricao, adendo_tipo, total")
         .eq("id", editId)
         .maybeSingle();
       if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
@@ -524,6 +534,17 @@ export default function ComercialNovo() {
       setParceiroPerc(Number(orc.parceiro_perc) || 0);
       setConsultorId(orc.consultor_id || "");
       setLojaId((orc as any).loja_id || profile?.loja_id || "");
+      setIsAdendo(!!(orc as any).is_adendo);
+      setPedidoOrigemId((orc as any).pedido_origem_id || null);
+      setAdendoDescricao((orc as any).adendo_descricao || "");
+      setAdendoTipo(((orc as any).adendo_tipo as any) || "receber");
+      setAdendoValor(Number((orc as any).total) || 0);
+
+      if ((orc as any).is_adendo) {
+        // Adendos não carregam ambientes
+        return;
+      }
+
 
       const { data: ambs } = await supabase
         .from("ambientes")
@@ -562,12 +583,12 @@ export default function ComercialNovo() {
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
-    () => ambientes.reduce((s, a) => s + (a.preco_sugerido || 0), 0),
-    [ambientes],
+    () => isAdendo ? (adendoValor || 0) : ambientes.reduce((s, a) => s + (a.preco_sugerido || 0), 0),
+    [ambientes, isAdendo, adendoValor],
   );
   const acrescimoParceiro = useMemo(
-    () => subtotalAmbientes * ((parceiroPerc || 0) / 100),
-    [subtotalAmbientes, parceiroPerc],
+    () => isAdendo ? 0 : subtotalAmbientes * ((parceiroPerc || 0) / 100),
+    [subtotalAmbientes, parceiroPerc, isAdendo],
   );
   const total = subtotalAmbientes + acrescimoParceiro;
 
@@ -583,13 +604,16 @@ export default function ComercialNovo() {
   };
 
   const canNext1 = !!clienteId;
-  const canNext2 = ambientes.length > 0;
+  const canNext2 = isAdendo
+    ? (adendoDescricao.trim().length > 0 && (adendoValor || 0) > 0 && !!adendoTipo)
+    : ambientes.length > 0;
   const canGoTo = (n: number) => {
     if (n === 1) return true;
     if (n === 2) return canNext1;
     if (n === 3) return canNext1 && canNext2;
     return false;
   };
+
 
   /* ----------------------------- step 2: import -------------------------- */
   const aiDescribe = async (nome: string, itens: Item[]): Promise<string> => {
@@ -739,12 +763,16 @@ export default function ComercialNovo() {
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           total,
-        })
+          adendo_descricao: isAdendo ? adendoDescricao : null,
+          adendo_tipo: isAdendo ? adendoTipo : null,
+        } as any)
         .eq("id", editId);
       if (upErr) { setSaving(false); return toast.error(upErr.message); }
 
-      // Reset ambientes (cascade remove sub_itens via FK)
-      await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+      if (!isAdendo) {
+        // Reset ambientes (cascade remove sub_itens via FK)
+        await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+      }
     } else {
       const year = new Date().getFullYear();
       const { count } = await supabase
@@ -779,44 +807,47 @@ export default function ComercialNovo() {
       orcId = orc.id;
     }
 
-    for (let i = 0; i < ambientes.length; i++) {
-      const a = ambientes[i];
-      const { data: amb } = await supabase
-        .from("ambientes")
-        .insert({
-          orcamento_id: orcId,
-          nome: a.nome,
-          descricao: a.descricao || null,
-          ordem: i,
-          prazo_dias: a.prazo_dias,
-          custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
-          custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
-          custo_aquisicao: a.custo_aquisicao,
-          preco_sugerido: a.preco_sugerido,
-          markup: a.markup,
-          aplicar_desconto: a.aplicar_desconto !== false,
-        } as any)
-        .select("id")
-        .single();
-      if (amb && a.itens.length > 0) {
-        await supabase.from("sub_itens_ambiente").insert(
-          a.itens.map((it) => ({
-            ambiente_id: amb.id,
-            descricao: it.descricao,
-            quantidade: it.quantidade,
-            largura: it.largura,
-            altura: it.altura,
-            profundidade: it.profundidade,
-            custo_cliente: it.custo_cliente,
-            custo_loja: it.custo_loja,
-            custo_fabrica: it.custo_fabrica,
-            cor: it.cor,
-            categoria: it.categoria,
-            codigo: it.codigo,
-          })),
-        );
+    if (!isAdendo) {
+      for (let i = 0; i < ambientes.length; i++) {
+        const a = ambientes[i];
+        const { data: amb } = await supabase
+          .from("ambientes")
+          .insert({
+            orcamento_id: orcId,
+            nome: a.nome,
+            descricao: a.descricao || null,
+            ordem: i,
+            prazo_dias: a.prazo_dias,
+            custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
+            custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
+            custo_aquisicao: a.custo_aquisicao,
+            preco_sugerido: a.preco_sugerido,
+            markup: a.markup,
+            aplicar_desconto: a.aplicar_desconto !== false,
+          } as any)
+          .select("id")
+          .single();
+        if (amb && a.itens.length > 0) {
+          await supabase.from("sub_itens_ambiente").insert(
+            a.itens.map((it) => ({
+              ambiente_id: amb.id,
+              descricao: it.descricao,
+              quantidade: it.quantidade,
+              largura: it.largura,
+              altura: it.altura,
+              profundidade: it.profundidade,
+              custo_cliente: it.custo_cliente,
+              custo_loja: it.custo_loja,
+              custo_fabrica: it.custo_fabrica,
+              cor: it.cor,
+              categoria: it.categoria,
+              codigo: it.codigo,
+            })),
+          );
+        }
       }
     }
+
 
     // Upload de arquivos importados (Promob/XML/Excel) para a Central de Documentos do orçamento
     if (arquivosImportados.length > 0) {
@@ -883,7 +914,21 @@ export default function ComercialNovo() {
           <div className="font-semibold">{consultor.nome_completo ?? "—"}</div>
         </div>
       )}
-      {ambientes.length > 0 && (
+      {isAdendo && (
+        <>
+          <div>
+            <div className="text-muted-foreground text-[11px]">Tipo</div>
+            <div className="font-semibold">Adendo financeiro ({adendoTipo === "pagar" ? "a pagar" : "a receber"})</div>
+          </div>
+          <div className="border-t border-border pt-3 space-y-1.5">
+            <div className="flex justify-between font-semibold text-[15px]">
+              <span>Valor</span>
+              <span className="text-mono">{fmtBrl(adendoValor)}</span>
+            </div>
+          </div>
+        </>
+      )}
+      {!isAdendo && ambientes.length > 0 && (
         <>
           <div>
             <div className="text-muted-foreground text-[11px]">Ambientes</div>
@@ -907,6 +952,7 @@ export default function ComercialNovo() {
           </div>
         </>
       )}
+
     </div>
   );
 
@@ -914,7 +960,7 @@ export default function ComercialNovo() {
   return (
     <div className="grid grid-cols-12 gap-6">
       <div className="col-span-12 md:col-span-3">
-        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} />
+        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} adendoMode={isAdendo} />
       </div>
 
       <div className="col-span-12 md:col-span-9 space-y-6">
@@ -1063,8 +1109,66 @@ export default function ComercialNovo() {
         )}
 
         {/* ============================ STEP 2 ============================ */}
-        {step === 2 && (
+        {step === 2 && isAdendo && (
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "#FDF4E2", border: "1px solid #F3E5BF" }}
+              >
+                <FileText className="w-6 h-6" style={{ color: "#B8893B" }} />
+              </div>
+              <div>
+                <h1 className="text-[26px] font-semibold leading-none">Adendo Financeiro</h1>
+                <p className="text-[13px] text-muted-foreground mt-1.5">
+                  Adendos não geram pedido de peças — apenas formalizam diferenças financeiras vinculadas ao pedido original.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <Label>Descrição do Adendo</Label>
+                <Textarea
+                  value={adendoDescricao}
+                  onChange={(e) => setAdendoDescricao(e.target.value)}
+                  placeholder="Ex.: Este adendo é referente ao pedido PV-LOJ-0003 por diferença de acabamento no ambiente Cozinha…"
+                  rows={5}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Tipo</Label>
+                  <Select value={adendoTipo} onValueChange={(v) => setAdendoTipo(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receber">A receber do cliente</SelectItem>
+                      <SelectItem value="pagar">A pagar ao cliente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number" step="0.01" min={0}
+                    value={adendoValor || ""}
+                    onChange={(e) => setAdendoValor(Number(e.target.value) || 0)}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-[12px] text-muted-foreground">
+                Este adendo seguirá direto para o <b>painel financeiro</b>. Não passa pelos pipelines de fábrica/montagem/pós-venda.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && !isAdendo && (
           <>
+
             <div className="surface-card p-6">
               <div className="flex items-center gap-4 mb-6">
                 <div
@@ -1318,42 +1422,53 @@ export default function ComercialNovo() {
                 </div>
               )}
 
-              {/* Ambientes */}
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                  Ambientes ({ambientes.length})
+              {/* Ambientes ou Adendo */}
+              {isAdendo ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Adendo Financeiro ({adendoTipo === "pagar" ? "a pagar" : "a receber"})
+                  </div>
+                  <div className="border border-border rounded-md px-4 py-3 bg-[#FDF4E2]/40">
+                    <div className="text-[13px] whitespace-pre-wrap">{adendoDescricao || "—"}</div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {ambientes.map((a) => (
-                    <div
-                      key={a.id}
-                      className="border border-border rounded-md px-4 py-3 hover:bg-muted/20"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="text-[15px] font-semibold">{a.nome}</div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-[13px] font-semibold text-[#2D6BE5]">
-                            {a.markup.toFixed(2)}x
-                          </span>
-                          <span className="text-[15px] font-semibold text-mono">
-                            {fmtBrl(a.preco_sugerido)}
-                          </span>
+              ) : (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Ambientes ({ambientes.length})
+                  </div>
+                  <div className="space-y-2">
+                    {ambientes.map((a) => (
+                      <div
+                        key={a.id}
+                        className="border border-border rounded-md px-4 py-3 hover:bg-muted/20"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-[15px] font-semibold">{a.nome}</div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-[13px] font-semibold text-[#2D6BE5]">
+                              {a.markup.toFixed(2)}x
+                            </span>
+                            <span className="text-[15px] font-semibold text-mono">
+                              {fmtBrl(a.preco_sugerido)}
+                            </span>
+                          </div>
                         </div>
+                        {a.descricao && (
+                          <div className="text-[12px] text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
+                          </div>
+                        )}
                       </div>
-                      {a.descricao && (
-                        <div className="text-[12px] text-muted-foreground mt-1.5">
-                          <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Totais */}
               <div className="border-t border-border pt-4 space-y-2 text-[14px]">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{isAdendo ? "Valor" : "Subtotal"}</span>
                   <span className="text-mono font-medium">{fmtBrl(subtotalAmbientes)}</span>
                 </div>
                 {acrescimoParceiro > 0 && (
@@ -1367,6 +1482,7 @@ export default function ComercialNovo() {
                   <span className="text-mono">{fmtBrl(total)}</span>
                 </div>
               </div>
+
             </div>
           </>
         )}
