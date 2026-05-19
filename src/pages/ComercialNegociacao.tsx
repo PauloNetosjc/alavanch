@@ -944,7 +944,6 @@ export default function ComercialNegociacao() {
 
     <div class="totais">
       <div class="row"><span>Subtotal</span><b>${fmtBrl(subtotalAmbientes)}</b></div>
-      ${parceiroPerc ? `<div class="row"><span>Indicador (${parceiroPerc.toFixed(2)}%)</span><b>+${fmtBrl(parceiroValor)}</b></div>` : ""}
       ${descValorAplicado ? `<div class="row" style="color:#7A2222"><span>Desconto (${descPercAplicado.toFixed(2)}%)</span><b>-${fmtBrl(descValorAplicado)}</b></div>` : ""}
       <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalProposta)}</span></div>
     </div>
