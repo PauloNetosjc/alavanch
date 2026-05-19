@@ -583,12 +583,12 @@ export default function ComercialNovo() {
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
-    () => ambientes.reduce((s, a) => s + (a.preco_sugerido || 0), 0),
-    [ambientes],
+    () => isAdendo ? (adendoValor || 0) : ambientes.reduce((s, a) => s + (a.preco_sugerido || 0), 0),
+    [ambientes, isAdendo, adendoValor],
   );
   const acrescimoParceiro = useMemo(
-    () => subtotalAmbientes * ((parceiroPerc || 0) / 100),
-    [subtotalAmbientes, parceiroPerc],
+    () => isAdendo ? 0 : subtotalAmbientes * ((parceiroPerc || 0) / 100),
+    [subtotalAmbientes, parceiroPerc, isAdendo],
   );
   const total = subtotalAmbientes + acrescimoParceiro;
 
@@ -604,13 +604,16 @@ export default function ComercialNovo() {
   };
 
   const canNext1 = !!clienteId;
-  const canNext2 = ambientes.length > 0;
+  const canNext2 = isAdendo
+    ? (adendoDescricao.trim().length > 0 && (adendoValor || 0) > 0 && !!adendoTipo)
+    : ambientes.length > 0;
   const canGoTo = (n: number) => {
     if (n === 1) return true;
     if (n === 2) return canNext1;
     if (n === 3) return canNext1 && canNext2;
     return false;
   };
+
 
   /* ----------------------------- step 2: import -------------------------- */
   const aiDescribe = async (nome: string, itens: Item[]): Promise<string> => {
