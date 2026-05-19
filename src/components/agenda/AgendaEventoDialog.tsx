@@ -236,6 +236,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         return "Selecione um cliente.";
       }
     }
+    if (isApresentacao && !origemId) return "Selecione a origem do lead.";
     if (exigePedido && !pedidoSelId) return "Selecione um pedido do cliente.";
     if (exigeOrcamento && !orcamentoSelId) return "Selecione um orçamento do cliente.";
     if (exigeEndereco && !endereco.trim()) return "Endereço é obrigatório para este tipo de evento.";
