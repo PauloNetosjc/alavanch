@@ -38,6 +38,9 @@ type Chamado = {
   data_agendamento: string | null;
   hora_agendamento: string | null;
   tecnico_id: string | null;
+  pedido_id: string | null;
+  cliente_id: string | null;
+  loja_id: string | null;
   arquivada: boolean | null;
   data_limite: string | null;
   cliente: { nome: string } | null;
