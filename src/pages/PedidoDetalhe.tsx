@@ -357,6 +357,7 @@ export default function PedidoDetalhe() {
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
   const ehAdendo = !!pedido.pedido_pai_id;
+  const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
