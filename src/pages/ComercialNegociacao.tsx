@@ -1084,6 +1084,7 @@ export default function ComercialNegociacao() {
               );
             })}
           </div>
+          )}
 
           <p className="text-[12px] text-muted-foreground">*Após assinatura do caderno técnico</p>
 
