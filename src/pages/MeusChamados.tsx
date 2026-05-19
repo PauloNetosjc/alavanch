@@ -76,7 +76,7 @@ export default function MeusChamados() {
     let q = supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, arquivada, cliente:clientes(nome), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, arquivada, data_limite, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
       .order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("tecnico_id", user.id);
