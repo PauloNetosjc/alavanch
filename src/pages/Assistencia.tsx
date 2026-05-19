@@ -488,7 +488,8 @@ function NovaAssistenciaDialog({
         tipo: "Garantia",
         prioridade,
         descricao,
-        status: "triagem",
+        status: tecnicoId ? "agendada" : "triagem",
+        tecnico_id: tecnicoId || null,
       })
       .select()
       .maybeSingle();
