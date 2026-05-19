@@ -26,6 +26,8 @@ type OrcRow = {
   cliente?: { nome: string } | null;
   pedido_id?: string | null;
   contrato_status?: string | null;
+  revisado?: boolean;
+  etiquetas?: { id: string; nome: string; cor: string }[];
 };
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; fg: string; dot: string }> = {
