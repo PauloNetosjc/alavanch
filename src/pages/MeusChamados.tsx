@@ -26,9 +26,14 @@ import {
   AlertCircle,
   ChevronRight,
   Download,
+  CheckCircle2,
+  CalendarPlus,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 type Chamado = {
   id: string;
