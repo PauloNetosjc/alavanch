@@ -447,7 +447,7 @@ export default function ComercialNegociacao() {
       const [{ data: o }, { data: amb }, { data: m }, { data: pgs }, { data: u }] = await Promise.all([
         supabase
           .from("orcamentos")
-          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, cliente:clientes(*), parceiro:parceiros(nome)")
+          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, loja_id, is_complemento, pedido_origem_complemento_id, cliente:clientes(*), parceiro:parceiros(nome)")
           .eq("id", id)
           .single(),
         supabase
