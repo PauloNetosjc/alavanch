@@ -2131,12 +2131,14 @@ export type Database = {
           estagio_id: string | null
           id: string
           is_adendo: boolean | null
+          is_complemento: boolean
           loja_id: string | null
           motivo_perda: string | null
           nome_projeto: string | null
           origem_id: string | null
           parceiro_id: string | null
           parceiro_perc: number | null
+          pedido_origem_complemento_id: string | null
           pedido_origem_id: string | null
           perdido_em: string | null
           projetista_id: string | null
@@ -2158,12 +2160,14 @@ export type Database = {
           estagio_id?: string | null
           id?: string
           is_adendo?: boolean | null
+          is_complemento?: boolean
           loja_id?: string | null
           motivo_perda?: string | null
           nome_projeto?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          pedido_origem_complemento_id?: string | null
           pedido_origem_id?: string | null
           perdido_em?: string | null
           projetista_id?: string | null
@@ -2185,12 +2189,14 @@ export type Database = {
           estagio_id?: string | null
           id?: string
           is_adendo?: boolean | null
+          is_complemento?: boolean
           loja_id?: string | null
           motivo_perda?: string | null
           nome_projeto?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           parceiro_perc?: number | null
+          pedido_origem_complemento_id?: string | null
           pedido_origem_id?: string | null
           perdido_em?: string | null
           projetista_id?: string | null
@@ -2910,9 +2916,11 @@ export type Database = {
           estrelas: number | null
           id: string
           is_adendo: boolean | null
+          is_complemento: boolean
           loja_id: string | null
           observacoes_venda: string | null
           orcamento_id: string | null
+          pedido_origem_complemento_id: string | null
           pedido_pai_id: string | null
           receita_codigo: string | null
           status: string
@@ -2947,9 +2955,11 @@ export type Database = {
           estrelas?: number | null
           id?: string
           is_adendo?: boolean | null
+          is_complemento?: boolean
           loja_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
+          pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
           receita_codigo?: string | null
           status?: string
@@ -2984,9 +2994,11 @@ export type Database = {
           estrelas?: number | null
           id?: string
           is_adendo?: boolean | null
+          is_complemento?: boolean
           loja_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
+          pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
           receita_codigo?: string | null
           status?: string
