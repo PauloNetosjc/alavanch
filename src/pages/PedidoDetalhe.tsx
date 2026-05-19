@@ -67,6 +67,7 @@ export default function PedidoDetalhe() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [pedidoPai, setPedidoPai] = useState<any>(null);
   const [adendos, setAdendos] = useState<any[]>([]);
+  const [complementos, setComplementos] = useState<any[]>([]);
   const [criandoAdendo, setCriandoAdendo] = useState(false);
   const [criandoComplemento, setCriandoComplemento] = useState(false);
   const [pedidoOrigemComplemento, setPedidoOrigemComplemento] = useState<any>(null);
