@@ -61,10 +61,13 @@ type Assistencia = {
   material_necessario: boolean | null;
   tecnico_id: string | null;
   created_at: string;
+  data_limite: string | null;
   cliente: { nome: string } | null;
   pedido: { codigo: string } | null;
   tecnico?: { nome_completo: string } | null;
 };
+
+const PRAZO_DIAS: Record<string, number> = { baixa: 45, media: 35, alta: 25, urgente: 7 };
 
 type Profile = { user_id: string; nome_completo: string | null };
 
