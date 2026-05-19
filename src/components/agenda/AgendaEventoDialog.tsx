@@ -489,6 +489,23 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             )}
           </div>
 
+          {isApresentacao && (
+            <div>
+              <Label>Origem do lead <span className="text-destructive">*</span></Label>
+              <Select value={origemId} onValueChange={setOrigemId}>
+                <SelectTrigger><SelectValue placeholder="Por onde o cliente entrou?" /></SelectTrigger>
+                <SelectContent>
+                  {origens.map(o => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {origens.length === 0 && (
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  Nenhuma origem cadastrada. Cadastre em Administração → Origens.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
           {exigeCliente && (
             <div className="rounded-md border p-3 bg-muted/20 space-y-2">
