@@ -447,7 +447,7 @@ export default function ComercialNegociacao() {
       const [{ data: o }, { data: amb }, { data: m }, { data: pgs }, { data: u }] = await Promise.all([
         supabase
           .from("orcamentos")
-          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, loja_id, is_complemento, pedido_origem_complemento_id, cliente:clientes(*), parceiro:parceiros(nome)")
+          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, loja_id, is_complemento, pedido_origem_complemento_id, is_adendo, adendo_descricao, adendo_tipo, cliente:clientes(*), parceiro:parceiros(nome)")
           .eq("id", id)
           .single(),
         supabase
@@ -527,14 +527,17 @@ export default function ComercialNegociacao() {
     () => ambientesIncluidos.filter((a) => a.aplicar_desconto === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
     [ambientesIncluidos],
   );
-  const subtotalAmbientes = subtotalComDesconto + subtotalSemDesconto;
-  const parceiroPerc = Number(orc?.parceiro_perc) || 0;
+  const isAdendo = !!(orc as any)?.is_adendo;
+  const adendoTipo = (orc as any)?.adendo_tipo as ("receber" | "pagar" | undefined);
+  const adendoValor = Number((orc as any)?.total) || 0;
+  const subtotalAmbientes = isAdendo ? adendoValor : (subtotalComDesconto + subtotalSemDesconto);
+  const parceiroPerc = isAdendo ? 0 : (Number(orc?.parceiro_perc) || 0);
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
   // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
-  const baseDescontavel = subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100);
-  const descValorEfetivo = Math.min(descValorAplicado, baseDescontavel);
-  const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
+  const baseDescontavel = isAdendo ? 0 : (subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100));
+  const descValorEfetivo = isAdendo ? 0 : Math.min(descValorAplicado, baseDescontavel);
+  const totalProposta = isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
@@ -996,6 +999,29 @@ export default function ComercialNegociacao() {
             </div>
           </div>
 
+          {isAdendo ? (
+            <div className={`border-2 rounded-lg px-4 py-4 ${adendoTipo === "pagar" ? "border-rose-200 bg-rose-50/40" : "border-emerald-200 bg-emerald-50/40"}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded ${adendoTipo === "pagar" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      Adendo {adendoTipo === "pagar" ? "a pagar (loja → cliente)" : "a receber (cliente → loja)"}
+                    </span>
+                  </div>
+                  <div className="text-[15px] font-semibold uppercase tracking-tight mt-2">Descrição do adendo</div>
+                  <div className="text-[13px] text-foreground whitespace-pre-wrap mt-1">
+                    {(orc as any)?.adendo_descricao || "—"}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor do adendo</div>
+                  <div className={`text-[18px] font-semibold text-mono ${adendoTipo === "pagar" ? "text-rose-700" : "text-emerald-700"}`}>
+                    {adendoTipo === "pagar" ? "-" : ""}{fmtBrl(adendoValor)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-3">
             {ambientes.map((a) => {
               const incluido = a.negociavel !== false;
@@ -1058,6 +1084,7 @@ export default function ComercialNegociacao() {
               );
             })}
           </div>
+          )}
 
           <p className="text-[12px] text-muted-foreground">*Após assinatura do caderno técnico</p>
 

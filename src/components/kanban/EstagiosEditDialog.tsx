@@ -33,6 +33,7 @@ type Automacao = {
   condicao_tipo: string;
   condicao_valor: string | null;
   ajustar_prazo_dias: number | null;
+  dias: number | null;
   ativo: boolean;
   ordem: number;
   acao: string;
@@ -51,6 +52,7 @@ const PIPELINE_LABELS: Record<string, string> = {
 
 const EVENTOS = [
   { value: "card_chegou", label: "Quando criado/movido para este estágio" },
+  { value: "apos_x_dias", label: "Após X dias neste estágio" },
   { value: "agenda_criada", label: "Agenda criada" },
   { value: "medicao_agendada", label: "Medição técnica agendada" },
   { value: "revisao_agendada", label: "Revisão final agendada" },
@@ -121,7 +123,7 @@ export function EstagiosEditDialog({
       (itensMap[it.template_id] ||= []).push({ descricao: it.descricao });
     });
     setTemplateItens(itensMap);
-    setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {} })) as Automacao[]);
+    setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {}, dias: a.dias ?? null })) as Automacao[]);
     setProfiles((profs ?? []) as Profile[]);
     setAutosRemovidas([]);
     setExpandido({});
@@ -182,6 +184,7 @@ export function EstagiosEditDialog({
         condicao_tipo: "nenhuma",
         condicao_valor: null,
         ajustar_prazo_dias: null,
+        dias: null,
         ativo: true,
         ordem: 0,
         acao: "mover",
@@ -273,6 +276,7 @@ export function EstagiosEditDialog({
           condicao_tipo: a.condicao_tipo,
           condicao_valor: a.condicao_valor || null,
           ajustar_prazo_dias: a.ajustar_prazo_dias,
+          dias: a.dias,
           ativo: a.ativo,
           ordem: a.ordem,
           acao: a.acao ?? "mover",
@@ -427,7 +431,16 @@ export function EstagiosEditDialog({
                               </SelectContent>
                             </Select>
 
-                            {(a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") ? (
+                            {a.evento === "apos_x_dias" ? (
+                              <Input
+                                className="col-span-3"
+                                type="number"
+                                min={1}
+                                placeholder="Quantos dias"
+                                value={a.dias ?? ""}
+                                onChange={(e) => updateAuto(a.id, { dias: e.target.value === "" ? null : Number(e.target.value) })}
+                              />
+                            ) : (a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") ? (
                               <Select
                                 value={a.condicao_tipo === "tipo_evento_agenda" ? (a.condicao_valor ?? "any") : "any"}
                                 onValueChange={(v) => updateAuto(a.id, {

@@ -25,6 +25,7 @@ import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 import { PipelineOperacionalAdmin } from "@/components/PipelineOperacionalAdmin";
 import { AgendaAdmin } from "@/components/AgendaAdmin";
+import { PoliticaJurosAdmin } from "@/components/PoliticaJurosAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -66,6 +67,7 @@ export default function Administracao() {
       <Tabs defaultValue="descontos" className="w-full">
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="descontos"><Percent className="w-3.5 h-3.5 mr-1.5" />Descontos</TabsTrigger>
+          <TabsTrigger value="juros"><Percent className="w-3.5 h-3.5 mr-1.5" />Política de Juros</TabsTrigger>
           <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
           <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
           <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
@@ -82,6 +84,7 @@ export default function Administracao() {
         </TabsList>
 
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
+        <TabsContent value="juros" className="mt-4"><PoliticaJurosAdmin /></TabsContent>
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>

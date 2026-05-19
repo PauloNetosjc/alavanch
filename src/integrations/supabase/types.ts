@@ -1397,6 +1397,69 @@ export type Database = {
           },
         ]
       }
+      crm_automacoes: {
+        Row: {
+          acao: string
+          acao_config: Json
+          ativo: boolean
+          condicao_tipo: string
+          condicao_valor: string | null
+          created_at: string
+          dias: number | null
+          estagio_destino_id: string | null
+          estagio_origem_id: string
+          evento: string
+          id: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          acao?: string
+          acao_config?: Json
+          ativo?: boolean
+          condicao_tipo?: string
+          condicao_valor?: string | null
+          created_at?: string
+          dias?: number | null
+          estagio_destino_id?: string | null
+          estagio_origem_id: string
+          evento?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          acao_config?: Json
+          ativo?: boolean
+          condicao_tipo?: string
+          condicao_valor?: string | null
+          created_at?: string
+          dias?: number | null
+          estagio_destino_id?: string | null
+          estagio_origem_id?: string
+          evento?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_automacoes_estagio_destino_id_fkey"
+            columns: ["estagio_destino_id"]
+            isOneToOne: false
+            referencedRelation: "crm_estagios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_automacoes_estagio_origem_id_fkey"
+            columns: ["estagio_origem_id"]
+            isOneToOne: false
+            referencedRelation: "crm_estagios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_estagios: {
         Row: {
           ativo: boolean
@@ -3152,6 +3215,7 @@ export type Database = {
           condicao_tipo: string
           condicao_valor: string | null
           created_at: string
+          dias: number | null
           estagio_destino_id: string
           estagio_origem_id: string
           evento: string
@@ -3169,6 +3233,7 @@ export type Database = {
           condicao_tipo?: string
           condicao_valor?: string | null
           created_at?: string
+          dias?: number | null
           estagio_destino_id: string
           estagio_origem_id: string
           evento: string
@@ -3186,6 +3251,7 @@ export type Database = {
           condicao_tipo?: string
           condicao_valor?: string | null
           created_at?: string
+          dias?: number | null
           estagio_destino_id?: string
           estagio_origem_id?: string
           evento?: string
