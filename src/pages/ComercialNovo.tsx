@@ -513,7 +513,7 @@ export default function ComercialNovo() {
     (async () => {
       const { data: orc } = await supabase
         .from("orcamentos")
-        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id")
+        .select("id, codigo, cliente_id, nome_projeto, parceiro_id, parceiro_perc, consultor_id, is_adendo, loja_id, pedido_origem_id, adendo_descricao, adendo_tipo, total")
         .eq("id", editId)
         .maybeSingle();
       if (!orc) { toast.error("Orçamento não encontrado"); navigate("/comercial"); return; }
@@ -534,6 +534,17 @@ export default function ComercialNovo() {
       setParceiroPerc(Number(orc.parceiro_perc) || 0);
       setConsultorId(orc.consultor_id || "");
       setLojaId((orc as any).loja_id || profile?.loja_id || "");
+      setIsAdendo(!!(orc as any).is_adendo);
+      setPedidoOrigemId((orc as any).pedido_origem_id || null);
+      setAdendoDescricao((orc as any).adendo_descricao || "");
+      setAdendoTipo(((orc as any).adendo_tipo as any) || "receber");
+      setAdendoValor(Number((orc as any).total) || 0);
+
+      if ((orc as any).is_adendo) {
+        // Adendos não carregam ambientes
+        return;
+      }
+
 
       const { data: ambs } = await supabase
         .from("ambientes")
