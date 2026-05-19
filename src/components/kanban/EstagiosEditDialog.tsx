@@ -123,7 +123,7 @@ export function EstagiosEditDialog({
       (itensMap[it.template_id] ||= []).push({ descricao: it.descricao });
     });
     setTemplateItens(itensMap);
-    setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {} })) as Automacao[]);
+    setAutos(((as ?? []) as any[]).map((a) => ({ ...a, acao: a.acao ?? "mover", acao_config: a.acao_config ?? {}, dias: a.dias ?? null })) as Automacao[]);
     setProfiles((profs ?? []) as Profile[]);
     setAutosRemovidas([]);
     setExpandido({});
