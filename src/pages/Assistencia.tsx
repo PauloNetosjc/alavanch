@@ -354,6 +354,15 @@ function ChamadoCard({
         <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: prio.bg, color: prio.fg }}>
           {prio.label}
         </span>
+        {a.data_limite && (() => {
+          const hoje = new Date().toISOString().slice(0,10);
+          const vencido = a.data_limite < hoje && a.status !== "concluida";
+          return (
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${vencido ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+              Prazo: {new Date(a.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}{vencido ? " (vencido)" : ""}
+            </span>
+          );
+        })()}
       </div>
 
       {/* Conteúdo */}
