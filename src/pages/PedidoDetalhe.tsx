@@ -337,7 +337,7 @@ export default function PedidoDetalhe() {
         consultor_id: orcOriginal.consultor_id, vendedor_id: orcOriginal.vendedor_id, origem_id: orcOriginal.origem_id,
         is_complemento: true,
         pedido_origem_complemento_id: pedido.id,
-        observacoes: `Complemento ao pedido ${pedido.codigo} — refere-se ao mesmo ambiente.`,
+        observacoes_venda: `Complemento ao pedido ${pedido.codigo} — refere-se ao mesmo ambiente.`,
         created_by: user?.id,
       } as any).select().maybeSingle();
       if (error || !novoOrc) throw error || new Error("Falha ao criar complemento");
