@@ -518,6 +518,18 @@ export default function ComercialNegociacao() {
         .order("loja_id", { nullsFirst: false });
       setTplContrato((tpls?.[0] ?? null) as ContratoTemplate | null);
 
+      // Configurações da empresa (composição de custos e markup)
+      const lojaId = (o as any)?.loja_id;
+      if (lojaId) {
+        const { data: cfg } = await supabase.from("configuracoes_empresa" as any).select("*").eq("loja_id", lojaId).maybeSingle();
+        setConfig(cfg || null);
+        setUsarMarkup(!!(cfg as any)?.usar_markup);
+      } else {
+        const { data: cfg } = await supabase.from("configuracoes_empresa" as any).select("*").limit(1).maybeSingle();
+        setConfig(cfg || null);
+        setUsarMarkup(!!(cfg as any)?.usar_markup);
+      }
+
       setLoading(false);
     })();
   }, [id]);
@@ -732,6 +744,9 @@ export default function ComercialNegociacao() {
   };
 
   const tryImprimir = () => {
+    if (pagamentos.length === 0) {
+      return toast.error("Configure pelo menos um método de pagamento antes de imprimir o orçamento.");
+    }
     if (camposFaltando.length > 0) {
       setActionAfterValidate("print");
       setOpenValidar(true);
@@ -1354,6 +1369,7 @@ export default function ComercialNegociacao() {
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
         jurosCliente={jurosCliente}
+        config={config} usarMarkup={usarMarkup}
       />
       <ValidarClienteDialog
         open={openValidar} onOpenChange={setOpenValidar}
