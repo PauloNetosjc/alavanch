@@ -358,6 +358,29 @@ export default function Comercial() {
           })}
         </div>
 
+        {/* Revisão pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {REVISAO_PILLS.map((p) => {
+            const active = revisaoFilter === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setRevisaoFilter(p.id)}
+                className="text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full border transition-colors"
+                style={{
+                  background: active ? p.activeBg : "#FFFFFF",
+                  color: active ? p.activeFg : p.activeBg,
+                  borderColor: active ? p.activeBg : "#E5E7EB",
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+
+
 
         {/* Month selector */}
         <div className="flex items-center gap-1 rounded-xl border px-1 py-1" style={{ borderColor: "#E5E7EB" }}>
