@@ -21,6 +21,7 @@ import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
+import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
@@ -604,6 +605,9 @@ export default function PedidoDetalhe() {
           </div>
         ) : null}
       </section>
+
+      {/* TAREFAS ASSOCIADAS AO PEDIDO */}
+      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas do Pedido" />
 
       {/* NOTAS + CHAT INTERNO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

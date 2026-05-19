@@ -28,6 +28,7 @@ import {
   Download,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
+import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 
 type Chamado = {
   id: string;
@@ -38,6 +39,7 @@ type Chamado = {
   hora_agendamento: string | null;
   tecnico_id: string | null;
   arquivada: boolean | null;
+  data_limite: string | null;
   cliente: { nome: string } | null;
   pedido: { codigo: string } | null;
   tecnico_nome?: string | null;
@@ -74,7 +76,7 @@ export default function MeusChamados() {
     let q = supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, arquivada, cliente:clientes(nome), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, arquivada, data_limite, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
       .order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("tecnico_id", user.id);
@@ -216,14 +218,19 @@ export default function MeusChamados() {
               : "Você ainda não possui chamados atribuídos."}
           </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((c) => {
+      ) : (() => {
+        // Renderiza cards (com agrupamento por técnico quando admin)
+        const renderCard = (c: Chamado) => {
             const st = STATUS_LABELS[c.status || "triagem"] || STATUS_LABELS.triagem;
             const prioFg = PRIO_FG[(c.prioridade || "media").toLowerCase()] || "#16a34a";
             const dataStr = c.data_agendamento
               ? new Date(c.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
               : null;
+            const prazoStr = c.data_limite
+              ? new Date(c.data_limite + "T00:00:00").toLocaleDateString("pt-BR")
+              : null;
+            const hojeStr = new Date().toISOString().slice(0,10);
+            const atrasado = c.data_limite && c.data_limite < hojeStr && c.status !== "concluida";
             return (
               <button
                 key={c.id}
@@ -231,7 +238,7 @@ export default function MeusChamados() {
                 className="w-full text-left surface-card p-5 hover:shadow-md transition flex items-center gap-4"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="text-[15px] font-bold">
                       Chamado #{(c.codigo || "").replace(/\D/g, "").slice(-4) || "—"}
                     </span>
@@ -241,6 +248,11 @@ export default function MeusChamados() {
                     >
                       {st.label}
                     </span>
+                    {prazoStr && (
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${atrasado ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                        Prazo: {prazoStr}{atrasado ? " (vencido)" : ""}
+                      </span>
+                    )}
                     {c.arquivada && (
                       <span className="text-[10px] uppercase font-semibold text-muted-foreground">
                         Arquivado
@@ -282,9 +294,36 @@ export default function MeusChamados() {
                 <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
               </button>
             );
-          })}
-        </div>
-      )}
+        };
+
+        if (isAdmin) {
+          const grupos: Record<string, Chamado[]> = {};
+          filtered.forEach((c) => {
+            const k = c.tecnico_nome || "Sem técnico atribuído";
+            (grupos[k] = grupos[k] || []).push(c);
+          });
+          return (
+            <div className="space-y-6">
+              {Object.entries(grupos).map(([nome, lista]) => (
+                <div key={nome}>
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+                    {nome} <span className="opacity-60">({lista.length})</span>
+                  </div>
+                  <div className="space-y-3">{lista.map(renderCard)}</div>
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return <div className="space-y-3">{filtered.map(renderCard)}</div>;
+      })()}
+
+      {/* TAREFAS DO USUÁRIO */}
+      <TarefasPanel
+        scope={isAdmin ? "todas" : "minhas"}
+        groupByUser={isAdmin}
+        title={isAdmin ? "Tarefas (todas)" : "Minhas Tarefas"}
+      />
     </div>
   );
 }

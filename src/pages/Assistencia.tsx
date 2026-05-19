@@ -61,10 +61,13 @@ type Assistencia = {
   material_necessario: boolean | null;
   tecnico_id: string | null;
   created_at: string;
+  data_limite: string | null;
   cliente: { nome: string } | null;
   pedido: { codigo: string } | null;
   tecnico?: { nome_completo: string } | null;
 };
+
+const PRAZO_DIAS: Record<string, number> = { baixa: 45, media: 35, alta: 25, urgente: 7 };
 
 type Profile = { user_id: string; nome_completo: string | null };
 
@@ -107,7 +110,7 @@ export default function Assistencia() {
     const { data } = await supabase
       .from("assistencias")
       .select(
-        "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
+        "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, data_limite, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
       .eq("arquivada", false)
       .order("created_at", { ascending: false });
@@ -351,6 +354,15 @@ function ChamadoCard({
         <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: prio.bg, color: prio.fg }}>
           {prio.label}
         </span>
+        {a.data_limite && (() => {
+          const hoje = new Date().toISOString().slice(0,10);
+          const vencido = a.data_limite < hoje && a.status !== "concluida";
+          return (
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${vencido ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+              Prazo: {new Date(a.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}{vencido ? " (vencido)" : ""}
+            </span>
+          );
+        })()}
       </div>
 
       {/* Conteúdo */}
@@ -609,17 +621,21 @@ function NovaAssistenciaDialog({
                   key={k}
                   type="button"
                   onClick={() => setPrioridade(k)}
-                  className={`py-2.5 rounded-lg text-[12px] font-semibold transition border-2`}
+                  className={`py-2.5 rounded-lg text-[12px] font-semibold transition border-2 flex flex-col items-center`}
                   style={{
                     background: prioridade === k ? v.bg : "#f8fafc",
                     color: prioridade === k ? v.fg : "#94a3b8",
                     borderColor: prioridade === k ? v.fg : "transparent",
                   }}
                 >
-                  {v.label}
+                  <span>{v.label}</span>
+                  <span className="text-[9px] opacity-80 mt-0.5">{PRAZO_DIAS[k]} dias úteis</span>
                 </button>
               ))}
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Prazo limite será calculado automaticamente com base na prioridade.
+            </p>
           </div>
         </div>
 

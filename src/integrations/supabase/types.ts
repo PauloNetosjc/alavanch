@@ -620,6 +620,7 @@ export type Database = {
           concluida_em: string | null
           created_at: string
           data_agendamento: string | null
+          data_limite: string | null
           descricao: string | null
           hora_agendamento: string | null
           id: string
@@ -641,6 +642,7 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string
           data_agendamento?: string | null
+          data_limite?: string | null
           descricao?: string | null
           hora_agendamento?: string | null
           id?: string
@@ -662,6 +664,7 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string
           data_agendamento?: string | null
+          data_limite?: string | null
           descricao?: string | null
           hora_agendamento?: string | null
           id?: string
