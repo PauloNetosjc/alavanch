@@ -605,6 +605,9 @@ export default function PedidoDetalhe() {
         ) : null}
       </section>
 
+      {/* TAREFAS ASSOCIADAS AO PEDIDO */}
+      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas do Pedido" />
+
       {/* NOTAS + CHAT INTERNO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Observacoes pedido={pedido} />
