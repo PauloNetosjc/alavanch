@@ -26,9 +26,14 @@ import {
   AlertCircle,
   ChevronRight,
   Download,
+  CheckCircle2,
+  CalendarPlus,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 type Chamado = {
   id: string;
@@ -38,6 +43,9 @@ type Chamado = {
   data_agendamento: string | null;
   hora_agendamento: string | null;
   tecnico_id: string | null;
+  pedido_id: string | null;
+  cliente_id: string | null;
+  loja_id: string | null;
   arquivada: boolean | null;
   data_limite: string | null;
   cliente: { nome: string } | null;
@@ -69,6 +77,88 @@ export default function MeusChamados() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ativos");
+  const [agendarOpen, setAgendarOpen] = useState(false);
+  const [agendarTarget, setAgendarTarget] = useState<Chamado | null>(null);
+  const [agendarData, setAgendarData] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [agendarHora, setAgendarHora] = useState<string>("09:00");
+  const [agendarTecnico, setAgendarTecnico] = useState<string>("");
+  const [tecnicos, setTecnicos] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
+  const [salvandoAg, setSalvandoAg] = useState(false);
+  const [concluindoId, setConcluindoId] = useState<string | null>(null);
+
+  const openAgendar = async (c: Chamado) => {
+    setAgendarTarget(c);
+    setAgendarData(c.data_agendamento || new Date().toISOString().slice(0, 10));
+    setAgendarHora(c.hora_agendamento?.slice(0, 5) || "09:00");
+    setAgendarTecnico(c.tecnico_id || user?.id || "");
+    if (tecnicos.length === 0) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .order("nome_completo");
+      setTecnicos((data as any) || []);
+    }
+    setAgendarOpen(true);
+  };
+
+  const salvarAgendamento = async () => {
+    if (!agendarTarget) return;
+    if (!agendarData || !agendarHora || !agendarTecnico) {
+      toast.error("Preencha data, hora e responsável");
+      return;
+    }
+    setSalvandoAg(true);
+    try {
+      const { error: e1 } = await supabase
+        .from("assistencias")
+        .update({
+          status: "agendada",
+          data_agendamento: agendarData,
+          hora_agendamento: agendarHora,
+          tecnico_id: agendarTecnico,
+        })
+        .eq("id", agendarTarget.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("agenda_eventos").insert({
+        tipo: "assistencia_tecnica",
+        titulo: `Assistência ${agendarTarget.codigo || ""}`.trim(),
+        descricao: `Chamado ${agendarTarget.codigo || ""} — ${agendarTarget.cliente?.nome || ""}`,
+        data: agendarData,
+        hora_inicio: agendarHora,
+        responsavel_id: agendarTecnico,
+        pedido_id: agendarTarget.pedido_id,
+        cliente_id: agendarTarget.cliente_id,
+        loja_id: agendarTarget.loja_id,
+        created_by: user?.id || null,
+      });
+      if (e2) throw e2;
+      toast.success("Tarefa agendada");
+      setAgendarOpen(false);
+      await load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao agendar");
+    } finally {
+      setSalvandoAg(false);
+    }
+  };
+
+  const concluirChamado = async (c: Chamado) => {
+    if (!confirm(`Concluir chamado ${c.codigo || ""}?`)) return;
+    setConcluindoId(c.id);
+    try {
+      const { error } = await supabase
+        .from("assistencias")
+        .update({ status: "concluida", concluida_em: new Date().toISOString() })
+        .eq("id", c.id);
+      if (error) throw error;
+      toast.success("Chamado concluído");
+      await load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao concluir");
+    } finally {
+      setConcluindoId(null);
+    }
+  };
 
   const load = async () => {
     if (!user) return;
@@ -76,7 +166,7 @@ export default function MeusChamados() {
     let q = supabase
       .from("assistencias")
       .select(
-        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, arquivada, data_limite, cliente:clientes(nome), pedido:pedidos(codigo)"
+        "id, codigo, status, prioridade, data_agendamento, hora_agendamento, tecnico_id, pedido_id, cliente_id, loja_id, arquivada, data_limite, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
       .order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("tecnico_id", user.id);
@@ -231,11 +321,15 @@ export default function MeusChamados() {
               : null;
             const hojeStr = new Date().toISOString().slice(0,10);
             const atrasado = c.data_limite && c.data_limite < hojeStr && c.status !== "concluida";
+            const isConcluida = c.status === "concluida";
             return (
-              <button
+              <div
                 key={c.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => navigate(`/meus-chamados/${c.id}`)}
-                className="w-full text-left surface-card p-5 hover:shadow-md transition flex items-center gap-4"
+                onKeyDown={(e) => { if (e.key === "Enter") navigate(`/meus-chamados/${c.id}`); }}
+                className="w-full text-left surface-card p-5 hover:shadow-md transition flex items-center gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -291,8 +385,33 @@ export default function MeusChamados() {
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
+                <div className="flex flex-col gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {!isConcluida && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={(e) => { e.stopPropagation(); openAgendar(c); }}
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" />
+                        Agendar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="gap-1.5"
+                        disabled={concluindoId === c.id}
+                        onClick={(e) => { e.stopPropagation(); concluirChamado(c); }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Concluir
+                      </Button>
+                    </>
+                  )}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground self-end" />
+                </div>
+              </div>
             );
         };
 
@@ -324,6 +443,45 @@ export default function MeusChamados() {
         groupByUser={isAdmin}
         title={isAdmin ? "Tarefas (todas)" : "Minhas Tarefas"}
       />
+
+      <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agendar Chamado {agendarTarget?.codigo || ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Cliente</Label>
+              <div className="text-sm text-muted-foreground">{agendarTarget?.cliente?.nome || "—"}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="ag-data">Data</Label>
+                <Input id="ag-data" type="date" value={agendarData} onChange={(e) => setAgendarData(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="ag-hora">Hora</Label>
+                <Input id="ag-hora" type="time" value={agendarHora} onChange={(e) => setAgendarHora(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Técnico Responsável</Label>
+              <Select value={agendarTecnico} onValueChange={setAgendarTecnico}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {tecnicos.map((t) => (
+                    <SelectItem key={t.user_id} value={t.user_id}>{t.nome_completo || t.user_id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAgendarOpen(false)} disabled={salvandoAg}>Cancelar</Button>
+            <Button onClick={salvarAgendamento} disabled={salvandoAg}>{salvandoAg ? "Salvando…" : "Agendar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
