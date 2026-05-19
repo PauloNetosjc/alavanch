@@ -3,7 +3,7 @@ import { Search, Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LojaSelector } from "@/components/LojaSelector";
+
 
 type Result = {
   id: string;
