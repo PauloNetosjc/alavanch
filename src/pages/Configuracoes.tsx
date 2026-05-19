@@ -101,7 +101,7 @@ function PoliticasTab() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Markup Padrão (%)</Label>
-              <Input type="number" value={c.markup_padrao ?? ""} onChange={(e) => set("markup_padrao", parseFloat(e.target.value))} />
+              <Input type="number" value={c.markup_padrao ?? ""} onChange={(e) => set("markup_padrao", parseFloat(e.target.value))} disabled={!c.usar_markup} />
             </div>
             <div>
               <Label className="text-rose-500">Desc. Máximo (%)</Label>
@@ -109,6 +109,13 @@ function PoliticasTab() {
             </div>
           </div>
           <label className="flex items-start gap-3 mt-4 p-3 rounded bg-secondary cursor-pointer">
+            <Checkbox checked={!!c.usar_markup} onCheckedChange={(v) => set("usar_markup", !!v)} />
+            <div>
+              <div className="text-[12px] font-medium uppercase tracking-wide">Usar Markup nos Orçamentos</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Quando desativado, o markup deixa de aparecer no resumo financeiro e na tabela de ambientes.</div>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 mt-2 p-3 rounded bg-secondary cursor-pointer">
             <Checkbox checked={!!c.mostrar_desconto_contrato} onCheckedChange={(v) => set("mostrar_desconto_contrato", !!v)} />
             <div>
               <div className="text-[12px] font-medium uppercase tracking-wide">Mostrar Desconto no Contrato</div>
@@ -134,9 +141,11 @@ function PoliticasTab() {
           <TrendingUp className="w-4 h-4 text-primary" />
           <div className="text-[14px] font-medium uppercase tracking-wide">Formação de Preço e Alíquotas Operacionais</div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
             { k: "frete_compra_perc", label: "Frete Compra (%)" },
+            { k: "frete_venda_perc", label: "Frete Venda (%)" },
+            { k: "comissao_loja_perc", label: "Comissão Loja (%)" },
             { k: "icms_compra_perc", label: "ICMS Compra (%)" },
             { k: "montagem_perc", label: "Montagem (%)" },
             { k: "imp_saida_perc", label: "Imp. Saída (%)" },
@@ -154,6 +163,7 @@ function PoliticasTab() {
             </div>
           ))}
         </div>
+        <p className="text-[11px] text-muted-foreground mt-3">Esses percentuais alimentam a Composição de Custos exibida no Resumo Financeiro dos orçamentos.</p>
       </div>
 
       <div className="surface-card p-5">
