@@ -914,7 +914,21 @@ export default function ComercialNovo() {
           <div className="font-semibold">{consultor.nome_completo ?? "—"}</div>
         </div>
       )}
-      {ambientes.length > 0 && (
+      {isAdendo && (
+        <>
+          <div>
+            <div className="text-muted-foreground text-[11px]">Tipo</div>
+            <div className="font-semibold">Adendo financeiro ({adendoTipo === "pagar" ? "a pagar" : "a receber"})</div>
+          </div>
+          <div className="border-t border-border pt-3 space-y-1.5">
+            <div className="flex justify-between font-semibold text-[15px]">
+              <span>Valor</span>
+              <span className="text-mono">{fmtBrl(adendoValor)}</span>
+            </div>
+          </div>
+        </>
+      )}
+      {!isAdendo && ambientes.length > 0 && (
         <>
           <div>
             <div className="text-muted-foreground text-[11px]">Ambientes</div>
@@ -938,6 +952,7 @@ export default function ComercialNovo() {
           </div>
         </>
       )}
+
     </div>
   );
 
