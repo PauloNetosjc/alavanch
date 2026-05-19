@@ -617,6 +617,26 @@ function NovaAssistenciaDialog({
           </div>
 
           <div>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5 text-[#5b5bf5]" />
+              Responsável pela Tarefa (opcional)
+            </Label>
+            <Select value={tecnicoId || undefined} onValueChange={(v) => setTecnicoId(v === "_none" ? "" : v)}>
+              <SelectTrigger className="mt-1.5">
+                <SelectValue placeholder="Selecionar técnico/montador..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">Sem responsável (triagem)</SelectItem>
+                {profiles.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>
+                    {p.nome_completo || p.user_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label className="text-[11px] font-semibold uppercase tracking-wider">Prioridade</Label>
             <div className="grid grid-cols-4 gap-2 mt-1.5">
               {Object.entries(PRIO_COLORS).map(([k, v]) => (
