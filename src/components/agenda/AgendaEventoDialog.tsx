@@ -140,6 +140,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setLojaEventoId(lojaCtxId || null);
     if (defaultDate) setData(defaultDate);
     setOrigemId("");
+    setPedidoEhComplemento(false);
     (async () => {
       const [profs, ls, ors] = await Promise.all([
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
