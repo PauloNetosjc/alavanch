@@ -26,6 +26,7 @@ import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 import { PipelineOperacionalAdmin } from "@/components/PipelineOperacionalAdmin";
 import { AgendaAdmin } from "@/components/AgendaAdmin";
 import { PoliticaJurosAdmin } from "@/components/PoliticaJurosAdmin";
+import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -76,6 +77,7 @@ export default function Administracao() {
           <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
           <TabsTrigger value="categorias"><Tags className="w-3.5 h-3.5 mr-1.5" />Categorias</TabsTrigger>
           <TabsTrigger value="origens"><Tags className="w-3.5 h-3.5 mr-1.5" />Origens</TabsTrigger>
+          <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
           <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
           <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
           <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
@@ -93,6 +95,7 @@ export default function Administracao() {
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
         <TabsContent value="categorias" className="mt-4"><CategoriasFinanceiras /></TabsContent>
         <TabsContent value="origens" className="mt-4"><OrigensLead /></TabsContent>
+        <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>

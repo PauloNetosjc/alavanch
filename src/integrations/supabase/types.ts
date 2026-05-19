@@ -1531,6 +1531,33 @@ export type Database = {
           },
         ]
       }
+      etiquetas: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fotos_assistencia: {
         Row: {
           assistencia_id: string
@@ -2822,6 +2849,39 @@ export type Database = {
           },
           {
             foreignKeyName: "pedido_estagio_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_etiquetas: {
+        Row: {
+          created_at: string
+          etiqueta_id: string
+          pedido_id: string
+        }
+        Insert: {
+          created_at?: string
+          etiqueta_id: string
+          pedido_id: string
+        }
+        Update: {
+          created_at?: string
+          etiqueta_id?: string
+          pedido_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"

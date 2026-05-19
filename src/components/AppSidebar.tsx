@@ -44,7 +44,7 @@ const sections: Section[] = [
   {
     label: "Gestão",
     items: [
-      { label: "Clientes", path: "/clientes", icon: Users },
+      { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "CRM Comercial", path: "/kanban-comercial", icon: MessageSquare },
       { label: "Comercial", path: "/comercial", icon: Briefcase },
       { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
@@ -56,7 +56,6 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Montagem", path: "/montagem", icon: Hammer },
       { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },
@@ -65,6 +64,7 @@ const sections: Section[] = [
   {
     label: "Administrativo",
     items: [
+      { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },

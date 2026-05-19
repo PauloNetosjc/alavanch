@@ -26,6 +26,8 @@ type OrcRow = {
   cliente?: { nome: string } | null;
   pedido_id?: string | null;
   contrato_status?: string | null;
+  revisado?: boolean;
+  etiquetas?: { id: string; nome: string; cor: string }[];
 };
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; fg: string; dot: string }> = {
@@ -119,6 +121,14 @@ const TIPO_PILLS: { id: TipoFilter; label: string; activeBg: string; activeFg: s
   { id: "complemento", label: "COMPLEMENTOS",activeBg: "#7E4FA0", activeFg: "#FFFFFF" },
 ];
 
+type RevisaoFilter = "todos" | "revisado" | "nao_revisado";
+
+const REVISAO_PILLS: { id: RevisaoFilter; label: string; activeBg: string; activeFg: string }[] = [
+  { id: "todos",        label: "TODAS REVISÕES", activeBg: "#1B2240", activeFg: "#FFFFFF" },
+  { id: "revisado",     label: "REVISADOS",      activeBg: "#3F8B5C", activeFg: "#FFFFFF" },
+  { id: "nao_revisado", label: "NÃO REVISADOS",  activeBg: "#A8842A", activeFg: "#FFFFFF" },
+];
+
 function tipoFromCodigo(codigo: string): "pedido" | "adendo" | "complemento" {
   const c = (codigo || "").toUpperCase();
   if (c.includes("-ADD") || c.includes("-AD-") || c.startsWith("AD-")) return "adendo";
@@ -155,6 +165,7 @@ export default function Comercial() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
+  const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
 
   const today = new Date();
@@ -179,10 +190,40 @@ export default function Comercial() {
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
+      const pedIds = (peds || []).map((p: any) => p.id);
       const ctMap = new Map((cts || []).map((c: any) => [c.orcamento_id, c.status]));
+
+      // Carrega assinaturas de revisão (PDF final / vistoria assinados ⇒ revisado)
+      let revisadoSet = new Set<string>();
+      let etiquetasPorPedido = new Map<string, { id: string; nome: string; cor: string }[]>();
+      if (pedIds.length > 0) {
+        const [{ data: sols }, { data: vincs }] = await Promise.all([
+          supabase.from("solicitacoes_assinatura")
+            .select("pedido_id, status, tipos_documento(slug)")
+            .in("pedido_id", pedIds),
+          supabase.from("pedido_etiquetas" as any)
+            .select("pedido_id, etiquetas(id, nome, cor)")
+            .in("pedido_id", pedIds),
+        ]);
+        for (const s of (sols as any[]) || []) {
+          const slug = s.tipos_documento?.slug;
+          if (slug !== "pdf_final" && slug !== "vistoria") continue;
+          if (["assinado_cliente", "assinado_loja", "concluido"].includes(s.status)) {
+            revisadoSet.add(s.pedido_id);
+          }
+        }
+        for (const v of (vincs as any[]) || []) {
+          const arr = etiquetasPorPedido.get(v.pedido_id) || [];
+          if (v.etiquetas) arr.push(v.etiquetas);
+          etiquetasPorPedido.set(v.pedido_id, arr);
+        }
+      }
+
       for (const o of orcs) {
         o.pedido_id = pedMap.get(o.id) || null;
         o.contrato_status = ctMap.get(o.id) || null;
+        o.revisado = o.pedido_id ? revisadoSet.has(o.pedido_id) : false;
+        o.etiquetas = o.pedido_id ? (etiquetasPorPedido.get(o.pedido_id) || []) : [];
       }
     }
     setRows(orcs as unknown as OrcRow[]);
@@ -196,6 +237,8 @@ export default function Comercial() {
       if (!showCancelled && r.status === "perdido") return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
+      if (revisaoFilter === "revisado" && !r.revisado) return false;
+      if (revisaoFilter === "nao_revisado" && r.revisado) return false;
 
       if (monthFilter !== "todos") {
         const [y, m] = monthFilter.split("-").map(Number);
@@ -210,7 +253,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, monthFilter, search]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search]);
 
   const stats = useMemo(() => {
     const negociacao = rows
@@ -314,6 +357,29 @@ export default function Comercial() {
             );
           })}
         </div>
+
+        {/* Revisão pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {REVISAO_PILLS.map((p) => {
+            const active = revisaoFilter === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setRevisaoFilter(p.id)}
+                className="text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full border transition-colors"
+                style={{
+                  background: active ? p.activeBg : "#FFFFFF",
+                  color: active ? p.activeFg : p.activeBg,
+                  borderColor: active ? p.activeBg : "#E5E7EB",
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+
 
 
         {/* Month selector */}
@@ -434,6 +500,7 @@ export default function Comercial() {
                   <TableRow>
                     <TableHead className="text-[11px] tracking-wider">CONTRATO / DATA</TableHead>
                     <TableHead className="text-[11px] tracking-wider">CLIENTE</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">ETIQUETAS</TableHead>
                     <TableHead className="text-[11px] tracking-wider">STATUS &amp; WORKFLOW</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">VALOR</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">AÇÕES</TableHead>
@@ -463,6 +530,19 @@ export default function Comercial() {
                           {r.nome_projeto && (
                             <div className="text-[12px] text-muted-foreground">{r.nome_projeto}</div>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(r.etiquetas || []).map((e) => (
+                              <span key={e.id} className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
+                                style={{ background: e.cor }}>
+                                {e.nome}
+                              </span>
+                            ))}
+                            {(!r.etiquetas || r.etiquetas.length === 0) && (
+                              <span className="text-[11px] text-muted-foreground">—</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span

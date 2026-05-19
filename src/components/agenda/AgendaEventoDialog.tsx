@@ -76,6 +76,8 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
 
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [lojaEventoId, setLojaEventoId] = useState<string | null>(lojaCtxId || null);
+  const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
+  const [origemId, setOrigemId] = useState<string>("");
 
   // cliente
   const [clienteId, setClienteId] = useState<string>("");
@@ -132,13 +134,16 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setPedidosCliente([]); setOrcamentosCliente([]);
     setLojaEventoId(lojaCtxId || null);
     if (defaultDate) setData(defaultDate);
+    setOrigemId("");
     (async () => {
-      const [profs, ls] = await Promise.all([
+      const [profs, ls, ors] = await Promise.all([
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
         supabase.from("lojas").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("origens_lead" as any).select("id, nome").eq("ativo", true).order("nome"),
       ]);
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
+      setOrigens((ors.data as any) || []);
 
       // Quando aberto a partir de um pedido, trava tipo/loja/cliente/pedido
       if (pedidoId) {
@@ -231,6 +236,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         return "Selecione um cliente.";
       }
     }
+    if (isApresentacao && !origemId) return "Selecione a origem do lead.";
     if (exigePedido && !pedidoSelId) return "Selecione um pedido do cliente.";
     if (exigeOrcamento && !orcamentoSelId) return "Selecione um orçamento do cliente.";
     if (exigeEndereco && !endereco.trim()) return "Endereço é obrigatório para este tipo de evento.";
@@ -315,6 +321,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             nome: clienteNome.trim(),
             telefone: clienteFone || null,
             loja_id: lojaEventoId,
+            origem_id: origemId || null,
             created_by: user?.id || null,
             ativo: true,
           })
@@ -325,6 +332,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       } else if (exigeCliente && clienteId) {
         const found = clientesEnc.find(c => c.id === clienteId);
         cliNomeFinal = found?.nome || clienteBusca;
+      }
+      // Apresentação: garante origem do lead também em cliente existente
+      if (isApresentacao && cliId && origemId) {
+        await supabase.from("clientes").update({ origem_id: origemId }).eq("id", cliId);
       }
 
       const tituloFinal = titulo
@@ -477,6 +488,23 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
               <Input value={lojas.find(l => l.id === lojaEventoId)?.nome || "—"} disabled />
             )}
           </div>
+
+          {isApresentacao && (
+            <div>
+              <Label>Origem do lead <span className="text-destructive">*</span></Label>
+              <Select value={origemId} onValueChange={setOrigemId}>
+                <SelectTrigger><SelectValue placeholder="Por onde o cliente entrou?" /></SelectTrigger>
+                <SelectContent>
+                  {origens.map(o => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {origens.length === 0 && (
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  Nenhuma origem cadastrada. Cadastre em Administração → Origens.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cliente — para apresentação (novo/existente) e demais (apenas existente) */}
           {exigeCliente && (
