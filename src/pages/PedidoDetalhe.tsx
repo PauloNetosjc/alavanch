@@ -423,6 +423,8 @@ export default function PedidoDetalhe() {
                 </span>
               ))}{" "}pelas abas abaixo.
             </span>
+          )}
+        </div>
       )}
 
       {/* TARJA — REVISÃO DO PROJETO PENDENTE (bloqueia avanço) */}
@@ -432,8 +434,6 @@ export default function PedidoDetalhe() {
         }`}>
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{revisaoStatus.message}</span>
-        </div>
-      )}
         </div>
       )}
 
