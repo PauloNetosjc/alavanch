@@ -1739,39 +1739,45 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
     onChange();
   };
 
-  const negociarAdendo = async (rev: any) => {
-    // Cria novo orçamento de adendo baseado no original, com a DIFERENÇA de valor
+  const negociarComplemento = async (rev: any) => {
+    // Cria um COMPLEMENTO (nova venda independente referenciando o pedido original) com a DIFERENÇA da revisão
     if (!pedido.orcamento_id) return;
     const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
     if (!orc) return;
-    const codigoBase = orc.codigo;
-    const newCodigo = `${codigoBase}-ADD-${Date.now().toString().slice(-4)}`;
     const valorOriginal = Number(rev.valor_original || 0);
     const valorRevisado = Number(rev.valor_revisado || 0);
-    const valorAdendo = Math.max(0, valorRevisado - valorOriginal);
-    // Busca nome do ambiente original p/ referência
+    const valorDif = Math.max(0, valorRevisado - valorOriginal);
     const ambOrig = ambientes.find((a: any) => a.id === rev.ambiente_id);
     const nomeAmbOrig = ambOrig?.nome || "Ambiente";
 
+    const year = new Date().getFullYear();
+    const { count: yearCount } = await supabase.from("orcamentos").select("id", { count: "exact", head: true })
+      .gte("created_at", `${year}-01-01`).lt("created_at", `${year + 1}-01-01`);
+    const novoCodigoOrc = `ORC-${year}-${String((yearCount || 0) + 1).padStart(4, "0")}`;
+
     const { data: novo, error } = await supabase.from("orcamentos").insert({
-      codigo: newCodigo, cliente_id: orc.cliente_id, loja_id: orc.loja_id,
-      nome_projeto: `[ADENDO de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
-      status: "negociacao", subtotal: valorAdendo, total: valorAdendo,
+      codigo: novoCodigoOrc,
+      cliente_id: orc.cliente_id, loja_id: orc.loja_id,
+      nome_projeto: `[COMPLEMENTO REVISÃO de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+      status: "negociacao", subtotal: valorDif, total: valorDif,
+      parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
+      consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+      is_complemento: true,
+      pedido_origem_complemento_id: pedido.id,
       created_by: user?.id,
-    }).select().maybeSingle();
+    } as any).select().maybeSingle();
     if (error || !novo) return toast.error(error?.message || "Erro");
 
-    // Cria um ambiente no novo orçamento já com o valor da DIFERENÇA, justificando o acréscimo
     await supabase.from("ambientes").insert({
       orcamento_id: novo.id,
-      nome: `Acréscimo: ${nomeAmbOrig} (revisão v${rev.versao})`,
-      descricao: `Diferença gerada pela revisão do projeto.\nValor original: ${fmtBrl(valorOriginal)}\nValor revisado: ${fmtBrl(valorRevisado)}\nAcréscimo: ${fmtBrl(valorAdendo)}`,
-      preco_sugerido: valorAdendo,
+      nome: `Acréscimo (revisão v${rev.versao}): ${nomeAmbOrig}`,
+      descricao: `Diferença gerada pela revisão do projeto.\nValor original: ${fmtBrl(valorOriginal)}\nValor revisado: ${fmtBrl(valorRevisado)}\nAcréscimo: ${fmtBrl(valorDif)}`,
+      preco_sugerido: valorDif,
       custo_aquisicao: 0,
       ordem: 0,
     });
 
-    toast.success(`Adendo criado com diferença de ${fmtBrl(valorAdendo)}`);
+    toast.success(`Complemento criado com diferença de ${fmtBrl(valorDif)}`);
     navigate(`/comercial/${novo.id}/negociacao`);
   };
 
