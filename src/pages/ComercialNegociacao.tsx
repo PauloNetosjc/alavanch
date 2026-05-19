@@ -133,21 +133,28 @@ function SenhaAdminDialog({
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
   parceiroNome, parceiroPerc, parceiroValor, custoFabrica, jurosCliente,
+  config, usarMarkup,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
   jurosCliente: number;
+  config: any; usarMarkup: boolean;
 }) {
   const { can } = usePermissions();
   const podeVerCusto = can("itens", "view_custo");
-  const podeVerMarkup = can("itens", "view_markup");
+  const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
-  const frete = totalProposta * 0.038;
-  const comissaoLoja = totalProposta * 0.027;
-  const montagem = totalProposta * 0.054;
-  const impostos = totalProposta * 0.04;
-  const outros = totalProposta * 0.01;
+  const fretePerc = Number(config?.frete_venda_perc) || 0;
+  const comissaoLojaPerc = Number(config?.comissao_loja_perc) || 0;
+  const montagemPerc = Number(config?.montagem_perc) || 0;
+  const impostosPerc = Number(config?.imp_saida_perc) || 0;
+  const outrosPerc = Number(config?.outros_perc) || 0;
+  const frete = totalProposta * (fretePerc / 100);
+  const comissaoLoja = totalProposta * (comissaoLojaPerc / 100);
+  const montagem = totalProposta * (montagemPerc / 100);
+  const impostos = totalProposta * (impostosPerc / 100);
+  const outros = totalProposta * (outrosPerc / 100);
   const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
   const valorSemJuros = totalProposta - jurosCliente;
   const totalVPL = valorSemJuros - parceiroValor;
@@ -409,6 +416,8 @@ export default function ComercialNegociacao() {
   const [itens, setItens] = useState<Item[]>([]);
   const [metodos, setMetodos] = useState<Metodo[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [config, setConfig] = useState<any>(null);
+  const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
 
   // regras
   const [meuLimite, setMeuLimite] = useState<number>(0);
