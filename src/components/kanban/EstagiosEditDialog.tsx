@@ -33,6 +33,7 @@ type Automacao = {
   condicao_tipo: string;
   condicao_valor: string | null;
   ajustar_prazo_dias: number | null;
+  dias: number | null;
   ativo: boolean;
   ordem: number;
   acao: string;
