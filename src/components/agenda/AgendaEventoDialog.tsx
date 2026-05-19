@@ -116,6 +116,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [followupHoraFim, setFollowupHoraFim] = useState("");
   const [followupEndereco, setFollowupEndereco] = useState("");
   const [followupDescricao, setFollowupDescricao] = useState("");
+  const [followupMinDate, setFollowupMinDate] = useState<string>("");
 
   const lockedFromPedido = !!pedidoId;
 
@@ -224,6 +225,24 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       setConfig(cfg || null);
     })();
   }, [tipo, lojaEventoId, open]);
+
+  // Calcula data mínima para Revisão (8 dias úteis após Medição Técnica) e trava o calendário
+  useEffect(() => {
+    if (!open) return;
+    if (tipo === "medicao_tecnica" && followupTipo === "revisao_final" && data) {
+      (async () => {
+        const { data: minRev } = await supabase.rpc("add_dias_uteis" as any, {
+          _inicio: data, _n: 8, _loja: lojaEventoId,
+        });
+        if (minRev) {
+          setFollowupMinDate(minRev as string);
+          if (followupData && followupData < (minRev as string)) setFollowupData(minRev as string);
+        }
+      })();
+    } else {
+      setFollowupMinDate(data || "");
+    }
+  }, [open, tipo, followupTipo, data, lojaEventoId]);
 
   const validar = useMemo(() => async (): Promise<string | null> => {
     if (!data || !hora) return "Informe data e hora.";
@@ -625,7 +644,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
                 Para concluir o agendamento de {TIPO_LABEL[tipo]}, é obrigatório agendar a {TIPO_LABEL[followupTipo]} na sequência.
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label>Data</Label><Input type="date" value={followupData} onChange={(e) => setFollowupData(e.target.value)} /></div>
+                <div><Label>Data</Label><Input type="date" min={followupMinDate || undefined} value={followupData} onChange={(e) => setFollowupData(e.target.value)} /></div>
                 <div><Label>Hora início</Label><Input type="time" value={followupHora} onChange={(e) => setFollowupHora(e.target.value)} /></div>
                 <div><Label>Hora fim</Label><Input type="time" value={followupHoraFim} onChange={(e) => setFollowupHoraFim(e.target.value)} /></div>
               </div>

@@ -4038,6 +4038,10 @@ export type Database = {
         Args: { _fim: string; _loja: string; _n: number }
         Returns: string
       }
+      sync_pedido_para_kanban_card: {
+        Args: { _estagio_id: string; _pedido_id: string; _pipeline: string }
+        Returns: undefined
+      }
       user_has_perm: {
         Args: { _acao: string; _modulo: string; _user_id: string }
         Returns: boolean
