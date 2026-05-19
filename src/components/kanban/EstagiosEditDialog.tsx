@@ -431,7 +431,16 @@ export function EstagiosEditDialog({
                               </SelectContent>
                             </Select>
 
-                            {(a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") ? (
+                            {a.evento === "apos_x_dias" ? (
+                              <Input
+                                className="col-span-3"
+                                type="number"
+                                min={1}
+                                placeholder="Quantos dias"
+                                value={a.dias ?? ""}
+                                onChange={(e) => updateAuto(a.id, { dias: e.target.value === "" ? null : Number(e.target.value) })}
+                              />
+                            ) : (a.evento === "medicao_agendada" || a.evento === "revisao_agendada" || a.evento === "agenda_criada") ? (
                               <Select
                                 value={a.condicao_tipo === "tipo_evento_agenda" ? (a.condicao_valor ?? "any") : "any"}
                                 onValueChange={(v) => updateAuto(a.id, {
