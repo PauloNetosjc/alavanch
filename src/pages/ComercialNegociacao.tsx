@@ -410,6 +410,7 @@ export default function ComercialNegociacao() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orc, setOrc] = useState<any>(null);
+  const [pedidoRef, setPedidoRef] = useState<{ id: string; codigo: string; tipo: "complemento" | "adendo" } | null>(null);
   const [cliente, setCliente] = useState<ClienteRow | null>(null);
   const [parceiro, setParceiro] = useState<{ nome: string } | null>(null);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
@@ -471,6 +472,18 @@ export default function ComercialNegociacao() {
         supabase.auth.getUser(),
       ]);
       setOrc(o);
+      // Carrega pedido de origem (complemento ou adendo) para referência visual no topo
+      try {
+        if ((o as any)?.is_complemento && (o as any)?.pedido_origem_complemento_id) {
+          const { data: p } = await supabase.from("pedidos").select("id, codigo").eq("id", (o as any).pedido_origem_complemento_id).maybeSingle();
+          if (p) setPedidoRef({ id: p.id, codigo: p.codigo || "", tipo: "complemento" });
+        } else if ((o as any)?.is_adendo && (o as any)?.pedido_origem_id) {
+          const { data: p } = await supabase.from("pedidos").select("id, codigo").eq("id", (o as any).pedido_origem_id).maybeSingle();
+          if (p) setPedidoRef({ id: p.id, codigo: p.codigo || "", tipo: "adendo" });
+        } else {
+          setPedidoRef(null);
+        }
+      } catch { setPedidoRef(null); }
       setCliente((o?.cliente ?? null) as ClienteRow | null);
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
@@ -1011,9 +1024,34 @@ export default function ComercialNegociacao() {
             </div>
             <div>
               <h1 className="text-[26px] font-semibold leading-none">Negociação Comercial</h1>
-              <p className="text-[13px] text-muted-foreground mt-1.5">Ajuste valores e condições</p>
+              <p className="text-[13px] text-muted-foreground mt-1.5">
+                {pedidoRef ? (
+                  <>
+                    Referente ao <b>{pedidoRef.tipo}</b> do pedido{" "}
+                    <Link to={`/pedidos/${pedidoRef.id}`} className="font-semibold text-foreground underline hover:no-underline">
+                      {pedidoRef.codigo}
+                    </Link>
+                  </>
+                ) : (
+                  <>Ajuste valores e condições</>
+                )}
+              </p>
             </div>
           </div>
+
+          {pedidoRef && (
+            <div className={`rounded-lg border-2 px-4 py-3 text-[13px] ${pedidoRef.tipo === "complemento" ? "border-emerald-200 bg-emerald-50/60 text-emerald-900" : "border-purple-200 bg-purple-50/60 text-purple-900"}`}>
+              <div className="font-semibold uppercase tracking-wider text-[11px] mb-0.5">
+                {pedidoRef.tipo === "complemento" ? "Complemento" : "Adendo"} do pedido{" "}
+                <Link to={`/pedidos/${pedidoRef.id}`} className="underline hover:no-underline">{pedidoRef.codigo}</Link>
+              </div>
+              <div className="text-[12px] opacity-90">
+                {pedidoRef.tipo === "complemento"
+                  ? "Esta negociação refere-se ao complemento do pedido original. Complementos não geram agenda de medição — apenas notas e cronograma do pedido base."
+                  : "Esta negociação refere-se a um adendo do pedido original — mesmo contrato, ajuste de valor."}
+              </div>
+            </div>
+          )}
 
           {isAdendo ? (
             <div className={`border-2 rounded-lg px-4 py-4 ${adendoTipo === "pagar" ? "border-rose-200 bg-rose-50/40" : "border-emerald-200 bg-emerald-50/40"}`}>

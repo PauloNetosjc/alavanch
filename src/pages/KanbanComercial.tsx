@@ -80,21 +80,27 @@ export default function KanbanComercial() {
     const pedidoMap = new Map<string, string>();
     (peds ?? []).forEach((p: any) => { if (p.orcamento_id) pedidoMap.set(p.orcamento_id, p.id); });
 
-    const orcCards: Card[] = (orcs ?? []).map((o: any) => ({
-      kind: "orcamento",
-      id: o.id,
-      codigo: o.codigo,
-      titulo: o.cliente?.nome ?? "—",
-      subtitulo: o.nome_projeto,
-      total: Number(o.total) || 0,
-      created_at: o.created_at,
-      estagio_id: o.estagio_id,
-      loja_id: o.loja_id,
-      vendedor_id: o.vendedor_id,
-      cliente_id: o.cliente_id,
-      cliente_nome: o.cliente?.nome ?? "—",
-      pedido_id: pedidoMap.get(o.id) ?? null,
-    }));
+    // Estágio "Concluído" (is_ganho) — orçamentos que viraram pedido entram aqui automaticamente
+    const estGanho = (ests ?? []).find((e: any) => e.is_ganho);
+
+    const orcCards: Card[] = (orcs ?? []).map((o: any) => {
+      const pedId = pedidoMap.get(o.id) ?? null;
+      return {
+        kind: "orcamento" as const,
+        id: o.id,
+        codigo: o.codigo,
+        titulo: o.cliente?.nome ?? "—",
+        subtitulo: o.nome_projeto,
+        total: Number(o.total) || 0,
+        created_at: o.created_at,
+        estagio_id: pedId && estGanho ? estGanho.id : o.estagio_id,
+        loja_id: o.loja_id,
+        vendedor_id: o.vendedor_id,
+        cliente_id: o.cliente_id,
+        cliente_nome: o.cliente?.nome ?? "—",
+        pedido_id: pedId,
+      };
+    });
 
     const leadCards: Card[] = (lds ?? []).map((l: any) => ({
       kind: "lead",

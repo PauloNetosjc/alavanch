@@ -1781,26 +1781,52 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
     navigate(`/comercial/${novo.id}/negociacao`);
   };
 
+  // Todas as revisões aprovadas? (impede novos uploads e mostra status verde)
+  const todasAprovadas = ambientes.length > 0 && ambientes.every((a: any) => {
+    const revs = revisoes.filter((r: any) => r.ambiente_id === a.id).sort((x: any, y: any) => (y.versao ?? 0) - (x.versao ?? 0));
+    return revs[0]?.aprovada === true;
+  });
+
   return (
-    <section className="surface-card p-6">
-      <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider mb-4">Importar Revisão do Projeto</h2>
+    <section className={`surface-card p-6 ${todasAprovadas ? "border-2 border-emerald-300 bg-emerald-50/30" : ""}`}>
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <h2 className="font-playfair text-[20px] font-semibold uppercase tracking-wider">
+          {todasAprovadas ? "Revisão do Projeto" : "Importar Revisão do Projeto"}
+        </h2>
+        {todasAprovadas && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-[12px] font-semibold">
+            <CheckCircle2 className="w-4 h-4" /> Revisão aprovada
+          </span>
+        )}
+      </div>
 
       <div className="space-y-3">
         {ambientes.map((amb: any) => {
           const revs = revisoes.filter((r: any) => r.ambiente_id === amb.id);
+          const latest = [...revs].sort((x: any, y: any) => (y.versao ?? 0) - (x.versao ?? 0))[0];
+          const ambAprovado = latest?.aprovada === true;
           return (
-            <div key={amb.id} className="border rounded-lg p-4">
+            <div key={amb.id} className={`border rounded-lg p-4 ${ambAprovado ? "border-emerald-300 bg-emerald-50/50" : ""}`}>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <div className="font-semibold">{amb.nome}</div>
+                  <div className="font-semibold flex items-center gap-2">
+                    {amb.nome}
+                    {ambAprovado && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  </div>
                   <div className="text-[11px] text-muted-foreground">Original: <b>{fmtBrl(Number(amb.preco_sugerido || 0))}</b></div>
                 </div>
-                <label>
-                  <input type="file" accept=".txt" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarRevisao(amb, f); }} />
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#2D6BE5] hover:bg-[#2459C9] text-white text-[12px] font-semibold cursor-pointer">
-                    <FileUp className="w-4 h-4" /> {enviando === amb.id ? "Enviando…" : "Enviar"}
+                {ambAprovado ? (
+                  <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">
+                    ✓ Aprovada
                   </span>
-                </label>
+                ) : (
+                  <label>
+                    <input type="file" accept=".txt" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarRevisao(amb, f); }} />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#2D6BE5] hover:bg-[#2459C9] text-white text-[12px] font-semibold cursor-pointer">
+                      <FileUp className="w-4 h-4" /> {enviando === amb.id ? "Enviando…" : "Enviar"}
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* Tabs de revisões */}
@@ -1808,7 +1834,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
                 <div className="border-t pt-3">
                   <div className="flex gap-2 mb-3 flex-wrap">
                     {revs.map((r: any) => (
-                      <button key={r.id} onClick={() => setVerRevisao(r)} className="px-3 py-1 rounded-md bg-purple-50 border border-purple-200 text-[11px] text-purple-700 hover:bg-purple-100">
+                      <button key={r.id} onClick={() => setVerRevisao(r)} className={`px-3 py-1 rounded-md border text-[11px] ${r.aprovada ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" : "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"}`}>
                         v{r.versao} · {fmtDateTime(r.created_at)} {r.aprovada && "✓"}
                       </button>
                     ))}
@@ -1987,8 +2013,8 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="border rounded-lg p-3 bg-muted/20">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban Comercial (CRM)</div>
+        <Link to="/kanban-comercial" className="border rounded-lg p-3 bg-muted/20 block hover:bg-muted/40 hover:border-foreground/30 transition-colors">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 underline-offset-2 hover:underline">Kanban Comercial (CRM)</div>
           <div className="flex items-center gap-2">
             {crmEstagioAtual ? (
               <>
@@ -2004,13 +2030,15 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
               </span>
             )}
           </div>
-        </div>
+        </Link>
         {OP_PIPELINES.map((p) => {
           const list = pipelines[p.key] ?? [];
           const atual = atuais[p.key];
           return (
             <div key={p.key} className="border rounded-lg p-3 bg-muted/20">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Kanban {p.label}</div>
+              <Link to={`/kanban-${p.key.replace("_", "-")}`} className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1 hover:underline underline-offset-2 hover:text-foreground">
+                Kanban {p.label}
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: atual?.cor || "#94a3b8" }} />
                 <span className="font-semibold text-[14px] truncate">{atual?.nome || "Não iniciado"}</span>

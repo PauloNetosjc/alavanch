@@ -119,6 +119,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [followupMinDate, setFollowupMinDate] = useState<string>("");
 
   const lockedFromPedido = !!pedidoId;
+  const [pedidoEhComplemento, setPedidoEhComplemento] = useState(false);
+
+  // Tipos não permitidos quando o pedido vinculado é um Complemento
+  const TIPOS_BLOQ_COMPLEMENTO: AgendaTipo[] = ["medicao_tecnica", "revisao_final"];
 
   useEffect(() => {
     if (!open) return;
@@ -136,6 +140,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setLojaEventoId(lojaCtxId || null);
     if (defaultDate) setData(defaultDate);
     setOrigemId("");
+    setPedidoEhComplemento(false);
     (async () => {
       const [profs, ls, ors] = await Promise.all([
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
@@ -150,10 +155,11 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       if (pedidoId) {
         const { data: ped } = await supabase
           .from("pedidos")
-          .select("id, codigo, status, loja_id, cliente_id, clientes:cliente_id(id, nome, telefone)")
+          .select("id, codigo, status, loja_id, cliente_id, pedido_origem_complemento_id, clientes:cliente_id(id, nome, telefone)")
           .eq("id", pedidoId)
           .maybeSingle();
         if (ped) {
+          setPedidoEhComplemento(!!(ped as any).pedido_origem_complemento_id);
           if ((ped as any).loja_id) setLojaEventoId((ped as any).loja_id);
           const cli: any = (ped as any).clientes;
           if (cli) {
@@ -483,11 +489,18 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
               <Select value={tipo} onValueChange={(v) => setTipo(v as AgendaTipo)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(TIPO_LABEL).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
+                  {Object.entries(TIPO_LABEL)
+                    .filter(([k]) => !(pedidoEhComplemento && TIPOS_BLOQ_COMPLEMENTO.includes(k as AgendaTipo)))
+                    .map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+            )}
+            {pedidoEhComplemento && (
+              <div className="text-[11px] text-amber-700 mt-1">
+                Este pedido é um <b>Complemento</b> — não gera Medição Técnica nem Revisão. Use o pedido original para essas etapas.
+              </div>
             )}
           </div>
 
