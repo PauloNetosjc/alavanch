@@ -527,14 +527,17 @@ export default function ComercialNegociacao() {
     () => ambientesIncluidos.filter((a) => a.aplicar_desconto === false).reduce((s, a) => s + (Number(a.preco_sugerido) || 0), 0),
     [ambientesIncluidos],
   );
-  const subtotalAmbientes = subtotalComDesconto + subtotalSemDesconto;
-  const parceiroPerc = Number(orc?.parceiro_perc) || 0;
+  const isAdendo = !!(orc as any)?.is_adendo;
+  const adendoTipo = (orc as any)?.adendo_tipo as ("receber" | "pagar" | undefined);
+  const adendoValor = Number((orc as any)?.total) || 0;
+  const subtotalAmbientes = isAdendo ? adendoValor : (subtotalComDesconto + subtotalSemDesconto);
+  const parceiroPerc = isAdendo ? 0 : (Number(orc?.parceiro_perc) || 0);
   const parceiroValor = subtotalAmbientes * (parceiroPerc / 100);
   const valorInicial = subtotalAmbientes + parceiroValor;
   // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
-  const baseDescontavel = subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100);
-  const descValorEfetivo = Math.min(descValorAplicado, baseDescontavel);
-  const totalProposta = Math.max(0, valorInicial - descValorEfetivo);
+  const baseDescontavel = isAdendo ? 0 : (subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100));
+  const descValorEfetivo = isAdendo ? 0 : Math.min(descValorAplicado, baseDescontavel);
+  const totalProposta = isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
