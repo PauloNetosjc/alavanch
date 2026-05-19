@@ -410,7 +410,10 @@ export default function PedidoDetalhe() {
           <Link to="/comercial" className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Link>
-          <h1 className="font-playfair text-[42px] leading-tight font-semibold mt-1">{pedido.codigo}</h1>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            <h1 className="font-playfair text-[42px] leading-tight font-semibold">{pedido.codigo}</h1>
+            <PedidoEtiquetas pedidoId={pedido.id} compact />
+          </div>
           <div className="flex items-center gap-3 mt-1 text-[13px] text-muted-foreground">
             <span className="font-medium text-foreground">{cliente?.nome || "—"}</span>
             {assinaturaPendente && (
