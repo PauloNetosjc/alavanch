@@ -32,15 +32,24 @@ export default function Montagem() {
     setLoading(true);
     let q = supabase
       .from("agenda_eventos" as any)
-      .select(
-        "id, tipo, data, hora_inicio, endereco, status, pedido:pedidos!agenda_eventos_pedido_id_fkey(id, codigo, valor_total, cliente:clientes(nome, telefone))"
-      )
+      .select("id, tipo, data, hora_inicio, endereco, status, pedido_id")
       .in("tipo", ["entrega", "montagem"])
       .neq("status", "cancelado")
+      .not("pedido_id", "is", null)
       .order("data", { ascending: true });
     if (selectedLojaId) q = q.eq("loja_id", selectedLojaId);
-    const { data } = await q;
-    setEventos(((data as any) || []).filter((e: any) => e.pedido) as Evento[]);
+    const { data: evs } = await q;
+    const list = (evs as any[]) || [];
+    const pedidoIds = Array.from(new Set(list.map((e: any) => e.pedido_id).filter(Boolean)));
+    let pedidoMap = new Map<string, any>();
+    if (pedidoIds.length) {
+      const { data: peds } = await supabase
+        .from("pedidos")
+        .select("id, codigo, valor_total, cliente:clientes(nome, telefone)")
+        .in("id", pedidoIds);
+      (peds || []).forEach((p: any) => pedidoMap.set(p.id, p));
+    }
+    setEventos(list.map((e: any) => ({ ...e, pedido: pedidoMap.get(e.pedido_id) || null })).filter((e: any) => e.pedido) as Evento[]);
     setLoading(false);
   };
 
