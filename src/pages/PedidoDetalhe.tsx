@@ -423,7 +423,17 @@ export default function PedidoDetalhe() {
                 </span>
               ))}{" "}pelas abas abaixo.
             </span>
-          )}
+      )}
+
+      {/* TARJA — REVISÃO DO PROJETO PENDENTE (bloqueia avanço) */}
+      {revisaoPendente && (
+        <div className={`rounded-md text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm ${
+          revisaoStatus.kind === "aguardando" ? "bg-amber-600" : "bg-red-600"
+        }`}>
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{revisaoStatus.message}</span>
+        </div>
+      )}
         </div>
       )}
 
