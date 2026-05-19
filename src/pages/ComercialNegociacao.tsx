@@ -915,19 +915,12 @@ export default function ComercialNegociacao() {
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="box">
-        <div class="label">Cliente</div>
-        <div><b>${cliente?.nome || "—"}</b></div>
-        <div class="muted">${cliente?.cpf_cnpj || ""}</div>
-        <div class="muted">${cliente?.email || ""} · ${cliente?.telefone || ""}</div>
-        <div class="muted">${cliente?.endereco_cobranca || ""}</div>
-      </div>
-      <div class="box">
-        <div class="label">Indicador / Comissão</div>
-        <div>${parceiro?.nome || "—"}</div>
-        <div class="muted">${parceiroPerc.toFixed(2)}% sobre subtotal · ${fmtBrl(parceiroValor)}</div>
-      </div>
+    <div class="box">
+      <div class="label">Cliente</div>
+      <div><b>${cliente?.nome || "—"}</b></div>
+      <div class="muted">${cliente?.cpf_cnpj || ""}</div>
+      <div class="muted">${cliente?.email || ""} · ${cliente?.telefone || ""}</div>
+      <div class="muted">${cliente?.endereco_cobranca || ""}</div>
     </div>
 
     <h2>Ambientes</h2>
