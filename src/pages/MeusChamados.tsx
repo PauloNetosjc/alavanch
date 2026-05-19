@@ -443,6 +443,45 @@ export default function MeusChamados() {
         groupByUser={isAdmin}
         title={isAdmin ? "Tarefas (todas)" : "Minhas Tarefas"}
       />
+
+      <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agendar Chamado {agendarTarget?.codigo || ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Cliente</Label>
+              <div className="text-sm text-muted-foreground">{agendarTarget?.cliente?.nome || "—"}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="ag-data">Data</Label>
+                <Input id="ag-data" type="date" value={agendarData} onChange={(e) => setAgendarData(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="ag-hora">Hora</Label>
+                <Input id="ag-hora" type="time" value={agendarHora} onChange={(e) => setAgendarHora(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Técnico Responsável</Label>
+              <Select value={agendarTecnico} onValueChange={setAgendarTecnico}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {tecnicos.map((t) => (
+                    <SelectItem key={t.user_id} value={t.user_id}>{t.nome_completo || t.user_id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAgendarOpen(false)} disabled={salvandoAg}>Cancelar</Button>
+            <Button onClick={salvarAgendamento} disabled={salvandoAg}>{salvandoAg ? "Salvando…" : "Agendar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
