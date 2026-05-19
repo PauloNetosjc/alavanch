@@ -448,14 +448,21 @@ export default function ComercialNovo() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
+  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null }[]>([]);
+  const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
 
   // ---- step 1 ----
   const [nomeProjeto, setNomeProjeto] = useState("");
   const [clienteId, setClienteId] = useState<string>(preselectCliente || "");
+  const [clienteFinal, setClienteFinal] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [parceiroPerc, setParceiroPerc] = useState<number>(0);
-  const [projetistaNome, setProjetistaNome] = useState<string>("");
+  const [projetistaId, setProjetistaId] = useState<string>("");
+  const [origemId, setOrigemId] = useState<string>("");
   const [consultorId, setConsultorId] = useState<string>("");
+  const [tipoOrcamento, setTipoOrcamento] = useState<"pedido" | "adendo" | "complemento">("pedido");
+  const [pedidoPaiId, setPedidoPaiId] = useState<string>("");
   const { profile } = useAuth();
   const { lojas } = useLoja();
   const isAdmin = role === "admin" || role === "diretor";
@@ -474,7 +481,7 @@ export default function ComercialNovo() {
   const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
   // ---- adendo (modo financeiro: sem ambientes, apenas descrição + valor + tipo) ----
-  const [isAdendo, setIsAdendo] = useState(false);
+  const isAdendo = tipoOrcamento === "adendo";
   const [pedidoOrigemId, setPedidoOrigemId] = useState<string | null>(null);
   const [adendoDescricao, setAdendoDescricao] = useState("");
   const [adendoValor, setAdendoValor] = useState<number>(0);
@@ -484,8 +491,8 @@ export default function ComercialNovo() {
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
   const [mDescricao, setMDescricao] = useState("");
-  const [mPrazo, setMPrazo] = useState<string>("");
-  const [mCusto, setMCusto] = useState<string>("");
+  const [mVenda, setMVenda] = useState<string>("");
+
 
   /* --------------------------------- load --------------------------------- */
   useEffect(() => {
