@@ -1094,8 +1094,66 @@ export default function ComercialNovo() {
         )}
 
         {/* ============================ STEP 2 ============================ */}
-        {step === 2 && (
+        {step === 2 && isAdendo && (
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "#FDF4E2", border: "1px solid #F3E5BF" }}
+              >
+                <FileText className="w-6 h-6" style={{ color: "#B8893B" }} />
+              </div>
+              <div>
+                <h1 className="text-[26px] font-semibold leading-none">Adendo Financeiro</h1>
+                <p className="text-[13px] text-muted-foreground mt-1.5">
+                  Adendos não geram pedido de peças — apenas formalizam diferenças financeiras vinculadas ao pedido original.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <Label>Descrição do Adendo</Label>
+                <Textarea
+                  value={adendoDescricao}
+                  onChange={(e) => setAdendoDescricao(e.target.value)}
+                  placeholder="Ex.: Este adendo é referente ao pedido PV-LOJ-0003 por diferença de acabamento no ambiente Cozinha…"
+                  rows={5}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Tipo</Label>
+                  <Select value={adendoTipo} onValueChange={(v) => setAdendoTipo(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receber">A receber do cliente</SelectItem>
+                      <SelectItem value="pagar">A pagar ao cliente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number" step="0.01" min={0}
+                    value={adendoValor || ""}
+                    onChange={(e) => setAdendoValor(Number(e.target.value) || 0)}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-[12px] text-muted-foreground">
+                Este adendo seguirá direto para o <b>painel financeiro</b>. Não passa pelos pipelines de fábrica/montagem/pós-venda.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && !isAdendo && (
           <>
+
             <div className="surface-card p-6">
               <div className="flex items-center gap-4 mb-6">
                 <div
