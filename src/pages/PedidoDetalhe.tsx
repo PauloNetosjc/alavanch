@@ -175,6 +175,12 @@ export default function PedidoDetalhe() {
     const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
     setAdendos(filhos || []);
 
+    // Pedido de origem (se este for complemento)
+    if (ped.pedido_origem_complemento_id) {
+      const { data: origem } = await supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle();
+      setPedidoOrigemComplemento(origem);
+    } else { setPedidoOrigemComplemento(null); }
+
     // Loja
     if (ped.loja_id) {
       const { data: lj } = await supabase.from("lojas").select("*").eq("id", ped.loja_id).maybeSingle();
