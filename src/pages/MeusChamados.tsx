@@ -321,11 +321,15 @@ export default function MeusChamados() {
               : null;
             const hojeStr = new Date().toISOString().slice(0,10);
             const atrasado = c.data_limite && c.data_limite < hojeStr && c.status !== "concluida";
+            const isConcluida = c.status === "concluida";
             return (
-              <button
+              <div
                 key={c.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => navigate(`/meus-chamados/${c.id}`)}
-                className="w-full text-left surface-card p-5 hover:shadow-md transition flex items-center gap-4"
+                onKeyDown={(e) => { if (e.key === "Enter") navigate(`/meus-chamados/${c.id}`); }}
+                className="w-full text-left surface-card p-5 hover:shadow-md transition flex items-center gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -381,8 +385,33 @@ export default function MeusChamados() {
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
+                <div className="flex flex-col gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {!isConcluida && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={(e) => { e.stopPropagation(); openAgendar(c); }}
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" />
+                        Agendar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="gap-1.5"
+                        disabled={concluindoId === c.id}
+                        onClick={(e) => { e.stopPropagation(); concluirChamado(c); }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Concluir
+                      </Button>
+                    </>
+                  )}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground self-end" />
+                </div>
+              </div>
             );
         };
 
