@@ -195,6 +195,7 @@ export default function Comercial() {
     return rows.filter((r) => {
       if (!showCancelled && r.status === "perdido") return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
 
       if (monthFilter !== "todos") {
         const [y, m] = monthFilter.split("-").map(Number);
