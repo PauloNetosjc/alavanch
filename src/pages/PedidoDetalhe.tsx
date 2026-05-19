@@ -576,20 +576,27 @@ export default function PedidoDetalhe() {
       {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
       <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
 
-      {/* AVISO: edição de pedido fechado gera adendo */}
-      <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
+      {/* AVISO: edição de pedido fechado gera Adendo ou Complemento */}
+      <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3 flex-wrap">
         <Sparkles className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-        <div className="flex-1 text-[13px] text-purple-900">
-          <div className="font-semibold mb-0.5">Pedido fechado — toda alteração vira Adendo</div>
+        <div className="flex-1 min-w-[300px] text-[13px] text-purple-900">
+          <div className="font-semibold mb-0.5">Pedido fechado — use Adendo ou Complemento</div>
           <div>
-            Para preservar o financeiro, este pedido não pode ser editado diretamente. Adicionar itens avulsos
-            ou importar revisões cria um <b>Adendo</b> (orçamento complementar vinculado), que gera um novo
-            contrato e novos lançamentos sem alterar a venda original.
+            Este pedido não pode ser editado diretamente. Use <b>Adendo (AD-…)</b> para um aditivo no mesmo
+            contrato (diferença de valor, mesmo financeiro) ou <b>Complemento (COMP-…)</b> para uma venda
+            nova do mesmo ambiente com contrato e financeiro próprios — apenas referencia este pedido.
           </div>
         </div>
-        <Button onClick={criarAdendo} disabled={criandoAdendo} className="bg-purple-600 hover:bg-purple-700 text-white">
-          <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={criarAdendo} disabled={criandoAdendo} className="bg-purple-600 hover:bg-purple-700 text-white">
+            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+          </Button>
+          {!ehAdendo && (
+            <Button onClick={criarComplemento} disabled={criandoComplemento} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
+            </Button>
+          )}
+        </div>
       </section>
 
       {/* Itens avulsos do pedido (apenas leitura — adições devem ir para um adendo) */}
