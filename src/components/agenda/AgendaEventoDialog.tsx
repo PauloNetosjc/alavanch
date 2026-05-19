@@ -119,6 +119,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
   const [followupMinDate, setFollowupMinDate] = useState<string>("");
 
   const lockedFromPedido = !!pedidoId;
+  const [pedidoEhComplemento, setPedidoEhComplemento] = useState(false);
+
+  // Tipos não permitidos quando o pedido vinculado é um Complemento
+  const TIPOS_BLOQ_COMPLEMENTO: AgendaTipo[] = ["medicao_tecnica", "revisao_final"];
 
   useEffect(() => {
     if (!open) return;
