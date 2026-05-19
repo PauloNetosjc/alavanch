@@ -523,6 +523,8 @@ export default function PedidoDetalhe() {
         vendedor={vendedor}
         responsavel={responsavel}
         adendos={adendos}
+        usuarios={usuarios}
+        salvarPedido={salvarPedido}
       />
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
