@@ -197,15 +197,16 @@ export default function PedidoDetalhe() {
       .order("created_at", { ascending: false });
     setSolicitacoes(sols || []);
 
-    // Vendedor / Responsável
+    // Vendedor / Responsável (projetista tem prioridade sobre estagio_responsavel_id)
     const ids: string[] = [];
     if (orcamento?.vendedor_id) ids.push(orcamento.vendedor_id);
-    if (ped.estagio_responsavel_id) ids.push(ped.estagio_responsavel_id);
+    const responsavelId = ped.projetista_id || ped.estagio_responsavel_id;
+    if (responsavelId) ids.push(responsavelId);
     if (ids.length) {
       const { data: profs } = await supabase
         .from("profiles").select("user_id, nome_completo, cargo").in("user_id", ids);
       setVendedor((profs || []).find((p: any) => p.user_id === orcamento?.vendedor_id) || null);
-      setResponsavel((profs || []).find((p: any) => p.user_id === ped.estagio_responsavel_id) || null);
+      setResponsavel((profs || []).find((p: any) => p.user_id === responsavelId) || null);
     } else { setVendedor(null); setResponsavel(null); }
 
     setLoading(false);
