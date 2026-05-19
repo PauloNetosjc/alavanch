@@ -140,7 +140,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
         supabase.from("lojas").select("id, nome").eq("ativo", true).order("nome"),
         supabase.from("origens_lead" as any).select("id, nome").eq("ativo", true).order("nome"),
-      ]);
+  ]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const _validarOrigemDep = origemId;
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
       setOrigens((ors.data as any) || []);
