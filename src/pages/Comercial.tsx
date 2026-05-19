@@ -210,7 +210,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, monthFilter, search]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, monthFilter, search]);
 
   const stats = useMemo(() => {
     const negociacao = rows
