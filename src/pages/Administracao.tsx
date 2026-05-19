@@ -67,6 +67,7 @@ export default function Administracao() {
       <Tabs defaultValue="descontos" className="w-full">
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="descontos"><Percent className="w-3.5 h-3.5 mr-1.5" />Descontos</TabsTrigger>
+          <TabsTrigger value="juros"><Percent className="w-3.5 h-3.5 mr-1.5" />Política de Juros</TabsTrigger>
           <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
           <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
           <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
