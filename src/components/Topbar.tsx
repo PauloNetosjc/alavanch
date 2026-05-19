@@ -133,7 +133,6 @@ export function Topbar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <LojaSelector />
         <NotificationsBell />
       </div>
     </header>
