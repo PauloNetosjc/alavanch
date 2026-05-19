@@ -77,8 +77,88 @@ export default function MeusChamados() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ativos");
+  const [agendarOpen, setAgendarOpen] = useState(false);
+  const [agendarTarget, setAgendarTarget] = useState<Chamado | null>(null);
+  const [agendarData, setAgendarData] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [agendarHora, setAgendarHora] = useState<string>("09:00");
+  const [agendarTecnico, setAgendarTecnico] = useState<string>("");
+  const [tecnicos, setTecnicos] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
+  const [salvandoAg, setSalvandoAg] = useState(false);
+  const [concluindoId, setConcluindoId] = useState<string | null>(null);
 
-  const load = async () => {
+  const openAgendar = async (c: Chamado) => {
+    setAgendarTarget(c);
+    setAgendarData(c.data_agendamento || new Date().toISOString().slice(0, 10));
+    setAgendarHora(c.hora_agendamento?.slice(0, 5) || "09:00");
+    setAgendarTecnico(c.tecnico_id || user?.id || "");
+    if (tecnicos.length === 0) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, nome_completo")
+        .order("nome_completo");
+      setTecnicos((data as any) || []);
+    }
+    setAgendarOpen(true);
+  };
+
+  const salvarAgendamento = async () => {
+    if (!agendarTarget) return;
+    if (!agendarData || !agendarHora || !agendarTecnico) {
+      toast.error("Preencha data, hora e responsável");
+      return;
+    }
+    setSalvandoAg(true);
+    try {
+      const { error: e1 } = await supabase
+        .from("assistencias")
+        .update({
+          status: "agendada",
+          data_agendamento: agendarData,
+          hora_agendamento: agendarHora,
+          tecnico_id: agendarTecnico,
+        })
+        .eq("id", agendarTarget.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("agenda_eventos").insert({
+        tipo: "assistencia_tecnica",
+        titulo: `Assistência ${agendarTarget.codigo || ""}`.trim(),
+        descricao: `Chamado ${agendarTarget.codigo || ""} — ${agendarTarget.cliente?.nome || ""}`,
+        data: agendarData,
+        hora_inicio: agendarHora,
+        responsavel_id: agendarTecnico,
+        pedido_id: agendarTarget.pedido_id,
+        cliente_id: agendarTarget.cliente_id,
+        loja_id: agendarTarget.loja_id,
+        created_by: user?.id || null,
+      });
+      if (e2) throw e2;
+      toast.success("Tarefa agendada");
+      setAgendarOpen(false);
+      await load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao agendar");
+    } finally {
+      setSalvandoAg(false);
+    }
+  };
+
+  const concluirChamado = async (c: Chamado) => {
+    if (!confirm(`Concluir chamado ${c.codigo || ""}?`)) return;
+    setConcluindoId(c.id);
+    try {
+      const { error } = await supabase
+        .from("assistencias")
+        .update({ status: "concluida", concluida_em: new Date().toISOString() })
+        .eq("id", c.id);
+      if (error) throw error;
+      toast.success("Chamado concluído");
+      await load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao concluir");
+    } finally {
+      setConcluindoId(null);
+    }
+  };
     if (!user) return;
     setLoading(true);
     let q = supabase
