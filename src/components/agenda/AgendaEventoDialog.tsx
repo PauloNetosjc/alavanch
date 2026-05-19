@@ -321,6 +321,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             nome: clienteNome.trim(),
             telefone: clienteFone || null,
             loja_id: lojaEventoId,
+            origem_id: origemId || null,
             created_by: user?.id || null,
             ativo: true,
           })
