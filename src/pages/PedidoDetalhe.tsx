@@ -197,15 +197,16 @@ export default function PedidoDetalhe() {
       .order("created_at", { ascending: false });
     setSolicitacoes(sols || []);
 
-    // Vendedor / Responsável
+    // Vendedor / Responsável (projetista tem prioridade sobre estagio_responsavel_id)
     const ids: string[] = [];
     if (orcamento?.vendedor_id) ids.push(orcamento.vendedor_id);
-    if (ped.estagio_responsavel_id) ids.push(ped.estagio_responsavel_id);
+    const responsavelId = ped.projetista_id || ped.estagio_responsavel_id;
+    if (responsavelId) ids.push(responsavelId);
     if (ids.length) {
       const { data: profs } = await supabase
         .from("profiles").select("user_id, nome_completo, cargo").in("user_id", ids);
       setVendedor((profs || []).find((p: any) => p.user_id === orcamento?.vendedor_id) || null);
-      setResponsavel((profs || []).find((p: any) => p.user_id === ped.estagio_responsavel_id) || null);
+      setResponsavel((profs || []).find((p: any) => p.user_id === responsavelId) || null);
     } else { setVendedor(null); setResponsavel(null); }
 
     setLoading(false);
@@ -221,6 +222,10 @@ export default function PedidoDetalhe() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => setDocs(data || []));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${id}` }, (payload) => {
+        // Sincroniza alterações vindas dos kanbans (estagio_*) ou outros pontos
+        if (payload.new) setPedido((prev: any) => ({ ...(prev || {}), ...(payload.new as any) }));
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -518,6 +523,8 @@ export default function PedidoDetalhe() {
         vendedor={vendedor}
         responsavel={responsavel}
         adendos={adendos}
+        usuarios={usuarios}
+        salvarPedido={salvarPedido}
       />
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
@@ -588,8 +595,7 @@ export default function PedidoDetalhe() {
       {/* PARCELAS — fluxo financeiro */}
       <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
-      {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
-      <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
+      {/* Resumo Financeiro removido — toda gestão financeira do pedido vive no módulo Financeiro */}
 
       {/* AVISO: edição de pedido fechado gera Adendo ou Complemento */}
       <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3 flex-wrap">
@@ -2147,10 +2153,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
 /* ============================================================== */
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
-function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos }: any) {
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
   const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
   const previsaoMedicao = pedido.data_medicao_tecnica;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
+  const [editingCF, setEditingCF] = useState(false);
+  const [cfDraft, setCfDraft] = useState<string>(pedido?.cliente_final || "");
+  useEffect(() => { setCfDraft(pedido?.cliente_final || ""); }, [pedido?.cliente_final]);
+
   const Field = ({ label, children }: any) => (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
@@ -2158,13 +2168,51 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
     </div>
   );
   const responsavelNome = (responsavel?.nome_completo) || (vendedor?.nome_completo) || "—";
+
+  const salvarClienteFinal = async () => {
+    setEditingCF(false);
+    if ((cfDraft || "") === (pedido?.cliente_final || "")) return;
+    if (salvarPedido) await salvarPedido({ cliente_final: cfDraft || null });
+  };
+  const trocarResponsavel = async (userId: string) => {
+    if (salvarPedido) await salvarPedido({ projetista_id: userId || null });
+  };
+
   return (
     <section className="surface-card p-5 space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Field label="Código">{pedido.codigo}</Field>
         <Field label="Data da venda">{fmtDate(dataVenda)}</Field>
-        <Field label="Cliente final">{(cliente as any)?.cliente_final || "—"}</Field>
-        <Field label="Responsável">{responsavelNome}</Field>
+        <Field label="Cliente final">
+          {editingCF ? (
+            <input
+              autoFocus
+              value={cfDraft}
+              onChange={(e) => setCfDraft(e.target.value)}
+              onBlur={salvarClienteFinal}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setCfDraft(pedido?.cliente_final || ""); setEditingCF(false); } }}
+              className="w-full text-[13px] border border-border rounded px-1.5 py-0.5 bg-background"
+            />
+          ) : (
+            <button onClick={() => setEditingCF(true)} className="text-left hover:bg-muted/60 rounded px-1 -mx-1 w-full truncate">
+              {pedido?.cliente_final || <span className="text-muted-foreground">—</span>}
+            </button>
+          )}
+        </Field>
+        <Field label="Responsável">
+          {salvarPedido ? (
+            <select
+              value={pedido.projetista_id || ""}
+              onChange={(e) => trocarResponsavel(e.target.value)}
+              className="w-full text-[13px] border border-border rounded px-1 py-0.5 bg-background"
+            >
+              <option value="">{responsavelNome === "—" ? "Selecionar…" : responsavelNome}</option>
+              {usuarios.map((u: any) => (
+                <option key={u.user_id} value={u.user_id}>{u.nome_completo}</option>
+              ))}
+            </select>
+          ) : responsavelNome}
+        </Field>
         <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
         <Field label="Orçamento">
           {orcamento?.id ? (
