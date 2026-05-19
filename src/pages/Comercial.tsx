@@ -110,6 +110,22 @@ const STATUS_PILLS: { id: StatusFilter; label: string; activeBg: string; activeF
   { id: "convertido", label: "VENDIDO",    activeBg: "#3F8B5C", activeFg: "#FFFFFF" },
 ];
 
+type TipoFilter = "todos" | "pedido" | "adendo" | "complemento";
+
+const TIPO_PILLS: { id: TipoFilter; label: string; activeBg: string; activeFg: string }[] = [
+  { id: "todos",       label: "TODOS TIPOS", activeBg: "#1B2240", activeFg: "#FFFFFF" },
+  { id: "pedido",      label: "PEDIDOS",     activeBg: "#2D6BE5", activeFg: "#FFFFFF" },
+  { id: "adendo",      label: "ADENDOS",     activeBg: "#A8842A", activeFg: "#FFFFFF" },
+  { id: "complemento", label: "COMPLEMENTOS",activeBg: "#7E4FA0", activeFg: "#FFFFFF" },
+];
+
+function tipoFromCodigo(codigo: string): "pedido" | "adendo" | "complemento" {
+  const c = (codigo || "").toUpperCase();
+  if (c.includes("-ADD") || c.includes("-AD-") || c.startsWith("AD-")) return "adendo";
+  if (c.includes("-CP") || c.includes("-COMP") || c.startsWith("CP-") || c.startsWith("COMP-")) return "complemento";
+  return "pedido";
+}
+
 /* ---------------- Month selector ---------------- */
 
 function buildMonths(reference: Date, count = 6) {
