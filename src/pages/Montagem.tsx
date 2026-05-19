@@ -11,7 +11,6 @@ type Pedido = {
   id: string;
   codigo: string | null;
   valor_total: number | null;
-  endereco_entrega: string | null;
   data_entrega: string | null;
   data_montagem: string | null;
   entregador_id: string | null;
