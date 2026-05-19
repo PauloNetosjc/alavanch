@@ -763,12 +763,16 @@ export default function ComercialNovo() {
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           total,
-        })
+          adendo_descricao: isAdendo ? adendoDescricao : null,
+          adendo_tipo: isAdendo ? adendoTipo : null,
+        } as any)
         .eq("id", editId);
       if (upErr) { setSaving(false); return toast.error(upErr.message); }
 
-      // Reset ambientes (cascade remove sub_itens via FK)
-      await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+      if (!isAdendo) {
+        // Reset ambientes (cascade remove sub_itens via FK)
+        await supabase.from("ambientes").delete().eq("orcamento_id", editId);
+      }
     } else {
       const year = new Date().getFullYear();
       const { count } = await supabase
@@ -803,44 +807,47 @@ export default function ComercialNovo() {
       orcId = orc.id;
     }
 
-    for (let i = 0; i < ambientes.length; i++) {
-      const a = ambientes[i];
-      const { data: amb } = await supabase
-        .from("ambientes")
-        .insert({
-          orcamento_id: orcId,
-          nome: a.nome,
-          descricao: a.descricao || null,
-          ordem: i,
-          prazo_dias: a.prazo_dias,
-          custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
-          custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
-          custo_aquisicao: a.custo_aquisicao,
-          preco_sugerido: a.preco_sugerido,
-          markup: a.markup,
-          aplicar_desconto: a.aplicar_desconto !== false,
-        } as any)
-        .select("id")
-        .single();
-      if (amb && a.itens.length > 0) {
-        await supabase.from("sub_itens_ambiente").insert(
-          a.itens.map((it) => ({
-            ambiente_id: amb.id,
-            descricao: it.descricao,
-            quantidade: it.quantidade,
-            largura: it.largura,
-            altura: it.altura,
-            profundidade: it.profundidade,
-            custo_cliente: it.custo_cliente,
-            custo_loja: it.custo_loja,
-            custo_fabrica: it.custo_fabrica,
-            cor: it.cor,
-            categoria: it.categoria,
-            codigo: it.codigo,
-          })),
-        );
+    if (!isAdendo) {
+      for (let i = 0; i < ambientes.length; i++) {
+        const a = ambientes[i];
+        const { data: amb } = await supabase
+          .from("ambientes")
+          .insert({
+            orcamento_id: orcId,
+            nome: a.nome,
+            descricao: a.descricao || null,
+            ordem: i,
+            prazo_dias: a.prazo_dias,
+            custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
+            custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
+            custo_aquisicao: a.custo_aquisicao,
+            preco_sugerido: a.preco_sugerido,
+            markup: a.markup,
+            aplicar_desconto: a.aplicar_desconto !== false,
+          } as any)
+          .select("id")
+          .single();
+        if (amb && a.itens.length > 0) {
+          await supabase.from("sub_itens_ambiente").insert(
+            a.itens.map((it) => ({
+              ambiente_id: amb.id,
+              descricao: it.descricao,
+              quantidade: it.quantidade,
+              largura: it.largura,
+              altura: it.altura,
+              profundidade: it.profundidade,
+              custo_cliente: it.custo_cliente,
+              custo_loja: it.custo_loja,
+              custo_fabrica: it.custo_fabrica,
+              cor: it.cor,
+              categoria: it.categoria,
+              codigo: it.codigo,
+            })),
+          );
+        }
       }
     }
+
 
     // Upload de arquivos importados (Promob/XML/Excel) para a Central de Documentos do orçamento
     if (arquivosImportados.length > 0) {
