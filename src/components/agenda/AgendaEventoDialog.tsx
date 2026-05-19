@@ -76,6 +76,8 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
 
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [lojaEventoId, setLojaEventoId] = useState<string | null>(lojaCtxId || null);
+  const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
+  const [origemId, setOrigemId] = useState<string>("");
 
   // cliente
   const [clienteId, setClienteId] = useState<string>("");
