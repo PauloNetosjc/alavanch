@@ -472,6 +472,18 @@ export default function ComercialNegociacao() {
         supabase.auth.getUser(),
       ]);
       setOrc(o);
+      // Carrega pedido de origem (complemento ou adendo) para referência visual no topo
+      try {
+        if ((o as any)?.is_complemento && (o as any)?.pedido_origem_complemento_id) {
+          const { data: p } = await supabase.from("pedidos").select("id, codigo").eq("id", (o as any).pedido_origem_complemento_id).maybeSingle();
+          if (p) setPedidoRef({ id: p.id, codigo: p.codigo || "", tipo: "complemento" });
+        } else if ((o as any)?.is_adendo && (o as any)?.pedido_origem_id) {
+          const { data: p } = await supabase.from("pedidos").select("id, codigo").eq("id", (o as any).pedido_origem_id).maybeSingle();
+          if (p) setPedidoRef({ id: p.id, codigo: p.codigo || "", tipo: "adendo" });
+        } else {
+          setPedidoRef(null);
+        }
+      } catch { setPedidoRef(null); }
       setCliente((o?.cliente ?? null) as ClienteRow | null);
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
