@@ -489,11 +489,18 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
               <Select value={tipo} onValueChange={(v) => setTipo(v as AgendaTipo)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(TIPO_LABEL).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
+                  {Object.entries(TIPO_LABEL)
+                    .filter(([k]) => !(pedidoEhComplemento && TIPOS_BLOQ_COMPLEMENTO.includes(k as AgendaTipo)))
+                    .map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+            )}
+            {pedidoEhComplemento && (
+              <div className="text-[11px] text-amber-700 mt-1">
+                Este pedido é um <b>Complemento</b> — não gera Medição Técnica nem Revisão. Use o pedido original para essas etapas.
+              </div>
             )}
           </div>
 
