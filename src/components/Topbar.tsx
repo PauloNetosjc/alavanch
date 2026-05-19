@@ -3,7 +3,7 @@ import { Search, Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LojaSelector } from "@/components/LojaSelector";
+
 
 type Result = {
   id: string;
@@ -133,7 +133,6 @@ export function Topbar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <LojaSelector />
         <NotificationsBell />
       </div>
     </header>
