@@ -413,6 +413,12 @@ export default function PedidoDetalhe() {
                 <Sparkles className="w-3.5 h-3.5" /> Adendo {pedidoPai ? `de ${pedidoPai.codigo}` : ""}
               </span>
             )}
+            {ehComplemento && pedidoOrigemComplemento && (
+              <Link to={`/pedidos/${pedidoOrigemComplemento.id}`}
+                className="inline-flex items-center gap-1 text-emerald-700 font-semibold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 hover:bg-emerald-100">
+                <FileText className="w-3.5 h-3.5" /> Complemento de {pedidoOrigemComplemento.codigo}
+              </Link>
+            )}
           </div>
           {assinaturaPendente && contrato && (
             <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
