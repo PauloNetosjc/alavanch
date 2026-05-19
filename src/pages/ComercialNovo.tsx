@@ -816,13 +816,22 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          projetista_id: projetistaId || null,
+          origem_id: origemId || null,
+          cliente_final: clienteFinal || null,
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           desconto_perc: 0,
           desconto_valor: 0,
           total,
           status: "negociacao",
-        })
+          is_adendo: isAdendo,
+          is_complemento: isComplemento,
+          pedido_origem_id: isAdendo ? (pedidoPaiId || null) : null,
+          pedido_origem_complemento_id: isComplemento ? (pedidoPaiId || null) : null,
+          adendo_descricao: isAdendo ? adendoDescricao : null,
+          adendo_tipo: isAdendo ? adendoTipo : null,
+        } as any)
         .select("id")
         .single();
 
