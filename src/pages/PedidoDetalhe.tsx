@@ -167,20 +167,21 @@ export default function PedidoDetalhe() {
     setRevisoes(rv || []);
     const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
     setUsuarios(prof || []);
-    // Pedido pai (se este for adendo) e adendos vinculados ao pedido raiz
+    // Pedido pai (adendo) e pedido de origem (complemento) — define o "raiz" para as abas
     if (ped.pedido_pai_id) {
       const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
       setPedidoPai(pai);
     } else { setPedidoPai(null); }
-    const raizId = ped.pedido_pai_id || (id as string);
-    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
-    setAdendos(filhos || []);
-
-    // Pedido de origem (se este for complemento)
     if (ped.pedido_origem_complemento_id) {
       const { data: origem } = await supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle();
       setPedidoOrigemComplemento(origem);
     } else { setPedidoOrigemComplemento(null); }
+    // raiz = pai (se adendo) OU origem-complemento (se complemento) OU o próprio
+    const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
+    const { data: filhosAd } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
+    setAdendos(filhosAd || []);
+    const { data: filhosComp } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_origem_complemento_id", raizId).order("created_at");
+    setComplementos(filhosComp || []);
 
     // Loja
     if (ped.loja_id) {
