@@ -1,60 +1,43 @@
-## Limpeza de dados transacionais
+## O que o vídeo mostra
 
-Operação de baixa complexidade. Vamos apagar apenas dados **transacionais** (pedidos, financeiro, kanban, assinaturas, comissões, assistências) e preservar toda a **configuração** do sistema (lojas, usuários, permissões, categorias financeiras, contas correntes, pipelines, estágios, templates de contrato/checklist, parceiros, clientes, leads).
+Naveguei pelos frames do vídeo de 11 min. O usuário percorre Dashboard → Relatórios → Clientes → CRM Comercial → Agenda → Comercial, e no final clica em um pedido (`/comercial/{uuid}`) na loja **"Decoração de Flores"**, onde aparece o ErrorBoundary com:
 
-### O que será apagado
+> **"OPS, ALGO DEU ERRADO NESTA TELA — Falha ao executar 'removeChild' em 'Node': O nó a ser removido não é filho deste nó."**
 
-**Comercial / Pedidos**
-- `pedidos` (e tudo vinculado: pastas, documentos, checklist de estágio, histórico de estágio, adendos)
-- `orcamentos`, `ambientes`, `itens_avulsos`, `pagamentos_orcamento`
-- `contratos`
+Além disso, em vários frames os textos da interface aparecem **duplicados/corrompidos**, por exemplo:
+- Dropdown **Tipo** no diálogo da Agenda mostrando `"InternaTarefa Interna"` (deveria ser apenas `"Tarefa Interna"`)
+- Dropdown **Loja** mostrando `"Todas as idades (geral)"` em vez de `"Todas as lojas (geral)"`
+- Filtro do topo virando `"Todas como"` no lugar de `"Todas as lojas"`
 
-**Financeiro**
-- `lancamentos_financeiros` (entradas, saídas, custos fábrica, comissões)
-- Movimentações de conta vinculadas a esses lançamentos
-- Conciliações e comprovantes vinculados
+## Causa raiz
 
-**Kanban / Pipelines**
-- `kanban_cards` (todos os pipelines: comercial, fábrica, montagem, revisão, pós-venda, operacional)
+O **Google Translate do Chrome está traduzindo a página automaticamente** e corrompendo o DOM (insere `<font>` em volta dos textos), o que:
+1. Faz o React perder referências e estourar `removeChild on Node` na próxima re-renderização (especialmente em telas pesadas como `ComercialNovo`).
+2. Concatena o texto traduzido com o original dentro dos triggers do Radix Select (gerando `InternaTarefa Interna`, `Todas as idades`, etc.).
 
-**Assinaturas**
-- `solicitacoes_assinatura`, `assinatura_participantes`, `assinatura_eventos`, `assinatura_evidencias`
+Mesmo com `<html lang="pt-BR" translate="no">` e `class="notranslate"` no `#root`, o Chrome ainda oferece tradução porque a `<meta name="description">` e o `<meta og:description>` estão **em inglês** ("Alavanch Sistema ERP manages furniture sales from quotes to post-sale."), o que confunde o detector de idioma do navegador, e o usuário aceitou traduzir.
 
-**Parceiros / Comissões**
-- `parceiro_comissoes`, `parceiro_comprovantes`
+## Alterações
 
-**Assistência / Pós-venda**
-- `assistencias` e tabelas filhas (materiais, checklist)
-- `ocorrencias`
+### 1. `index.html` — eliminar gatilhos de tradução
 
-**Outros transacionais**
-- `agenda_eventos`
-- `timeline_eventos`
-- `notificacoes`
+- Trocar todos os `meta description` (incluindo `og:description` e `twitter:description`) para **português**.
+- Adicionar `translate="no"` e `class="notranslate"` também no `<body>` (reforço além do `<html>` e `#root`).
+- Manter `<meta name="google" content="notranslate">`.
 
-### O que será preservado
+### 2. `src/components/ErrorBoundary.tsx` — auto-recovery do erro de tradução
 
-- Lojas, usuários, perfis, papéis (`user_roles`), permissões
-- Clientes, leads, parceiros (cadastros), vendedores, origens
-- Categorias financeiras, contas correntes (saldo será zerado/recalculado)
-- Estágios CRM, estágios de pipeline, automações
-- Templates de contrato e de checklist
-- Tipos de documento, feriados, configurações da agenda
-- Branding e configurações gerais
+Quando o erro capturado for exatamente o `removeChild`/`insertBefore` do Node (assinatura clássica da tradução), em vez de mostrar a tela de erro, fazer **reset automático silencioso** (re-render do children com novo `key`). Isso cobre casos residuais sem incomodar o usuário com a tela vermelha.
 
-### Como será executado
+### 3. Sem mudanças funcionais em CRM/Agenda/Comercial
 
-Um único script SQL com `DELETE` em ordem correta (filhos antes de pais) dentro de uma transação. Os triggers de geração automática (pedido a partir de orçamento, lançamentos, kanban cards) não disparam em DELETE, então não há efeito colateral.
+O dropdown "Tipo" e os labels estão **corretos no código** — eram apenas vítimas da tradução. Confirmado lendo `AgendaEventoDialog.tsx` (linhas 449-460): o `TIPO_LABEL["tarefa_interna"] = "Tarefa Interna"` está certo.
 
-Sequências de código (`PV-XXX-NNNN`, `AD-XXX-NNNN`, `receita_codigo`) são calculadas via `MAX()`, então automaticamente reiniciam.
+## Validação
 
-### Confirmação necessária
+Após as mudanças:
+- Recarregar `/dashboard` — Chrome não deve mais oferecer "Traduzir esta página".
+- Abrir Agenda → Novo evento → o Tipo deve mostrar apenas `Tarefa Interna`.
+- Abrir um pedido em `/comercial/{id}` — deve carregar sem o erro de removeChild.
 
-Antes de executar, preciso confirmar:
-
-1. **Ambiente**: isso roda no banco **único** que está conectado ao app (não há separação test/prod aqui). Confirma que pode apagar tudo?
-2. **Clientes e Leads**: mantenho como cadastro? Ou também apago? (recomendo manter)
-3. **Parceiros**: mantenho cadastro, apago só comissões? (recomendo manter)
-4. **Saldo de contas correntes**: zero todas as contas para o saldo inicial atual, ou deixo o saldo como está?
-
-Após sua confirmação, gero a migration de limpeza em uma única execução.
+Se ainda houver tradução ativa do usuário, peço para clicar no ícone do tradutor no Chrome e escolher **"Nunca traduzir este site"** uma vez.
