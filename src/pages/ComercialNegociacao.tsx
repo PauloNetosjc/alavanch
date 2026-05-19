@@ -410,6 +410,7 @@ export default function ComercialNegociacao() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orc, setOrc] = useState<any>(null);
+  const [pedidoRef, setPedidoRef] = useState<{ id: string; codigo: string; tipo: "complemento" | "adendo" } | null>(null);
   const [cliente, setCliente] = useState<ClienteRow | null>(null);
   const [parceiro, setParceiro] = useState<{ nome: string } | null>(null);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
