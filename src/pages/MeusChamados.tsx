@@ -28,6 +28,7 @@ import {
   Download,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
+import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 
 type Chamado = {
   id: string;
