@@ -67,6 +67,7 @@ export default function PedidoDetalhe() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [pedidoPai, setPedidoPai] = useState<any>(null);
   const [adendos, setAdendos] = useState<any[]>([]);
+  const [complementos, setComplementos] = useState<any[]>([]);
   const [criandoAdendo, setCriandoAdendo] = useState(false);
   const [criandoComplemento, setCriandoComplemento] = useState(false);
   const [pedidoOrigemComplemento, setPedidoOrigemComplemento] = useState<any>(null);
@@ -166,20 +167,21 @@ export default function PedidoDetalhe() {
     setRevisoes(rv || []);
     const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
     setUsuarios(prof || []);
-    // Pedido pai (se este for adendo) e adendos vinculados ao pedido raiz
+    // Pedido pai (adendo) e pedido de origem (complemento) — define o "raiz" para as abas
     if (ped.pedido_pai_id) {
       const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
       setPedidoPai(pai);
     } else { setPedidoPai(null); }
-    const raizId = ped.pedido_pai_id || (id as string);
-    const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
-    setAdendos(filhos || []);
-
-    // Pedido de origem (se este for complemento)
     if (ped.pedido_origem_complemento_id) {
       const { data: origem } = await supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle();
       setPedidoOrigemComplemento(origem);
     } else { setPedidoOrigemComplemento(null); }
+    // raiz = pai (se adendo) OU origem-complemento (se complemento) OU o próprio
+    const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
+    const { data: filhosAd } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
+    setAdendos(filhosAd || []);
+    const { data: filhosComp } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_origem_complemento_id", raizId).order("created_at");
+    setComplementos(filhosComp || []);
 
     // Loja
     if (ped.loja_id) {
@@ -359,11 +361,18 @@ export default function PedidoDetalhe() {
   const ehAdendo = !!pedido.pedido_pai_id;
   const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
+  const temComplementos = complementos.length > 0;
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
+    : pedidoOrigemComplemento
+    ? { id: pedidoOrigemComplemento.id, codigo: pedidoOrigemComplemento.codigo }
     : { id: pedido.id, codigo: pedido.codigo };
-  // abas: pedido raiz + todos os adendos
-  const abas = [raizParaTabs, ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo }))];
+  // abas: pedido raiz + adendos + complementos (todos vinculados)
+  const abas = [
+    { ...raizParaTabs, tipo: "raiz" as const },
+    ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo, tipo: "adendo" as const })),
+    ...complementos.map((c: any) => ({ id: c.id, codigo: c.codigo, tipo: "complemento" as const })),
+  ];
 
   return (
     <div className="space-y-5">
@@ -469,12 +478,14 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
-      {/* ABAS — pedido raiz + adendos */}
+      {/* ABAS — pedido raiz + adendos + complementos */}
       {abas.length > 1 && (
         <div className="flex items-center gap-1 border-b overflow-x-auto">
-          {abas.map((a: any, idx: number) => {
+          {abas.map((a: any) => {
             const ativo = a.id === pedido.id;
-            const isRaiz = idx === 0;
+            const isRaiz = a.tipo === "raiz";
+            const isComp = a.tipo === "complemento";
+            const sufixo = isRaiz ? " · Original" : isComp ? " · Complemento" : " · Adendo";
             return (
               <Link
                 key={a.id}
@@ -486,7 +497,7 @@ export default function PedidoDetalhe() {
                 }`}
               >
                 {isRaiz ? <FileText className="w-3.5 h-3.5 inline mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />}
-                {a.codigo}{isRaiz ? " · Original" : ""}
+                {a.codigo}{sufixo}
               </Link>
             );
           })}
