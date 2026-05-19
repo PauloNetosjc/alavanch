@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
-import { Hammer, Truck, MapPin, CalendarDays, ExternalLink, Plus, User } from "lucide-react";
+import { Hammer, Truck, CalendarDays, ExternalLink, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLoja } from "@/contexts/LojaContext";
 import { AgendaEventoDialog, type AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
