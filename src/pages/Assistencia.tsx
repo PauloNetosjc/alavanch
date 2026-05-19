@@ -449,12 +449,13 @@ function ChamadoCard({
 
 /* ---------------- Dialog: Nova Assistência ---------------- */
 function NovaAssistenciaDialog({
-  open, onClose, onCreated,
-}: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  open, onClose, onCreated, profiles,
+}: { open: boolean; onClose: () => void; onCreated: () => void; profiles: Profile[] }) {
   const [pedidos, setPedidos] = useState<{ id: string; codigo: string; cliente_id: string; cliente: { nome: string } | null }[]>([]);
   const [pedidoId, setPedidoId] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("media");
+  const [tecnicoId, setTecnicoId] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -468,6 +469,7 @@ function NovaAssistenciaDialog({
     setPedidoId("");
     setDescricao("");
     setPrioridade("media");
+    setTecnicoId("");
     setFiles([]);
   }, [open]);
 
