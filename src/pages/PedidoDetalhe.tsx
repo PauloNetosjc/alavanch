@@ -312,7 +312,7 @@ export default function PedidoDetalhe() {
   /* ----- criar complemento (novo orçamento/pedido autônomo, apenas referencia o original) ----- */
   const criarComplemento = async () => {
     if (!pedido || !pedido.orcamento_id) return;
-    if (!confirm("Criar um Complemento deste pedido?\n\nO complemento é uma NOVA venda do mesmo ambiente — gera um pedido próprio (COMP-…), com contrato e financeiro independentes. O pedido original fica apenas como referência nas observações.")) return;
+    if (!confirm("Criar um Complemento deste pedido?\n\nO complemento é uma NOVA venda do mesmo ambiente — gera um pedido próprio (CP-…), com contrato e financeiro independentes. O pedido original fica apenas como referência nas observações.")) return;
     setCriandoComplemento(true);
     try {
       const { data: orcOriginal } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
