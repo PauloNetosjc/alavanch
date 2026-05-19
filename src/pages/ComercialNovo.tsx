@@ -520,6 +520,16 @@ export default function ComercialNovo() {
     })();
   }, [isEdit, profile?.loja_id]);
 
+  // Auto-prefill origem ao escolher cliente (ex: cliente veio de uma apresentação agendada)
+  useEffect(() => {
+    if (!clienteId || origemId) return;
+    (async () => {
+      const { data } = await supabase.from("clientes").select("origem_id").eq("id", clienteId).maybeSingle();
+      if ((data as any)?.origem_id) setOrigemId((data as any).origem_id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId]);
+
   /* ------------------------- load existing orçamento ---------------------- */
   useEffect(() => {
     if (!editId) return;

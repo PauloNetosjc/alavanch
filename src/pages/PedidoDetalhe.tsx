@@ -368,6 +368,24 @@ export default function PedidoDetalhe() {
   const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
   const temComplementos = complementos.length > 0;
+
+  // ---- Status global da Revisão do Projeto (crítico antes de avançar pipelines) ----
+  const revisaoStatus: { kind: "none" | "sem_revisao" | "diferenca" | "aguardando" | "aprovado"; message: string } = (() => {
+    if (!ambientes.length) return { kind: "none", message: "" };
+    const latestPerAmb = ambientes.map((a: any) => {
+      const revs = revisoes.filter((r: any) => r.ambiente_id === a.id)
+        .sort((x: any, y: any) => (y.versao ?? 0) - (x.versao ?? 0));
+      return { amb: a, latest: revs[0] || null };
+    });
+    if (latestPerAmb.some((x: any) => !x.latest))
+      return { kind: "sem_revisao", message: "Falta revisar o projeto — envie a revisão do Promob de cada ambiente antes de avançar." };
+    const comDif = latestPerAmb.find((x: any) => !x.latest.aprovada && Math.abs(Number(x.latest.variacao_perc || 0)) > 0);
+    if (comDif) return { kind: "diferenca", message: "Houve diferença na revisão — negocie o complemento ou aprove a revisão para seguir o processo." };
+    const naoAprov = latestPerAmb.find((x: any) => !x.latest.aprovada);
+    if (naoAprov) return { kind: "aguardando", message: "Revisão sem diferenças — aguardando aprovação para liberar os pipelines." };
+    return { kind: "aprovado", message: "" };
+  })();
+  const revisaoPendente = revisaoStatus.kind !== "aprovado" && revisaoStatus.kind !== "none";
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
     : pedidoOrigemComplemento
@@ -406,6 +424,16 @@ export default function PedidoDetalhe() {
               ))}{" "}pelas abas abaixo.
             </span>
           )}
+        </div>
+      )}
+
+      {/* TARJA — REVISÃO DO PROJETO PENDENTE (bloqueia avanço) */}
+      {revisaoPendente && (
+        <div className={`rounded-md text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm ${
+          revisaoStatus.kind === "aguardando" ? "bg-amber-600" : "bg-red-600"
+        }`}>
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{revisaoStatus.message}</span>
         </div>
       )}
 
@@ -530,6 +558,11 @@ export default function PedidoDetalhe() {
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
       {/* PIPELINES & ESTÁGIOS */}
+      {/* REVISÃO PRECEDE OS PIPELINES enquanto não estiver aprovada */}
+      {revisaoPendente && (
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      )}
+
       <PipelinesPanel pedido={pedido} />
 
       {/* CRONOGRAMA E DATAS */}
@@ -624,7 +657,9 @@ export default function PedidoDetalhe() {
       <ItensAvulsosManager pedidoId={pedido.id} readOnly />
 
       {/* IMPORTAR REVISÃO PROMOB */}
-      <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      {!revisaoPendente && (
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      )}
     </div>
   );
 }
@@ -1704,39 +1739,45 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
     onChange();
   };
 
-  const negociarAdendo = async (rev: any) => {
-    // Cria novo orçamento de adendo baseado no original, com a DIFERENÇA de valor
+  const negociarComplemento = async (rev: any) => {
+    // Cria um COMPLEMENTO (nova venda independente referenciando o pedido original) com a DIFERENÇA da revisão
     if (!pedido.orcamento_id) return;
     const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
     if (!orc) return;
-    const codigoBase = orc.codigo;
-    const newCodigo = `${codigoBase}-ADD-${Date.now().toString().slice(-4)}`;
     const valorOriginal = Number(rev.valor_original || 0);
     const valorRevisado = Number(rev.valor_revisado || 0);
-    const valorAdendo = Math.max(0, valorRevisado - valorOriginal);
-    // Busca nome do ambiente original p/ referência
+    const valorDif = Math.max(0, valorRevisado - valorOriginal);
     const ambOrig = ambientes.find((a: any) => a.id === rev.ambiente_id);
     const nomeAmbOrig = ambOrig?.nome || "Ambiente";
 
+    const year = new Date().getFullYear();
+    const { count: yearCount } = await supabase.from("orcamentos").select("id", { count: "exact", head: true })
+      .gte("created_at", `${year}-01-01`).lt("created_at", `${year + 1}-01-01`);
+    const novoCodigoOrc = `ORC-${year}-${String((yearCount || 0) + 1).padStart(4, "0")}`;
+
     const { data: novo, error } = await supabase.from("orcamentos").insert({
-      codigo: newCodigo, cliente_id: orc.cliente_id, loja_id: orc.loja_id,
-      nome_projeto: `[ADENDO de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
-      status: "negociacao", subtotal: valorAdendo, total: valorAdendo,
+      codigo: novoCodigoOrc,
+      cliente_id: orc.cliente_id, loja_id: orc.loja_id,
+      nome_projeto: `[COMPLEMENTO REVISÃO de ${pedido.codigo}] ${orc.nome_projeto || ""}`,
+      status: "negociacao", subtotal: valorDif, total: valorDif,
+      parceiro_id: orc.parceiro_id, parceiro_perc: orc.parceiro_perc,
+      consultor_id: orc.consultor_id, vendedor_id: orc.vendedor_id, origem_id: orc.origem_id,
+      is_complemento: true,
+      pedido_origem_complemento_id: pedido.id,
       created_by: user?.id,
-    }).select().maybeSingle();
+    } as any).select().maybeSingle();
     if (error || !novo) return toast.error(error?.message || "Erro");
 
-    // Cria um ambiente no novo orçamento já com o valor da DIFERENÇA, justificando o acréscimo
     await supabase.from("ambientes").insert({
       orcamento_id: novo.id,
-      nome: `Acréscimo: ${nomeAmbOrig} (revisão v${rev.versao})`,
-      descricao: `Diferença gerada pela revisão do projeto.\nValor original: ${fmtBrl(valorOriginal)}\nValor revisado: ${fmtBrl(valorRevisado)}\nAcréscimo: ${fmtBrl(valorAdendo)}`,
-      preco_sugerido: valorAdendo,
+      nome: `Acréscimo (revisão v${rev.versao}): ${nomeAmbOrig}`,
+      descricao: `Diferença gerada pela revisão do projeto.\nValor original: ${fmtBrl(valorOriginal)}\nValor revisado: ${fmtBrl(valorRevisado)}\nAcréscimo: ${fmtBrl(valorDif)}`,
+      preco_sugerido: valorDif,
       custo_aquisicao: 0,
       ordem: 0,
     });
 
-    toast.success(`Adendo criado com diferença de ${fmtBrl(valorAdendo)}`);
+    toast.success(`Complemento criado com diferença de ${fmtBrl(valorDif)}`);
     navigate(`/comercial/${novo.id}/negociacao`);
   };
 
@@ -1789,7 +1830,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
                 rev={verRevisao}
                 ambienteNome={amb?.nome}
                 onAprovar={() => { aprovar(verRevisao); setVerRevisao(null); }}
-                onNegociarAdendo={() => { negociarAdendo(verRevisao); setVerRevisao(null); }}
+                onNegociarComplemento={() => { negociarComplemento(verRevisao); setVerRevisao(null); }}
               />
             );
           })()}
@@ -1799,7 +1840,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
   );
 }
 
-function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any) {
+function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarComplemento }: any) {
   const [tab, setTab] = useState<"resumo" | "mantidos" | "alterados" | "adicionados" | "removidos">("resumo");
   const diff = rev.diff as DiffResult;
   const totals = diff?.totals || { mantidos: 0, alterados: 0, adicionados: 0, removidos: 0, valorOriginal: 0, valorRevisado: 0, variacao: 0, variacaoPerc: 0 };
@@ -1872,8 +1913,8 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any
         {!rev.aprovada && (
           <>
             {aumento && (
-              <Button onClick={onNegociarAdendo} className="bg-purple-600 hover:bg-purple-700">
-                <Sparkles className="w-4 h-4 mr-1.5" /> Negociar Adendo ({fmtBrl(totals.variacao)})
+              <Button onClick={onNegociarComplemento} className="bg-purple-600 hover:bg-purple-700">
+                <Sparkles className="w-4 h-4 mr-1.5" /> Negociar Complemento ({fmtBrl(totals.variacao)})
               </Button>
             )}
             <Button onClick={onAprovar} className="bg-emerald-600 hover:bg-emerald-700">
