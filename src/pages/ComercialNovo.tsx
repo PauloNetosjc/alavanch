@@ -768,6 +768,8 @@ export default function ComercialNovo() {
     let orcId = editId || "";
     let codigo = orcCodigo;
 
+    const isComplemento = tipoOrcamento === "complemento";
+
     if (isEdit && editId) {
       const { error: upErr } = await supabase
         .from("orcamentos")
@@ -777,9 +779,16 @@ export default function ComercialNovo() {
           parceiro_id: parceiroId || null,
           parceiro_perc: parceiroPerc || 0,
           consultor_id: consultorId || null,
+          projetista_id: projetistaId || null,
+          origem_id: origemId || null,
+          cliente_final: clienteFinal || null,
           loja_id: lojaId || null,
           subtotal: subtotalAmbientes,
           total,
+          is_adendo: isAdendo,
+          is_complemento: isComplemento,
+          pedido_origem_id: isAdendo ? (pedidoPaiId || null) : null,
+          pedido_origem_complemento_id: isComplemento ? (pedidoPaiId || null) : null,
           adendo_descricao: isAdendo ? adendoDescricao : null,
           adendo_tipo: isAdendo ? adendoTipo : null,
         } as any)
