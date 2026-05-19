@@ -51,6 +51,7 @@ const PIPELINE_LABELS: Record<string, string> = {
 
 const EVENTOS = [
   { value: "card_chegou", label: "Quando criado/movido para este estágio" },
+  { value: "apos_x_dias", label: "Após X dias neste estágio" },
   { value: "agenda_criada", label: "Agenda criada" },
   { value: "medicao_agendada", label: "Medição técnica agendada" },
   { value: "revisao_agendada", label: "Revisão final agendada" },
