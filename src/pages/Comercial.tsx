@@ -532,6 +532,19 @@ export default function Comercial() {
                           )}
                         </TableCell>
                         <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(r.etiquetas || []).map((e) => (
+                              <span key={e.id} className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
+                                style={{ background: e.cor }}>
+                                {e.nome}
+                              </span>
+                            ))}
+                            {(!r.etiquetas || r.etiquetas.length === 0) && (
+                              <span className="text-[11px] text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <span
                             className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
                             style={{ background: st.bg, color: st.fg }}
