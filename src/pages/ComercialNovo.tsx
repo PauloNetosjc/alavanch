@@ -473,6 +473,14 @@ export default function ComercialNovo() {
   // arquivos importados pendentes de upload (após criação do orçamento)
   const [arquivosImportados, setArquivosImportados] = useState<{ file: File; origem: string }[]>([]);
 
+  // ---- adendo (modo financeiro: sem ambientes, apenas descrição + valor + tipo) ----
+  const [isAdendo, setIsAdendo] = useState(false);
+  const [pedidoOrigemId, setPedidoOrigemId] = useState<string | null>(null);
+  const [adendoDescricao, setAdendoDescricao] = useState("");
+  const [adendoValor, setAdendoValor] = useState<number>(0);
+  const [adendoTipo, setAdendoTipo] = useState<"receber" | "pagar">("receber");
+
+
   // ---- manual add form ----
   const [mNome, setMNome] = useState("");
   const [mDescricao, setMDescricao] = useState("");
