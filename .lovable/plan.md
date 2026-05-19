@@ -1,43 +1,56 @@
-## O que o vídeo mostra
+## Contexto atual
 
-Naveguei pelos frames do vídeo de 11 min. O usuário percorre Dashboard → Relatórios → Clientes → CRM Comercial → Agenda → Comercial, e no final clica em um pedido (`/comercial/{uuid}`) na loja **"Decoração de Flores"**, onde aparece o ErrorBoundary com:
+Hoje o sistema tem dois caminhos:
 
-> **"OPS, ALGO DEU ERRADO NESTA TELA — Falha ao executar 'removeChild' em 'Node': O nó a ser removido não é filho deste nó."**
+- **PV-{SIGLA}-####** — pedido novo, gerado quando o orçamento é confirmado (trigger `gerar_pedido_codigo_e_inserir`).
+- **AD-{SIGLA}-####** — adendo, criado por "Criar Adendo" no `PedidoDetalhe`. Vive como aba do pedido raiz (`pedido_pai_id`), gera contrato/financeiro vinculados ao mesmo pedido.
 
-Além disso, em vários frames os textos da interface aparecem **duplicados/corrompidos**, por exemplo:
-- Dropdown **Tipo** no diálogo da Agenda mostrando `"InternaTarefa Interna"` (deveria ser apenas `"Tarefa Interna"`)
-- Dropdown **Loja** mostrando `"Todas as idades (geral)"` em vez de `"Todas as lojas (geral)"`
-- Filtro do topo virando `"Todas como"` no lugar de `"Todas as lojas"`
+Falta o terceiro fluxo: **Complemento (COMP)** — venda nova do mesmo ambiente/cliente, com contrato próprio, apenas referenciando o pedido anterior nas notas. Não compartilha contrato/financeiro.
 
-## Causa raiz
+## Comportamento desejado
 
-O **Google Translate do Chrome está traduzindo a página automaticamente** e corrompendo o DOM (insere `<font>` em volta dos textos), o que:
-1. Faz o React perder referências e estourar `removeChild on Node` na próxima re-renderização (especialmente em telas pesadas como `ComercialNovo`).
-2. Concatena o texto traduzido com o original dentro dos triggers do Radix Select (gerando `InternaTarefa Interna`, `Todas as idades`, etc.).
+| Tipo | Prefixo | Contrato | Financeiro | Vínculo | Onde aparece |
+|---|---|---|---|---|---|
+| Pedido novo | `PV-SIGLA-####` | Próprio | Próprio | Nenhum | Pedido autônomo |
+| Complemento | `COMP-SIGLA-####` | **Próprio** (menciona o pedido original nas observações) | **Próprio** | `pedido_origem_complemento_id` (somente consulta) | Pedido autônomo, com link "Complemento de PV-…" no header |
+| Adendo | `AD-SIGLA-####` | Mesmo contrato do pai (aditivo) | Lançamentos somam ao pai | `pedido_pai_id` + `is_adendo` | Aba dentro do pedido raiz |
 
-Mesmo com `<html lang="pt-BR" translate="no">` e `class="notranslate"` no `#root`, o Chrome ainda oferece tradução porque a `<meta name="description">` e o `<meta og:description>` estão **em inglês** ("Alavanch Sistema ERP manages furniture sales from quotes to post-sale."), o que confunde o detector de idioma do navegador, e o usuário aceitou traduzir.
+## Mudanças
 
-## Alterações
+### 1. Banco (migration)
 
-### 1. `index.html` — eliminar gatilhos de tradução
+- `orcamentos`: adicionar `is_complemento boolean default false` e `pedido_origem_complemento_id uuid` (FK lógica para `pedidos.id`).
+- `pedidos`: adicionar `is_complemento boolean default false` e `pedido_origem_complemento_id uuid`.
+- Atualizar `gerar_pedido_codigo_e_inserir`:
+  - Decidir prefixo: `AD` se `is_adendo`, `COMP` se `is_complemento`, senão `PV`.
+  - Sequência independente por prefixo+sigla.
+  - Complemento **cria pastas próprias** (igual PV), adendo continua sem pastas.
+  - Copia `pedido_origem_complemento_id` do orçamento para o pedido.
 
-- Trocar todos os `meta description` (incluindo `og:description` e `twitter:description`) para **português**.
-- Adicionar `translate="no"` e `class="notranslate"` também no `<body>` (reforço além do `<html>` e `#root`).
-- Manter `<meta name="google" content="notranslate">`.
+### 2. `PedidoDetalhe.tsx`
 
-### 2. `src/components/ErrorBoundary.tsx` — auto-recovery do erro de tradução
+- Adicionar botão **"Criar Complemento"** ao lado de "Criar Adendo" (cor distinta, ícone diferente).
+- `criarComplemento()`: clona o orçamento raiz com `is_complemento=true` + `pedido_origem_complemento_id=<pedido atual>`, copia ambientes/itens como template, redireciona para `ComercialNovo` para o usuário negociar normalmente. Resulta em pedido COMP-… autônomo.
+- Se o pedido atual for um complemento (`pedido_origem_complemento_id`), mostrar no header uma tarja/badge **"Complemento de PV-…"** com link de consulta ao pedido original. Sem abas (diferente de adendo).
+- Atualizar o aviso "Pedido fechado" para mencionar os dois caminhos: Adendo (mesmo contrato) vs Complemento (contrato novo).
 
-Quando o erro capturado for exatamente o `removeChild`/`insertBefore` do Node (assinatura clássica da tradução), em vez de mostrar a tela de erro, fazer **reset automático silencioso** (re-render do children com novo `key`). Isso cobre casos residuais sem incomodar o usuário com a tela vermelha.
+### 3. `ComercialNovo.tsx`
 
-### 3. Sem mudanças funcionais em CRM/Agenda/Comercial
+- Selecionar e gravar `is_complemento` e `pedido_origem_complemento_id` no orçamento.
+- Não bloquear edição em complementos (são pedidos novos).
+- Ao gerar contrato/snapshot de um orçamento complemento, incluir nas observações: *"Complemento ao pedido {codigo_origem} — refere-se ao mesmo ambiente."*
 
-O dropdown "Tipo" e os labels estão **corretos no código** — eram apenas vítimas da tradução. Confirmado lendo `AgendaEventoDialog.tsx` (linhas 449-460): o `TIPO_LABEL["tarefa_interna"] = "Tarefa Interna"` está certo.
+### 4. Listagens e Kanban
 
-## Validação
+- Coluna/badge na lista de pedidos identificando tipo (PV / AD / COMP).
+- KanbanComercial / Pedidos: complementos aparecem como cards próprios (porque são pedidos novos); adendos continuam ocultos (vivem dentro do pai).
 
-Após as mudanças:
-- Recarregar `/dashboard` — Chrome não deve mais oferecer "Traduzir esta página".
-- Abrir Agenda → Novo evento → o Tipo deve mostrar apenas `Tarefa Interna`.
-- Abrir um pedido em `/comercial/{id}` — deve carregar sem o erro de removeChild.
+### 5. Contrato
 
-Se ainda houver tradução ativa do usuário, peço para clicar no ícone do tradutor no Chrome e escolher **"Nunca traduzir este site"** uma vez.
+- `contratoTemplate.ts`: já usa snapshot; adicionar variável opcional `pedido_origem_codigo`. Para complementos, injetar no header/observações automaticamente.
+
+## Fora do escopo
+
+- Não mudar fluxo de adendo existente.
+- Não migrar pedidos antigos — só novos.
+- Sem alterações em permissões (segue o mesmo perfil que cria pedido).

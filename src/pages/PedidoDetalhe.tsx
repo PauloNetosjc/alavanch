@@ -68,6 +68,8 @@ export default function PedidoDetalhe() {
   const [pedidoPai, setPedidoPai] = useState<any>(null);
   const [adendos, setAdendos] = useState<any[]>([]);
   const [criandoAdendo, setCriandoAdendo] = useState(false);
+  const [criandoComplemento, setCriandoComplemento] = useState(false);
+  const [pedidoOrigemComplemento, setPedidoOrigemComplemento] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
   const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
   const [vendedor, setVendedor] = useState<any>(null);
@@ -172,6 +174,12 @@ export default function PedidoDetalhe() {
     const raizId = ped.pedido_pai_id || (id as string);
     const { data: filhos } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
     setAdendos(filhos || []);
+
+    // Pedido de origem (se este for complemento)
+    if (ped.pedido_origem_complemento_id) {
+      const { data: origem } = await supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle();
+      setPedidoOrigemComplemento(origem);
+    } else { setPedidoOrigemComplemento(null); }
 
     // Loja
     if (ped.loja_id) {
@@ -299,6 +307,48 @@ export default function PedidoDetalhe() {
     }
   };
 
+  /* ----- criar complemento (novo orçamento/pedido autônomo, apenas referencia o original) ----- */
+  const criarComplemento = async () => {
+    if (!pedido || !pedido.orcamento_id) return;
+    if (!confirm("Criar um Complemento deste pedido?\n\nO complemento é uma NOVA venda do mesmo ambiente — gera um pedido próprio (COMP-…), com contrato e financeiro independentes. O pedido original fica apenas como referência nas observações.")) return;
+    setCriandoComplemento(true);
+    try {
+      const { data: orcOriginal } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orcOriginal) throw new Error("Orçamento original não encontrado");
+
+      // Sequência por pedido_origem_complemento_id (apenas para o nome do projeto / código do orçamento)
+      const { count } = await supabase.from("orcamentos")
+        .select("id", { count: "exact", head: true })
+        .eq("pedido_origem_complemento_id", pedido.id);
+      const seq = ((count || 0) + 1).toString().padStart(2, "0");
+      const year = new Date().getFullYear();
+      const { count: yearCount } = await supabase.from("orcamentos").select("id", { count: "exact", head: true })
+        .gte("created_at", `${year}-01-01`).lt("created_at", `${year + 1}-01-01`);
+      const novoCodigoOrc = `ORC-${year}-${String((yearCount || 0) + 1).padStart(4, "0")}`;
+
+      const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
+        codigo: novoCodigoOrc,
+        cliente_id: orcOriginal.cliente_id,
+        loja_id: orcOriginal.loja_id,
+        nome_projeto: `[COMPLEMENTO ${seq} de ${pedido.codigo}] ${orcOriginal.nome_projeto || ""}`,
+        status: "negociacao",
+        subtotal: 0, total: 0,
+        parceiro_id: orcOriginal.parceiro_id, parceiro_perc: orcOriginal.parceiro_perc,
+        consultor_id: orcOriginal.consultor_id, vendedor_id: orcOriginal.vendedor_id, origem_id: orcOriginal.origem_id,
+        is_complemento: true,
+        pedido_origem_complemento_id: pedido.id,
+        observacoes: `Complemento ao pedido ${pedido.codigo} — refere-se ao mesmo ambiente.`,
+        created_by: user?.id,
+      } as any).select().maybeSingle();
+      if (error || !novoOrc) throw error || new Error("Falha ao criar complemento");
+      toast.success(`Complemento criado — finalize o orçamento para gerar o pedido COMP-…`);
+      navigate(`/comercial/${novoOrc.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar complemento");
+    } finally {
+      setCriandoComplemento(false);
+    }
+  };
 
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
@@ -307,6 +357,7 @@ export default function PedidoDetalhe() {
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
   const ehAdendo = !!pedido.pedido_pai_id;
+  const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
@@ -362,6 +413,12 @@ export default function PedidoDetalhe() {
                 <Sparkles className="w-3.5 h-3.5" /> Adendo {pedidoPai ? `de ${pedidoPai.codigo}` : ""}
               </span>
             )}
+            {ehComplemento && pedidoOrigemComplemento && (
+              <Link to={`/pedidos/${pedidoOrigemComplemento.id}`}
+                className="inline-flex items-center gap-1 text-emerald-700 font-semibold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 hover:bg-emerald-100">
+                <FileText className="w-3.5 h-3.5" /> Complemento de {pedidoOrigemComplemento.codigo}
+              </Link>
+            )}
           </div>
           {assinaturaPendente && contrato && (
             <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
@@ -402,6 +459,13 @@ export default function PedidoDetalhe() {
             onClick={criarAdendo}>
             <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
           </Button>
+          {!ehAdendo && (
+            <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+              disabled={criandoComplemento}
+              onClick={criarComplemento}>
+              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -512,20 +576,27 @@ export default function PedidoDetalhe() {
       {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
       <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
 
-      {/* AVISO: edição de pedido fechado gera adendo */}
-      <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3">
+      {/* AVISO: edição de pedido fechado gera Adendo ou Complemento */}
+      <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3 flex-wrap">
         <Sparkles className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-        <div className="flex-1 text-[13px] text-purple-900">
-          <div className="font-semibold mb-0.5">Pedido fechado — toda alteração vira Adendo</div>
+        <div className="flex-1 min-w-[300px] text-[13px] text-purple-900">
+          <div className="font-semibold mb-0.5">Pedido fechado — use Adendo ou Complemento</div>
           <div>
-            Para preservar o financeiro, este pedido não pode ser editado diretamente. Adicionar itens avulsos
-            ou importar revisões cria um <b>Adendo</b> (orçamento complementar vinculado), que gera um novo
-            contrato e novos lançamentos sem alterar a venda original.
+            Este pedido não pode ser editado diretamente. Use <b>Adendo (AD-…)</b> para um aditivo no mesmo
+            contrato (diferença de valor, mesmo financeiro) ou <b>Complemento (COMP-…)</b> para uma venda
+            nova do mesmo ambiente com contrato e financeiro próprios — apenas referencia este pedido.
           </div>
         </div>
-        <Button onClick={criarAdendo} disabled={criandoAdendo} className="bg-purple-600 hover:bg-purple-700 text-white">
-          <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={criarAdendo} disabled={criandoAdendo} className="bg-purple-600 hover:bg-purple-700 text-white">
+            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+          </Button>
+          {!ehAdendo && (
+            <Button onClick={criarComplemento} disabled={criandoComplemento} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
+            </Button>
+          )}
+        </div>
       </section>
 
       {/* Itens avulsos do pedido (apenas leitura — adições devem ir para um adendo) */}

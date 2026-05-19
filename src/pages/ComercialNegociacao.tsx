@@ -447,7 +447,7 @@ export default function ComercialNegociacao() {
       const [{ data: o }, { data: amb }, { data: m }, { data: pgs }, { data: u }] = await Promise.all([
         supabase
           .from("orcamentos")
-          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, cliente:clientes(*), parceiro:parceiros(nome)")
+          .select("id, codigo, nome_projeto, subtotal, total, desconto_perc, desconto_valor, parceiro_perc, parceiro_id, status, cliente_id, loja_id, is_complemento, pedido_origem_complemento_id, cliente:clientes(*), parceiro:parceiros(nome)")
           .eq("id", id)
           .single(),
         supabase
@@ -758,6 +758,16 @@ export default function ComercialNegociacao() {
     const { count } = await supabase.from("contratos").select("id", { count: "exact", head: true });
     const numero = `${String((count ?? 0) + 1).padStart(3, "0")}/${ano}`;
 
+    // Se este orçamento é um Complemento, busca o pedido de origem para referenciar no contrato
+    let pedidoOrigemComp: { codigo: string } | null = null;
+    if ((orc as any).is_complemento && (orc as any).pedido_origem_complemento_id) {
+      const { data: po } = await supabase.from("pedidos").select("codigo").eq("id", (orc as any).pedido_origem_complemento_id).maybeSingle();
+      pedidoOrigemComp = po as any;
+    }
+    const obsFinal = pedidoOrigemComp
+      ? `Complemento ao pedido ${pedidoOrigemComp.codigo} — refere-se ao mesmo ambiente.\n\n${observacoes || ""}`.trim()
+      : observacoes;
+
     // Snapshot dos ambientes com preços com desconto
     const ambientesSnap = ambientes.map((a) => {
       const precoBase = Number(a.preco_sugerido) || 0;
@@ -779,7 +789,7 @@ export default function ComercialNegociacao() {
         cliente_id: orc.cliente_id,
         loja_id: orc.loja_id,
         template_id: tplContrato?.id,
-        observacoes_adicionais: observacoes,
+        observacoes_adicionais: obsFinal,
         valor_total: totalProposta,
         conteudo_snapshot: {
           numero,
@@ -792,7 +802,8 @@ export default function ComercialNegociacao() {
           desconto_valor: descValorAplicado,
           total: totalProposta,
           pagamentos,
-          observacoes_adicionais: observacoes,
+          observacoes_adicionais: obsFinal,
+          pedido_origem_codigo: pedidoOrigemComp?.codigo || null,
         } as any,
       })
       .select("id, signing_token, numero")
