@@ -333,6 +333,10 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         const found = clientesEnc.find(c => c.id === clienteId);
         cliNomeFinal = found?.nome || clienteBusca;
       }
+      // Apresentação: garante origem do lead também em cliente existente
+      if (isApresentacao && cliId && origemId) {
+        await supabase.from("clientes").update({ origem_id: origemId }).eq("id", cliId);
+      }
 
       const tituloFinal = titulo
         || (cliNomeFinal ? `${TIPO_LABEL[tipo]} – ${cliNomeFinal}` : TIPO_LABEL[tipo]);
