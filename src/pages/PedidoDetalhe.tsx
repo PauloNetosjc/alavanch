@@ -657,7 +657,9 @@ export default function PedidoDetalhe() {
       <ItensAvulsosManager pedidoId={pedido.id} readOnly />
 
       {/* IMPORTAR REVISÃO PROMOB */}
-      <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      {!revisaoPendente && (
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      )}
     </div>
   );
 }
