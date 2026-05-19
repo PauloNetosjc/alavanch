@@ -478,12 +478,14 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
-      {/* ABAS — pedido raiz + adendos */}
+      {/* ABAS — pedido raiz + adendos + complementos */}
       {abas.length > 1 && (
         <div className="flex items-center gap-1 border-b overflow-x-auto">
-          {abas.map((a: any, idx: number) => {
+          {abas.map((a: any) => {
             const ativo = a.id === pedido.id;
-            const isRaiz = idx === 0;
+            const isRaiz = a.tipo === "raiz";
+            const isComp = a.tipo === "complemento";
+            const sufixo = isRaiz ? " · Original" : isComp ? " · Complemento" : " · Adendo";
             return (
               <Link
                 key={a.id}
@@ -495,7 +497,7 @@ export default function PedidoDetalhe() {
                 }`}
               >
                 {isRaiz ? <FileText className="w-3.5 h-3.5 inline mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />}
-                {a.codigo}{isRaiz ? " · Original" : ""}
+                {a.codigo}{sufixo}
               </Link>
             );
           })}
