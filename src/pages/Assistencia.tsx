@@ -612,17 +612,21 @@ function NovaAssistenciaDialog({
                   key={k}
                   type="button"
                   onClick={() => setPrioridade(k)}
-                  className={`py-2.5 rounded-lg text-[12px] font-semibold transition border-2`}
+                  className={`py-2.5 rounded-lg text-[12px] font-semibold transition border-2 flex flex-col items-center`}
                   style={{
                     background: prioridade === k ? v.bg : "#f8fafc",
                     color: prioridade === k ? v.fg : "#94a3b8",
                     borderColor: prioridade === k ? v.fg : "transparent",
                   }}
                 >
-                  {v.label}
+                  <span>{v.label}</span>
+                  <span className="text-[9px] opacity-80 mt-0.5">{PRAZO_DIAS[k]} dias úteis</span>
                 </button>
               ))}
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Prazo limite será calculado automaticamente com base na prioridade.
+            </p>
           </div>
         </div>
 
