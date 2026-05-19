@@ -159,6 +159,8 @@ export default function MeusChamados() {
       setConcluindoId(null);
     }
   };
+
+  const load = async () => {
     if (!user) return;
     setLoading(true);
     let q = supabase
