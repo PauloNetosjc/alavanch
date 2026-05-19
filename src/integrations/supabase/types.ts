@@ -3049,12 +3049,14 @@ export type Database = {
           created_at: string
           critico: boolean | null
           data_chegada_material: string | null
+          data_entrega: string | null
           data_envio_fabrica: string | null
           data_limite_finalizacao: string | null
           data_medicao_tecnica: string | null
           data_montagem: string | null
           data_pagamento_fabrica: string | null
           data_vistoria: string | null
+          entregador_id: string | null
           estagio_fabrica_id: string | null
           estagio_iniciado_em: string | null
           estagio_montagem_id: string | null
@@ -3069,6 +3071,7 @@ export type Database = {
           is_complemento: boolean
           juros_total: number
           loja_id: string | null
+          montador_id: string | null
           observacoes_venda: string | null
           orcamento_id: string | null
           pedido_origem_complemento_id: string | null
@@ -3095,12 +3098,14 @@ export type Database = {
           created_at?: string
           critico?: boolean | null
           data_chegada_material?: string | null
+          data_entrega?: string | null
           data_envio_fabrica?: string | null
           data_limite_finalizacao?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_pagamento_fabrica?: string | null
           data_vistoria?: string | null
+          entregador_id?: string | null
           estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
           estagio_montagem_id?: string | null
@@ -3115,6 +3120,7 @@ export type Database = {
           is_complemento?: boolean
           juros_total?: number
           loja_id?: string | null
+          montador_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
@@ -3141,12 +3147,14 @@ export type Database = {
           created_at?: string
           critico?: boolean | null
           data_chegada_material?: string | null
+          data_entrega?: string | null
           data_envio_fabrica?: string | null
           data_limite_finalizacao?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_pagamento_fabrica?: string | null
           data_vistoria?: string | null
+          entregador_id?: string | null
           estagio_fabrica_id?: string | null
           estagio_iniciado_em?: string | null
           estagio_montagem_id?: string | null
@@ -3161,6 +3169,7 @@ export type Database = {
           is_complemento?: boolean
           juros_total?: number
           loja_id?: string | null
+          montador_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null

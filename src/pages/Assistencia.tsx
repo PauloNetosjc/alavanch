@@ -291,7 +291,7 @@ export default function Assistencia() {
         </div>
       )}
 
-      <NovaAssistenciaDialog open={openNova} onClose={() => setOpenNova(false)} onCreated={load} />
+      <NovaAssistenciaDialog open={openNova} onClose={() => setOpenNova(false)} onCreated={load} profiles={profiles} />
       {openAtribuir && (
         <AtribuirDialog
           assist={openAtribuir}
@@ -449,12 +449,13 @@ function ChamadoCard({
 
 /* ---------------- Dialog: Nova Assistência ---------------- */
 function NovaAssistenciaDialog({
-  open, onClose, onCreated,
-}: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  open, onClose, onCreated, profiles,
+}: { open: boolean; onClose: () => void; onCreated: () => void; profiles: Profile[] }) {
   const [pedidos, setPedidos] = useState<{ id: string; codigo: string; cliente_id: string; cliente: { nome: string } | null }[]>([]);
   const [pedidoId, setPedidoId] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("media");
+  const [tecnicoId, setTecnicoId] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -468,6 +469,7 @@ function NovaAssistenciaDialog({
     setPedidoId("");
     setDescricao("");
     setPrioridade("media");
+    setTecnicoId("");
     setFiles([]);
   }, [open]);
 
@@ -486,7 +488,8 @@ function NovaAssistenciaDialog({
         tipo: "Garantia",
         prioridade,
         descricao,
-        status: "triagem",
+        status: tecnicoId ? "agendada" : "triagem",
+        tecnico_id: tecnicoId || null,
       })
       .select()
       .maybeSingle();
@@ -611,6 +614,26 @@ function NovaAssistenciaDialog({
                 }}
               />
             </label>
+          </div>
+
+          <div>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5 text-[#5b5bf5]" />
+              Responsável pela Tarefa (opcional)
+            </Label>
+            <Select value={tecnicoId || undefined} onValueChange={(v) => setTecnicoId(v === "_none" ? "" : v)}>
+              <SelectTrigger className="mt-1.5">
+                <SelectValue placeholder="Selecionar técnico/montador..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">Sem responsável (triagem)</SelectItem>
+                {profiles.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>
+                    {p.nome_completo || p.user_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
