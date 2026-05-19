@@ -165,6 +165,7 @@ export default function Comercial() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
+  const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
 
   const today = new Date();
