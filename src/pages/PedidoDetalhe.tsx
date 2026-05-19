@@ -343,7 +343,7 @@ export default function PedidoDetalhe() {
         created_by: user?.id,
       } as any).select().maybeSingle();
       if (error || !novoOrc) throw error || new Error("Falha ao criar complemento");
-      toast.success(`Complemento criado — finalize o orçamento para gerar o pedido COMP-…`);
+      toast.success(`Complemento criado — finalize o orçamento para gerar o pedido CP-…`);
       navigate(`/comercial/${novoOrc.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar complemento");
@@ -594,7 +594,7 @@ export default function PedidoDetalhe() {
           <div className="font-semibold mb-0.5">Pedido fechado — use Adendo ou Complemento</div>
           <div>
             Este pedido não pode ser editado diretamente. Use <b>Adendo (AD-…)</b> para um aditivo no mesmo
-            contrato (diferença de valor, mesmo financeiro) ou <b>Complemento (COMP-…)</b> para uma venda
+            contrato (diferença de valor, mesmo financeiro) ou <b>Complemento (CP-…)</b> para uma venda
             nova do mesmo ambiente com contrato e financeiro próprios — apenas referencia este pedido.
           </div>
         </div>
