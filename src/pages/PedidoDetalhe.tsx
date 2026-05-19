@@ -368,6 +368,24 @@ export default function PedidoDetalhe() {
   const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
   const temComplementos = complementos.length > 0;
+
+  // ---- Status global da Revisão do Projeto (crítico antes de avançar pipelines) ----
+  const revisaoStatus: { kind: "none" | "sem_revisao" | "diferenca" | "aguardando" | "aprovado"; message: string } = (() => {
+    if (!ambientes.length) return { kind: "none", message: "" };
+    const latestPerAmb = ambientes.map((a: any) => {
+      const revs = revisoes.filter((r: any) => r.ambiente_id === a.id)
+        .sort((x: any, y: any) => (y.versao ?? 0) - (x.versao ?? 0));
+      return { amb: a, latest: revs[0] || null };
+    });
+    if (latestPerAmb.some((x: any) => !x.latest))
+      return { kind: "sem_revisao", message: "Falta revisar o projeto — envie a revisão do Promob de cada ambiente antes de avançar." };
+    const comDif = latestPerAmb.find((x: any) => !x.latest.aprovada && Math.abs(Number(x.latest.variacao_perc || 0)) > 0);
+    if (comDif) return { kind: "diferenca", message: "Houve diferença na revisão — negocie o complemento ou aprove a revisão para seguir o processo." };
+    const naoAprov = latestPerAmb.find((x: any) => !x.latest.aprovada);
+    if (naoAprov) return { kind: "aguardando", message: "Revisão sem diferenças — aguardando aprovação para liberar os pipelines." };
+    return { kind: "aprovado", message: "" };
+  })();
+  const revisaoPendente = revisaoStatus.kind !== "aprovado" && revisaoStatus.kind !== "none";
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
     : pedidoOrigemComplemento
