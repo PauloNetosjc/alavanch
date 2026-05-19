@@ -55,7 +55,7 @@ export default function Montagem() {
     let q = supabase
       .from("pedidos")
       .select(
-        "id, codigo, valor_total, endereco_entrega, data_entrega, data_montagem, entregador_id, montador_id, estagio_montagem_id, cliente:clientes(nome, telefone)",
+        "id, codigo, valor_total, data_entrega, data_montagem, entregador_id, montador_id, estagio_montagem_id, cliente:clientes(nome, telefone)",
       )
       .in("estagio_montagem_id", relevantIds.length ? relevantIds : ["00000000-0000-0000-0000-000000000000"]);
     if (selectedLojaId) q = q.eq("loja_id", selectedLojaId);
