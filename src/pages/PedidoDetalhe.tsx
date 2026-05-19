@@ -1913,8 +1913,8 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarComplemento }
         {!rev.aprovada && (
           <>
             {aumento && (
-              <Button onClick={onNegociarAdendo} className="bg-purple-600 hover:bg-purple-700">
-                <Sparkles className="w-4 h-4 mr-1.5" /> Negociar Adendo ({fmtBrl(totals.variacao)})
+              <Button onClick={onNegociarComplemento} className="bg-purple-600 hover:bg-purple-700">
+                <Sparkles className="w-4 h-4 mr-1.5" /> Negociar Complemento ({fmtBrl(totals.variacao)})
               </Button>
             )}
             <Button onClick={onAprovar} className="bg-emerald-600 hover:bg-emerald-700">
