@@ -84,6 +84,7 @@ export default function Administracao() {
         </TabsList>
 
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
+        <TabsContent value="juros" className="mt-4"><PoliticaJurosAdmin /></TabsContent>
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
