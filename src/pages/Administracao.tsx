@@ -95,6 +95,7 @@ export default function Administracao() {
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
         <TabsContent value="categorias" className="mt-4"><CategoriasFinanceiras /></TabsContent>
         <TabsContent value="origens" className="mt-4"><OrigensLead /></TabsContent>
+        <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
