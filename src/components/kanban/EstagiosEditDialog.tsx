@@ -185,6 +185,7 @@ export function EstagiosEditDialog({
         condicao_valor: null,
         ajustar_prazo_dias: null,
         dias: null,
+        ativo: true,
         ordem: 0,
         acao: "mover",
         acao_config: {},
