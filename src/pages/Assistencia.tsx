@@ -291,7 +291,7 @@ export default function Assistencia() {
         </div>
       )}
 
-      <NovaAssistenciaDialog open={openNova} onClose={() => setOpenNova(false)} onCreated={load} />
+      <NovaAssistenciaDialog open={openNova} onClose={() => setOpenNova(false)} onCreated={load} profiles={profiles} />
       {openAtribuir && (
         <AtribuirDialog
           assist={openAtribuir}
