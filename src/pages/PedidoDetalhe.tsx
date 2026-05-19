@@ -2153,10 +2153,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
 /* ============================================================== */
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
-function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos }: any) {
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
   const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
   const previsaoMedicao = pedido.data_medicao_tecnica;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
+  const [editingCF, setEditingCF] = useState(false);
+  const [cfDraft, setCfDraft] = useState<string>(pedido?.cliente_final || "");
+  useEffect(() => { setCfDraft(pedido?.cliente_final || ""); }, [pedido?.cliente_final]);
+
   const Field = ({ label, children }: any) => (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
@@ -2164,13 +2168,51 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
     </div>
   );
   const responsavelNome = (responsavel?.nome_completo) || (vendedor?.nome_completo) || "—";
+
+  const salvarClienteFinal = async () => {
+    setEditingCF(false);
+    if ((cfDraft || "") === (pedido?.cliente_final || "")) return;
+    if (salvarPedido) await salvarPedido({ cliente_final: cfDraft || null });
+  };
+  const trocarResponsavel = async (userId: string) => {
+    if (salvarPedido) await salvarPedido({ projetista_id: userId || null });
+  };
+
   return (
     <section className="surface-card p-5 space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Field label="Código">{pedido.codigo}</Field>
         <Field label="Data da venda">{fmtDate(dataVenda)}</Field>
-        <Field label="Cliente final">{(cliente as any)?.cliente_final || "—"}</Field>
-        <Field label="Responsável">{responsavelNome}</Field>
+        <Field label="Cliente final">
+          {editingCF ? (
+            <input
+              autoFocus
+              value={cfDraft}
+              onChange={(e) => setCfDraft(e.target.value)}
+              onBlur={salvarClienteFinal}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setCfDraft(pedido?.cliente_final || ""); setEditingCF(false); } }}
+              className="w-full text-[13px] border border-border rounded px-1.5 py-0.5 bg-background"
+            />
+          ) : (
+            <button onClick={() => setEditingCF(true)} className="text-left hover:bg-muted/60 rounded px-1 -mx-1 w-full truncate">
+              {pedido?.cliente_final || <span className="text-muted-foreground">—</span>}
+            </button>
+          )}
+        </Field>
+        <Field label="Responsável">
+          {salvarPedido ? (
+            <select
+              value={pedido.projetista_id || ""}
+              onChange={(e) => trocarResponsavel(e.target.value)}
+              className="w-full text-[13px] border border-border rounded px-1 py-0.5 bg-background"
+            >
+              <option value="">{responsavelNome === "—" ? "Selecionar…" : responsavelNome}</option>
+              {usuarios.map((u: any) => (
+                <option key={u.user_id} value={u.user_id}>{u.nome_completo}</option>
+              ))}
+            </select>
+          ) : responsavelNome}
+        </Field>
         <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
         <Field label="Orçamento">
           {orcamento?.id ? (
