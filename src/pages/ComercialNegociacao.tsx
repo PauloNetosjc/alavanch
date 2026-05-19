@@ -789,7 +789,7 @@ export default function ComercialNegociacao() {
         cliente_id: orc.cliente_id,
         loja_id: orc.loja_id,
         template_id: tplContrato?.id,
-        observacoes_adicionais: observacoes,
+        observacoes_adicionais: obsFinal,
         valor_total: totalProposta,
         conteudo_snapshot: {
           numero,
@@ -802,7 +802,8 @@ export default function ComercialNegociacao() {
           desconto_valor: descValorAplicado,
           total: totalProposta,
           pagamentos,
-          observacoes_adicionais: observacoes,
+          observacoes_adicionais: obsFinal,
+          pedido_origem_codigo: pedidoOrigemComp?.codigo || null,
         } as any,
       })
       .select("id, signing_token, numero")
