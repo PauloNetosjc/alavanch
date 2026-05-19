@@ -134,13 +134,16 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     setPedidosCliente([]); setOrcamentosCliente([]);
     setLojaEventoId(lojaCtxId || null);
     if (defaultDate) setData(defaultDate);
+    setOrigemId("");
     (async () => {
-      const [profs, ls] = await Promise.all([
+      const [profs, ls, ors] = await Promise.all([
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
         supabase.from("lojas").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("origens_lead" as any).select("id, nome").eq("ativo", true).order("nome"),
       ]);
       setResponsaveis((profs.data as any) || []);
       setLojas((ls.data as any) || []);
+      setOrigens((ors.data as any) || []);
 
       // Quando aberto a partir de um pedido, trava tipo/loja/cliente/pedido
       if (pedidoId) {
