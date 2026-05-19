@@ -1464,11 +1464,11 @@ export default function ComercialNovo() {
               )}
 
               {/* Projetista */}
-              {projetistaNome && (
+              {projetistaId && (
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Projetista</div>
                   <div className="bg-[#E8F4ED] border border-[#D2E8DB] rounded-md px-4 py-3 text-[15px] font-medium">
-                    {projetistaNome}
+                    {profiles.find((p) => p.user_id === projetistaId)?.nome_completo ?? "—"}
                   </div>
                 </div>
               )}
