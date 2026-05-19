@@ -237,6 +237,8 @@ export default function Comercial() {
       if (!showCancelled && r.status === "perdido") return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
+      if (revisaoFilter === "revisado" && !r.revisado) return false;
+      if (revisaoFilter === "nao_revisado" && r.revisado) return false;
 
       if (monthFilter !== "todos") {
         const [y, m] = monthFilter.split("-").map(Number);
@@ -251,7 +253,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, monthFilter, search]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search]);
 
   const stats = useMemo(() => {
     const negociacao = rows
