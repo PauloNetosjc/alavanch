@@ -223,11 +223,6 @@ function Section({
                     <ExternalLink className="w-3 h-3" />
                   </Link>
                 </div>
-                {p.endereco_entrega && (
-                  <div className="col-span-12 text-[11px] text-muted-foreground -mt-1 flex items-start gap-1">
-                    <MapPin className="w-3 h-3 mt-0.5 shrink-0" /> {p.endereco_entrega}
-                  </div>
-                )}
                 <div className="col-span-12 text-[10px] text-muted-foreground/70 -mt-1">
                   Estágio: {p.estagio_nome} · {respLabel}: {resp || "não atribuído"}
                 </div>
