@@ -361,11 +361,18 @@ export default function PedidoDetalhe() {
   const ehAdendo = !!pedido.pedido_pai_id;
   const ehComplemento = !!pedido.pedido_origem_complemento_id;
   const temAdendos = adendos.length > 0;
+  const temComplementos = complementos.length > 0;
   const raizParaTabs = pedidoPai
     ? { id: pedidoPai.id, codigo: pedidoPai.codigo }
+    : pedidoOrigemComplemento
+    ? { id: pedidoOrigemComplemento.id, codigo: pedidoOrigemComplemento.codigo }
     : { id: pedido.id, codigo: pedido.codigo };
-  // abas: pedido raiz + todos os adendos
-  const abas = [raizParaTabs, ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo }))];
+  // abas: pedido raiz + adendos + complementos (todos vinculados)
+  const abas = [
+    { ...raizParaTabs, tipo: "raiz" as const },
+    ...adendos.map((a: any) => ({ id: a.id, codigo: a.codigo, tipo: "adendo" as const })),
+    ...complementos.map((c: any) => ({ id: c.id, codigo: c.codigo, tipo: "complemento" as const })),
+  ];
 
   return (
     <div className="space-y-5">
