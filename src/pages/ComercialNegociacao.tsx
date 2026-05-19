@@ -758,6 +758,16 @@ export default function ComercialNegociacao() {
     const { count } = await supabase.from("contratos").select("id", { count: "exact", head: true });
     const numero = `${String((count ?? 0) + 1).padStart(3, "0")}/${ano}`;
 
+    // Se este orçamento é um Complemento, busca o pedido de origem para referenciar no contrato
+    let pedidoOrigemComp: { codigo: string } | null = null;
+    if ((orc as any).is_complemento && (orc as any).pedido_origem_complemento_id) {
+      const { data: po } = await supabase.from("pedidos").select("codigo").eq("id", (orc as any).pedido_origem_complemento_id).maybeSingle();
+      pedidoOrigemComp = po as any;
+    }
+    const obsFinal = pedidoOrigemComp
+      ? `Complemento ao pedido ${pedidoOrigemComp.codigo} — refere-se ao mesmo ambiente.\n\n${observacoes || ""}`.trim()
+      : observacoes;
+
     // Snapshot dos ambientes com preços com desconto
     const ambientesSnap = ambientes.map((a) => {
       const precoBase = Number(a.preco_sugerido) || 0;
