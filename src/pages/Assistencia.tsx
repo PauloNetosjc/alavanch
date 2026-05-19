@@ -110,7 +110,7 @@ export default function Assistencia() {
     const { data } = await supabase
       .from("assistencias")
       .select(
-        "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
+        "id, codigo, tipo, prioridade, status, descricao, data_agendamento, hora_agendamento, observacoes, material_necessario, tecnico_id, data_limite, created_at, cliente:clientes(nome), pedido:pedidos(codigo)"
       )
       .eq("arquivada", false)
       .order("created_at", { ascending: false });
