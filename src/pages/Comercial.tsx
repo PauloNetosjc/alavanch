@@ -121,6 +121,14 @@ const TIPO_PILLS: { id: TipoFilter; label: string; activeBg: string; activeFg: s
   { id: "complemento", label: "COMPLEMENTOS",activeBg: "#7E4FA0", activeFg: "#FFFFFF" },
 ];
 
+type RevisaoFilter = "todos" | "revisado" | "nao_revisado";
+
+const REVISAO_PILLS: { id: RevisaoFilter; label: string; activeBg: string; activeFg: string }[] = [
+  { id: "todos",        label: "TODAS REVISÕES", activeBg: "#1B2240", activeFg: "#FFFFFF" },
+  { id: "revisado",     label: "REVISADOS",      activeBg: "#3F8B5C", activeFg: "#FFFFFF" },
+  { id: "nao_revisado", label: "NÃO REVISADOS",  activeBg: "#A8842A", activeFg: "#FFFFFF" },
+];
+
 function tipoFromCodigo(codigo: string): "pedido" | "adendo" | "complemento" {
   const c = (codigo || "").toUpperCase();
   if (c.includes("-ADD") || c.includes("-AD-") || c.startsWith("AD-")) return "adendo";
