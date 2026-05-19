@@ -1422,42 +1422,53 @@ export default function ComercialNovo() {
                 </div>
               )}
 
-              {/* Ambientes */}
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                  Ambientes ({ambientes.length})
+              {/* Ambientes ou Adendo */}
+              {isAdendo ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Adendo Financeiro ({adendoTipo === "pagar" ? "a pagar" : "a receber"})
+                  </div>
+                  <div className="border border-border rounded-md px-4 py-3 bg-[#FDF4E2]/40">
+                    <div className="text-[13px] whitespace-pre-wrap">{adendoDescricao || "—"}</div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {ambientes.map((a) => (
-                    <div
-                      key={a.id}
-                      className="border border-border rounded-md px-4 py-3 hover:bg-muted/20"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="text-[15px] font-semibold">{a.nome}</div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-[13px] font-semibold text-[#2D6BE5]">
-                            {a.markup.toFixed(2)}x
-                          </span>
-                          <span className="text-[15px] font-semibold text-mono">
-                            {fmtBrl(a.preco_sugerido)}
-                          </span>
+              ) : (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Ambientes ({ambientes.length})
+                  </div>
+                  <div className="space-y-2">
+                    {ambientes.map((a) => (
+                      <div
+                        key={a.id}
+                        className="border border-border rounded-md px-4 py-3 hover:bg-muted/20"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-[15px] font-semibold">{a.nome}</div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-[13px] font-semibold text-[#2D6BE5]">
+                              {a.markup.toFixed(2)}x
+                            </span>
+                            <span className="text-[15px] font-semibold text-mono">
+                              {fmtBrl(a.preco_sugerido)}
+                            </span>
+                          </div>
                         </div>
+                        {a.descricao && (
+                          <div className="text-[12px] text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
+                          </div>
+                        )}
                       </div>
-                      {a.descricao && (
-                        <div className="text-[12px] text-muted-foreground mt-1.5">
-                          <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Totais */}
               <div className="border-t border-border pt-4 space-y-2 text-[14px]">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{isAdendo ? "Valor" : "Subtotal"}</span>
                   <span className="text-mono font-medium">{fmtBrl(subtotalAmbientes)}</span>
                 </div>
                 {acrescimoParceiro > 0 && (
@@ -1471,6 +1482,7 @@ export default function ComercialNovo() {
                   <span className="text-mono">{fmtBrl(total)}</span>
                 </div>
               </div>
+
             </div>
           </>
         )}
