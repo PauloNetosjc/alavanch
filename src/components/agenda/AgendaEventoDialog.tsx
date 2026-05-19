@@ -154,10 +154,11 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       if (pedidoId) {
         const { data: ped } = await supabase
           .from("pedidos")
-          .select("id, codigo, status, loja_id, cliente_id, clientes:cliente_id(id, nome, telefone)")
+          .select("id, codigo, status, loja_id, cliente_id, pedido_origem_complemento_id, clientes:cliente_id(id, nome, telefone)")
           .eq("id", pedidoId)
           .maybeSingle();
         if (ped) {
+          setPedidoEhComplemento(!!(ped as any).pedido_origem_complemento_id);
           if ((ped as any).loja_id) setLojaEventoId((ped as any).loja_id);
           const cli: any = (ped as any).clientes;
           if (cli) {
