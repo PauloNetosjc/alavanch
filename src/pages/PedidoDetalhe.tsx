@@ -223,6 +223,10 @@ export default function PedidoDetalhe() {
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => setDocs(data || []));
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${id}` }, (payload) => {
+        // Sincroniza alterações vindas dos kanbans (estagio_*) ou outros pontos
+        if (payload.new) setPedido((prev: any) => ({ ...(prev || {}), ...(payload.new as any) }));
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
