@@ -307,6 +307,48 @@ export default function PedidoDetalhe() {
     }
   };
 
+  /* ----- criar complemento (novo orçamento/pedido autônomo, apenas referencia o original) ----- */
+  const criarComplemento = async () => {
+    if (!pedido || !pedido.orcamento_id) return;
+    if (!confirm("Criar um Complemento deste pedido?\n\nO complemento é uma NOVA venda do mesmo ambiente — gera um pedido próprio (COMP-…), com contrato e financeiro independentes. O pedido original fica apenas como referência nas observações.")) return;
+    setCriandoComplemento(true);
+    try {
+      const { data: orcOriginal } = await supabase.from("orcamentos").select("*").eq("id", pedido.orcamento_id).maybeSingle();
+      if (!orcOriginal) throw new Error("Orçamento original não encontrado");
+
+      // Sequência por pedido_origem_complemento_id (apenas para o nome do projeto / código do orçamento)
+      const { count } = await supabase.from("orcamentos")
+        .select("id", { count: "exact", head: true })
+        .eq("pedido_origem_complemento_id", pedido.id);
+      const seq = ((count || 0) + 1).toString().padStart(2, "0");
+      const year = new Date().getFullYear();
+      const { count: yearCount } = await supabase.from("orcamentos").select("id", { count: "exact", head: true })
+        .gte("created_at", `${year}-01-01`).lt("created_at", `${year + 1}-01-01`);
+      const novoCodigoOrc = `ORC-${year}-${String((yearCount || 0) + 1).padStart(4, "0")}`;
+
+      const { data: novoOrc, error } = await supabase.from("orcamentos").insert({
+        codigo: novoCodigoOrc,
+        cliente_id: orcOriginal.cliente_id,
+        loja_id: orcOriginal.loja_id,
+        nome_projeto: `[COMPLEMENTO ${seq} de ${pedido.codigo}] ${orcOriginal.nome_projeto || ""}`,
+        status: "negociacao",
+        subtotal: 0, total: 0,
+        parceiro_id: orcOriginal.parceiro_id, parceiro_perc: orcOriginal.parceiro_perc,
+        consultor_id: orcOriginal.consultor_id, vendedor_id: orcOriginal.vendedor_id, origem_id: orcOriginal.origem_id,
+        is_complemento: true,
+        pedido_origem_complemento_id: pedido.id,
+        observacoes: `Complemento ao pedido ${pedido.codigo} — refere-se ao mesmo ambiente.`,
+        created_by: user?.id,
+      } as any).select().maybeSingle();
+      if (error || !novoOrc) throw error || new Error("Falha ao criar complemento");
+      toast.success(`Complemento criado — finalize o orçamento para gerar o pedido COMP-…`);
+      navigate(`/comercial/${novoOrc.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar complemento");
+    } finally {
+      setCriandoComplemento(false);
+    }
+  };
 
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
