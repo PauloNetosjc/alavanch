@@ -1024,9 +1024,34 @@ export default function ComercialNegociacao() {
             </div>
             <div>
               <h1 className="text-[26px] font-semibold leading-none">Negociação Comercial</h1>
-              <p className="text-[13px] text-muted-foreground mt-1.5">Ajuste valores e condições</p>
+              <p className="text-[13px] text-muted-foreground mt-1.5">
+                {pedidoRef ? (
+                  <>
+                    Referente ao <b>{pedidoRef.tipo}</b> do pedido{" "}
+                    <Link to={`/pedidos/${pedidoRef.id}`} className="font-semibold text-foreground underline hover:no-underline">
+                      {pedidoRef.codigo}
+                    </Link>
+                  </>
+                ) : (
+                  <>Ajuste valores e condições</>
+                )}
+              </p>
             </div>
           </div>
+
+          {pedidoRef && (
+            <div className={`rounded-lg border-2 px-4 py-3 text-[13px] ${pedidoRef.tipo === "complemento" ? "border-emerald-200 bg-emerald-50/60 text-emerald-900" : "border-purple-200 bg-purple-50/60 text-purple-900"}`}>
+              <div className="font-semibold uppercase tracking-wider text-[11px] mb-0.5">
+                {pedidoRef.tipo === "complemento" ? "Complemento" : "Adendo"} do pedido{" "}
+                <Link to={`/pedidos/${pedidoRef.id}`} className="underline hover:no-underline">{pedidoRef.codigo}</Link>
+              </div>
+              <div className="text-[12px] opacity-90">
+                {pedidoRef.tipo === "complemento"
+                  ? "Esta negociação refere-se ao complemento do pedido original. Complementos não geram agenda de medição — apenas notas e cronograma do pedido base."
+                  : "Esta negociação refere-se a um adendo do pedido original — mesmo contrato, ajuste de valor."}
+              </div>
+            </div>
+          )}
 
           {isAdendo ? (
             <div className={`border-2 rounded-lg px-4 py-4 ${adendoTipo === "pagar" ? "border-rose-200 bg-rose-50/40" : "border-emerald-200 bg-emerald-50/40"}`}>
