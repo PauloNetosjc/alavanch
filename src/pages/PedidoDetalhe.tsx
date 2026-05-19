@@ -595,8 +595,7 @@ export default function PedidoDetalhe() {
       {/* PARCELAS — fluxo financeiro */}
       <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
-      {/* RESUMO FINANCEIRO — receitas a receber + custo fábrica + lançamentos vinculados */}
-      <ResumoFinanceiroPedido pedido={pedido} ambientes={ambientes} salvarPedido={salvarPedido} />
+      {/* Resumo Financeiro removido — toda gestão financeira do pedido vive no módulo Financeiro */}
 
       {/* AVISO: edição de pedido fechado gera Adendo ou Complemento */}
       <section className="rounded-lg border border-purple-300 bg-purple-50 p-4 flex items-start gap-3 flex-wrap">
