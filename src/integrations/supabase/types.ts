@@ -2320,6 +2320,7 @@ export type Database = {
           parceiro_id: string
           pedido_id: string | null
           percentual: number | null
+          repassado: boolean
           status: string
           updated_at: string
           valor_base: number | null
@@ -2339,6 +2340,7 @@ export type Database = {
           parceiro_id: string
           pedido_id?: string | null
           percentual?: number | null
+          repassado?: boolean
           status?: string
           updated_at?: string
           valor_base?: number | null
@@ -2358,6 +2360,7 @@ export type Database = {
           parceiro_id?: string
           pedido_id?: string | null
           percentual?: number | null
+          repassado?: boolean
           status?: string
           updated_at?: string
           valor_base?: number | null
@@ -2917,15 +2920,18 @@ export type Database = {
           id: string
           is_adendo: boolean | null
           is_complemento: boolean
+          juros_total: number
           loja_id: string | null
           observacoes_venda: string | null
           orcamento_id: string | null
           pedido_origem_complemento_id: string | null
           pedido_pai_id: string | null
           receita_codigo: string | null
+          rt_repassado: number
           status: string
           updated_at: string
           urgencia: Database["public"]["Enums"]["urgencia_nivel"] | null
+          valor_liquido: number | null
           valor_total: number | null
           vip: boolean | null
           workflow_estagio: string | null
@@ -2956,15 +2962,18 @@ export type Database = {
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
+          juros_total?: number
           loja_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
           receita_codigo?: string | null
+          rt_repassado?: number
           status?: string
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
+          valor_liquido?: number | null
           valor_total?: number | null
           vip?: boolean | null
           workflow_estagio?: string | null
@@ -2995,15 +3004,18 @@ export type Database = {
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
+          juros_total?: number
           loja_id?: string | null
           observacoes_venda?: string | null
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
           receita_codigo?: string | null
+          rt_repassado?: number
           status?: string
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
+          valor_liquido?: number | null
           valor_total?: number | null
           vip?: boolean | null
           workflow_estagio?: string | null
@@ -3244,6 +3256,50 @@ export type Database = {
             columns: ["concluir_estagio_destino_id"]
             isOneToOne: false
             referencedRelation: "pipeline_estagios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      politica_juros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          faixa_max: number
+          faixa_min: number
+          id: string
+          loja_id: string | null
+          perc_mes: number
+          responsavel: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          faixa_max?: number
+          faixa_min?: number
+          id?: string
+          loja_id?: string | null
+          perc_mes?: number
+          responsavel?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          faixa_max?: number
+          faixa_min?: number
+          id?: string
+          loja_id?: string | null
+          perc_mes?: number
+          responsavel?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "politica_juros_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
             referencedColumns: ["id"]
           },
         ]
