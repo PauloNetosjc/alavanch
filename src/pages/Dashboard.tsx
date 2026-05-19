@@ -21,11 +21,11 @@ type Pedido = {
 type Lanc = { tipo: string; valor: number; status: string | null; data_vencimento: string | null; data_pagamento: string | null; loja_id: string | null };
 
 const ESTAGIOS: { key: string; label: string; icon: any; rota: string }[] = [
-  { key: "aguardando", label: "NÃO INICIADO", icon: Clock, rota: "/kanban-operacional" },
-  { key: "medicao", label: "MEDIÇÃO", icon: Ruler, rota: "/kanban-operacional" },
+  { key: "aguardando", label: "NÃO INICIADO", icon: Clock, rota: "/kanbans" },
+  { key: "medicao", label: "MEDIÇÃO", icon: Ruler, rota: "/kanban-revisao" },
   { key: "revisao", label: "REVISÃO", icon: Pencil, rota: "/kanban-revisao" },
   { key: "fabricacao", label: "FABRICAÇÃO", icon: Factory, rota: "/kanban-fabrica" },
-  { key: "entrega", label: "ENTREGA", icon: Truck, rota: "/kanban-operacional" },
+  { key: "entrega", label: "ENTREGA", icon: Truck, rota: "/kanban-montagem" },
   { key: "montagem", label: "MONTAGEM", icon: Wrench, rota: "/kanban-montagem" },
 ];
 

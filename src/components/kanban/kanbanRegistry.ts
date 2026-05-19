@@ -1,6 +1,6 @@
 import { Briefcase, Workflow, Wallet, ClipboardCheck, Hammer, Building2, type LucideIcon } from "lucide-react";
 
-export type KanbanKey = "comercial" | "operacional" | "pos_venda" | "revisao" | "montagem" | "fabrica";
+export type KanbanKey = "comercial" | "pos_venda" | "revisao" | "montagem" | "fabrica";
 
 export type KanbanDef = {
   key: KanbanKey;
@@ -17,7 +17,6 @@ export type KanbanDef = {
 
 export const KANBANS: KanbanDef[] = [
   { key: "comercial",   label: "CRM Comercial",          icon: Briefcase,      variant: "purple", route: "/kanban-comercial",   subtitle: "Funil de orçamentos por estágio" },
-  { key: "operacional", label: "Kanban Operacional",     icon: Workflow,       variant: "purple", route: "/kanban-operacional", pipeline: "operacional", subtitle: "Workflow vinculado ao pedido de venda" },
   { key: "pos_venda",   label: "Pós-Venda e Financeiro", icon: Wallet,         variant: "green",  route: "/kanban-pos-venda",   pipeline: "pos_venda",   subtitle: "Contratos, boletos e envios", stageDialog: true },
   { key: "revisao",     label: "Revisão de Projeto",     icon: ClipboardCheck, variant: "blue",   route: "/kanban-revisao",     pipeline: "revisao",     subtitle: "Análise, conferência e assinatura do PDF final", stageDialog: true },
   { key: "montagem",    label: "Montagem",               icon: Hammer,         variant: "amber",  route: "/kanban-montagem",    pipeline: "montagem",    subtitle: "Entregas, montagens agendadas e vistorias", stageDialog: true },

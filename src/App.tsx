@@ -20,7 +20,7 @@ const Placeholder = lazy(() => import("@/pages/Placeholder"));
 const Clientes = lazy(() => import("@/pages/Clientes"));
 const Comercial = lazy(() => import("@/pages/Comercial"));
 const KanbanComercial = lazy(() => import("@/pages/KanbanComercial"));
-const KanbanOperacional = lazy(() => import("@/pages/KanbanOperacional"));
+
 const KanbanPosVenda = lazy(() => import("@/pages/KanbanPosVenda"));
 const KanbanRevisao = lazy(() => import("@/pages/KanbanRevisao"));
 const KanbanMontagem = lazy(() => import("@/pages/KanbanMontagem"));
@@ -124,13 +124,13 @@ const App = () => (
                 <Route path="/radar" element={<RadarPrazos />} />
                 <Route path="/kanbans" element={<Kanbans />} />
                 <Route path="/kanban-comercial" element={<KanbanComercial />} />
-                <Route path="/kanban-operacional" element={<KanbanOperacional />} />
+                <Route path="/kanban-operacional" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/kanban-pos-venda" element={<KanbanPosVenda />} />
                 <Route path="/kanban-revisao" element={<KanbanRevisao />} />
                 <Route path="/kanban-montagem" element={<KanbanMontagem />} />
                 <Route path="/kanban-fabrica" element={<KanbanFabrica />} />
                 {/* Aliases antigos */}
-                <Route path="/operacional/kanban" element={<Navigate to="/kanban-operacional" replace />} />
+                <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
                 <Route path="/operacional/revisao" element={<Navigate to="/kanban-revisao" replace />} />
                 <Route path="/operacional/montagem-kanban" element={<Navigate to="/kanban-montagem" replace />} />

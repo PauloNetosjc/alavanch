@@ -1891,7 +1891,6 @@ function RevisaoDiffView({ rev, ambienteNome, onAprovar, onNegociarAdendo }: any
 /*                       PIPELINES PANEL                          */
 /* ============================================================== */
 const OP_PIPELINES: Array<{ key: string; label: string; pipeline: string; column: string }> = [
-  { key: "operacional", label: "Operacional (Produção)", pipeline: "operacional", column: "estagio_operacional_id" },
   { key: "pos_venda",   label: "Pós-Venda e Financeiro", pipeline: "pos_venda",   column: "estagio_pos_venda_id" },
   { key: "revisao",     label: "Revisão de Projeto",     pipeline: "revisao",     column: "estagio_revisao_id" },
   { key: "montagem",    label: "Montagem",               pipeline: "montagem",    column: "estagio_montagem_id" },
