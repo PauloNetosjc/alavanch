@@ -459,6 +459,13 @@ export default function PedidoDetalhe() {
             onClick={criarAdendo}>
             <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
           </Button>
+          {!ehAdendo && (
+            <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+              disabled={criandoComplemento}
+              onClick={criarComplemento}>
+              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
+            </Button>
+          )}
         </div>
       </div>
 
