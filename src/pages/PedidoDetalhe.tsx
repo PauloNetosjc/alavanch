@@ -558,6 +558,11 @@ export default function PedidoDetalhe() {
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
       {/* PIPELINES & ESTÁGIOS */}
+      {/* REVISÃO PRECEDE OS PIPELINES enquanto não estiver aprovada */}
+      {revisaoPendente && (
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+      )}
+
       <PipelinesPanel pedido={pedido} />
 
       {/* CRONOGRAMA E DATAS */}
