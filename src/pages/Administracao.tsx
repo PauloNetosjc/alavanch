@@ -536,67 +536,188 @@ function TemplatesMensagem() {
 
 /* ============================== TEMPLATE DE CONTRATO ============================== */
 function TemplateContrato() {
+  const [lojas, setLojas] = useState<{ id: string; nome: string }[]>([]);
+  const [lojaAtiva, setLojaAtiva] = useState<string>("");
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tpl, setTpl] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const novoTemplate = (loja_id: string) => ({
+    loja_id,
+    nome: "Novo template",
+    titulo: "CONTRATO DE COMPRA E VENDA",
+    subtitulo: "CONTRATO DE COMPRA E VENDA DE PRODUTOS E DE PRESTAÇÃO DE SERVIÇOS",
+    clausulas: "",
+    observacoes_padrao: "",
+    rodape: "",
+    ativo: true,
+  });
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("contratos_template").select("*").eq("ativo", true).maybeSingle();
-      if (data) setTpl(data);
-      else setTpl({
-        nome: "Contrato Padrão",
-        titulo: "CONTRATO DE COMPRA E VENDA",
-        subtitulo: "CONTRATO DE COMPRA E VENDA DE PRODUTOS E DE PRESTAÇÃO DE SERVIÇOS",
-        clausulas: "",
-        observacoes_padrao: "",
-        rodape: "",
-        ativo: true,
-      });
+      const { data: ls } = await supabase.from("lojas").select("id,nome").eq("ativo", true).order("nome");
+      const list = (ls || []) as any[];
+      setLojas(list);
+      if (list.length && !lojaAtiva) setLojaAtiva(list[0].id);
+      setLoading(false);
     })();
   }, []);
 
+  const carregar = async (loja_id: string) => {
+    const { data } = await supabase.from("contratos_template").select("*").eq("loja_id", loja_id).order("created_at");
+    const arr = (data || []) as any[];
+    setTemplates(arr);
+    if (arr.length) {
+      setSelectedId(arr[0].id);
+      setTpl(arr[0]);
+    } else {
+      setSelectedId(null);
+      setTpl(novoTemplate(loja_id));
+    }
+  };
+
+  useEffect(() => { if (lojaAtiva) carregar(lojaAtiva); }, [lojaAtiva]);
+
+  const selecionar = (id: string) => {
+    const t = templates.find((x) => x.id === id);
+    if (t) { setSelectedId(id); setTpl(t); }
+  };
+
+  const novo = () => {
+    setSelectedId(null);
+    setTpl(novoTemplate(lojaAtiva));
+  };
+
   const salvar = async () => {
-    if (!tpl) return;
+    if (!tpl || !lojaAtiva) return;
     setSaving(true);
+    const payload = {
+      loja_id: lojaAtiva,
+      nome: tpl.nome, titulo: tpl.titulo, subtitulo: tpl.subtitulo,
+      clausulas: tpl.clausulas, observacoes_padrao: tpl.observacoes_padrao,
+      rodape: tpl.rodape, ativo: tpl.ativo,
+    };
     const op = tpl.id
-      ? supabase.from("contratos_template").update({
-          nome: tpl.nome, titulo: tpl.titulo, subtitulo: tpl.subtitulo,
-          clausulas: tpl.clausulas, observacoes_padrao: tpl.observacoes_padrao,
-          rodape: tpl.rodape, ativo: tpl.ativo,
-        }).eq("id", tpl.id)
-      : supabase.from("contratos_template").insert(tpl);
-    const { error } = await op;
+      ? supabase.from("contratos_template").update(payload).eq("id", tpl.id).select().maybeSingle()
+      : supabase.from("contratos_template").insert(payload).select().maybeSingle();
+    const { data, error } = await op as any;
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Template salvo");
-    const { data } = await supabase.from("contratos_template").select("*").eq("ativo", true).maybeSingle();
-    if (data) setTpl(data);
+    await carregar(lojaAtiva);
+    if (data?.id) { setSelectedId(data.id); setTpl(data); }
   };
 
-  if (!tpl) return <div className="text-center py-10 text-muted-foreground text-[13px]">Carregando…</div>;
+  const excluir = async () => {
+    if (!tpl?.id) return;
+    if (!confirm("Excluir este template?")) return;
+    const { error } = await supabase.from("contratos_template").delete().eq("id", tpl.id);
+    if (error) return toast.error(error.message);
+    toast.success("Template excluído");
+    await carregar(lojaAtiva);
+  };
+
+  if (loading) return <div className="text-center py-10 text-muted-foreground text-[13px]">Carregando…</div>;
+  if (!lojas.length) return <div className="text-center py-10 text-muted-foreground text-[13px]">Nenhuma loja cadastrada.</div>;
 
   return (
-    <div className="surface-card p-6 space-y-4 max-w-4xl">
-      <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#2D6BE5]" /><h2 className="text-[18px] font-semibold">Template de Contrato</h2></div>
-      <p className="text-[13px] text-muted-foreground">
-        Variáveis disponíveis: <code className="bg-muted px-1 rounded">{`{{cliente_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{cliente_cpf}}`}</code>, <code className="bg-muted px-1 rounded">{`{{empresa_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{numero}}`}</code>, <code className="bg-muted px-1 rounded">{`{{valor_total}}`}</code>, <code className="bg-muted px-1 rounded">{`{{ambientes}}`}</code>, <code className="bg-muted px-1 rounded">{`{{pagamentos}}`}</code>, <code className="bg-muted px-1 rounded">{`{{data}}`}</code>.
-      </p>
+    <div className="space-y-4">
+      <Tabs value={lojaAtiva} onValueChange={setLojaAtiva}>
+        <TabsList className="flex flex-wrap h-auto">
+          {lojas.map((l) => (
+            <TabsTrigger key={l.id} value={l.id} className="gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />{l.nome}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div><Label>Nome do template</Label><Input value={tpl.nome} onChange={(e) => setTpl({ ...tpl, nome: e.target.value })} /></div>
-        <div className="flex items-end gap-2"><Switch checked={!!tpl.ativo} onCheckedChange={(v) => setTpl({ ...tpl, ativo: v })} /><span className="text-[12px] text-muted-foreground pb-2">{tpl.ativo ? "Ativo" : "Inativo"}</span></div>
-      </div>
-      <div><Label>Título</Label><Input value={tpl.titulo} onChange={(e) => setTpl({ ...tpl, titulo: e.target.value })} /></div>
-      <div><Label>Subtítulo</Label><Input value={tpl.subtitulo ?? ""} onChange={(e) => setTpl({ ...tpl, subtitulo: e.target.value })} /></div>
-      <div><Label>Cláusulas</Label><Textarea rows={14} value={tpl.clausulas} onChange={(e) => setTpl({ ...tpl, clausulas: e.target.value })} placeholder="Texto integral das cláusulas. Use as variáveis para substituição automática." /></div>
-      <div><Label>Observações padrão</Label><Textarea rows={4} value={tpl.observacoes_padrao ?? ""} onChange={(e) => setTpl({ ...tpl, observacoes_padrao: e.target.value })} /></div>
-      <div><Label>Rodapé</Label><Textarea rows={3} value={tpl.rodape ?? ""} onChange={(e) => setTpl({ ...tpl, rodape: e.target.value })} /></div>
+      <div className="surface-card p-6 space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#2D6BE5]" />
+            <h2 className="text-[18px] font-semibold">Templates de Contrato — {lojas.find((l) => l.id === lojaAtiva)?.nome}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {templates.length > 0 && (
+              <Select value={selectedId ?? ""} onValueChange={selecionar}>
+                <SelectTrigger className="w-[260px]"><SelectValue placeholder="Selecionar template" /></SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}{!t.ativo ? " (inativo)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline" size="sm" onClick={novo} className="gap-1.5"><Plus className="w-3.5 h-3.5" />Novo</Button>
+            {tpl?.id && <Button variant="outline" size="sm" onClick={excluir} className="gap-1.5 text-destructive"><Trash2 className="w-3.5 h-3.5" />Excluir</Button>}
+          </div>
+        </div>
 
-      <div className="flex justify-end">
-        <Button onClick={salvar} disabled={saving} className="gap-1.5">
-          <Save className="w-4 h-4" />{saving ? "Salvando…" : "Salvar Template"}
-        </Button>
+        <p className="text-[13px] text-muted-foreground">
+          Variáveis disponíveis: <code className="bg-muted px-1 rounded">{`{{cliente_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{cliente_cpf}}`}</code>, <code className="bg-muted px-1 rounded">{`{{empresa_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{numero}}`}</code>, <code className="bg-muted px-1 rounded">{`{{valor_total}}`}</code>, <code className="bg-muted px-1 rounded">{`{{ambientes}}`}</code>, <code className="bg-muted px-1 rounded">{`{{pagamentos}}`}</code>, <code className="bg-muted px-1 rounded">{`{{data}}`}</code>.
+        </p>
+
+        {tpl && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Nome do template</Label><Input value={tpl.nome || ""} onChange={(e) => setTpl({ ...tpl, nome: e.target.value })} /></div>
+              <div className="flex items-end gap-2"><Switch checked={!!tpl.ativo} onCheckedChange={(v) => setTpl({ ...tpl, ativo: v })} /><span className="text-[12px] text-muted-foreground pb-2">{tpl.ativo ? "Ativo" : "Inativo"}</span></div>
+            </div>
+            <div><Label>Título</Label><Input value={tpl.titulo || ""} onChange={(e) => setTpl({ ...tpl, titulo: e.target.value })} /></div>
+            <div><Label>Subtítulo</Label><Input value={tpl.subtitulo ?? ""} onChange={(e) => setTpl({ ...tpl, subtitulo: e.target.value })} /></div>
+            <div>
+              <Label>Cláusulas</Label>
+              <div className="bg-white rounded-md border border-input mt-1">
+                <ContratoRichEditor value={tpl.clausulas || ""} onChange={(v) => setTpl({ ...tpl, clausulas: v })} />
+              </div>
+            </div>
+            <div><Label>Observações padrão</Label><Textarea rows={4} value={tpl.observacoes_padrao ?? ""} onChange={(e) => setTpl({ ...tpl, observacoes_padrao: e.target.value })} /></div>
+            <div><Label>Rodapé</Label><Textarea rows={3} value={tpl.rodape ?? ""} onChange={(e) => setTpl({ ...tpl, rodape: e.target.value })} /></div>
+
+            <div className="flex justify-end">
+              <Button onClick={salvar} disabled={saving} className="gap-1.5">
+                <Save className="w-4 h-4" />{saving ? "Salvando…" : "Salvar Template"}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+function ContratoRichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [Quill, setQuill] = useState<any>(null);
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      import("react-quill-new"),
+      import("react-quill-new/dist/quill.snow.css"),
+    ]).then(([m]) => { if (mounted) setQuill(() => m.default); });
+    return () => { mounted = false; };
+  }, []);
+  if (!Quill) return <div className="p-4 text-[13px] text-muted-foreground">Carregando editor…</div>;
+  return (
+    <Quill
+      theme="snow"
+      value={value}
+      onChange={onChange}
+      modules={{
+        toolbar: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          [{ indent: "-1" }, { indent: "+1" }],
+          [{ align: [] }],
+          ["blockquote", "code-block"],
+          ["link"],
+          ["clean"],
+        ],
+      }}
+      style={{ minHeight: 360 }}
+    />
   );
 }
