@@ -246,6 +246,16 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [userCollapsed, setUserCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapse = () => {
+    setUserCollapsed((v) => {
+      const nv = !v;
+      try { localStorage.setItem("sidebar_collapsed", nv ? "1" : "0"); } catch {}
+      return nv;
+    });
+  };
 
   const filterItems = (items: Item[]) =>
     items.filter((it) => {
@@ -265,7 +275,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
     .join("")
     .toUpperCase();
 
-  const collapsed = moreOpen;
+  const collapsed = moreOpen || userCollapsed;
 
   return (
     <div className="flex h-full" style={{ background: "#0F0F0F" }}>
