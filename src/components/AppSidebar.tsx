@@ -55,7 +55,8 @@ const sections: Section[] = [
     label: "Operação",
     items: [
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
-      { label: "Montagem", path: "/montagem", icon: Hammer },
+      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2 },
+      { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
