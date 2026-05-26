@@ -183,16 +183,16 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const filterSection = (s: Section) => ({
-    ...s,
-    items: s.items.filter((it) => {
+  const filterItems = (items: Item[]) =>
+    items.filter((it) => {
       if (it.modulo && !can(it.modulo, "view")) return false;
       if (it.roles && !it.roles.includes(role || "")) return false;
       return true;
-    }),
-  });
+    });
+  const filterSection = (s: Section) => ({ ...s, items: filterItems(s.items) });
+  const filterGroup = (g: Group) => ({ ...g, items: filterItems(g.items) });
   const visibleSections = sections.map(filterSection).filter((s) => s.items.length > 0);
-  const visibleMoreSections = moreSections.map(filterSection).filter((s) => s.items.length > 0);
+  const visibleMoreGroups = moreGroups.map(filterGroup).filter((g) => g.items.length > 0);
 
   const initials = (profile?.nome_completo || user?.email || "?")
     .split(" ")
@@ -249,7 +249,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
         </nav>
 
         {/* More toggle */}
-        {visibleMoreSections.length > 0 && (
+        {visibleMoreGroups.length > 0 && (
           <div className={collapsed ? "px-2 pb-2 flex justify-center" : "px-4 pb-2"}>
             <button
               onClick={() => setMoreOpen((v) => !v)}
@@ -301,14 +301,14 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      {/* Secondary panel: Administrativo / Configuração */}
+      {/* Secondary panel: Configuração Sistema (grupos expansíveis) */}
       {moreOpen && (
         <div
           className="flex flex-col h-full"
-          style={{ width: 240, background: "#0F0F0F", borderRight: "0.5px solid #222" }}
+          style={{ width: 260, background: "#0F0F0F", borderRight: "0.5px solid #222" }}
         >
           <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-            <div className="text-[11px] uppercase text-[#CCC] tracking-[0.12em]">Mais opções</div>
+            <div className="text-[11px] uppercase text-[#CCC] tracking-[0.12em]">Configuração Sistema</div>
             <button
               onClick={() => setMoreOpen(false)}
               className="text-[#666] hover:text-white transition-colors"
@@ -318,8 +318,8 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
             </button>
           </div>
           <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
-            {visibleMoreSections.map((section) => (
-              <SectionFull key={section.label} section={section} pathname={pathname} onNavigate={onNavigate} />
+            {visibleMoreGroups.map((group) => (
+              <GroupAccordion key={group.label} group={group} pathname={pathname} onNavigate={onNavigate} />
             ))}
           </nav>
         </div>
