@@ -113,6 +113,10 @@ export default function LancamentosFiltros(p: Props) {
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Categoria</div>
           <Select
+        {/* Categoria + Fornecedor */}
+        <div className="rounded-xl border bg-card p-3 space-y-2">
+          <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Categoria</div>
+          <Select
             value={p.categoriaFiltro || "all"}
             onValueChange={(v) => p.setCategoriaFiltro(v === "all" ? "" : v)}
           >
@@ -126,6 +130,23 @@ export default function LancamentosFiltros(p: Props) {
               ))}
             </SelectContent>
           </Select>
+          {p.setFornecedorFiltro && (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground pt-1">Fornecedor</div>
+              <Select
+                value={p.fornecedorFiltro || "all"}
+                onValueChange={(v) => p.setFornecedorFiltro?.(v === "all" ? "" : v)}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos os fornecedores" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os fornecedores</SelectItem>
+                  {(p.fornecedores || []).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
         {/* Opções */}
