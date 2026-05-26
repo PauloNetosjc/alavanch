@@ -144,47 +144,38 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Sections */}
       <nav className="flex-1 overflow-y-auto pb-4">
-        {visibleSections.map((section) => (
-          <div key={section.label} className="mt-2">
-            <div
-              className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
-              style={{ color: "#444", letterSpacing: "0.12em" }}
-            >
-              {section.label}
-            </div>
-            <div className="px-2 flex flex-col gap-0.5">
-              {section.items.map((it) => {
-                const active = pathname.startsWith(it.path);
-                return (
-                  <NavLink
-                    key={it.path}
-                    to={it.path}
-                    onClick={onNavigate}
-                    className="group flex items-center gap-2.5 rounded-md transition-colors"
-                    style={{
-                      padding: "7px 14px",
-                      background: active ? "#1F1F1F" : "transparent",
-                      color: active ? "#FFFFFF" : "#888888",
-                      fontSize: "12.5px",
-                    }}
-                  >
-                    <span
-                      className="inline-block rounded-full"
-                      style={{
-                        width: 4,
-                        height: 4,
-                        background: active ? "#C9B99A" : "#444",
-                      }}
-                    />
-                    <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
-                    <span className="flex-1">{it.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {visibleSections.map((section) => renderSection(section, pathname, onNavigate))}
       </nav>
+
+      {/* More (Administrativo / Configuração) */}
+      {visibleMoreSections.length > 0 && (
+        <div className="px-4 pb-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="w-full flex items-center justify-center gap-2 rounded-md py-2 transition-colors hover:bg-[#1A1A1A]"
+                style={{ color: "#888", border: "0.5px solid #222" }}
+                aria-label="Mais opções"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                <span className="text-[11px] uppercase tracking-[0.12em]">Mais</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="end"
+              sideOffset={8}
+              className="w-64 p-0 border-0"
+              style={{ background: "#0F0F0F", border: "0.5px solid #222" }}
+            >
+              <div className="py-2 max-h-[70vh] overflow-y-auto">
+                {visibleMoreSections.map((section) => renderSection(section, pathname, onNavigate))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+
 
       {/* Footer */}
       <div className="px-4 pt-3 pb-4" style={{ borderTop: "0.5px solid #222" }}>
