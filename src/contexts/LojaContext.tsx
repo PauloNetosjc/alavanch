@@ -62,8 +62,9 @@ export function LojaProvider({ children }: { children: ReactNode }) {
   }, [user, role, profile?.loja_id]);
 
   const setSelectedLojaId = (id: string | null) => {
+    if (!id) return; // não permite "todas"
     setSelectedLojaIdState(id);
-    localStorage.setItem(STORAGE_KEY, id ?? "__all__");
+    localStorage.setItem(STORAGE_KEY, id);
   };
 
   return (
