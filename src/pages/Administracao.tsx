@@ -432,7 +432,13 @@ function SimpleCrud({
 
   const salvar = async () => {
     const payload: any = {};
-    for (const f of fields) payload[f.name] = form[f.name] ?? null;
+    for (const f of fields) {
+      const v = form[f.name];
+      if (f.required && (v === undefined || v === null || v === "")) {
+        return toast.error(`${f.label} é obrigatório`);
+      }
+      payload[f.name] = v ?? null;
+    }
     if ("ativo" in defaultRow && form.ativo === undefined) payload.ativo = true;
     if ("ativo" in defaultRow) payload.ativo = !!form.ativo;
     const op = editing
