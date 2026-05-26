@@ -1105,7 +1105,7 @@ export default function ComercialNovo() {
                     <details className="mt-2 group">
                       <summary className="flex items-center justify-between border border-input rounded-md px-3 py-2 text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-muted/40">
                         <span className="text-muted-foreground">Ind do Parceiro</span>
-                        <span className="font-medium">{(parceiroPerc || 0).toFixed(2)}%</span>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="mt-2 flex items-center gap-2 border border-input rounded-md px-3 py-2.5">
                         <span className="text-[13px] text-muted-foreground">Ind do Parceiro:</span>
