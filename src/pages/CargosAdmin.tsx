@@ -30,6 +30,45 @@ const ROLES = [
 
 const GRUPOS_ORDEM = ["Comercial","Operacional","Financeiro","Cadastros","Documentos","Relatórios","Sistema","Outros"];
 
+const ACAO_LABELS: Record<string, string> = {
+  view: "Visualizar", edit: "Editar", create: "Criar", delete: "Excluir",
+  approve: "Aprovar", export: "Exportar", import: "Importar", manage: "Gerenciar",
+  print: "Imprimir", send: "Enviar", sign: "Assinar", cancel: "Cancelar",
+  reopen: "Reabrir", archive: "Arquivar", restore: "Restaurar", config: "Configurar",
+  assign: "Atribuir", reject: "Rejeitar", read: "Ler", write: "Escrever",
+  aplicar: "Aplicar", aprovar: "Aprovar", confirmar_assinatura: "Confirmar assinatura",
+};
+
+const MODULO_LABELS: Record<string, string> = {
+  administracao: "Administração", agenda: "Agenda", aniversariantes: "Aniversariantes",
+  analise_financeira: "Análise Financeira", aprovador_financeiro: "Aprovador Financeiro",
+  assinaturas: "Assinaturas", assistencia: "Assistência",
+  auditoria_parceiros: "Auditoria de Parceiros", autorizacoes: "Autorizações",
+  cargos: "Cargos", categorias_financeiras: "Categorias Financeiras",
+  checklist_assistencia: "Checklist de Assistência", checklist_templates: "Modelos de Checklist",
+  clientes: "Clientes", comercial: "Comercial", configuracoes: "Configurações",
+  contas: "Contas Correntes", contas_a_pagar: "Contas a Pagar", contas_a_receber: "Contas a Receber",
+  contas_correntes: "Contas Correntes", contratos: "Contratos", crm: "CRM",
+  dashboard: "Painel", descontos: "Descontos", documentos: "Documentos",
+  etiquetas: "Etiquetas", extrato: "Extrato de Conta", extrato_conta: "Extrato de Conta",
+  financeiro: "Financeiro", fornecedores: "Fornecedores", info_sistema: "Informações do Sistema",
+  itens: "Itens", kanban_comercial: "Kanban Comercial", kanban_fabrica: "Kanban Fábrica",
+  kanban_montagem: "Kanban Montagem", kanban_pos_venda: "Kanban Pós-venda",
+  kanban_revisao: "Kanban Revisão", kanbans: "Kanbans", lancamentos: "Lançamentos",
+  lojas: "Lojas", mensagens: "Mensagens", meus_chamados: "Meus Chamados",
+  metas: "Metas", metodos_pagamento: "Métodos de Pagamento", montagem: "Montagem",
+  notas_fiscais: "Notas Fiscais", ocorrencias: "Ocorrências", origens: "Origens",
+  parceiros: "Parceiros", pedidos: "Pedidos", permissoes: "Permissões",
+  produtos: "Produtos", radar_prazos: "Radar de Prazos", ranking: "Ranking",
+  relatorios: "Relatórios", simulador_automacoes: "Simulador de Automações",
+  sistema: "Sistema", usuarios: "Usuários",
+};
+
+const labelAcao = (a: string) =>
+  ACAO_LABELS[a] || a.charAt(0).toUpperCase() + a.slice(1).replace(/_/g, " ");
+const labelModulo = (m: string) =>
+  MODULO_LABELS[m] || m.split("_").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+
 type Cat = { id?: string; modulo: string; acao: string; descricao: string | null; grupo: string | null };
 
 // =================== PAGE ===================
