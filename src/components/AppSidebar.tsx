@@ -108,7 +108,7 @@ const moreGroups: Group[] = [
     items: [
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
-      { label: "Administração (Usuários)", path: "/administracao", icon: Users },
+      { label: "Administração (Usuários)", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
       { label: "Checklist Assistência", path: "/administracao/checklist-assistencia", icon: LifeBuoy, roles: ["admin"] },
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
