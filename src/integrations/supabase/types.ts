@@ -1786,6 +1786,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           forma_pagamento: string | null
+          fornecedor_id: string | null
           id: string
           loja_id: string | null
           pedido_id: string | null
@@ -1814,6 +1815,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento?: string | null
+          fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
           pedido_id?: string | null
@@ -1842,6 +1844,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento?: string | null
+          fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
           pedido_id?: string | null
@@ -1864,6 +1867,13 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
           {
