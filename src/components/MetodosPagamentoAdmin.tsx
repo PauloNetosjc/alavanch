@@ -60,13 +60,19 @@ export function MetodosPagamentoAdmin() {
   };
 
   const openEdit = (m: Metodo) => {
-    const parcelas = m.parcelas_config.length > 0
-      ? m.parcelas_config
+    const parcelas: ParcelaConfig[] = m.parcelas_config.length > 0
+      ? m.parcelas_config.map((p) => ({
+          juros_modo: "repassar",
+          agrupamento: "desmembrado",
+          ...p,
+        }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
           numero: i + 1,
           juros_perc: m.taxa_perc_parcela || 0,
           forma_pagamento: "Boleto",
           desconto_perc: 0,
+          juros_modo: "repassar" as const,
+          agrupamento: "desmembrado" as const,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
     setOpen(true);
