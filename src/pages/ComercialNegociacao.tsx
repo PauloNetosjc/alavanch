@@ -51,7 +51,8 @@ type Pagamento = {
   data_vencimento: string | null;
   parcelas_detalhe?: number[] | null;
 };
-type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number };
+type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
+type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[] };
 type Regra = { role: string; desconto_max_perc: number };
 
 /* ========================== SENHA ADMIN DIALOG ========================== */
@@ -434,7 +435,7 @@ export default function ComercialNegociacao() {
 
   // novo pagamento
   const [novoMetodo, setNovoMetodo] = useState("");
-  const [novoValor, setNovoValor] = useState<number>(0);
+  
   const [novoParcelas, setNovoParcelas] = useState<number>(1);
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
@@ -465,7 +466,7 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
           .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
           .eq("orcamento_id", id),
@@ -487,7 +488,7 @@ export default function ComercialNegociacao() {
       setCliente((o?.cliente ?? null) as ClienteRow | null);
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
-      setMetodos((m ?? []) as Metodo[]);
+      setMetodos(((m ?? []) as any[]).map((mm) => ({ ...mm, parcelas_config: Array.isArray(mm.parcelas_config) ? mm.parcelas_config : [] })) as Metodo[]);
       setPagamentos(((pgs ?? []) as any).map((p: any) => ({
         ...p,
         parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
@@ -571,7 +572,16 @@ export default function ComercialNegociacao() {
   // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
   const baseDescontavel = isAdendo ? 0 : (subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100));
   const descValorEfetivo = isAdendo ? 0 : Math.min(descValorAplicado, baseDescontavel);
-  const totalProposta = isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo);
+  // Desconto adicional vindo da forma de pagamento (parcelas_config[parcelas].desconto_perc)
+  // incide sobre o saldo a parcelar (após entrada e descontos manuais).
+  const metodoSelecionado = metodos.find((m) => m.nome === novoMetodo);
+  const cfgParcelaSel = metodoSelecionado?.parcelas_config?.find((p) => Number(p.numero) === Number(novoParcelas));
+  const descontoMetodoPerc = Number(cfgParcelaSel?.desconto_perc) || 0;
+  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0));
+  const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
+  const totalProposta = isAdendo
+    ? Math.max(0, adendoValor - descontoMetodoValor)
+    : Math.max(0, valorInicial - descValorEfetivo - descontoMetodoValor);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
@@ -689,15 +699,6 @@ export default function ComercialNegociacao() {
     }));
   };
 
-  const addPagamento = () => {
-    if (!novoMetodo) return toast.error("Selecione o método");
-    if (!novoValor || novoValor <= 0) return toast.error("Valor inválido");
-    setPagamentos((p) => [
-      ...p,
-      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null, parcelas_detalhe: null },
-    ]);
-    setNovoMetodo(""); setNovoValor(0); setNovoParcelas(1); setNovoVenc("");
-  };
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
@@ -714,6 +715,29 @@ export default function ComercialNegociacao() {
     });
     toast.success("Entrada adicionada");
   };
+
+  // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
+  // O valor é sempre o restante a parcelar (total - entrada).
+  useEffect(() => {
+    if (!novoMetodo) return;
+    const valorPrincipal = Number(Math.max(0, totalProposta - (entrada || 0)).toFixed(2));
+    setPagamentos((prev) => {
+      const outros = prev.filter((p) => !(p as any).is_principal);
+      if (valorPrincipal <= 0) return outros;
+      return [
+        ...outros,
+        {
+          metodo: novoMetodo,
+          valor: valorPrincipal,
+          parcelas: novoParcelas || 1,
+          data_vencimento: novoVenc || null,
+          parcelas_detalhe: null,
+          is_principal: true,
+        } as any,
+      ];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, entrada]);
 
   /* ------------------------- save ------------------------- */
   const persist = async (newStatus?: string) => {
@@ -1331,17 +1355,27 @@ export default function ComercialNegociacao() {
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
                     const max = Math.max(1, Number(met?.max_parcelas) || 24);
-                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}x{(Number(met?.taxa_perc_parcela)||0) > 0 && n>1 ? ` · ${Number(met?.taxa_perc_parcela).toFixed(2)}% a.m.` : ""}</SelectItem>
-                    ));
+                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => {
+                      const cfg = met?.parcelas_config?.find((p) => Number(p.numero) === n);
+                      const desc = Number(cfg?.desconto_perc) || 0;
+                      const juros = Number(cfg?.juros_perc ?? met?.taxa_perc_parcela) || 0;
+                      const extras: string[] = [];
+                      if (desc > 0) extras.push(`-${desc.toFixed(2)}% desc.`);
+                      if (juros > 0 && n > 1) extras.push(`${juros.toFixed(2)}% juros`);
+                      return (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}x{extras.length ? ` · ${extras.join(" · ")}` : ""}
+                        </SelectItem>
+                      );
+                    });
                   })()}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Valor</Label>
-              <Input type="number" step="0.01" value={novoValor || ""}
-                onChange={(e) => setNovoValor(Number(e.target.value) || 0)} placeholder="0,00" />
+              {descontoMetodoPerc > 0 && novoMetodo && (
+                <div className="text-[11px] text-emerald-700 mt-1">
+                  Desconto da forma de pagamento: -{descontoMetodoPerc.toFixed(2)}% ({fmtBrl(descontoMetodoValor)})
+                </div>
+              )}
             </div>
             <div>
               <Label>Entrada (à vista, sem juros)</Label>
@@ -1368,9 +1402,6 @@ export default function ComercialNegociacao() {
                 <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
               </Button>
             </div>
-            <Button onClick={addPagamento} className="w-full bg-[#2D6BE5] hover:bg-[#2459C9] text-white">
-              <Plus className="w-4 h-4 mr-1.5" /> Adicionar Pagamento
-            </Button>
           </div>
         </div>
 
