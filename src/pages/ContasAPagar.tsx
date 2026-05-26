@@ -84,6 +84,15 @@ export default function ContasAPagar() {
     setFornecedores((fr as any[]) || []);
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      if (role === "admin") { setSouAprovador(true); return; }
+      const { data } = await supabase.from("aprovadores_financeiros" as any)
+        .select("aprova_pagar").eq("user_id", user.id);
+      setSouAprovador(((data as any[]) || []).some((r) => r.aprova_pagar));
+    })();
+  }, [user, role]);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
