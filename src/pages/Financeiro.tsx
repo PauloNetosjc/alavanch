@@ -346,11 +346,6 @@ export default function Financeiro() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={imprimir}><Printer className="w-4 h-4 mr-1" /> Imprimir</Button>
-            <Button variant="outline" onClick={() => exportarCSV(rows, `financeiro-${dtIni}_a_${dtFim}.csv`)}>
-              <FileText className="w-4 h-4 mr-1" /> CSV
-            </Button>
-            <Button variant="outline" onClick={exportarExcel}><FileSpreadsheet className="w-4 h-4 mr-1" /> Excel</Button>
             <Link to="/contas"><Button variant="outline"><Wallet className="w-4 h-4 mr-1" /> Contas Correntes</Button></Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
