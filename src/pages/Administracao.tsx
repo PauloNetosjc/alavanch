@@ -90,8 +90,14 @@ export default function Administracao() {
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
-
         <TabsContent value="agenda" className="mt-4"><AgendaAdmin /></TabsContent>
+
+        {/* Conteúdo acessível apenas via sidebar (submenu Financeiro) */}
+        <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
+        <TabsContent value="juros" className="mt-4"><PoliticaJurosAdmin /></TabsContent>
+        <TabsContent value="bancos" className="mt-4"><Bancos /></TabsContent>
+        <TabsContent value="pagamentos" className="mt-4"><MetodosPagamento /></TabsContent>
+        <TabsContent value="categorias" className="mt-4"><CategoriasFinanceiras /></TabsContent>
       </Tabs>
     </div>
   );
