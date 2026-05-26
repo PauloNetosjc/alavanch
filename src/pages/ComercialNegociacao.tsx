@@ -572,7 +572,16 @@ export default function ComercialNegociacao() {
   // Desconto incide apenas sobre os ambientes marcados como "Aplicar desconto"
   const baseDescontavel = isAdendo ? 0 : (subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100));
   const descValorEfetivo = isAdendo ? 0 : Math.min(descValorAplicado, baseDescontavel);
-  const totalProposta = isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo);
+  // Desconto adicional vindo da forma de pagamento (parcelas_config[parcelas].desconto_perc)
+  // incide sobre o saldo a parcelar (após entrada e descontos manuais).
+  const metodoSelecionado = metodos.find((m) => m.nome === novoMetodo);
+  const cfgParcelaSel = metodoSelecionado?.parcelas_config?.find((p) => Number(p.numero) === Number(novoParcelas));
+  const descontoMetodoPerc = Number(cfgParcelaSel?.desconto_perc) || 0;
+  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0));
+  const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
+  const totalProposta = isAdendo
+    ? Math.max(0, adendoValor - descontoMetodoValor)
+    : Math.max(0, valorInicial - descValorEfetivo - descontoMetodoValor);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
