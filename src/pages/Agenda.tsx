@@ -61,6 +61,7 @@ export default function Agenda() {
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [feriados, setFeriados] = useState<{ data: string; descricao: string; loja_id: string | null }[]>([]);
   const [responsaveis, setResponsaveis] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [filtroResp, setFiltroResp] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
@@ -94,13 +95,36 @@ export default function Agenda() {
     }
     const { data } = await q;
     setEventos((data as any) || []);
+
+    // Feriados (nacionais = loja_id null + da loja filtrada)
+    let qf = supabase.from("agenda_feriados" as any).select("data, descricao, loja_id")
+      .gte("data", fmtKey(range.ini)).lte("data", fmtKey(range.fim));
+    if (isAdminOuDiretor && filtroLoja !== "all" && filtroLoja !== "__global__") {
+      qf = qf.or(`loja_id.is.null,loja_id.eq.${filtroLoja}`);
+    }
+    const { data: df } = await qf;
+    setFeriados((df as any) || []);
   };
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("profiles").select("user_id, nome_completo").order("nome_completo");
       setResponsaveis((data as any) || []);
+
+      // Auto-sincroniza feriados se a tabela estiver vazia
+      const { count } = await supabase.from("agenda_feriados" as any).select("id", { count: "exact", head: true });
+      if ((count ?? 0) === 0) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-feriados`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          });
+          reload();
+        } catch { /* ignora */ }
+      }
     })();
+    // eslint-disable-next-line
   }, []);
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo, filtroLoja]);
 
@@ -112,6 +136,14 @@ export default function Agenda() {
     });
     return m;
   }, [eventos]);
+
+  const feriadosPorDia = useMemo(() => {
+    const m = new Map<string, string[]>();
+    feriados.forEach((f) => {
+      const arr = m.get(f.data) || []; arr.push(f.descricao); m.set(f.data, arr);
+    });
+    return m;
+  }, [feriados]);
 
   const monthGrid = useMemo(() => {
     const ini = startOfMonth(cursor);
@@ -233,19 +265,26 @@ export default function Agenda() {
               const sameMonth = d.getMonth() === cursor.getMonth();
               const isToday = key === fmtKey(new Date());
               const evs = porDia.get(key) || [];
+              const fers = feriadosPorDia.get(key) || [];
+              const isFeriado = fers.length > 0;
               return (
                 <div
                   key={key}
                   onClick={() => { setCursor(d); setView("week"); }}
-                  className={`min-h-[110px] border-b border-r p-1.5 cursor-pointer hover:bg-accent/30 transition ${sameMonth ? "bg-card" : "bg-muted/30"}`}
-                  title="Abrir semana deste dia"
+                  className={`min-h-[110px] border-b border-r p-1.5 cursor-pointer hover:bg-accent/30 transition ${isFeriado ? "bg-rose-50/60" : sameMonth ? "bg-card" : "bg-muted/30"}`}
+                  title={isFeriado ? fers.join(" · ") : "Abrir semana deste dia"}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11px] ${isToday ? "font-bold text-primary" : "text-muted-foreground"}`}>{d.getDate()}</span>
+                    <span className={`text-[11px] ${isToday ? "font-bold text-primary" : isFeriado ? "font-semibold text-rose-700" : "text-muted-foreground"}`}>{d.getDate()}</span>
                     <button onClick={(ev) => { ev.stopPropagation(); setDefaultDate(key); setOpenNovo(true); }} className="opacity-30 hover:opacity-100" title="Adicionar">
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
+                  {fers.map((f, i) => (
+                    <div key={i} className="mt-1 text-[10px] px-1.5 py-0.5 rounded border bg-rose-100 border-rose-300 text-rose-800 truncate" title={f}>
+                      🎉 {f}
+                    </div>
+                  ))}
                   <div className="mt-1 space-y-0.5">
                     {evs.slice(0, 3).map((e) => (
                       <button key={e.id} onClick={(ev) => { ev.stopPropagation(); abrirEvento(e.id); }}
@@ -287,12 +326,17 @@ export default function Agenda() {
                 <div className="border-r" />
                 {weekDays.map((d) => {
                   const isToday = fmtKey(d) === todayKey;
+                  const fers = feriadosPorDia.get(fmtKey(d)) || [];
+                  const isFeriado = fers.length > 0;
                   return (
-                    <div key={fmtKey(d)} className={`p-2 text-center border-r ${isToday ? "bg-primary/5" : ""}`}>
+                    <div key={fmtKey(d)} className={`p-2 text-center border-r ${isFeriado ? "bg-rose-50" : isToday ? "bg-primary/5" : ""}`} title={fers.join(" · ")}>
                       <div className="text-[10px] uppercase text-muted-foreground">
                         {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.getDay()]}
                       </div>
-                      <div className={`text-[18px] font-semibold ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
+                      <div className={`text-[18px] font-semibold ${isToday ? "text-primary" : isFeriado ? "text-rose-700" : ""}`}>{d.getDate()}</div>
+                      {isFeriado && (
+                        <div className="text-[9px] text-rose-700 truncate mt-0.5" title={fers.join(" · ")}>🎉 {fers[0]}</div>
+                      )}
                     </div>
                   );
                 })}
