@@ -105,6 +105,15 @@ export default function Financeiro() {
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
+  // Filtro multi-loja (inicializa com a loja ativa no topbar)
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]);
+    else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
+
   // Período
   const hoje = new Date();
   const primeiroMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
