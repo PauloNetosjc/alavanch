@@ -20,7 +20,7 @@ export function TopbarLojaSwitcher() {
   if (loading || lojas.length === 0) return null;
 
   const current = lojas.find((l) => l.id === selectedLojaId);
-  const label = current?.nome ?? (role === "admin" ? "Todas as lojas" : "Selecionar loja");
+  const label = current?.nome ?? "Selecionar loja";
 
   // Se só tem 1 loja, mostra apenas como rótulo
   if (lojas.length === 1) {
