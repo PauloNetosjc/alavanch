@@ -33,18 +33,16 @@ export default function Configuracoes() {
       </div>
 
       <Tabs defaultValue="politicas" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full max-w-4xl">
+        <TabsList className="grid grid-cols-3 w-full max-w-4xl">
           <TabsTrigger value="politicas"><Settings className="w-3.5 h-3.5 mr-1.5" />Políticas</TabsTrigger>
           <TabsTrigger value="empresa"><FileText className="w-3.5 h-3.5 mr-1.5" />Dados da Empresa</TabsTrigger>
           <TabsTrigger value="metas"><Target className="w-3.5 h-3.5 mr-1.5" />Metas</TabsTrigger>
-          <TabsTrigger value="financeiro"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Financeiro</TabsTrigger>
         </TabsList>
 
         <TabsContent value="politicas" className="mt-6"><PoliticasTab /></TabsContent>
         <TabsContent value="empresa" className="mt-6"><EmpresaTab /></TabsContent>
 
         <TabsContent value="metas" className="mt-6"><MetasTab /></TabsContent>
-        <TabsContent value="financeiro" className="mt-6"><AprovadorConfig /></TabsContent>
       </Tabs>
     </div>
   );

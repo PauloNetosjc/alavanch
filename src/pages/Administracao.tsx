@@ -29,6 +29,7 @@ import { AgendaAdmin } from "@/components/AgendaAdmin";
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
+import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -103,7 +104,7 @@ export default function Administracao() {
         <TabsContent value="agenda" className="mt-4"><AgendaAdmin /></TabsContent>
 
         {/* Conteúdo acessível apenas via sidebar (submenu Financeiro) */}
-        <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
+        <TabsContent value="descontos" className="mt-4"><RegrasDescontoSection /></TabsContent>
         
         <TabsContent value="bancos" className="mt-4"><Bancos /></TabsContent>
         <TabsContent value="pagamentos" className="mt-4"><MetodosPagamento /></TabsContent>
@@ -211,6 +212,18 @@ function RegrasDesconto() {
     </div>
   );
 }
+
+function RegrasDescontoSection() {
+  return (
+    <div className="space-y-6">
+      <RegrasDesconto />
+      <div className="max-w-3xl">
+        <AprovadorConfig />
+      </div>
+    </div>
+  );
+}
+
 
 /* ============================== USUÁRIOS ============================== */
 type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null; data_nascimento: string | null };
