@@ -44,6 +44,7 @@ export default function ContasAReceber() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -51,6 +52,7 @@ export default function ContasAReceber() {
   const [dtIni, setDtIni] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10));
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -58,18 +60,20 @@ export default function ContasAReceber() {
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
       supabase.from("profiles").select("user_id,nome_completo"),
+      supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
     setProfiles((pf as Profile[]) || []);
+    setFornecedores((fr as any[]) || []);
   }
   useEffect(() => { load(); }, []);
 
