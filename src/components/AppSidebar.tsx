@@ -381,7 +381,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
             {visibleMoreGroups.map((group) => (
-              <GroupAccordion key={group.label} group={group} pathname={pathname} onNavigate={onNavigate} />
+              <GroupAccordion key={group.label} group={group} pathname={pathname} search={search} onNavigate={onNavigate} />
             ))}
           </nav>
         </div>
