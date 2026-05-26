@@ -61,6 +61,7 @@ export default function Agenda() {
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [feriados, setFeriados] = useState<{ data: string; descricao: string; loja_id: string | null }[]>([]);
   const [responsaveis, setResponsaveis] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [filtroResp, setFiltroResp] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
