@@ -240,7 +240,7 @@ export default function ContasAReceber() {
                       <div className="flex justify-end gap-1">
                         {!pago && !cancelado && (
                           <>
-                            <Button size="icon" variant="ghost" title="Receber" onClick={() => liquidar(l)}>
+                            <Button size="icon" variant="ghost" title="Receber" onClick={() => abrirBaixa(l)}>
                               <Check className="w-4 h-4 text-emerald-600" />
                             </Button>
                             <Button size="icon" variant="ghost" title="Cancelar" onClick={() => cancelar(l)}>
