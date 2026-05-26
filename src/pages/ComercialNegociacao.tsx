@@ -812,7 +812,10 @@ export default function ComercialNegociacao() {
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
   // O valor é sempre o restante a parcelar (total - soma das entradas).
   useEffect(() => {
-    if (!novoMetodo) return;
+    if (!novoMetodo || !novoParcelas || novoParcelas < 1) {
+      setPagamentos((prev) => prev.filter((p) => !(p as any).is_principal));
+      return;
+    }
     const valorPrincipal = Number(Math.max(0, totalProposta - somaEntradas).toFixed(2));
     setPagamentos((prev) => {
       const outros = prev.filter((p) => !(p as any).is_principal);
