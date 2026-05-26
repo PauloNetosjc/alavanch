@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save } from "lucide-react";
+import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save, ShieldCheck } from "lucide-react";
+import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
@@ -32,17 +33,19 @@ export default function Configuracoes() {
       </div>
 
       <Tabs defaultValue="politicas" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-4xl">
           <TabsTrigger value="politicas"><Settings className="w-3.5 h-3.5 mr-1.5" />Políticas</TabsTrigger>
           <TabsTrigger value="empresa"><FileText className="w-3.5 h-3.5 mr-1.5" />Dados da Empresa</TabsTrigger>
           <TabsTrigger value="taxas"><CreditCard className="w-3.5 h-3.5 mr-1.5" />Taxas Financeiras</TabsTrigger>
           <TabsTrigger value="metas"><Target className="w-3.5 h-3.5 mr-1.5" />Metas</TabsTrigger>
+          <TabsTrigger value="financeiro"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Financeiro</TabsTrigger>
         </TabsList>
 
         <TabsContent value="politicas" className="mt-6"><PoliticasTab /></TabsContent>
         <TabsContent value="empresa" className="mt-6"><EmpresaTab /></TabsContent>
         <TabsContent value="taxas" className="mt-6"><TaxasTab /></TabsContent>
         <TabsContent value="metas" className="mt-6"><MetasTab /></TabsContent>
+        <TabsContent value="financeiro" className="mt-6"><FinanceiroTab /></TabsContent>
       </Tabs>
     </div>
   );
