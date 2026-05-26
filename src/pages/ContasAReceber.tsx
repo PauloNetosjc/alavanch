@@ -5,11 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 
 type Lanc = {
@@ -27,6 +29,8 @@ type Lanc = {
   baixado_por: string | null;
   baixado_em: string | null;
   fornecedor_id: string | null;
+  forma_pagamento: string | null;
+  notas: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -40,6 +44,8 @@ function fmt(d?: string | null) {
 
 export default function ContasAReceber() {
   const { user } = useAuth();
+  const { can } = usePermissions();
+  const podeEditar = can("lancamentos", "edit");
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
@@ -115,6 +121,23 @@ export default function ContasAReceber() {
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
+
+  function abrirEdicao(l: Lanc) { setEditAlvo(l); setEditOpen(true); }
+  async function salvarEdicao(p: EditarPayload) {
+    if (!editAlvo) return;
+    const { error } = await supabase.from("lancamentos_financeiros").update({
+      data_vencimento: p.data_vencimento,
+      data_pagamento: p.data_pagamento,
+      valor: p.valor,
+      forma_pagamento: p.forma_pagamento,
+      notas: p.notas,
+    }).eq("id", editAlvo.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Parcela atualizada"); load();
+  }
+
 
   function abrirBaixa(l: Lanc) {
     setBaixaAlvo(l);
@@ -142,13 +165,12 @@ export default function ContasAReceber() {
     if (error) { toast.error(error.message); return; }
 
     if (diff > 0.005) {
-      const novoVenc = new Date();
-      novoVenc.setDate(novoVenc.getDate() + 30);
+      const novoVenc = baixaAlvo.data_vencimento || new Date().toISOString().slice(0, 10);
       const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
         tipo: "entrada",
         descricao: `${baixaAlvo.descricao || "Recebimento"} — saldo restante`,
         valor: diff,
-        data_vencimento: novoVenc.toISOString().slice(0, 10),
+        data_vencimento: novoVenc,
         categoria_id: baixaAlvo.categoria_id,
         conta_id: p.conta_id,
         pedido_id: baixaAlvo.pedido_id,
@@ -256,6 +278,7 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor</th>
                 <th className="text-center py-3 font-medium">Status</th>
+                <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
               </tr>
             </thead>
@@ -300,6 +323,9 @@ export default function ContasAReceber() {
                         {baixaInfo}
                       </div>
                     </td>
+                    <td className="max-w-[180px] text-xs text-muted-foreground truncate" title={l.notas || ""}>
+                      {l.notas || "—"}
+                    </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
                         {!pago && !cancelado && (
@@ -317,13 +343,18 @@ export default function ContasAReceber() {
                             <RotateCcw className="w-4 h-4 text-amber-600" />
                           </Button>
                         )}
+                        {podeEditar && !cancelado && (
+                          <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
+                            <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
@@ -343,6 +374,24 @@ export default function ContasAReceber() {
         contaIdAtual={baixaAlvo?.conta_id ?? null}
         contas={contas}
         onConfirm={confirmarBaixa}
+      />
+
+      <EditarLancamentoDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        tipo="entrada"
+        lanc={editAlvo ? {
+          id: editAlvo.id,
+          descricao: editAlvo.descricao,
+          data_vencimento: editAlvo.data_vencimento,
+          data_pagamento: editAlvo.data_pagamento,
+          valor: Number(editAlvo.valor || 0),
+          forma_pagamento: editAlvo.forma_pagamento,
+          notas: editAlvo.notas,
+          status: editAlvo.status,
+        } : null}
+        onSave={salvarEdicao}
+        onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
       />
     </div>
   );
