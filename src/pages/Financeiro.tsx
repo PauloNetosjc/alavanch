@@ -46,6 +46,8 @@ import { BRL } from "@/lib/financeiro";
 import { exportarCSV, type LancRow } from "@/lib/exportFinanceiro";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { useLoja } from "@/contexts/LojaContext";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
 
 type Lanc = {
   id: string;
