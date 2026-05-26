@@ -24,6 +24,8 @@ const TIPO_AGENDA_LABEL: Record<string, string> = {
 export default function Relatorios() {
   const { selectedLojaId } = useLoja();
   const [periodo, setPeriodo] = useState<PeriodoState>(defaultPeriodoAno());
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
+  useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [orcs, setOrcs] = useState<any[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [parceiros, setParceiros] = useState<any[]>([]);
@@ -47,11 +49,11 @@ export default function Relatorios() {
         qPed = qPed.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
         qAge = qAge.gte("data", inicio.toISOString().slice(0, 10)).lte("data", fim.toISOString().slice(0, 10));
       }
-      if (selectedLojaId) {
-        qOrc = qOrc.eq("loja_id", selectedLojaId);
-        qPed = qPed.eq("loja_id", selectedLojaId);
-        qPar = qPar.eq("loja_id", selectedLojaId);
-        qAge = qAge.eq("loja_id", selectedLojaId);
+      if (lojasFiltro.length > 0) {
+        qOrc = qOrc.in("loja_id", lojasFiltro);
+        qPed = qPed.in("loja_id", lojasFiltro);
+        qPar = qPar.in("loja_id", lojasFiltro);
+        qAge = qAge.in("loja_id", lojasFiltro);
       }
 
       const [{ data: o }, { data: p }, { data: pc }, { data: ag }, { data: ors }] = await Promise.all([
@@ -68,7 +70,7 @@ export default function Relatorios() {
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo, selectedLojaId]);
+  }, [periodo, lojasFiltro]);
 
   // ===== KPIs por pedido (com bruto e líquido) =====
   const kpi = useMemo(() => {
