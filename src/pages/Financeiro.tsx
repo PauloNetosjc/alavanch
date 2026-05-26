@@ -67,7 +67,7 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
-type Pedido = { id: string; codigo: string };
+type Pedido = { id: string; codigo: string; cliente_id?: string | null; cliente_nome?: string | null };
 type Parceiro = { id: string; nome: string };
 
 function todayISO() {
@@ -156,14 +156,14 @@ export default function Financeiro() {
       supabase.from("lancamentos_financeiros").select("*").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
-      supabase.from("pedidos").select("id,codigo").order("created_at", { ascending: false }).limit(500),
+      supabase.from("pedidos").select("id,codigo,cliente_id, cliente:cliente_id(nome)").order("created_at", { ascending: false }).limit(500),
       supabase.from("parceiros").select("id,nome").order("nome"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
-    setPedidos((pd as Pedido[]) || []);
+    setPedidos(((pd as any[]) || []).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, cliente_nome: p.cliente?.nome ?? null })));
     setParceiros((pa as Parceiro[]) || []);
     setFornecedores((fr as any[]) || []);
   }
@@ -260,6 +260,10 @@ export default function Financeiro() {
   }
 
   // CRUD lançamento
+  const [novoFornOpen, setNovoFornOpen] = useState(false);
+  const [novoFornNome, setNovoFornNome] = useState("");
+  const [novoFornDoc, setNovoFornDoc] = useState("");
+
   function novoLancamento() {
     setEditLanc({
       tipo: "saida",
@@ -271,6 +275,7 @@ export default function Financeiro() {
       conta_id: "",
       pedido_id: "",
       parceiro_id: "",
+      fornecedor_id: "",
       parcelas: 2,
       vincular_contrato: false,
       informar_parceiro: false,
@@ -278,10 +283,40 @@ export default function Financeiro() {
     setLancarOpen(true);
   }
 
+  async function criarFornecedorRapido() {
+    const nome = novoFornNome.trim();
+    if (!nome) return toast.error("Informe o nome do fornecedor");
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .insert({ nome, documento: novoFornDoc.trim() || null, ativo: true })
+      .select("id,nome")
+      .single();
+    if (error) return toast.error(error.message);
+    setFornecedores((prev) => [...prev, { id: data!.id, nome: data!.nome }].sort((a, b) => a.nome.localeCompare(b.nome)));
+    setEditLanc((prev: any) => ({ ...prev, fornecedor_id: data!.id }));
+    setNovoFornNome("");
+    setNovoFornDoc("");
+    setNovoFornOpen(false);
+    toast.success("Fornecedor cadastrado");
+  }
+
   async function salvarLancamento() {
     if (!editLanc?.descricao) return toast.error("Descrição obrigatória");
     const v = Number(editLanc.valor);
     if (!v || v <= 0) return toast.error("Informe um valor válido");
+
+    // Fornecedor obrigatório:
+    // - Toda despesa precisa de fornecedor
+    // - Receita só dispensa fornecedor quando vinculada a um contrato (o cliente do pedido é o pagador)
+    const isReceitaComContrato =
+      editLanc.tipo === "entrada" && editLanc.vincular_contrato && editLanc.pedido_id;
+    if (!isReceitaComContrato && !editLanc.fornecedor_id) {
+      return toast.error(
+        editLanc.tipo === "saida"
+          ? "Selecione ou cadastre o fornecedor da despesa"
+          : "Selecione ou cadastre o pagador (fornecedor) da receita"
+      );
+    }
 
     const base = {
       tipo: editLanc.tipo,
@@ -289,6 +324,7 @@ export default function Financeiro() {
       categoria_id: editLanc.categoria_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
+      fornecedor_id: editLanc.fornecedor_id || null,
       status: "pendente",
     };
 
@@ -637,6 +673,39 @@ export default function Financeiro() {
                 </Select>
               </div>
 
+              {/* Fornecedor / Pagador */}
+              {(() => {
+                const isEntrada = editLanc.tipo === "entrada";
+                const labelTitle = isEntrada ? "Receber de (fornecedor/pagador) *" : "Pagar a (fornecedor) *";
+                const placeholder = isEntrada ? "Selecione o pagador…" : "Selecione o fornecedor…";
+                const pedidoSel = editLanc.vincular_contrato && editLanc.pedido_id
+                  ? pedidos.find((p) => p.id === editLanc.pedido_id) : null;
+                if (isEntrada && pedidoSel) {
+                  return (
+                    <div className="rounded-lg border border-emerald-300 bg-emerald-50/60 p-4">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-700">Pagador (cliente do contrato)</div>
+                      <div className="font-medium text-emerald-900 mt-1">
+                        {pedidoSel.cliente_nome || "(cliente sem nome)"} <span className="text-xs text-emerald-700">• {pedidoSel.codigo}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelTitle}</Label>
+                    <div className="flex gap-2">
+                      <Select value={editLanc.fornecedor_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, fornecedor_id: v })}>
+                        <SelectTrigger className="flex-1"><SelectValue placeholder={placeholder} /></SelectTrigger>
+                        <SelectContent>
+                          {fornecedores.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="outline" onClick={() => setNovoFornOpen(true)}>+ Novo</Button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Dados */}
               <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Dados do Lançamento</div>
@@ -724,6 +793,32 @@ export default function Financeiro() {
         contas={contas}
         onDone={() => { setLiquidarOpen(false); setLiquidando(null); load(); }}
       />
+
+      {/* DIALOG NOVO FORNECEDOR (rápido) */}
+      <Dialog open={novoFornOpen} onOpenChange={setNovoFornOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="text-lg font-semibold">Incluir novo fornecedor</div>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Nome / Razão social *</Label>
+              <Input value={novoFornNome} onChange={(e) => setNovoFornNome(e.target.value)} placeholder="Nome do fornecedor" autoFocus />
+            </div>
+            <div>
+              <Label className="text-xs">CPF / CNPJ (opcional)</Label>
+              <Input value={novoFornDoc} onChange={(e) => setNovoFornDoc(e.target.value)} placeholder="Documento" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Você poderá completar os dados do fornecedor depois em Cadastros → Fornecedores.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNovoFornOpen(false)}>Cancelar</Button>
+            <Button onClick={criarFornecedorRapido} className="bg-violet-600 hover:bg-violet-700 text-white">Cadastrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
