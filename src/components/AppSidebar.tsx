@@ -139,12 +139,12 @@ function SectionFull({ section, pathname, onNavigate }: { section: Section; path
               className="group flex items-center gap-2.5 rounded-md transition-colors"
               style={{
                 padding: "7px 14px",
-                background: active ? "#1F1F1F" : "transparent",
+                background: active ? "var(--user-accent-bg, #1F1F1F)" : "transparent",
                 color: active ? "#FFFFFF" : "#888888",
                 fontSize: "12.5px",
               }}
             >
-              <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }} />
+              <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "hsl(var(--user-accent, 38 45% 55%))" : "#444" }} />
               <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
               <span className="flex-1">{it.label}</span>
             </NavLink>
