@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2,
+  Check, AlertCircle, Loader2, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
