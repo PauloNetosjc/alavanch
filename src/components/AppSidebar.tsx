@@ -186,7 +186,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
         className="w-full flex items-center gap-2 px-4 py-2 rounded-md transition-colors hover:bg-[#1A1A1A]"
         style={{ color: hasActive ? "#FFFFFF" : "#CCCCCC" }}
       >
-        <group.icon className="w-3.5 h-3.5" style={{ color: hasActive ? "#C9B99A" : "#888" }} />
+        <group.icon className={hasActive ? "w-3.5 h-3.5 text-[#C9B99A]" : "w-3.5 h-3.5 text-[#888]"} />
         <span className="flex-1 text-left text-[12.5px] font-medium">{group.label}</span>
         {open ? <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#666]" />}
       </button>
