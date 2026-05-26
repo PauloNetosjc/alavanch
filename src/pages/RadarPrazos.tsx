@@ -80,7 +80,7 @@ type Row = {
   days: number; // diff
 };
 
-export default function RadarPrazos() {
+export default function RadarPrazos({ embedded = false }: { embedded?: boolean } = {}) {
   const nav = useNavigate();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +93,7 @@ export default function RadarPrazos() {
     const { data } = await supabase
       .from("pedidos")
       .select(
-        "id, codigo, status, valor_total, vip, critico, workflow_estagio, data_envio_fabrica, data_montagem, data_vistoria, data_medicao_tecnica, data_chegada_material, data_limite_finalizacao, cliente:clientes(nome)"
+        "id, codigo, status, valor_total, vip, critico, workflow_estagio, data_envio_fabrica, data_montagem, data_vistoria, data_medicao_tecnica, data_chegada_material, data_limite_finalizacao, data_pagamento_fabrica, data_entrega, cliente:clientes(nome)"
       )
       .order("created_at", { ascending: false });
     setPedidos((data || []) as any);
@@ -148,24 +148,20 @@ export default function RadarPrazos() {
   }, [allRows]);
 
   const concluir = async (row: Row) => {
-    // Marca a data como "concluída" avançando o workflow
-    const next = (() => {
-      const order: Etapa[] = ["medicao", "fabrica", "material", "montagem", "finalizacao"];
-      const idx = order.indexOf(row.etapa);
-      if (idx < order.length - 1) return order[idx + 1];
-      return "concluido" as any;
-    })();
-    const stageMap: Record<string, string> = {
+    // Avança o workflow_estagio do pedido para um valor coerente
+    const stageMap: Record<Etapa, string> = {
       medicao: "revisao",
+      pagamento_fabrica: "fabrica",
       fabrica: "fabrica",
       material: "entrega",
-      montagem: "montagem",
+      entrega: "montagem",
+      montagem: "vistoria",
+      vistoria: "concluido",
       finalizacao: "concluido",
-      concluido: "concluido",
     };
     await supabase
       .from("pedidos")
-      .update({ workflow_estagio: stageMap[next] || row.pedido.workflow_estagio })
+      .update({ workflow_estagio: stageMap[row.etapa] || row.pedido.workflow_estagio })
       .eq("id", row.pedido.id);
     load();
   };
@@ -177,12 +173,14 @@ export default function RadarPrazos() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={CalendarDays}
-        iconVariant="purple"
-        title="Radar de Prazos"
-        subtitle="Gestão Inteligente de Cronogramas"
-      />
+      {!embedded && (
+        <PageHeader
+          icon={CalendarDays}
+          iconVariant="purple"
+          title="Radar de Prazos"
+          subtitle="Gestão Inteligente de Cronogramas"
+        />
+      )}
 
       {/* KPIs coloridos */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
