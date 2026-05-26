@@ -181,7 +181,8 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
 }
 
 function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
-  const hasActive = group.items.some((it) => pathname.startsWith(it.path));
+  const basePath = (p: string) => p.split("?")[0];
+  const hasActive = group.items.some((it) => pathname.startsWith(basePath(it.path)));
   const [open, setOpen] = useState(hasActive);
   return (
     <div className="mt-1.5">
@@ -197,7 +198,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
       {open && (
         <div className="px-2 mt-0.5 flex flex-col gap-0.5">
           {group.items.map((it) => {
-            const active = pathname.startsWith(it.path);
+            const active = pathname.startsWith(basePath(it.path));
             return (
               <NavLink
                 key={it.path}
