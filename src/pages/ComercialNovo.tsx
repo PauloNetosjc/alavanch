@@ -1186,7 +1186,6 @@ export default function ComercialNovo() {
                     <ComboInput
                       placeholder="Buscar por nº de contrato ou nome do projeto"
                       options={pedidosExistentes
-                        .filter((p) => !clienteId || p.cliente_id === clienteId)
                         .map((p) => ({ value: p.id, label: p.nome_projeto ? `${p.codigo} · ${p.nome_projeto}` : p.codigo }))}
                       onPick={setPedidoPaiId}
                     />
