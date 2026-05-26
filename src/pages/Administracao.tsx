@@ -84,7 +84,7 @@ export default function Administracao() {
             
             <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
             <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
-            <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
+            
             <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
             <TabsTrigger value="agenda"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Agenda</TabsTrigger>
           </TabsList>
