@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Truck, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { maskPhone, maskCPF, maskCNPJ } from "@/lib/masks";
+import { maskPhone, maskCpf, maskCnpj } from "@/lib/masks";
 
 type Fornecedor = {
   id: string;
