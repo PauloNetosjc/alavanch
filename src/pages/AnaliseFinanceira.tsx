@@ -80,9 +80,13 @@ export default function AnaliseFinanceira() {
   }
 
   const filtrados = useMemo(
-    () => pedidos.filter((p) => p.codigo.toLowerCase().includes(busca.toLowerCase())),
-    [pedidos, busca]
+    () => pedidos.filter((p) =>
+      p.codigo.toLowerCase().includes(busca.toLowerCase()) &&
+      (lojasFiltro.length === 0 || lojasFiltro.includes(p.loja_id || ""))
+    ),
+    [pedidos, busca, lojasFiltro]
   );
+
 
   const recebimentoReal = useMemo(
     () => lancs.filter((l) => l.tipo === "entrada" && l.status === "pago").reduce((a, b) => a + Number(b.valor), 0),
