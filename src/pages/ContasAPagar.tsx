@@ -25,6 +25,7 @@ type Lanc = {
   aprovacao_status: string | null;
   baixado_por: string | null;
   baixado_em: string | null;
+  fornecedor_id: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
