@@ -376,8 +376,8 @@ function AutorizacoesTab() {
               {visiveis.map((it) => (
                 <tr key={`${it.modulo}:${it.acao}`} className="hover:bg-muted/30">
                   <td className="px-3 py-2"><Badge variant="outline">{it.grupo || "Outros"}</Badge></td>
-                  <td className="px-3 py-2 font-medium">{it.modulo}</td>
-                  <td className="px-3 py-2"><Badge variant="secondary">{it.acao}</Badge></td>
+                  <td className="px-3 py-2 font-medium">{labelModulo(it.modulo)}</td>
+                  <td className="px-3 py-2"><Badge variant="secondary">{labelAcao(it.acao)}</Badge></td>
                   <td className="px-3 py-2 text-muted-foreground">{it.descricao || "—"}</td>
                   <td className="px-3 py-2 text-right">
                     <Button size="icon" variant="ghost" onClick={() => setEditing(it)}><Pencil className="w-4 h-4" /></Button>
