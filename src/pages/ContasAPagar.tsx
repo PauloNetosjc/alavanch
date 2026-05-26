@@ -88,7 +88,11 @@ export default function ContasAPagar() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
-      if (apenasPendentes && ["pago", "recebido", "conciliado"].includes(l.status || "")) return false;
+      const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
+      if (l.status !== "cancelado") {
+        if (isLiquidada && !incluirLiquidadas) return false;
+        if (!isLiquidada && !incluirPendentes) return false;
+      }
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
         const t = busca.toLowerCase();
