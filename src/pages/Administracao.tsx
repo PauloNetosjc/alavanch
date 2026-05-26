@@ -27,6 +27,7 @@ import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 import { AgendaAdmin } from "@/components/AgendaAdmin";
 import { PoliticaJurosAdmin } from "@/components/PoliticaJurosAdmin";
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
+import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -569,14 +570,7 @@ function Bancos() {
 }
 
 function MetodosPagamento() {
-  return <SimpleCrud title="Métodos de Pagamento" subtitle="Formas de pagamento, taxas e parcelamento máximo" icon={CreditCard} table="metodos_pagamento"
-    fields={[
-      { name: "nome", label: "Nome" },
-      { name: "taxa_perc_parcela", label: "Taxa por parcela (% a.m.)", type: "number", placeholder: "Ex.: 1.5" },
-      { name: "max_parcelas", label: "Máximo de parcelas", type: "number", placeholder: "Ex.: 12" },
-      { name: "ativo", label: "Ativo", type: "switch" },
-    ]}
-    defaultRow={{ nome: "", taxa_perc_parcela: 0, max_parcelas: 12, ativo: true }} />;
+  return <MetodosPagamentoAdmin />;
 }
 
 function Parceiros() {
