@@ -213,6 +213,8 @@ export default function ContasAReceber() {
         dtFim={dtFim} setDtFim={setDtFim}
         cats={cats}
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
+        fornecedores={fornecedores}
+        fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
