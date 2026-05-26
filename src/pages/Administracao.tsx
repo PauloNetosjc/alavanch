@@ -393,7 +393,7 @@ function Usuarios() {
 }
 
 /* ============================== CRUD GENÉRICO ============================== */
-type SimpleField = { name: string; label: string; type?: "text" | "number" | "switch" | "textarea"; placeholder?: string };
+type SimpleField = { name: string; label: string; type?: "text" | "number" | "switch" | "textarea" | "select"; placeholder?: string; optionsTable?: string; optionsLabel?: string; required?: boolean };
 
 function SimpleCrud({
   title, subtitle, icon: Icon, table, fields, defaultRow, orderBy = "nome",
@@ -405,6 +405,7 @@ function SimpleCrud({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(defaultRow);
+  const [optionsMap, setOptionsMap] = useState<Record<string, { id: string; label: string }[]>>({});
 
   const load = async () => {
     const { data, error } = await (supabase as any).from(table).select("*").order(orderBy);
@@ -412,13 +413,32 @@ function SimpleCrud({
     setRows(data ?? []);
   };
   useEffect(() => { load(); }, [table]);
+  useEffect(() => {
+    (async () => {
+      const map: Record<string, { id: string; label: string }[]> = {};
+      for (const f of fields) {
+        if (f.type === "select" && f.optionsTable) {
+          const labelCol = f.optionsLabel || "nome";
+          const { data } = await (supabase as any).from(f.optionsTable).select(`id, ${labelCol}`).order(labelCol);
+          map[f.name] = (data ?? []).map((r: any) => ({ id: r.id, label: r[labelCol] }));
+        }
+      }
+      setOptionsMap(map);
+    })();
+  }, [table]);
 
   const onNew = () => { setEditing(null); setForm(defaultRow); setOpen(true); };
   const onEdit = (r: any) => { setEditing(r); setForm({ ...r }); setOpen(true); };
 
   const salvar = async () => {
     const payload: any = {};
-    for (const f of fields) payload[f.name] = form[f.name] ?? null;
+    for (const f of fields) {
+      const v = form[f.name];
+      if (f.required && (v === undefined || v === null || v === "")) {
+        return toast.error(`${f.label} é obrigatório`);
+      }
+      payload[f.name] = v ?? null;
+    }
     if ("ativo" in defaultRow && form.ativo === undefined) payload.ativo = true;
     if ("ativo" in defaultRow) payload.ativo = !!form.ativo;
     const op = editing
@@ -460,7 +480,11 @@ function SimpleCrud({
               <tr key={r.id} className="border-t border-border">
                 {fields.filter((f) => f.type !== "textarea").map((f) => (
                   <td key={f.name} className="px-3 py-2">
-                    {f.type === "switch" ? (r[f.name] ? "Sim" : "Não") : (r[f.name] ?? "—")}
+                    {f.type === "switch"
+                      ? (r[f.name] ? "Sim" : "Não")
+                      : f.type === "select"
+                        ? (optionsMap[f.name]?.find((o) => o.id === r[f.name])?.label ?? "—")
+                        : (r[f.name] ?? "—")}
                   </td>
                 ))}
                 <td className="px-3 py-2 text-right">
@@ -488,6 +512,15 @@ function SimpleCrud({
                   </div>
                 ) : f.type === "textarea" ? (
                   <Textarea value={form[f.name] ?? ""} onChange={(e) => setForm({ ...form, [f.name]: e.target.value })} rows={4} />
+                ) : f.type === "select" ? (
+                  <Select value={form[f.name] || undefined} onValueChange={(v) => setForm({ ...form, [f.name]: v })}>
+                    <SelectTrigger><SelectValue placeholder={f.placeholder || "Selecione…"} /></SelectTrigger>
+                    <SelectContent>
+                      {(optionsMap[f.name] ?? []).map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input type={f.type === "number" ? "number" : "text"} placeholder={f.placeholder}
                     value={form[f.name] ?? ""} onChange={(e) => setForm({ ...form, [f.name]: f.type === "number" ? Number(e.target.value) : e.target.value })} />
@@ -524,14 +557,15 @@ function Lojas() {
 function Bancos() {
   return <SimpleCrud title="Contas Bancárias" subtitle="Bancos e contas para conciliação financeira" icon={Banknote} table="contas_bancarias"
     fields={[
-      { name: "nome", label: "Nome" },
+      { name: "nome", label: "Nome", required: true },
+      { name: "loja_id", label: "Loja", type: "select", optionsTable: "lojas", placeholder: "Selecione a loja", required: true },
       { name: "banco", label: "Banco" },
       { name: "agencia", label: "Agência" },
       { name: "conta", label: "Conta" },
       { name: "saldo_inicial", label: "Saldo inicial", type: "number" },
       { name: "ativo", label: "Ativo", type: "switch" },
     ]}
-    defaultRow={{ nome: "", banco: "", agencia: "", conta: "", saldo_inicial: 0, ativo: true }} />;
+    defaultRow={{ nome: "", loja_id: "", banco: "", agencia: "", conta: "", saldo_inicial: 0, ativo: true }} />;
 }
 
 function MetodosPagamento() {
