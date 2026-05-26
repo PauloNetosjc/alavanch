@@ -170,7 +170,7 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
             style={{
               width: 36,
               height: 36,
-              background: active ? "#1F1F1F" : "transparent",
+              background: active ? "var(--user-accent-bg, #1F1F1F)" : "transparent",
               color: active ? "#FFFFFF" : "#888888",
             }}
           >
