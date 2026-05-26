@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/KpiCard";
 import { toast } from "@/hooks/use-toast";
-import { mascararCPF, mascararTelefone } from "@/lib/masks";
+import { maskCpf, maskPhone } from "@/lib/masks";
 import {
   Users, UserPlus, Plane, AlertTriangle, Briefcase, UserX, Search,
   FileText, Upload, Trash2, Pencil, Calendar, AlertCircle,
@@ -331,10 +331,10 @@ export default function RH() {
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard label="Funcionários ativos" value={ativos.length} icon={Users} />
-            <KpiCard label="Em férias hoje" value={emFerias.length} icon={Plane} />
-            <KpiCard label="Vencimentos próximos" value={proximosVencimentos.length} icon={AlertCircle} />
-            <KpiCard label="Desligados" value={desligados.length} icon={UserX} />
+            <KpiCard label="Funcionários ativos" value={ativos.length} />
+            <KpiCard label="Em férias hoje" value={emFerias.length} />
+            <KpiCard label="Vencimentos próximos (30/60 dias)" value={proximosVencimentos.length} />
+            <KpiCard label="Desligados" value={desligados.length} />
           </div>
 
           <Card className="p-4">
