@@ -148,8 +148,7 @@ export default function ContasAReceber() {
     if (error) { toast.error(error.message); return; }
 
     if (diff > 0.005) {
-      const novoVenc = new Date();
-      novoVenc.setDate(novoVenc.getDate() + 30);
+      const novoVenc = baixaAlvo.data_vencimento || new Date().toISOString().slice(0, 10);
       const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
         tipo: "entrada",
         descricao: `${baixaAlvo.descricao || "Recebimento"} — saldo restante`,
