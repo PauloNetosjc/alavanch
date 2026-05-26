@@ -59,27 +59,34 @@ export default function Administracao() {
   if (isAdmin === false) return <Navigate to="/dashboard" replace />;
   if (isAdmin === null) return <div className="text-center py-20 text-muted-foreground text-[13px]">Verificando permissões…</div>;
 
+  const FINANCEIRO_TABS = ["descontos", "juros", "bancos", "pagamentos", "categorias"];
+  const isFinanceiro = FINANCEIRO_TABS.includes(tab);
+
   return (
     <div>
-      <PageHeader
-        icon={Settings} iconVariant="purple"
-        title="Administração"
-        subtitle="Controles do sistema, usuários, cadastros e regras"
-      />
+      {!isFinanceiro && (
+        <PageHeader
+          icon={Settings} iconVariant="purple"
+          title="Administração"
+          subtitle="Controles do sistema, usuários, cadastros e regras"
+        />
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
-        <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
-          <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
-          <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
-          <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
-          <TabsTrigger value="origens"><Tags className="w-3.5 h-3.5 mr-1.5" />Origens</TabsTrigger>
-          <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
-          <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
-          <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
-          <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
-          <TabsTrigger value="agenda"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Agenda</TabsTrigger>
-        </TabsList>
+        {!isFinanceiro && (
+          <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
+            <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
+            <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
+            <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
+            <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
+            <TabsTrigger value="origens"><Tags className="w-3.5 h-3.5 mr-1.5" />Origens</TabsTrigger>
+            <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
+            <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
+            <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
+            <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
+            <TabsTrigger value="agenda"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Agenda</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
