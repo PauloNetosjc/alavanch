@@ -54,16 +54,19 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Fábrica", path: "/kanban-fabrica", icon: Building2 },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
+];
+
+const moreSections: Section[] = [
   {
     label: "Administrativo",
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
+      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
