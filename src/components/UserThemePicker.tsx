@@ -30,6 +30,9 @@ export function applyUserTheme(p: Prefs) {
   r.style.setProperty("--primary", p.accent);
   r.style.setProperty("--ring", p.accent);
   r.style.setProperty("--sidebar-primary", p.accent);
+  // tokens lidos pela sidebar
+  r.style.setProperty("--user-accent", p.accent);
+  r.style.setProperty("--user-accent-bg", `hsl(${p.accent} / 0.22)`);
   // contraste
   if (p.contrast === "alto") {
     r.style.setProperty("--foreground", "0 0% 8%");
@@ -42,6 +45,7 @@ export function applyUserTheme(p: Prefs) {
   const size = p.fontSize === "sm" ? "14px" : p.fontSize === "lg" ? "17px" : "15px";
   r.style.setProperty("font-size", size);
 }
+
 
 export function useUserThemeBoot() {
   const { user } = useAuth();
