@@ -1996,6 +1996,7 @@ export type Database = {
       lojas: {
         Row: {
           ativo: boolean | null
+          cidade: string | null
           cnpj: string | null
           created_at: string
           email: string | null
@@ -2004,10 +2005,12 @@ export type Database = {
           nome: string
           sigla: string | null
           telefone: string | null
+          uf: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean | null
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -2016,10 +2019,12 @@ export type Database = {
           nome: string
           sigla?: string | null
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean | null
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -2028,6 +2033,7 @@ export type Database = {
           nome?: string
           sigla?: string | null
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2757,6 +2763,7 @@ export type Database = {
           ativo: boolean | null
           cpf_cnpj: string | null
           created_at: string
+          data_nascimento: string | null
           email: string | null
           endereco: string | null
           id: string
@@ -2771,6 +2778,7 @@ export type Database = {
           ativo?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -2785,6 +2793,7 @@ export type Database = {
           ativo?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -3618,6 +3627,7 @@ export type Database = {
           ativo: boolean | null
           avatar_url: string | null
           created_at: string
+          data_nascimento: string | null
           desconto_max_perc: number | null
           id: string
           loja_id: string | null
@@ -3630,6 +3640,7 @@ export type Database = {
           ativo?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          data_nascimento?: string | null
           desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
@@ -3642,6 +3653,7 @@ export type Database = {
           ativo?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          data_nascimento?: string | null
           desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
