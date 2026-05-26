@@ -1541,7 +1541,7 @@ export default function ComercialNegociacao() {
                 onClick={aplicarEntrada}
                 disabled={!entrada || entrada <= 0}
               >
-                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada como pagamento
+                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada
               </Button>
               <div className="text-[10px] text-muted-foreground mt-1 text-center">
                 Você pode adicionar quantas entradas precisar
