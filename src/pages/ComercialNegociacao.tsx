@@ -27,7 +27,7 @@ import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
+const FORMAS_PAGAMENTO_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 type Ambiente = {
   id: string;
