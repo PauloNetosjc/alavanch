@@ -35,6 +35,7 @@ import {
   Cog,
   Cake,
   Package,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -111,6 +112,7 @@ const moreGroups: Group[] = [
     icon: Cog,
     items: [
       { label: "Info Sistema", path: "/sistema/info", icon: Cog, roles: ["admin"] },
+      { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Administração (Usuários)", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
