@@ -125,9 +125,20 @@ export default function ContasAPagar() {
         </div>
       </div>
 
+      <LancamentosFiltros
+        busca={busca} setBusca={setBusca}
+        dtIni={dtIni} setDtIni={setDtIni}
+        dtFim={dtFim} setDtFim={setDtFim}
+        cats={cats}
+        categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
+        apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
+        mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
+      />
+
       <div className="rounded-2xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Vencimento</th>
