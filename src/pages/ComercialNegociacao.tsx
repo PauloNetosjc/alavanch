@@ -1364,17 +1364,27 @@ export default function ComercialNegociacao() {
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
                     const max = Math.max(1, Number(met?.max_parcelas) || 24);
-                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}x{(Number(met?.taxa_perc_parcela)||0) > 0 && n>1 ? ` · ${Number(met?.taxa_perc_parcela).toFixed(2)}% a.m.` : ""}</SelectItem>
-                    ));
+                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => {
+                      const cfg = met?.parcelas_config?.find((p) => Number(p.numero) === n);
+                      const desc = Number(cfg?.desconto_perc) || 0;
+                      const juros = Number(cfg?.juros_perc ?? met?.taxa_perc_parcela) || 0;
+                      const extras: string[] = [];
+                      if (desc > 0) extras.push(`-${desc.toFixed(2)}% desc.`);
+                      if (juros > 0 && n > 1) extras.push(`${juros.toFixed(2)}% juros`);
+                      return (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}x{extras.length ? ` · ${extras.join(" · ")}` : ""}
+                        </SelectItem>
+                      );
+                    });
                   })()}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Valor</Label>
-              <Input type="number" step="0.01" value={novoValor || ""}
-                onChange={(e) => setNovoValor(Number(e.target.value) || 0)} placeholder="0,00" />
+              {descontoMetodoPerc > 0 && novoMetodo && (
+                <div className="text-[11px] text-emerald-700 mt-1">
+                  Desconto da forma de pagamento: -{descontoMetodoPerc.toFixed(2)}% ({fmtBrl(descontoMetodoValor)})
+                </div>
+              )}
             </div>
             <div>
               <Label>Entrada (à vista, sem juros)</Label>
