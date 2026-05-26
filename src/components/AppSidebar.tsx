@@ -23,7 +23,9 @@ import {
   LifeBuoy,
   Zap,
   PenLine,
+  MoreHorizontal,
 } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
@@ -54,16 +56,19 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Fábrica", path: "/kanban-fabrica", icon: Building2 },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
+];
+
+const moreSections: Section[] = [
   {
     label: "Administrativo",
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
+      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
@@ -85,21 +90,61 @@ const sections: Section[] = [
   },
 ];
 
+function renderSection(section: Section, pathname: string, onNavigate?: () => void) {
+  return (
+    <div key={section.label} className="mt-2">
+      <div
+        className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
+        style={{ color: "#444", letterSpacing: "0.12em" }}
+      >
+        {section.label}
+      </div>
+      <div className="px-2 flex flex-col gap-0.5">
+        {section.items.map((it) => {
+          const active = pathname.startsWith(it.path);
+          return (
+            <NavLink
+              key={it.path}
+              to={it.path}
+              onClick={onNavigate}
+              className="group flex items-center gap-2.5 rounded-md transition-colors"
+              style={{
+                padding: "7px 14px",
+                background: active ? "#1F1F1F" : "transparent",
+                color: active ? "#FFFFFF" : "#888888",
+                fontSize: "12.5px",
+              }}
+            >
+              <span
+                className="inline-block rounded-full"
+                style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }}
+              />
+              <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
+              <span className="flex-1">{it.label}</span>
+            </NavLink>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
-  const visibleSections = sections
-    .map((s) => ({
-      ...s,
-      items: s.items.filter((it) => {
-        if (it.modulo && !can(it.modulo, "view")) return false;
-        if (it.roles && !it.roles.includes(role || "")) return false;
-        return true;
-      }),
-    }))
-    .filter((s) => s.items.length > 0);
+  const filterSection = (s: Section) => ({
+    ...s,
+    items: s.items.filter((it) => {
+      if (it.modulo && !can(it.modulo, "view")) return false;
+      if (it.roles && !it.roles.includes(role || "")) return false;
+      return true;
+    }),
+  });
+  const visibleSections = sections.map(filterSection).filter((s) => s.items.length > 0);
+  const visibleMoreSections = moreSections.map(filterSection).filter((s) => s.items.length > 0);
+
 
   const initials = (profile?.nome_completo || user?.email || "?")
     .split(" ")
@@ -138,47 +183,38 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Sections */}
       <nav className="flex-1 overflow-y-auto pb-4">
-        {visibleSections.map((section) => (
-          <div key={section.label} className="mt-2">
-            <div
-              className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
-              style={{ color: "#444", letterSpacing: "0.12em" }}
-            >
-              {section.label}
-            </div>
-            <div className="px-2 flex flex-col gap-0.5">
-              {section.items.map((it) => {
-                const active = pathname.startsWith(it.path);
-                return (
-                  <NavLink
-                    key={it.path}
-                    to={it.path}
-                    onClick={onNavigate}
-                    className="group flex items-center gap-2.5 rounded-md transition-colors"
-                    style={{
-                      padding: "7px 14px",
-                      background: active ? "#1F1F1F" : "transparent",
-                      color: active ? "#FFFFFF" : "#888888",
-                      fontSize: "12.5px",
-                    }}
-                  >
-                    <span
-                      className="inline-block rounded-full"
-                      style={{
-                        width: 4,
-                        height: 4,
-                        background: active ? "#C9B99A" : "#444",
-                      }}
-                    />
-                    <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
-                    <span className="flex-1">{it.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {visibleSections.map((section) => renderSection(section, pathname, onNavigate))}
       </nav>
+
+      {/* More (Administrativo / Configuração) */}
+      {visibleMoreSections.length > 0 && (
+        <div className="px-4 pb-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="w-full flex items-center justify-center gap-2 rounded-md py-2 transition-colors hover:bg-[#1A1A1A]"
+                style={{ color: "#888", border: "0.5px solid #222" }}
+                aria-label="Mais opções"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                <span className="text-[11px] uppercase tracking-[0.12em]">Mais</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="end"
+              sideOffset={8}
+              className="w-64 p-0 border-0"
+              style={{ background: "#0F0F0F", border: "0.5px solid #222" }}
+            >
+              <div className="py-2 max-h-[70vh] overflow-y-auto">
+                {visibleMoreSections.map((section) => renderSection(section, pathname, onNavigate))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+
 
       {/* Footer */}
       <div className="px-4 pt-3 pb-4" style={{ borderTop: "0.5px solid #222" }}>
