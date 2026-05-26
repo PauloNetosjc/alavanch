@@ -264,6 +264,7 @@ export default function ContasAPagar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => imprimirLista(toRows(), "Contas a Pagar")}>
               <Printer className="w-4 h-4 mr-1" /> Imprimir
