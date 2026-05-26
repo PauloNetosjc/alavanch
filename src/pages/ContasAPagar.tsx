@@ -103,7 +103,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
     const agora = new Date();
