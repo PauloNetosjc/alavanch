@@ -33,10 +33,16 @@ export default function AnaliseFinanceira() {
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
   useEffect(() => {
     supabase
       .from("pedidos")
-      .select("id, codigo, cliente_id, valor_total")
+      .select("id, codigo, cliente_id, valor_total, loja_id")
       .order("created_at", { ascending: false })
       .limit(100)
       .then(({ data }) => setPedidos((data as Pedido[]) || []));
@@ -45,6 +51,8 @@ export default function AnaliseFinanceira() {
       .select("id, nome")
       .then(({ data }) => setCats((data as Cat[]) || []));
   }, []);
+
+
 
   useEffect(() => {
     if (!id) return;
