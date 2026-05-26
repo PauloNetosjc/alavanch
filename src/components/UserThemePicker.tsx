@@ -72,6 +72,29 @@ export function UserThemePicker({ collapsed = false }: { collapsed?: boolean }) 
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  // Posição ancorada ao botão (popover sai para a direita da sidebar)
+  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+  useEffect(() => {
+    if (!open) { setPos(null); return; }
+    const update = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      const w = 260, gap = 8;
+      let left = r.right + gap;
+      // se não couber à direita, encosta na borda direita da viewport
+      if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
+      const bottom = Math.max(8, window.innerHeight - r.bottom);
+      setPos({ left, bottom });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
   const update = (patch: Partial<Prefs>) => {
     const next = { ...prefs, ...patch };
     setPrefs(next);
@@ -96,14 +119,14 @@ export function UserThemePicker({ collapsed = false }: { collapsed?: boolean }) 
         <Palette className="w-3.5 h-3.5" />
       </button>
 
-      {open && (
+      {open && pos && (
         <div
           className="fixed z-[100] w-[260px] rounded-md p-3 shadow-xl"
           style={{
             background: "#1A1A1A",
             border: "0.5px solid #2A2A2A",
-            left: (ref.current?.getBoundingClientRect().right ?? 0) + 8,
-            bottom: window.innerHeight - (ref.current?.getBoundingClientRect().bottom ?? 0),
+            left: pos.left,
+            bottom: pos.bottom,
           }}
         >
           <div className="text-[10px] uppercase tracking-[0.12em] text-[#888] mb-2">Cor de destaque</div>
