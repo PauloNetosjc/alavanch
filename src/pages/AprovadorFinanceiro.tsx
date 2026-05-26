@@ -46,6 +46,14 @@ export default function AprovadorFinanceiro() {
   const [tab, setTab] = useState<"pagar" | "receber">("pagar");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
+
+
   async function loadPerm() {
     if (!user) return;
     if (role === "admin") { setPerm({ pagar: true, receber: true }); return; }
