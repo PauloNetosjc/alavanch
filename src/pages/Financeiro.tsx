@@ -40,7 +40,7 @@ import {
   FileBarChart,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+
 import { BRL } from "@/lib/financeiro";
 import { exportarCSV, type LancRow } from "@/lib/exportFinanceiro";
 import { toast } from "sonner";
