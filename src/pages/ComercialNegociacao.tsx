@@ -1488,7 +1488,7 @@ export default function ComercialNegociacao() {
             <div>
               <Label>Número de Parcelas</Label>
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
-                <SelectTrigger><span className="text-[13px]">{novoParcelas}x</span></SelectTrigger>
+                <SelectTrigger><span className="text-[13px]">{novoParcelas > 0 ? `${novoParcelas}x` : <span className="text-muted-foreground">Selecione...</span>}</span></SelectTrigger>
                 <SelectContent>
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
