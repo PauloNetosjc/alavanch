@@ -64,7 +64,7 @@ const sections: Section[] = [
 
 const moreSections: Section[] = [
   {
-    label: "Administrativo",
+    label: "Configuração Sistema",
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
@@ -74,11 +74,6 @@ const moreSections: Section[] = [
       { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
       { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
-    ],
-  },
-  {
-    label: "Configuração",
-    items: [
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
