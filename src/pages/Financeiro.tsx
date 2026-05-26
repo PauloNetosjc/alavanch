@@ -181,6 +181,7 @@ export default function Financeiro() {
       }
       if (tipoFiltro !== "todos" && l.tipo !== tipoFiltro) return false;
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       const isLiquidada = l.status === "pago" || l.status === "recebido" || l.status === "conciliado";
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
