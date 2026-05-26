@@ -938,14 +938,9 @@ export default function ComercialNovo() {
         </div>
       )}
       {parceiro && (
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-muted-foreground text-[11px]">Parceiro</div>
-            <div className="font-semibold">{parceiro.nome}</div>
-          </div>
-          <div className="text-[12px] text-muted-foreground">
-            Ind: <span className="font-semibold text-foreground">{parceiroPerc.toFixed(2)}%</span>
-          </div>
+        <div>
+          <div className="text-muted-foreground text-[11px]">Parceiro</div>
+          <div className="font-semibold">{parceiro.nome}</div>
         </div>
       )}
       {projetistaId && (
