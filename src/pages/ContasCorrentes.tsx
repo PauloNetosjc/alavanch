@@ -11,16 +11,19 @@ import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye, 
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
 type Conta = {
   id: string; nome: string; tipo: string | null; banco: string | null;
   agencia: string | null; conta: string | null; saldo_inicial: number | null;
-  ativo: boolean | null; cor: string | null;
+  ativo: boolean | null; cor: string | null; loja_id: string | null;
 };
 type Cartao = {
   id: string; nome: string; ultimos_digitos: string | null; bandeira: string | null;
-  dia_fechamento: number | null; dia_vencimento: number | null; conta_id: string | null; ativo: boolean | null;
+  dia_fechamento: number | null; dia_vencimento: number | null; conta_id: string | null; ativo: boolean | null; loja_id: string | null;
 };
+
 
 export default function ContasCorrentes() {
   const nav = useNavigate();
