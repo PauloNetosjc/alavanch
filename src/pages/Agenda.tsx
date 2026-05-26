@@ -110,7 +110,21 @@ export default function Agenda() {
     (async () => {
       const { data } = await supabase.from("profiles").select("user_id, nome_completo").order("nome_completo");
       setResponsaveis((data as any) || []);
+
+      // Auto-sincroniza feriados se a tabela estiver vazia
+      const { count } = await supabase.from("agenda_feriados" as any).select("id", { count: "exact", head: true });
+      if ((count ?? 0) === 0) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-feriados`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          });
+          reload();
+        } catch { /* ignora */ }
+      }
     })();
+    // eslint-disable-next-line
   }, []);
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [range.ini.getTime(), range.fim.getTime(), filtroResp, filtroTipo, filtroLoja]);
 
@@ -122,6 +136,14 @@ export default function Agenda() {
     });
     return m;
   }, [eventos]);
+
+  const feriadosPorDia = useMemo(() => {
+    const m = new Map<string, string[]>();
+    feriados.forEach((f) => {
+      const arr = m.get(f.data) || []; arr.push(f.descricao); m.set(f.data, arr);
+    });
+    return m;
+  }, [feriados]);
 
   const monthGrid = useMemo(() => {
     const ini = startOfMonth(cursor);
