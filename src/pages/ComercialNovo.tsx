@@ -511,14 +511,15 @@ export default function ComercialNovo() {
       setOrigens((og.data ?? []) as any);
       setPedidosExistentes((peds.data ?? []) as any);
       setUsarMarkup(!!(cfg.data as any)?.usar_markup);
-      // defaults em criação: consultor=usuário, projetista=usuário, loja=loja do usuário
+      // defaults em criação: consultor=usuário, projetista=usuário, loja=loja selecionada no topo (ou do usuário)
       if (!isEdit) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) { setConsultorId(u.user.id); setProjetistaId(u.user.id); }
-        if (profile?.loja_id) setLojaId(profile.loja_id);
+        const defaultLoja = selectedLojaId || profile?.loja_id;
+        if (defaultLoja) setLojaId(defaultLoja);
       }
     })();
-  }, [isEdit, profile?.loja_id]);
+  }, [isEdit, profile?.loja_id, selectedLojaId]);
 
   // Auto-prefill origem ao escolher cliente (ex: cliente veio de uma apresentação agendada)
   useEffect(() => {
