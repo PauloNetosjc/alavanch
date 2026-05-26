@@ -35,6 +35,7 @@ import {
   Cog,
   Cake,
   Package,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
