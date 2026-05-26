@@ -97,7 +97,7 @@ export default function Produtos() {
     };
     const { error } = editing
       ? await supabase.from("produtos").update(payload).eq("id", editing.id)
-      : await supabase.from("produtos").insert(payload);
+      : await supabase.from("produtos").insert(payload as any);
     if (error) return toast.error(error.message);
     toast.success(editing ? "Produto atualizado" : "Produto cadastrado");
     setOpen(false);
