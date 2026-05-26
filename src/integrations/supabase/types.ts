@@ -3064,6 +3064,9 @@ export type Database = {
           orcamento_id: string | null
           ordem: number | null
           pedido_id: string | null
+          preco_custo_unit: number
+          produto_id: string | null
+          quantidade: number
           valor_venda: number
         }
         Insert: {
@@ -3075,6 +3078,9 @@ export type Database = {
           orcamento_id?: string | null
           ordem?: number | null
           pedido_id?: string | null
+          preco_custo_unit?: number
+          produto_id?: string | null
+          quantidade?: number
           valor_venda?: number
         }
         Update: {
@@ -3086,9 +3092,20 @@ export type Database = {
           orcamento_id?: string | null
           ordem?: number | null
           pedido_id?: string | null
+          preco_custo_unit?: number
+          produto_id?: string | null
+          quantidade?: number
           valor_venda?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_avulsos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedido_pastas: {
         Row: {
