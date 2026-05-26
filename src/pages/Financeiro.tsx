@@ -182,6 +182,7 @@ export default function Financeiro() {
   // Filtragem
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      if (lojasFiltro.length > 0 && !lojasFiltro.includes(l.loja_id || "")) return false;
       const isAprov = l.aprovacao_status === "aprovado";
       if (!incluirAprovadas && !incluirNaoAprovadas) return false;
       if (isAprov && !incluirAprovadas) return false;
