@@ -207,7 +207,7 @@ function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group;
         className="w-full flex items-center gap-2 px-4 py-2 rounded-md transition-colors hover:bg-[#1A1A1A]"
         style={{ color: hasActive ? "#FFFFFF" : "#CCCCCC" }}
       >
-        <group.icon className={hasActive ? "w-3.5 h-3.5 text-[#C9B99A]" : "w-3.5 h-3.5 text-[#888]"} />
+        <group.icon className={hasActive ? "w-3.5 h-3.5" : "w-3.5 h-3.5 text-[#888]"} style={hasActive ? { color: "hsl(var(--user-accent, 38 45% 55%))" } : undefined} />
         <span className="flex-1 text-left text-[12.5px] font-medium">{group.label}</span>
         {open ? <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#666]" />}
       </button>
@@ -223,12 +223,12 @@ function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group;
                 className="flex items-center gap-2.5 rounded-md transition-colors"
                 style={{
                   padding: "6px 14px 6px 32px",
-                  background: active ? "#1F1F1F" : "transparent",
+                  background: active ? "var(--user-accent-bg, #1F1F1F)" : "transparent",
                   color: active ? "#FFFFFF" : "#888888",
                   fontSize: "12px",
                 }}
               >
-                <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }} />
+                <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "hsl(var(--user-accent, 38 45% 55%))" : "#444" }} />
                 <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
                 <span className="flex-1">{it.label}</span>
               </NavLink>
