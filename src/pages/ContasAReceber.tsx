@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info } from "lucide-
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
+import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
 
 type Lanc = {
   id: string;
