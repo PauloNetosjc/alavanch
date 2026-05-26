@@ -437,7 +437,7 @@ export default function ComercialNegociacao() {
   const [novoValor, setNovoValor] = useState<number>(0);
   const [novoParcelas, setNovoParcelas] = useState<number>(1);
   const [novoVenc, setNovoVenc] = useState<string>("");
-  const [percRapido, setPercRapido] = useState<number>(25);
+  const [entrada, setEntrada] = useState<number>(0);
 
   // dialogs
   const [openSenha, setOpenSenha] = useState(false);
