@@ -303,11 +303,21 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
                   <span className="text-[11px] font-medium text-white">{(brandNome || "P").trim().charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <div className="leading-tight min-w-0">
+              <div className="leading-tight min-w-0 flex-1">
                 <div className="text-[13px] font-medium text-white tracking-[0.02em] truncate" title={brandNome}>{brandNome}</div>
                 <div className="text-[9px] uppercase text-[#555] tracking-[0.12em] mt-0.5">Sistema</div>
               </div>
+              {!moreOpen && (
+                <button onClick={toggleCollapse} title="Recolher menu" className="text-[#666] hover:text-white transition-colors">
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+              )}
             </div>
+          )}
+          {collapsed && !moreOpen && (
+            <button onClick={toggleCollapse} title="Expandir menu" className="absolute mt-9 text-[#666] hover:text-white transition-colors">
+              <ChevronsRight className="w-4 h-4" />
+            </button>
           )}
         </div>
 
