@@ -326,12 +326,17 @@ export default function Agenda() {
                 <div className="border-r" />
                 {weekDays.map((d) => {
                   const isToday = fmtKey(d) === todayKey;
+                  const fers = feriadosPorDia.get(fmtKey(d)) || [];
+                  const isFeriado = fers.length > 0;
                   return (
-                    <div key={fmtKey(d)} className={`p-2 text-center border-r ${isToday ? "bg-primary/5" : ""}`}>
+                    <div key={fmtKey(d)} className={`p-2 text-center border-r ${isFeriado ? "bg-rose-50" : isToday ? "bg-primary/5" : ""}`} title={fers.join(" · ")}>
                       <div className="text-[10px] uppercase text-muted-foreground">
                         {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.getDay()]}
                       </div>
-                      <div className={`text-[18px] font-semibold ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
+                      <div className={`text-[18px] font-semibold ${isToday ? "text-primary" : isFeriado ? "text-rose-700" : ""}`}>{d.getDate()}</div>
+                      {isFeriado && (
+                        <div className="text-[9px] text-rose-700 truncate mt-0.5" title={fers.join(" · ")}>🎉 {fers[0]}</div>
+                      )}
                     </div>
                   );
                 })}
