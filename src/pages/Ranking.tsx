@@ -12,6 +12,8 @@ const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", cur
 export default function Ranking() {
   const { selectedLojaId } = useLoja();
   const [periodo, setPeriodo] = useState<PeriodoState>(defaultPeriodoMes());
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
+  useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [rows, setRows] = useState<Row[]>([]);
   const [metaGlobal, setMetaGlobal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -22,11 +24,11 @@ export default function Ranking() {
       setLoading(true);
       let qOrc = supabase.from("orcamentos").select("consultor_id, total, status, created_at, loja_id");
       if (inicio && fim) qOrc = qOrc.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
-      if (selectedLojaId) qOrc = qOrc.eq("loja_id", selectedLojaId);
+      if (lojasFiltro.length > 0) qOrc = qOrc.in("loja_id", lojasFiltro);
 
       const r = periodo.ref;
       let qMetas = supabase.from("metas_vendas" as any).select("vendedor_id, meta_valor, loja_id").eq("ano", r.getFullYear()).eq("mes", r.getMonth() + 1);
-      if (selectedLojaId) qMetas = qMetas.eq("loja_id", selectedLojaId);
+      if (lojasFiltro.length > 0) qMetas = qMetas.in("loja_id", lojasFiltro);
 
       const [{ data: orcs }, { data: profs }, { data: metasData }] = await Promise.all([
         qOrc, supabase.from("profiles").select("user_id, nome_completo"), qMetas,
@@ -62,7 +64,7 @@ export default function Ranking() {
         }, 350);
       }
     })();
-  }, [periodo, selectedLojaId]);
+  }, [periodo, lojasFiltro]);
 
   const totalRealizado = rows.reduce((s, r) => s + r.total, 0);
   const pctGlobal = metaGlobal > 0 ? (totalRealizado / metaGlobal) * 100 : 0;
@@ -82,7 +84,7 @@ export default function Ranking() {
             <p className="text-[12px] text-muted-foreground mt-1">Performance, taxa de conversão e meta</p>
           </div>
         </div>
-        <PageFilters value={periodo} onChange={setPeriodo} options={["mes", "ano", "personalizado"]} />
+        <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} options={["mes", "ano", "personalizado"]} />
       </div>
 
       {/* Meta global */}
