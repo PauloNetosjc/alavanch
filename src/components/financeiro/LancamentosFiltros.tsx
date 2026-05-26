@@ -109,10 +109,6 @@ export default function LancamentosFiltros(p: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Categoria */}
-        <div className="rounded-xl border bg-card p-3 space-y-2">
-          <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Categoria</div>
-          <Select
         {/* Categoria + Fornecedor */}
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Categoria</div>
