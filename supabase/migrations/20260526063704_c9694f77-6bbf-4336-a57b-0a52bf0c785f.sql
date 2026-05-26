@@ -1,0 +1,1 @@
+ALTER TABLE public.metodos_pagamento ADD COLUMN IF NOT EXISTS agrupado boolean NOT NULL DEFAULT false;

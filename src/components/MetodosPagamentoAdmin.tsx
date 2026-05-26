@@ -14,13 +14,13 @@ type ParcelaConfig = {
   forma_pagamento: string;
   desconto_perc: number;
   juros_modo: "absorver" | "repassar";
-  agrupamento: "agrupado" | "desmembrado";
 };
 
 type Metodo = {
   id: string;
   nome: string;
   ativo: boolean;
+  agrupado: boolean;
   taxa_perc_parcela: number;
   max_parcelas: number;
   parcelas_config: ParcelaConfig[];
@@ -29,7 +29,7 @@ type Metodo = {
 const FORMAS = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
-  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0, juros_modo: "repassar", agrupamento: "desmembrado" };
+  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0, juros_modo: "repassar" };
 }
 
 export function MetodosPagamentoAdmin() {
@@ -42,11 +42,12 @@ export function MetodosPagamentoAdmin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("metodos_pagamento")
-      .select("id, nome, ativo, taxa_perc_parcela, max_parcelas, parcelas_config")
+      .select("id, nome, ativo, agrupado, taxa_perc_parcela, max_parcelas, parcelas_config")
       .order("nome");
     if (error) toast.error(error.message);
     setRows(((data ?? []) as any[]).map((r) => ({
       ...r,
+      agrupado: !!r.agrupado,
       parcelas_config: Array.isArray(r.parcelas_config) ? r.parcelas_config : [],
     })) as Metodo[]);
     setLoading(false);
@@ -55,7 +56,7 @@ export function MetodosPagamentoAdmin() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => {
-    setEditing({ id: "", nome: "", ativo: true, taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
+    setEditing({ id: "", nome: "", ativo: true, agrupado: false, taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
     setOpen(true);
   };
 
@@ -63,7 +64,6 @@ export function MetodosPagamentoAdmin() {
     const parcelas: ParcelaConfig[] = m.parcelas_config.length > 0
       ? m.parcelas_config.map((p) => ({
           juros_modo: "repassar",
-          agrupamento: "desmembrado",
           ...p,
         }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
@@ -72,7 +72,6 @@ export function MetodosPagamentoAdmin() {
           forma_pagamento: "Boleto",
           desconto_perc: 0,
           juros_modo: "repassar" as const,
-          agrupamento: "desmembrado" as const,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
     setOpen(true);
@@ -84,6 +83,7 @@ export function MetodosPagamentoAdmin() {
     const payload = {
       nome: editing.nome.trim(),
       ativo: editing.ativo,
+      agrupado: editing.agrupado,
       taxa_perc_parcela: editing.taxa_perc_parcela || 0,
       max_parcelas: editing.parcelas_config.length || 1,
       parcelas_config: editing.parcelas_config as any,
@@ -149,6 +149,7 @@ export function MetodosPagamentoAdmin() {
               <tr>
                 <th className="py-2 px-2">Nome</th>
                 <th className="py-2 px-2">Parcelas</th>
+                <th className="py-2 px-2">Agrupado</th>
                 <th className="py-2 px-2">Ativo</th>
                 <th className="py-2 px-2 w-24 text-right">Ações</th>
               </tr>
@@ -158,6 +159,7 @@ export function MetodosPagamentoAdmin() {
                 <tr key={r.id} className="border-b border-border/60 hover:bg-muted/30">
                   <td className="py-2 px-2 font-medium">{r.nome}</td>
                   <td className="py-2 px-2">{r.parcelas_config?.length || r.max_parcelas}</td>
+                  <td className="py-2 px-2">{r.agrupado ? "Sim" : "Não"}</td>
                   <td className="py-2 px-2">{r.ativo ? "Sim" : "Não"}</td>
                   <td className="py-2 px-2 text-right">
                     <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>
@@ -182,9 +184,23 @@ export function MetodosPagamentoAdmin() {
                   <Label>Nome</Label>
                   <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
                 </div>
-                <div className="flex items-end gap-2">
-                  <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
-                  <span className="text-[13px]">Ativo</span>
+                <div className="flex items-end gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
+                    <span className="text-[13px]">Ativo</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-muted/30">
+                <Switch checked={editing.agrupado} onCheckedChange={(v) => setEditing({ ...editing, agrupado: v })} />
+                <div>
+                  <div className="text-[13px] font-medium">Agrupar parcelas no financeiro</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {editing.agrupado
+                      ? "Cai como uma única parcela agrupada no financeiro."
+                      : "Cai desmembrado, parcela a parcela, no financeiro."}
+                  </div>
                 </div>
               </div>
 
@@ -200,9 +216,8 @@ export function MetodosPagamentoAdmin() {
                         <th className="py-2 px-2 text-left w-16">Parcela</th>
                         <th className="py-2 px-2 text-left">Forma de Pagamento</th>
                         <th className="py-2 px-2 text-left w-28">Juros (%)</th>
-                        <th className="py-2 px-2 text-left w-32">Juros</th>
+                        <th className="py-2 px-2 text-left w-40">Juros</th>
                         <th className="py-2 px-2 text-left w-28">Desconto (%)</th>
-                        <th className="py-2 px-2 text-left w-36">Agrupamento</th>
                         <th className="py-2 px-2 w-10"></th>
                       </tr>
                     </thead>
@@ -244,16 +259,6 @@ export function MetodosPagamentoAdmin() {
                               value={p.desconto_perc}
                               onChange={(e) => updateParcela(i, { desconto_perc: Number(e.target.value) || 0 })}
                             />
-                          </td>
-                          <td className="py-1.5 px-2">
-                            <select
-                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
-                              value={p.agrupamento}
-                              onChange={(e) => updateParcela(i, { agrupamento: e.target.value as ParcelaConfig["agrupamento"] })}
-                            >
-                              <option value="desmembrado">Parcela a parcela</option>
-                              <option value="agrupado">Agrupado (única)</option>
-                            </select>
                           </td>
                           <td className="py-1.5 px-2 text-right">
                             <Button size="sm" variant="ghost" onClick={() => removeParcela(i)}>

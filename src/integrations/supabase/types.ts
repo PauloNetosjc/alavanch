@@ -2140,6 +2140,7 @@ export type Database = {
       }
       metodos_pagamento: {
         Row: {
+          agrupado: boolean
           ativo: boolean | null
           created_at: string
           id: string
@@ -2149,6 +2150,7 @@ export type Database = {
           taxa_perc_parcela: number
         }
         Insert: {
+          agrupado?: boolean
           ativo?: boolean | null
           created_at?: string
           id?: string
@@ -2158,6 +2160,7 @@ export type Database = {
           taxa_perc_parcela?: number
         }
         Update: {
+          agrupado?: boolean
           ativo?: boolean | null
           created_at?: string
           id?: string
