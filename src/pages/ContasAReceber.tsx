@@ -97,6 +97,11 @@ export default function ContasAReceber() {
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+  const pedidoData = (id: string | null) => {
+    const p = pedidos.find((x) => x.id === id);
+    if (!p?.created_at) return "—";
+    try { return new Date(p.created_at).toLocaleDateString("pt-BR"); } catch { return "—"; }
+  };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
   const filtrados = useMemo(() => {
