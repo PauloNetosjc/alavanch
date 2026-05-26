@@ -793,6 +793,32 @@ export default function Financeiro() {
         contas={contas}
         onDone={() => { setLiquidarOpen(false); setLiquidando(null); load(); }}
       />
+
+      {/* DIALOG NOVO FORNECEDOR (rápido) */}
+      <Dialog open={novoFornOpen} onOpenChange={setNovoFornOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="text-lg font-semibold">Incluir novo fornecedor</div>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Nome / Razão social *</Label>
+              <Input value={novoFornNome} onChange={(e) => setNovoFornNome(e.target.value)} placeholder="Nome do fornecedor" autoFocus />
+            </div>
+            <div>
+              <Label className="text-xs">CPF / CNPJ (opcional)</Label>
+              <Input value={novoFornDoc} onChange={(e) => setNovoFornDoc(e.target.value)} placeholder="Documento" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Você poderá completar os dados do fornecedor depois em Cadastros → Fornecedores.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNovoFornOpen(false)}>Cancelar</Button>
+            <Button onClick={criarFornecedorRapido} className="bg-violet-600 hover:bg-violet-700 text-white">Cadastrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
