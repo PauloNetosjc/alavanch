@@ -615,8 +615,8 @@ export default function ComercialNovo() {
     [ambientes, isAdendo, adendoValor],
   );
   const acrescimoParceiro = useMemo(
-    () => isAdendo ? 0 : subtotalAmbientes * ((parceiroPerc || 0) / 100),
-    [subtotalAmbientes, parceiroPerc, isAdendo],
+    () => subtotalAmbientes * ((parceiroPerc || 0) / 100),
+    [subtotalAmbientes, parceiroPerc],
   );
   const total = subtotalAmbientes + acrescimoParceiro;
 
