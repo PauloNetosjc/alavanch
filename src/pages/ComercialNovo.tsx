@@ -449,7 +449,7 @@ export default function ComercialNovo() {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
-  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null }[]>([]);
+  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null; nome_projeto: string | null }[]>([]);
   const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
 
   // ---- step 1 ----
@@ -502,7 +502,7 @@ export default function ComercialNovo() {
         supabase.from("parceiros").select("id, nome, percentual_padrao").eq("ativo", true).order("nome"),
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
         supabase.from("origens_lead").select("id, nome").eq("ativo", true).order("nome"),
-        supabase.from("pedidos").select("id, codigo, cliente_id").order("created_at", { ascending: false }).limit(500),
+        supabase.from("pedidos").select("id, codigo, cliente_id, nome_projeto").order("created_at", { ascending: false }).limit(500),
         supabase.from("configuracoes_empresa" as any).select("usar_markup").limit(1).maybeSingle(),
       ]);
       setClientes((c.data ?? []) as Cliente[]);
@@ -1167,14 +1167,30 @@ export default function ComercialNovo() {
               {tipoOrcamento !== "pedido" && (
                 <div>
                   <Label>Pedido de Origem</Label>
-                  <Select value={pedidoPaiId} onValueChange={setPedidoPaiId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o pedido pai" /></SelectTrigger>
-                    <SelectContent>
-                      {pedidosExistentes
+                  {pedidoPaiId ? (
+                    (() => {
+                      const ped = pedidosExistentes.find((p) => p.id === pedidoPaiId);
+                      return (
+                        <div className="flex items-center justify-between border border-input rounded-md px-3 py-2.5 text-[14px]">
+                          <span className="truncate">
+                            <span className="font-medium">{ped?.codigo ?? "—"}</span>
+                            {ped?.nome_projeto && <span className="text-muted-foreground"> · {ped.nome_projeto}</span>}
+                          </span>
+                          <button onClick={() => setPedidoPaiId("")} className="text-rose-500 hover:text-rose-600">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <ComboInput
+                      placeholder="Buscar por nº de contrato ou nome do projeto"
+                      options={pedidosExistentes
                         .filter((p) => !clienteId || p.cliente_id === clienteId)
-                        .map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                        .map((p) => ({ value: p.id, label: p.nome_projeto ? `${p.codigo} · ${p.nome_projeto}` : p.codigo }))}
+                      onPick={setPedidoPaiId}
+                    />
+                  )}
                 </div>
               )}
 
