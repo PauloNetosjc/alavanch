@@ -202,11 +202,20 @@ export default function ContasAPagar() {
             </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Pendente</div>
-          <div className="text-2xl font-bold text-rose-700">{BRL(total)}</div>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => imprimirLista(toRows(), "Contas a Pagar")}>
+              <Printer className="w-4 h-4 mr-1" /> Imprimir
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportarExcel(toRows(), `contas-a-pagar-${dtIni}_a_${dtFim}.xlsx`)}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Excel
+            </Button>
+          </div>
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Pendente</div>
+            <div className="text-2xl font-bold text-rose-700">{BRL(total)}</div>
+          </div>
         </div>
-      </div>
 
       <LancamentosFiltros
         busca={busca} setBusca={setBusca}
