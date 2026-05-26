@@ -95,7 +95,7 @@ export default function Administracao() {
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><Navigate to="/sistema/cargos" replace /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
-        <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
+        <TabsContent value="parceiros" className="mt-4"><Navigate to="/cadastros/parceiros" replace /></TabsContent>
         
         <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
