@@ -25,7 +25,7 @@ import { PermissoesAdmin } from "@/components/PermissoesAdmin";
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 
 import { AgendaAdmin } from "@/components/AgendaAdmin";
-import { PoliticaJurosAdmin } from "@/components/PoliticaJurosAdmin";
+
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 
@@ -102,7 +102,7 @@ export default function Administracao() {
 
         {/* Conteúdo acessível apenas via sidebar (submenu Financeiro) */}
         <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
-        <TabsContent value="juros" className="mt-4"><PoliticaJurosAdmin /></TabsContent>
+        
         <TabsContent value="bancos" className="mt-4"><Bancos /></TabsContent>
         <TabsContent value="pagamentos" className="mt-4"><MetodosPagamento /></TabsContent>
         <TabsContent value="categorias" className="mt-4"><CategoriasFinanceiras /></TabsContent>
