@@ -160,6 +160,7 @@ export default function ContasAPagar() {
         incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}
       />
 
+      <TooltipProvider delayDuration={150}>
       <div className="rounded-2xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -180,6 +181,20 @@ export default function ContasAPagar() {
                 const cod = pedidoCod(l.pedido_id);
                 const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
                 const cancelado = l.status === "cancelado";
+                const baixaInfo = pago && l.baixado_em ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center ml-1 cursor-help">
+                        <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs">
+                      <div className="font-semibold mb-1">Baixa registrada</div>
+                      <div><span className="text-muted-foreground">Por:</span> {userName(l.baixado_por)}</div>
+                      <div><span className="text-muted-foreground">Em:</span> {new Date(l.baixado_em).toLocaleString("pt-BR")}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
                     <td className="py-4 px-5 whitespace-nowrap">{fmt(l.data_vencimento)}</td>
@@ -195,9 +210,12 @@ export default function ContasAPagar() {
                     <td>{contaName(l.conta_id)}</td>
                     <td className="text-right font-semibold whitespace-nowrap text-rose-700">{BRL(Number(l.valor || 0))}</td>
                     <td className="text-center">
-                      {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
-                        : pago ? <Badge className="bg-emerald-500/15 text-emerald-700">PAGO</Badge>
-                        : <Badge className="bg-violet-500/15 text-violet-700">PENDENTE</Badge>}
+                      <div className="inline-flex items-center">
+                        {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
+                          : pago ? <Badge className="bg-emerald-500/15 text-emerald-700">PAGO</Badge>
+                          : <Badge className="bg-violet-500/15 text-violet-700">PENDENTE</Badge>}
+                        {baixaInfo}
+                      </div>
                     </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
@@ -226,6 +244,7 @@ export default function ContasAPagar() {
           </table>
         </div>
       </div>
+      </TooltipProvider>
     </div>
   );
 }
