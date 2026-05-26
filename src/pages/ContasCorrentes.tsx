@@ -82,6 +82,7 @@ export default function ContasCorrentes() {
       banco: editConta.banco, agencia: editConta.agencia, conta: editConta.conta,
       saldo_inicial: Number(editConta.saldo_inicial) || 0,
       ativo: editConta.ativo ?? true, cor: editConta.cor || "#6366f1",
+      loja_id: editConta.loja_id ?? selectedLojaId ?? null,
     };
     const q = editConta.id
       ? supabase.from("contas_bancarias").update(payload).eq("id", editConta.id)
@@ -91,6 +92,7 @@ export default function ContasCorrentes() {
     toast.success("Salvo");
     setContaDialog(false); setEditConta(null); load();
   }
+
 
   async function deletarConta(id: string) {
     if (!confirm("Excluir conta?")) return;
