@@ -2145,6 +2145,7 @@ export type Database = {
           id: string
           max_parcelas: number
           nome: string
+          parcelas_config: Json
           taxa_perc_parcela: number
         }
         Insert: {
@@ -2153,6 +2154,7 @@ export type Database = {
           id?: string
           max_parcelas?: number
           nome: string
+          parcelas_config?: Json
           taxa_perc_parcela?: number
         }
         Update: {
@@ -2161,6 +2163,7 @@ export type Database = {
           id?: string
           max_parcelas?: number
           nome?: string
+          parcelas_config?: Json
           taxa_perc_parcela?: number
         }
         Relationships: []
