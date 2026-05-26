@@ -84,6 +84,7 @@ export default function Financeiro() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
+  const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
 
   // Filtros
   const [searchParams] = useSearchParams();
