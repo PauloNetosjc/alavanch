@@ -663,44 +663,121 @@ export default function ComercialNegociacao() {
     setAprovadorEmail("");
   };
 
-  // helper: distribui valor restante igualmente nas parcelas seguintes
-  const recalcParcelas = (det: number[], total: number, idxAlterado: number): number[] => {
+  // helper: distribui valor restante igualmente nas parcelas seguintes (NÃO travadas)
+  const recalcParcelas = (det: number[], total: number, idxAlterado: number, locked: boolean[]): number[] => {
     const n = det.length;
     if (n <= 1) return [total];
-    const fixadosAteAgora = det.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
-    const restantes = n - (idxAlterado + 1);
-    if (restantes <= 0) {
-      // ajusta a última pra fechar
-      const novo = [...det];
+    const novo = [...det];
+    // somas das parcelas fixadas (até idxAlterado) e das travadas após
+    const somaFixas = novo.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
+    const idxsRedist: number[] = [];
+    let somaTravadasDepois = 0;
+    for (let i = idxAlterado + 1; i < n; i++) {
+      if (locked[i]) somaTravadasDepois += Number(novo[i]) || 0;
+      else idxsRedist.push(i);
+    }
+    if (idxsRedist.length === 0) {
+      // só ajusta a última pra fechar o total
       const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
       novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
       return novo;
     }
-    const restoTotal = total - fixadosAteAgora;
-    const valorEach = Number((restoTotal / restantes).toFixed(2));
-    const novo = [...det];
-    for (let i = idxAlterado + 1; i < n; i++) novo[i] = valorEach;
-    // ajusta a última para fechar arredondamento
+    const restoTotal = total - somaFixas - somaTravadasDepois;
+    const valorEach = Number((restoTotal / idxsRedist.length).toFixed(2));
+    idxsRedist.forEach((i) => (novo[i] = valorEach));
+    // ajusta o último redistribuído para fechar arredondamento
     const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
-    novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+    const ultimo = idxsRedist[idxsRedist.length - 1];
+    novo[ultimo] = Number((Number(novo[ultimo]) + (total - soma)).toFixed(2));
     return novo;
   };
 
-  const ensureDetalhe = (p: Pagamento): number[] => {
-    if (p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas) return [...p.parcelas_detalhe];
-    const base = Number((p.valor / p.parcelas).toFixed(2));
-    const arr = Array(p.parcelas).fill(base);
-    arr[p.parcelas - 1] = Number((p.valor - base * (p.parcelas - 1)).toFixed(2));
-    return arr;
+  const addDays = (iso: string | null, days: number): string | null => {
+    if (!iso) return null;
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
   };
 
-  const editarParcela = (idxPag: number, idxParc: number, novoValor: number) => {
+  const ensureArrays = (p: Pagamento) => {
+    const n = p.parcelas;
+    const det = (p.parcelas_detalhe && p.parcelas_detalhe.length === n)
+      ? [...p.parcelas_detalhe]
+      : (() => {
+          const base = Number((p.valor / n).toFixed(2));
+          const arr = Array(n).fill(base);
+          arr[n - 1] = Number((p.valor - base * (n - 1)).toFixed(2));
+          return arr;
+        })();
+    const vencs: (string | null)[] = (p.parcelas_vencimentos && p.parcelas_vencimentos.length === n)
+      ? [...p.parcelas_vencimentos]
+      : Array.from({ length: n }, (_, i) => addDays(p.data_vencimento || new Date().toISOString().slice(0, 10), i * 30));
+    const formas: string[] = (p.parcelas_formas && p.parcelas_formas.length === n)
+      ? [...p.parcelas_formas]
+      : Array(n).fill(p.metodo);
+    const locked: boolean[] = (p.parcelas_locked && p.parcelas_locked.length === n)
+      ? [...p.parcelas_locked]
+      : Array(n).fill(false);
+    return { det, vencs, formas, locked };
+  };
+
+  // Mantido para compat (renderização legada)
+  const ensureDetalhe = (p: Pagamento): number[] => ensureArrays(p).det;
+
+  // Confirmação de cascata +30d
+  const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
+
+  const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const det = ensureDetalhe(p);
+      const { det, vencs, formas, locked } = ensureArrays(p);
       det[idxParc] = Number(novoValor) || 0;
-      const recalc = recalcParcelas(det, p.valor, idxParc);
-      return { ...p, parcelas_detalhe: recalc };
+      const recalc = recalcParcelas(det, p.valor, idxParc, locked);
+      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const editarParcelaVenc = (idxPag: number, idxParc: number, novaData: string) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      vencs[idxParc] = novaData || null;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+    // pergunta sobre cascata de +30 dias nas próximas
+    if (idxParc < (pagamentos[idxPag]?.parcelas ?? 0) - 1) {
+      setAskCascade({ idxPag, idxParc });
+    }
+  };
+
+  const editarParcelaForma = (idxPag: number, idxParc: number, novaForma: string) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      formas[idxParc] = novaForma;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const toggleLockParcela = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      locked[idxParc] = !locked[idxParc];
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const aplicarCascataVenc = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      const base = vencs[idxParc];
+      for (let k = idxParc + 1; k < vencs.length; k++) {
+        if (!locked[k]) vencs[k] = addDays(base, (k - idxParc) * 30);
+      }
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
     }));
   };
 
