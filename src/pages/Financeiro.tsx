@@ -46,6 +46,8 @@ import { BRL } from "@/lib/financeiro";
 import { exportarCSV, type LancRow } from "@/lib/exportFinanceiro";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { useLoja } from "@/contexts/LojaContext";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
 
 type Lanc = {
   id: string;
@@ -60,6 +62,7 @@ type Lanc = {
   status: string | null;
   aprovacao_status: string | null;
   fornecedor_id: string | null;
+  loja_id: string | null;
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
@@ -101,6 +104,15 @@ export default function Financeiro() {
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
+
+  // Filtro multi-loja (inicializa com a loja ativa no topbar)
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]);
+    else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
 
   // Período
   const hoje = new Date();
@@ -170,6 +182,7 @@ export default function Financeiro() {
   // Filtragem
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      if (lojasFiltro.length > 0 && !lojasFiltro.includes(l.loja_id || "")) return false;
       const isAprov = l.aprovacao_status === "aprovado";
       if (!incluirAprovadas && !incluirNaoAprovadas) return false;
       if (isAprov && !incluirAprovadas) return false;
@@ -197,7 +210,7 @@ export default function Financeiro() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, lojasFiltro]);
 
   // KPIs
   const pendenteReceber = filtrados
@@ -362,12 +375,14 @@ export default function Financeiro() {
                 <ShieldCheck className="w-4 h-4 mr-1" /> Aprovador
               </Button>
             </Link>
+            <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
             <Button onClick={novoLancamento} className="bg-violet-600 hover:bg-violet-700 text-white">
               <Plus className="w-4 h-4 mr-1" /> Lançar Conta
             </Button>
           </div>
         </div>
       </div>
+
 
       {/* ATALHOS GRANDES: A PAGAR / A RECEBER */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

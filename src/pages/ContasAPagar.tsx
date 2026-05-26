@@ -13,6 +13,8 @@ import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeir
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
+import { useLoja } from "@/contexts/LojaContext";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
 
 type Lanc = {
   id: string;
@@ -31,6 +33,7 @@ type Lanc = {
   fornecedor_id: string | null;
   forma_pagamento: string | null;
   notas: string | null;
+  loja_id: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -66,6 +69,12 @@ export default function ContasAPagar() {
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
+
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
 
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
@@ -106,6 +115,7 @@ export default function ContasAPagar() {
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      if (lojasFiltro.length > 0 && !lojasFiltro.includes(l.loja_id || "")) return false;
       const isAprov = l.aprovacao_status === "aprovado";
       if (!incluirAprovadas && !incluirNaoAprovadas) return false;
       if (isAprov && !incluirAprovadas) return false;
@@ -132,7 +142,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, lojasFiltro]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -254,6 +264,7 @@ export default function ContasAPagar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => imprimirLista(toRows(), "Contas a Pagar")}>
               <Printer className="w-4 h-4 mr-1" /> Imprimir

@@ -26,6 +26,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ContactRound,
   Truck,
   Banknote,
@@ -244,6 +246,16 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [userCollapsed, setUserCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapse = () => {
+    setUserCollapsed((v) => {
+      const nv = !v;
+      try { localStorage.setItem("sidebar_collapsed", nv ? "1" : "0"); } catch {}
+      return nv;
+    });
+  };
 
   const filterItems = (items: Item[]) =>
     items.filter((it) => {
@@ -263,7 +275,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
     .join("")
     .toUpperCase();
 
-  const collapsed = moreOpen;
+  const collapsed = moreOpen || userCollapsed;
 
   return (
     <div className="flex h-full" style={{ background: "#0F0F0F" }}>
@@ -291,11 +303,21 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
                   <span className="text-[11px] font-medium text-white">{(brandNome || "P").trim().charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <div className="leading-tight min-w-0">
+              <div className="leading-tight min-w-0 flex-1">
                 <div className="text-[13px] font-medium text-white tracking-[0.02em] truncate" title={brandNome}>{brandNome}</div>
                 <div className="text-[9px] uppercase text-[#555] tracking-[0.12em] mt-0.5">Sistema</div>
               </div>
+              {!moreOpen && (
+                <button onClick={toggleCollapse} title="Recolher menu" className="text-[#666] hover:text-white transition-colors">
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+              )}
             </div>
+          )}
+          {collapsed && !moreOpen && (
+            <button onClick={toggleCollapse} title="Expandir menu" className="mt-2 mx-auto block text-[#666] hover:text-white transition-colors">
+              <ChevronsRight className="w-4 h-4" />
+            </button>
           )}
         </div>
 

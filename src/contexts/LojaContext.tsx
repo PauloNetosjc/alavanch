@@ -24,15 +24,37 @@ export function LojaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) { setLojas([]); setLoading(false); return; }
     (async () => {
-      const { data } = await supabase.from("lojas").select("id,nome,cnpj").eq("ativo", true).order("nome");
-      const list = (data || []) as Loja[];
+      setLoading(true);
+      let list: Loja[] = [];
+      if (role === "admin") {
+        const { data } = await supabase.from("lojas").select("id,nome,cnpj").eq("ativo", true).order("nome");
+        list = (data || []) as Loja[];
+      } else {
+        // Carrega apenas lojas que o usuário tem acesso (user_lojas)
+        const { data } = await supabase
+          .from("user_lojas")
+          .select("loja_id, lojas:loja_id(id,nome,cnpj,ativo)")
+          .eq("user_id", user.id);
+        list = ((data || []) as any[])
+          .map((r) => r.lojas)
+          .filter((l) => l && l.ativo)
+          .map((l) => ({ id: l.id, nome: l.nome, cnpj: l.cnpj })) as Loja[];
+        list.sort((a, b) => a.nome.localeCompare(b.nome));
+        // Fallback: se ainda não tem vínculo mas tem loja no profile
+        if (list.length === 0 && profile?.loja_id) {
+          const { data: l } = await supabase.from("lojas").select("id,nome,cnpj").eq("id", profile.loja_id).maybeSingle();
+          if (l) list = [l as Loja];
+        }
+      }
       setLojas(list);
-      // Inicializa seleção: admin pode ter "todas" (null), demais ficam na própria loja.
       const stored = localStorage.getItem(STORAGE_KEY);
       if (role === "admin") {
         setSelectedLojaIdState(stored === "__all__" ? null : (stored || null));
       } else {
-        setSelectedLojaIdState(profile?.loja_id || null);
+        // Se o stored estiver entre as lojas permitidas, mantém; senão usa a primeira / loja do profile
+        const allowed = list.map((l) => l.id);
+        const candidate = stored && stored !== "__all__" && allowed.includes(stored) ? stored : (profile?.loja_id && allowed.includes(profile.loja_id) ? profile.loja_id : (list[0]?.id || null));
+        setSelectedLojaIdState(candidate);
       }
       setLoading(false);
     })();
