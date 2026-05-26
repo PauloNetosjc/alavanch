@@ -220,6 +220,12 @@ export default function Financeiro() {
   const pendentePagar = filtrados
     .filter((l) => l.tipo === "saida" && !["pago", "recebido", "conciliado", "cancelado"].includes(l.status || ""))
     .reduce((s, l) => s + Number(l.valor || 0), 0);
+  const recebido = filtrados
+    .filter((l) => l.tipo === "entrada" && ["pago", "recebido", "conciliado"].includes(l.status || ""))
+    .reduce((s, l) => s + Number(l.valor || 0), 0);
+  const pago = filtrados
+    .filter((l) => l.tipo === "saida" && ["pago", "recebido", "conciliado"].includes(l.status || ""))
+    .reduce((s, l) => s + Number(l.valor || 0), 0);
   const saldoProjetado = pendenteReceber - pendentePagar;
 
   const rows: LancRow[] = filtrados.map((l) => ({
@@ -507,7 +513,7 @@ export default function Financeiro() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
@@ -527,6 +533,26 @@ export default function Financeiro() {
           </div>
           <div className="text-xs uppercase tracking-wider text-rose-800/80 mt-4">Pendente a Pagar</div>
           <div className="text-3xl font-bold text-rose-700 mt-1">{BRL(pendentePagar)}</div>
+        </div>
+        <div className="rounded-2xl border-2 border-teal-300 bg-teal-50/60 p-5">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center">
+              <ArrowUpCircle className="w-5 h-5 text-teal-700" />
+            </div>
+            <Badge className="bg-teal-500/15 text-teal-700">Liquidado</Badge>
+          </div>
+          <div className="text-xs uppercase tracking-wider text-teal-800/80 mt-4">Contas Recebidas</div>
+          <div className="text-3xl font-bold text-teal-700 mt-1">{BRL(recebido)}</div>
+        </div>
+        <div className="rounded-2xl border-2 border-orange-200 bg-orange-50/60 p-5">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <ArrowDownCircle className="w-5 h-5 text-orange-700" />
+            </div>
+            <Badge className="bg-orange-500/15 text-orange-700">Liquidado</Badge>
+          </div>
+          <div className="text-xs uppercase tracking-wider text-orange-800/80 mt-4">Contas Pagas</div>
+          <div className="text-3xl font-bold text-orange-700 mt-1">{BRL(pago)}</div>
         </div>
         <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/60 p-5">
           <div className="flex items-center justify-between">
