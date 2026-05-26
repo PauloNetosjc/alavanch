@@ -37,6 +37,14 @@ export function MetodosPagamentoAdmin() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Metodo | null>(null);
   const [open, setOpen] = useState(false);
+  const [FORMAS, setFORMAS] = useState<string[]>(FORMAS_FALLBACK);
+
+  useEffect(() => {
+    supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
+      const list = (data || []).map((r: any) => r.nome).filter(Boolean);
+      if (list.length) setFORMAS(list);
+    });
+  }, []);
 
   const load = async () => {
     setLoading(true);
