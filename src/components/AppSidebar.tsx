@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { UserThemePicker, useUserThemeBoot } from "@/components/UserThemePicker";
 import {
   LayoutDashboard,
   Trophy,
@@ -243,6 +244,7 @@ function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group;
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname, search } = useLocation();
   const { user, signOut, profile, role } = useAuth();
+  useUserThemeBoot();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -377,6 +379,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
                 <div className="text-[11px] text-[#CCC] truncate">{profile?.nome_completo || user?.email}</div>
                 <div className="text-[10px] text-[#555] uppercase tracking-wider">{role || "—"}</div>
               </div>
+              <UserThemePicker />
               <button onClick={() => signOut()} className="text-[10px] uppercase tracking-wider text-[#666] hover:text-white transition-colors">
                 Sair
               </button>
