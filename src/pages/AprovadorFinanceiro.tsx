@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowLeft, ShieldCheck, Check, X, AlertTriangle, ArrowDownCircle, ArrowUpCircle, CheckCheck } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
+
 
 type Lanc = {
   id: string;
