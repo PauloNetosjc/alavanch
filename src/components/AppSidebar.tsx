@@ -93,8 +93,12 @@ const moreGroups: Group[] = [
     label: "Financeiro",
     icon: Banknote,
     items: [
+      { label: "Descontos", path: "/administracao?tab=descontos", icon: Folder, roles: ["admin"] },
+      { label: "Política de Juros", path: "/administracao?tab=juros", icon: Folder, roles: ["admin"] },
+      { label: "Bancos", path: "/administracao?tab=bancos", icon: Banknote, roles: ["admin"] },
+      { label: "Pagamentos", path: "/administracao?tab=pagamentos", icon: Wallet, roles: ["admin"] },
+      { label: "Categorias", path: "/administracao?tab=categorias", icon: Folder, roles: ["admin"] },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
-      { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
     ],
   },
