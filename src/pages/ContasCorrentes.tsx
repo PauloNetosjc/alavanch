@@ -265,7 +265,7 @@ export default function ContasCorrentes() {
               </tr>
             </thead>
             <tbody>
-              {cartoes.map((ct) => {
+              {cartoesVisiveis.map((ct) => {
                 const conta = contas.find((c) => c.id === ct.conta_id);
                 return (
                   <tr key={ct.id} className="border-b hover:bg-muted/30">
