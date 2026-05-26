@@ -370,12 +370,25 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
               )}
             </tbody>
+            {filtrados.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 bg-muted/40 font-semibold">
+                  <td colSpan={5} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                    Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
+                  </td>
+                  <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => s + Number(l.valor || 0), 0))}
+                  </td>
+                  <td colSpan={3} />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
