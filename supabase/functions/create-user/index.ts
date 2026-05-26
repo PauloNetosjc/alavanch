@@ -37,12 +37,11 @@ Deno.serve(async (req) => {
     const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", callerId).eq("role", "admin").maybeSingle();
     if (!roleCheck) return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: corsHeaders });
 
-    const { email, password, full_name, role, store_id, telefone } = await req.json();
+    const { email, password, full_name, role, store_id, telefone, lojas_ids } = await req.json();
     if (!email || !password || !role) {
       return new Response(JSON.stringify({ error: "email, password and role are required" }), { status: 400, headers: corsHeaders });
     }
 
-    // Create user
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -51,7 +50,6 @@ Deno.serve(async (req) => {
     });
     if (createError) return new Response(JSON.stringify({ error: createError.message }), { status: 400, headers: corsHeaders });
 
-    // Update profile (loja_id + telefone + nome)
     const profileUpdate: Record<string, unknown> = {};
     if (store_id) profileUpdate.loja_id = store_id;
     if (telefone !== undefined) profileUpdate.telefone = telefone;
@@ -60,8 +58,15 @@ Deno.serve(async (req) => {
       await supabase.from("profiles").update(profileUpdate).eq("user_id", newUser.user.id);
     }
 
-    // Assign role
     await supabase.from("user_roles").insert({ user_id: newUser.user.id, role });
+
+    // Vínculos multi-loja
+    const ids: string[] = Array.isArray(lojas_ids) && lojas_ids.length > 0
+      ? lojas_ids.filter(Boolean)
+      : (store_id ? [store_id] : []);
+    if (ids.length > 0) {
+      await supabase.from("user_lojas").insert(ids.map((lid) => ({ user_id: newUser.user.id, loja_id: lid })));
+    }
 
     return new Response(JSON.stringify({ user: newUser.user }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
