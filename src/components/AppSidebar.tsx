@@ -60,6 +60,7 @@ const sections: Section[] = [
       { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
       { label: "Comercial", path: "/comercial", icon: Briefcase },
       { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
+      { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
     ],
   },
   {
@@ -75,7 +76,6 @@ const sections: Section[] = [
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
-      { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
     ],
   },
 ];
