@@ -56,6 +56,8 @@ const Agenda = lazy(() => import("@/pages/Agenda"));
 const Autorizacoes = lazy(() => import("@/pages/Autorizacoes"));
 const AssinaturaPublica = lazy(() => import("@/pages/AssinaturaPublica"));
 const Assinaturas = lazy(() => import("@/pages/Assinaturas"));
+const Origens = lazy(() => import("@/pages/Origens"));
+const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +159,8 @@ const App = () => (
                 <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
                 <Route path="/auditoria-parceiros" element={<RequirePermission modulo="auditoria_parceiros"><AuditoriaParceiros /></RequirePermission>} />
                 <Route path="/parceiros" element={<RequirePermission modulo="parceiros"><Parceiros /></RequirePermission>} />
+                <Route path="/origens" element={<Origens />} />
+                <Route path="/fornecedores" element={<Fornecedores />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
