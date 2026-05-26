@@ -49,7 +49,8 @@ export default function ContasAPagar() {
   const [dtIni, setDtIni] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10));
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
-  const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [incluirPendentes, setIncluirPendentes] = useState(true);
+  const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
@@ -87,7 +88,11 @@ export default function ContasAPagar() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
-      if (apenasPendentes && ["pago", "recebido", "conciliado"].includes(l.status || "")) return false;
+      const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
+      if (l.status !== "cancelado") {
+        if (isLiquidada && !incluirLiquidadas) return false;
+        if (!isLiquidada && !incluirPendentes) return false;
+      }
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
         const t = busca.toLowerCase();
@@ -98,7 +103,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
     const agora = new Date();
@@ -154,7 +159,8 @@ export default function ContasAPagar() {
         dtFim={dtFim} setDtFim={setDtFim}
         cats={cats}
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
-        apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
+        incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
+        incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
         incluirAprovadas={incluirAprovadas} setIncluirAprovadas={setIncluirAprovadas}
         incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}

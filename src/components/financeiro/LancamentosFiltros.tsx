@@ -19,8 +19,10 @@ interface Props {
   categoriaFiltro: string;
   setCategoriaFiltro: (v: string) => void;
   // opções
-  apenasPendentes: boolean;
-  setApenasPendentes: (v: boolean) => void;
+  incluirPendentes: boolean;
+  setIncluirPendentes: (v: boolean) => void;
+  incluirLiquidadas: boolean;
+  setIncluirLiquidadas: (v: boolean) => void;
   mostrarCancelados: boolean;
   setMostrarCancelados: (v: boolean) => void;
   incluirAprovadas: boolean;
@@ -125,8 +127,12 @@ export default function LancamentosFiltros(p: Props) {
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Opções</div>
           <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <Checkbox checked={p.apenasPendentes} onCheckedChange={(v) => p.setApenasPendentes(!!v)} />
-            Apenas Pendentes
+            <Checkbox checked={p.incluirPendentes} onCheckedChange={(v) => p.setIncluirPendentes(!!v)} />
+            Contas Pendentes
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={p.incluirLiquidadas} onCheckedChange={(v) => p.setIncluirLiquidadas(!!v)} />
+            Contas Liquidadas
           </label>
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <Checkbox checked={p.mostrarCancelados} onCheckedChange={(v) => p.setMostrarCancelados(!!v)} />
