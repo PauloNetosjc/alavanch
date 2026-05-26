@@ -165,13 +165,12 @@ export default function ContasAPagar() {
     if (error) { toast.error(error.message); return; }
 
     if (diff > 0.005) {
-      const novoVenc = new Date();
-      novoVenc.setDate(novoVenc.getDate() + 30);
+      const novoVenc = baixaAlvo.data_vencimento || new Date().toISOString().slice(0, 10);
       const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
         tipo: "saida",
         descricao: `${baixaAlvo.descricao || "Pagamento"} — saldo restante`,
         valor: diff,
-        data_vencimento: novoVenc.toISOString().slice(0, 10),
+        data_vencimento: novoVenc,
         categoria_id: baixaAlvo.categoria_id,
         conta_id: p.conta_id,
         pedido_id: baixaAlvo.pedido_id,
