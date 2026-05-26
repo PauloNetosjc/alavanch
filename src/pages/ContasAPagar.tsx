@@ -184,6 +184,16 @@ export default function ContasAPagar() {
     .filter((l) => !["pago", "recebido", "conciliado", "cancelado"].includes(l.status || ""))
     .reduce((s, l) => s + Number(l.valor || 0), 0);
 
+  const toRows = (): LancRow[] => filtrados.map((l) => ({
+    data: l.data_pagamento || l.data_vencimento || "",
+    descricao: l.descricao || "",
+    categoria: catName(l.categoria_id),
+    conta: contaName(l.conta_id),
+    tipo: l.tipo,
+    status: l.status || "",
+    valor: Number(l.valor || 0),
+  }));
+
 
   return (
     <div className="p-8 space-y-6">
