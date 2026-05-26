@@ -28,7 +28,7 @@ type Lanc = {
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
-type Profile = { id: string; nome: string | null };
+type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -60,7 +60,7 @@ export default function ContasAPagar() {
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
-      supabase.from("profiles").select("id,nome"),
+      supabase.from("profiles").select("user_id,nome_completo"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -73,7 +73,7 @@ export default function ContasAPagar() {
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
-  const userName = (id: string | null) => profiles.find((p) => p.id === id)?.nome || "Usuário";
+  const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
