@@ -1411,9 +1411,6 @@ export default function ComercialNegociacao() {
                 <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
               </Button>
             </div>
-            <Button onClick={addPagamento} className="w-full bg-[#2D6BE5] hover:bg-[#2459C9] text-white">
-              <Plus className="w-4 h-4 mr-1.5" /> Adicionar Pagamento
-            </Button>
           </div>
         </div>
 
