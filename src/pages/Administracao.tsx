@@ -503,9 +503,11 @@ function Lojas() {
       { name: "telefone", label: "Telefone" },
       { name: "email", label: "Email" },
       { name: "endereco", label: "Endereço", type: "textarea" },
+      { name: "cidade", label: "Cidade" },
+      { name: "uf", label: "UF (sigla — ex.: SP, RJ)" },
       { name: "ativo", label: "Ativo", type: "switch" },
     ]}
-    defaultRow={{ nome: "", cnpj: "", telefone: "", email: "", endereco: "", ativo: true }} />;
+    defaultRow={{ nome: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", uf: "", ativo: true }} />;
 }
 
 function Bancos() {
