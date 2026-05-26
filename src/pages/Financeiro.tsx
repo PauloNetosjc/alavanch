@@ -93,7 +93,8 @@ export default function Financeiro() {
     if (q) setBusca(q);
   }, [searchParams]);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("");
-  const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [incluirPendentes, setIncluirPendentes] = useState(true);
+  const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
