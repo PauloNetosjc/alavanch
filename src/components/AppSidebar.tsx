@@ -24,6 +24,12 @@ import {
   PenLine,
   MoreHorizontal,
   X,
+  ChevronDown,
+  ChevronRight,
+  ContactRound,
+  Truck,
+  Banknote,
+  Cog,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -32,6 +38,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[] };
 type Section = { label: string; items: Item[] };
+type Group = { label: string; icon: React.ComponentType<{ className?: string }>; items: Item[] };
 
 const sections: Section[] = [
   {
@@ -70,16 +77,32 @@ const sections: Section[] = [
   },
 ];
 
-const moreSections: Section[] = [
+// Configuração do sistema agrupada em sub-menus expansíveis
+const moreGroups: Group[] = [
   {
-    label: "Configuração Sistema",
+    label: "Cadastros",
+    icon: ContactRound,
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
-      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
+      { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
+      { label: "Origens", path: "/origens", icon: Folder },
+      { label: "Fornecedores", path: "/fornecedores", icon: Truck },
+    ],
+  },
+  {
+    label: "Financeiro",
+    icon: Banknote,
+    items: [
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
       { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
-      { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
+    ],
+  },
+  {
+    label: "Sistema",
+    icon: Cog,
+    items: [
+      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
@@ -88,6 +111,7 @@ const moreSections: Section[] = [
     ],
   },
 ];
+
 
 
 const noScrollbar = "[&::-webkit-scrollbar]:hidden [scrollbar-width:none]";
@@ -152,6 +176,49 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
   );
 }
 
+function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
+  const hasActive = group.items.some((it) => pathname.startsWith(it.path));
+  const [open, setOpen] = useState(hasActive);
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-4 py-2 rounded-md transition-colors hover:bg-[#1A1A1A]"
+        style={{ color: hasActive ? "#FFFFFF" : "#CCCCCC" }}
+      >
+        <group.icon className={hasActive ? "w-3.5 h-3.5 text-[#C9B99A]" : "w-3.5 h-3.5 text-[#888]"} />
+        <span className="flex-1 text-left text-[12.5px] font-medium">{group.label}</span>
+        {open ? <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#666]" />}
+      </button>
+      {open && (
+        <div className="px-2 mt-0.5 flex flex-col gap-0.5">
+          {group.items.map((it) => {
+            const active = pathname.startsWith(it.path);
+            return (
+              <NavLink
+                key={it.path}
+                to={it.path}
+                onClick={onNavigate}
+                className="flex items-center gap-2.5 rounded-md transition-colors"
+                style={{
+                  padding: "6px 14px 6px 32px",
+                  background: active ? "#1F1F1F" : "transparent",
+                  color: active ? "#FFFFFF" : "#888888",
+                  fontSize: "12px",
+                }}
+              >
+                <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }} />
+                <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
+                <span className="flex-1">{it.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
@@ -159,16 +226,16 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const filterSection = (s: Section) => ({
-    ...s,
-    items: s.items.filter((it) => {
+  const filterItems = (items: Item[]) =>
+    items.filter((it) => {
       if (it.modulo && !can(it.modulo, "view")) return false;
       if (it.roles && !it.roles.includes(role || "")) return false;
       return true;
-    }),
-  });
+    });
+  const filterSection = (s: Section) => ({ ...s, items: filterItems(s.items) });
+  const filterGroup = (g: Group) => ({ ...g, items: filterItems(g.items) });
   const visibleSections = sections.map(filterSection).filter((s) => s.items.length > 0);
-  const visibleMoreSections = moreSections.map(filterSection).filter((s) => s.items.length > 0);
+  const visibleMoreGroups = moreGroups.map(filterGroup).filter((g) => g.items.length > 0);
 
   const initials = (profile?.nome_completo || user?.email || "?")
     .split(" ")
@@ -225,7 +292,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
         </nav>
 
         {/* More toggle */}
-        {visibleMoreSections.length > 0 && (
+        {visibleMoreGroups.length > 0 && (
           <div className={collapsed ? "px-2 pb-2 flex justify-center" : "px-4 pb-2"}>
             <button
               onClick={() => setMoreOpen((v) => !v)}
@@ -277,14 +344,14 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      {/* Secondary panel: Administrativo / Configuração */}
+      {/* Secondary panel: Configuração Sistema (grupos expansíveis) */}
       {moreOpen && (
         <div
           className="flex flex-col h-full"
-          style={{ width: 240, background: "#0F0F0F", borderRight: "0.5px solid #222" }}
+          style={{ width: 260, background: "#0F0F0F", borderRight: "0.5px solid #222" }}
         >
           <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-            <div className="text-[11px] uppercase text-[#CCC] tracking-[0.12em]">Mais opções</div>
+            <div className="text-[11px] uppercase text-[#CCC] tracking-[0.12em]">Configuração Sistema</div>
             <button
               onClick={() => setMoreOpen(false)}
               className="text-[#666] hover:text-white transition-colors"
@@ -294,8 +361,8 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
             </button>
           </div>
           <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
-            {visibleMoreSections.map((section) => (
-              <SectionFull key={section.label} section={section} pathname={pathname} onNavigate={onNavigate} />
+            {visibleMoreGroups.map((group) => (
+              <GroupAccordion key={group.label} group={group} pathname={pathname} onNavigate={onNavigate} />
             ))}
           </nav>
         </div>

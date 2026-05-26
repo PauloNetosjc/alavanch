@@ -1570,6 +1570,78 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco: string | null
+          categoria: string | null
+          cep: string | null
+          cidade: string | null
+          conta: string | null
+          contato: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          loja_id: string | null
+          nome: string
+          observacoes: string | null
+          pix: string | null
+          telefone: string | null
+          tipo_documento: string | null
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          categoria?: string | null
+          cep?: string | null
+          cidade?: string | null
+          conta?: string | null
+          contato?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          loja_id?: string | null
+          nome: string
+          observacoes?: string | null
+          pix?: string | null
+          telefone?: string | null
+          tipo_documento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          categoria?: string | null
+          cep?: string | null
+          cidade?: string | null
+          conta?: string | null
+          contato?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          pix?: string | null
+          telefone?: string | null
+          tipo_documento?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fotos_assistencia: {
         Row: {
           assistencia_id: string
