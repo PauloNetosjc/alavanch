@@ -327,13 +327,14 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
 
         {/* Sections */}
         <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
-          {visibleSections.map((section) =>
-            collapsed ? (
-              <SectionIcons key={section.label} section={section} pathname={pathname} onNavigate={onNavigate} />
+          {visibleSections.map((section) => {
+            const handleNav = () => { setMoreOpen(false); onNavigate?.(); };
+            return collapsed ? (
+              <SectionIcons key={section.label} section={section} pathname={pathname} onNavigate={handleNav} />
             ) : (
-              <SectionFull key={section.label} section={section} pathname={pathname} onNavigate={onNavigate} />
-            )
-          )}
+              <SectionFull key={section.label} section={section} pathname={pathname} onNavigate={handleNav} />
+            );
+          })}
         </nav>
 
         {/* More toggle */}
