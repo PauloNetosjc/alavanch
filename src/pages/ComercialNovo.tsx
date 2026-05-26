@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2,
+  Check, AlertCircle, Loader2, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
@@ -938,14 +938,9 @@ export default function ComercialNovo() {
         </div>
       )}
       {parceiro && (
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-muted-foreground text-[11px]">Parceiro</div>
-            <div className="font-semibold">{parceiro.nome}</div>
-          </div>
-          <div className="text-[12px] text-muted-foreground">
-            Ind: <span className="font-semibold text-foreground">{parceiroPerc.toFixed(2)}%</span>
-          </div>
+        <div>
+          <div className="text-muted-foreground text-[11px]">Parceiro</div>
+          <div className="font-semibold">{parceiro.nome}</div>
         </div>
       )}
       {projetistaId && (
@@ -1105,7 +1100,7 @@ export default function ComercialNovo() {
                     <details className="mt-2 group">
                       <summary className="flex items-center justify-between border border-input rounded-md px-3 py-2 text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-muted/40">
                         <span className="text-muted-foreground">Ind do Parceiro</span>
-                        <span className="font-medium">{(parceiroPerc || 0).toFixed(2)}%</span>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="mt-2 flex items-center gap-2 border border-input rounded-md px-3 py-2.5">
                         <span className="text-[13px] text-muted-foreground">Ind do Parceiro:</span>
@@ -1497,9 +1492,6 @@ export default function ComercialNovo() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Indicador</div>
                   <div className="bg-[#FDECEC] border border-[#F5D6D6] rounded-md px-4 py-3">
                     <div className="text-[15px] font-semibold">{parceiro.nome}</div>
-                    <div className="text-[12px] text-muted-foreground mt-0.5">
-                      Ind: <span className="font-semibold text-foreground">{parceiroPerc.toFixed(2)}%</span>
-                    </div>
                   </div>
                 </div>
               )}
