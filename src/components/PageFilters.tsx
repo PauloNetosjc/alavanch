@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { LojaSelector } from "@/components/LojaSelector";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
 
 export type PeriodoKey = "dia" | "semana" | "mes" | "ano" | "tudo" | "personalizado";
 
@@ -68,11 +68,15 @@ export function PageFilters({
   value,
   onChange,
   showLoja = true,
+  lojas,
+  onLojasChange,
   options = ["dia", "semana", "mes", "ano", "tudo", "personalizado"],
 }: {
   value: PeriodoState;
   onChange: (v: PeriodoState) => void;
   showLoja?: boolean;
+  lojas?: string[];
+  onLojasChange?: (ids: string[]) => void;
   options?: PeriodoKey[];
 }) {
   const [open, setOpen] = useState(false);
@@ -158,7 +162,9 @@ export function PageFilters({
         </button>
       </div>
 
-      {showLoja && <LojaSelector />}
+      {showLoja && lojas !== undefined && onLojasChange && (
+        <LojasFilter value={lojas} onChange={onLojasChange} />
+      )}
     </div>
   );
 }
