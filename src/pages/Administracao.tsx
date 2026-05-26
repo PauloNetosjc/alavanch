@@ -82,7 +82,7 @@ export default function Administracao() {
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
             
             <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
-            <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
+            
             
             <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
             <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
