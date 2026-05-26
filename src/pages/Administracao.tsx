@@ -28,6 +28,7 @@ import { AgendaAdmin } from "@/components/AgendaAdmin";
 
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
+import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -570,7 +571,14 @@ function Bancos() {
 }
 
 function MetodosPagamento() {
-  return <MetodosPagamentoAdmin />;
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <FormasPagamentoButton />
+      </div>
+      <MetodosPagamentoAdmin />
+    </div>
+  );
 }
 
 function Parceiros() {

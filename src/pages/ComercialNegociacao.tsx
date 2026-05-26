@@ -27,7 +27,7 @@ import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
+const FORMAS_PAGAMENTO_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 type Ambiente = {
   id: string;
@@ -446,6 +446,14 @@ export default function ComercialNegociacao() {
   const [novoParcelas, setNovoParcelas] = useState<number>(24);
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
+  const [FORMAS_PAGAMENTO, setFormasPagamento] = useState<string[]>(FORMAS_PAGAMENTO_FALLBACK);
+
+  useEffect(() => {
+    supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
+      const list = (data || []).map((r: any) => r.nome).filter(Boolean);
+      if (list.length) setFormasPagamento(list);
+    });
+  }, []);
 
   // dialogs
   const [openSenha, setOpenSenha] = useState(false);
