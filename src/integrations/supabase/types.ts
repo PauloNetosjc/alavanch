@@ -1448,6 +1448,7 @@ export type Database = {
         Row: {
           acao: string
           acao_config: Json
+          ajustar_prazo_dias: number | null
           ativo: boolean
           condicao_tipo: string
           condicao_valor: string | null
@@ -1458,11 +1459,13 @@ export type Database = {
           evento: string
           id: string
           ordem: number
+          pipeline_destino: string | null
           updated_at: string
         }
         Insert: {
           acao?: string
           acao_config?: Json
+          ajustar_prazo_dias?: number | null
           ativo?: boolean
           condicao_tipo?: string
           condicao_valor?: string | null
@@ -1473,11 +1476,13 @@ export type Database = {
           evento?: string
           id?: string
           ordem?: number
+          pipeline_destino?: string | null
           updated_at?: string
         }
         Update: {
           acao?: string
           acao_config?: Json
+          ajustar_prazo_dias?: number | null
           ativo?: boolean
           condicao_tipo?: string
           condicao_valor?: string | null
@@ -1488,6 +1493,7 @@ export type Database = {
           evento?: string
           id?: string
           ordem?: number
+          pipeline_destino?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1510,6 +1516,10 @@ export type Database = {
       crm_estagios: {
         Row: {
           ativo: boolean
+          checklist_template_id: string | null
+          concluir_acao: string
+          concluir_estagio_destino_id: string | null
+          concluir_pipeline_destino: string | null
           cor: string | null
           created_at: string
           id: string
@@ -1517,9 +1527,14 @@ export type Database = {
           is_perdido: boolean
           nome: string
           ordem: number
+          sla_dias_uteis: number | null
         }
         Insert: {
           ativo?: boolean
+          checklist_template_id?: string | null
+          concluir_acao?: string
+          concluir_estagio_destino_id?: string | null
+          concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -1527,9 +1542,14 @@ export type Database = {
           is_perdido?: boolean
           nome: string
           ordem?: number
+          sla_dias_uteis?: number | null
         }
         Update: {
           ativo?: boolean
+          checklist_template_id?: string | null
+          concluir_acao?: string
+          concluir_estagio_destino_id?: string | null
+          concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
           id?: string
@@ -1537,8 +1557,17 @@ export type Database = {
           is_perdido?: boolean
           nome?: string
           ordem?: number
+          sla_dias_uteis?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crm_estagios_checklist_template_id_fkey"
+            columns: ["checklist_template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentos_assinados: {
         Row: {
