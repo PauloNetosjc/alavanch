@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
@@ -20,10 +22,13 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
   aprovacao_status: string | null;
+  baixado_por: string | null;
+  baixado_em: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
+type Profile = { id: string; nome: string | null };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
