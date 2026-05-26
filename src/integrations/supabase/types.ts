@@ -4059,6 +4059,32 @@ export type Database = {
         }
         Relationships: []
       }
+      user_lojas: {
+        Row: {
+          created_at: string
+          loja_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          loja_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          loja_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_lojas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4197,6 +4223,10 @@ export type Database = {
       }
       user_has_perm: {
         Args: { _acao: string; _modulo: string; _user_id: string }
+        Returns: boolean
+      }
+      user_pode_acessar_loja: {
+        Args: { _loja_id: string; _user_id: string }
         Returns: boolean
       }
     }
