@@ -34,6 +34,8 @@ export default function Dashboard() {
   const { selectedLojaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState<PeriodoState>(defaultPeriodoMes());
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
+  useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [vendedores, setVendedores] = useState<{ nome: string; valor: number }[]>([]);
@@ -53,10 +55,10 @@ export default function Dashboard() {
       let qOrc = supabase
         .from("orcamentos")
         .select("total, consultor_id, created_at, status, loja_id");
-      if (selectedLojaId) {
-        qPed = qPed.eq("loja_id", selectedLojaId);
-        qLan = qLan.eq("loja_id", selectedLojaId);
-        qOrc = qOrc.eq("loja_id", selectedLojaId);
+      if (lojasFiltro.length > 0) {
+        qPed = qPed.in("loja_id", lojasFiltro);
+        qLan = qLan.in("loja_id", lojasFiltro);
+        qOrc = qOrc.in("loja_id", lojasFiltro);
       }
       if (inicio && fim) {
         qLan = qLan.gte("data_vencimento", inicio.toISOString().slice(0, 10)).lte("data_vencimento", fim.toISOString().slice(0, 10));
@@ -68,7 +70,7 @@ export default function Dashboard() {
       if (periodo.key === "mes") {
         const r = periodo.ref;
         let qMeta = supabase.from("metas_vendas" as any).select("meta_valor, loja_id").eq("ano", r.getFullYear()).eq("mes", r.getMonth() + 1);
-        if (selectedLojaId) qMeta = qMeta.eq("loja_id", selectedLojaId);
+        if (lojasFiltro.length > 0) qMeta = qMeta.in("loja_id", lojasFiltro);
         const { data: metas } = await qMeta;
         metaTotal = ((metas as any[]) || []).reduce((s, m) => s + Number(m.meta_valor || 0), 0);
       }
@@ -95,7 +97,7 @@ export default function Dashboard() {
 
       setLoading(false);
     })();
-  }, [periodo, selectedLojaId]);
+  }, [periodo, lojasFiltro]);
 
   // Pedidos do período (criados dentro da janela)
   const pedidosPeriodo = useMemo(
@@ -154,7 +156,7 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Resumo de receitas, metas e próximas ações</p>
           </div>
         </div>
-        <PageFilters value={periodo} onChange={setPeriodo} />
+        <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
       </div>
 
       {/* Meta de Vendas + Receita por Vendedor */}
