@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
-  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
+  Lock, Unlock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
@@ -50,6 +52,9 @@ type Pagamento = {
   parcelas: number;
   data_vencimento: string | null;
   parcelas_detalhe?: number[] | null;
+  parcelas_vencimentos?: (string | null)[];
+  parcelas_formas?: string[];
+  parcelas_locked?: boolean[];
 };
 type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
 type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[] };
@@ -658,44 +663,121 @@ export default function ComercialNegociacao() {
     setAprovadorEmail("");
   };
 
-  // helper: distribui valor restante igualmente nas parcelas seguintes
-  const recalcParcelas = (det: number[], total: number, idxAlterado: number): number[] => {
+  // helper: distribui valor restante igualmente nas parcelas seguintes (NÃO travadas)
+  const recalcParcelas = (det: number[], total: number, idxAlterado: number, locked: boolean[]): number[] => {
     const n = det.length;
     if (n <= 1) return [total];
-    const fixadosAteAgora = det.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
-    const restantes = n - (idxAlterado + 1);
-    if (restantes <= 0) {
-      // ajusta a última pra fechar
-      const novo = [...det];
+    const novo = [...det];
+    // somas das parcelas fixadas (até idxAlterado) e das travadas após
+    const somaFixas = novo.slice(0, idxAlterado + 1).reduce((s, v) => s + (Number(v) || 0), 0);
+    const idxsRedist: number[] = [];
+    let somaTravadasDepois = 0;
+    for (let i = idxAlterado + 1; i < n; i++) {
+      if (locked[i]) somaTravadasDepois += Number(novo[i]) || 0;
+      else idxsRedist.push(i);
+    }
+    if (idxsRedist.length === 0) {
+      // só ajusta a última pra fechar o total
       const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
       novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
       return novo;
     }
-    const restoTotal = total - fixadosAteAgora;
-    const valorEach = Number((restoTotal / restantes).toFixed(2));
-    const novo = [...det];
-    for (let i = idxAlterado + 1; i < n; i++) novo[i] = valorEach;
-    // ajusta a última para fechar arredondamento
+    const restoTotal = total - somaFixas - somaTravadasDepois;
+    const valorEach = Number((restoTotal / idxsRedist.length).toFixed(2));
+    idxsRedist.forEach((i) => (novo[i] = valorEach));
+    // ajusta o último redistribuído para fechar arredondamento
     const soma = novo.reduce((s, v) => s + (Number(v) || 0), 0);
-    novo[n - 1] = Number((Number(novo[n - 1]) + (total - soma)).toFixed(2));
+    const ultimo = idxsRedist[idxsRedist.length - 1];
+    novo[ultimo] = Number((Number(novo[ultimo]) + (total - soma)).toFixed(2));
     return novo;
   };
 
-  const ensureDetalhe = (p: Pagamento): number[] => {
-    if (p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas) return [...p.parcelas_detalhe];
-    const base = Number((p.valor / p.parcelas).toFixed(2));
-    const arr = Array(p.parcelas).fill(base);
-    arr[p.parcelas - 1] = Number((p.valor - base * (p.parcelas - 1)).toFixed(2));
-    return arr;
+  const addDays = (iso: string | null, days: number): string | null => {
+    if (!iso) return null;
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
   };
 
-  const editarParcela = (idxPag: number, idxParc: number, novoValor: number) => {
+  const ensureArrays = (p: Pagamento) => {
+    const n = p.parcelas;
+    const det = (p.parcelas_detalhe && p.parcelas_detalhe.length === n)
+      ? [...p.parcelas_detalhe]
+      : (() => {
+          const base = Number((p.valor / n).toFixed(2));
+          const arr = Array(n).fill(base);
+          arr[n - 1] = Number((p.valor - base * (n - 1)).toFixed(2));
+          return arr;
+        })();
+    const vencs: (string | null)[] = (p.parcelas_vencimentos && p.parcelas_vencimentos.length === n)
+      ? [...p.parcelas_vencimentos]
+      : Array.from({ length: n }, (_, i) => addDays(p.data_vencimento || new Date().toISOString().slice(0, 10), i * 30));
+    const formas: string[] = (p.parcelas_formas && p.parcelas_formas.length === n)
+      ? [...p.parcelas_formas]
+      : Array(n).fill(p.metodo);
+    const locked: boolean[] = (p.parcelas_locked && p.parcelas_locked.length === n)
+      ? [...p.parcelas_locked]
+      : Array(n).fill(false);
+    return { det, vencs, formas, locked };
+  };
+
+  // Mantido para compat (renderização legada)
+  const ensureDetalhe = (p: Pagamento): number[] => ensureArrays(p).det;
+
+  // Confirmação de cascata +30d
+  const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
+
+  const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const det = ensureDetalhe(p);
+      const { det, vencs, formas, locked } = ensureArrays(p);
       det[idxParc] = Number(novoValor) || 0;
-      const recalc = recalcParcelas(det, p.valor, idxParc);
-      return { ...p, parcelas_detalhe: recalc };
+      const recalc = recalcParcelas(det, p.valor, idxParc, locked);
+      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const editarParcelaVenc = (idxPag: number, idxParc: number, novaData: string) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      vencs[idxParc] = novaData || null;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+    // pergunta sobre cascata de +30 dias nas próximas
+    if (idxParc < (pagamentos[idxPag]?.parcelas ?? 0) - 1) {
+      setAskCascade({ idxPag, idxParc });
+    }
+  };
+
+  const editarParcelaForma = (idxPag: number, idxParc: number, novaForma: string) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      formas[idxParc] = novaForma;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const toggleLockParcela = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      locked[idxParc] = !locked[idxParc];
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+    }));
+  };
+
+  const aplicarCascataVenc = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked } = ensureArrays(p);
+      const base = vencs[idxParc];
+      for (let k = idxParc + 1; k < vencs.length; k++) {
+        if (!locked[k]) vencs[k] = addDays(base, (k - idxParc) * 30);
+      }
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
     }));
   };
 
@@ -1228,7 +1310,7 @@ export default function ComercialNegociacao() {
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
               {pagamentos.map((p, idx) => {
-                const det = ensureDetalhe(p);
+                const { det, vencs, formas, locked } = ensureArrays(p);
                 return (
                   <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
                     <div className="flex items-center gap-3">
@@ -1243,32 +1325,84 @@ export default function ComercialNegociacao() {
                         <div className="text-[13px] font-semibold uppercase">
                           {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
                         </div>
-                        {p.data_vencimento && (
-                          <div className="text-[12px] text-muted-foreground flex items-center gap-1">
-                            <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
-                          </div>
-                        )}
                       </div>
                       <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
                         <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                       </Button>
                     </div>
-                    {p.parcelas > 1 && (
+                    {p.parcelas >= 1 && (
                       <div className="mt-3 pt-3 border-t border-emerald-100">
-                        <div className="text-[11px] text-muted-foreground mb-2">Editar parcelas (alterar uma redistribui o saldo nas seguintes)</div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {det.map((v, i) => (
-                            <div key={i} className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">{i + 1}/{p.parcelas}</span>
-                              <Input
-                                type="number" step="0.01"
-                                value={v}
-                                onChange={(e) => editarParcela(idx, i, Number(e.target.value) || 0)}
-                                className="pl-10 text-right text-[12px] h-8"
-                              />
-                            </div>
-                          ))}
+                        <div className="text-[11px] text-muted-foreground mb-2">
+                          Parcelas — edite valor, vencimento ou forma de pagamento. Travar uma parcela impede que ela seja recalculada.
+                        </div>
+                        <div className="rounded-md border border-border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12">Nº</TableHead>
+                                <TableHead className="w-36">Vencimento</TableHead>
+                                <TableHead className="w-32 text-right">Valor</TableHead>
+                                <TableHead>Forma prevista</TableHead>
+                                <TableHead className="w-12 text-center">🔒</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {det.map((v, i) => (
+                                <TableRow key={i}>
+                                  <TableCell className="text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="date"
+                                      value={vencs[i] || ""}
+                                      disabled={!!locked[i]}
+                                      onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
+                                      className="h-8 text-[12px]"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number" step="0.01"
+                                      value={v}
+                                      disabled={!!locked[i]}
+                                      onChange={(e) => editarParcelaValor(idx, i, Number(e.target.value) || 0)}
+                                      className="text-right text-[12px] h-8"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={formas[i] || p.metodo}
+                                      disabled={!!locked[i]}
+                                      onValueChange={(val) => editarParcelaForma(idx, i, val)}
+                                    >
+                                      <SelectTrigger className="h-8 text-[12px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {metodos.map((m) => (
+                                          <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                                        ))}
+                                        {!metodos.find((m) => m.nome === (formas[i] || p.metodo)) && (
+                                          <SelectItem value={formas[i] || p.metodo}>{formas[i] || p.metodo}</SelectItem>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => toggleLockParcela(idx, i)}
+                                      title={locked[i] ? "Destravar parcela" : "Travar parcela"}
+                                    >
+                                      {locked[i] ? <Lock className="w-3.5 h-3.5 text-amber-600" /> : <Unlock className="w-3.5 h-3.5 text-muted-foreground" />}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
                     )}
@@ -1468,6 +1602,28 @@ export default function ComercialNegociacao() {
         onConfirm={gerarContrato}
         loading={confirmando}
       />
+      <AlertDialog open={!!askCascade} onOpenChange={(o) => { if (!o) setAskCascade(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar intervalo de 30 dias?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja que todas as parcelas abaixo desta sigam a ordem de intervalo de 30 dias sequencialmente?
+              Parcelas travadas serão preservadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAskCascade(null)}>Não, manter</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (askCascade) aplicarCascataVenc(askCascade.idxPag, askCascade.idxParc);
+                setAskCascade(null);
+              }}
+            >
+              Sim, aplicar +30 dias
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
