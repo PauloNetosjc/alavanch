@@ -1310,7 +1310,7 @@ export default function ComercialNegociacao() {
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
               {pagamentos.map((p, idx) => {
-                const det = ensureDetalhe(p);
+                const { det, vencs, formas, locked } = ensureArrays(p);
                 return (
                   <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
                     <div className="flex items-center gap-3">
@@ -1325,32 +1325,84 @@ export default function ComercialNegociacao() {
                         <div className="text-[13px] font-semibold uppercase">
                           {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
                         </div>
-                        {p.data_vencimento && (
-                          <div className="text-[12px] text-muted-foreground flex items-center gap-1">
-                            <Pencil className="w-3 h-3" /> {new Date(p.data_vencimento).toLocaleDateString("pt-BR")}
-                          </div>
-                        )}
                       </div>
                       <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
                         <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                       </Button>
                     </div>
-                    {p.parcelas > 1 && (
+                    {p.parcelas >= 1 && (
                       <div className="mt-3 pt-3 border-t border-emerald-100">
-                        <div className="text-[11px] text-muted-foreground mb-2">Editar parcelas (alterar uma redistribui o saldo nas seguintes)</div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {det.map((v, i) => (
-                            <div key={i} className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">{i + 1}/{p.parcelas}</span>
-                              <Input
-                                type="number" step="0.01"
-                                value={v}
-                                onChange={(e) => editarParcela(idx, i, Number(e.target.value) || 0)}
-                                className="pl-10 text-right text-[12px] h-8"
-                              />
-                            </div>
-                          ))}
+                        <div className="text-[11px] text-muted-foreground mb-2">
+                          Parcelas — edite valor, vencimento ou forma de pagamento. Travar uma parcela impede que ela seja recalculada.
+                        </div>
+                        <div className="rounded-md border border-border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12">Nº</TableHead>
+                                <TableHead className="w-36">Vencimento</TableHead>
+                                <TableHead className="w-32 text-right">Valor</TableHead>
+                                <TableHead>Forma prevista</TableHead>
+                                <TableHead className="w-12 text-center">🔒</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {det.map((v, i) => (
+                                <TableRow key={i}>
+                                  <TableCell className="text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="date"
+                                      value={vencs[i] || ""}
+                                      disabled={!!locked[i]}
+                                      onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
+                                      className="h-8 text-[12px]"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number" step="0.01"
+                                      value={v}
+                                      disabled={!!locked[i]}
+                                      onChange={(e) => editarParcelaValor(idx, i, Number(e.target.value) || 0)}
+                                      className="text-right text-[12px] h-8"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={formas[i] || p.metodo}
+                                      disabled={!!locked[i]}
+                                      onValueChange={(val) => editarParcelaForma(idx, i, val)}
+                                    >
+                                      <SelectTrigger className="h-8 text-[12px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {metodos.map((m) => (
+                                          <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                                        ))}
+                                        {!metodos.find((m) => m.nome === (formas[i] || p.metodo)) && (
+                                          <SelectItem value={formas[i] || p.metodo}>{formas[i] || p.metodo}</SelectItem>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => toggleLockParcela(idx, i)}
+                                      title={locked[i] ? "Destravar parcela" : "Travar parcela"}
+                                    >
+                                      {locked[i] ? <Lock className="w-3.5 h-3.5 text-amber-600" /> : <Unlock className="w-3.5 h-3.5 text-muted-foreground" />}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
                     )}
