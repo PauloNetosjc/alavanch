@@ -36,6 +36,7 @@ import {
   Cake,
   Package,
   Shield,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -88,6 +89,9 @@ const moreGroups: Group[] = [
     label: "Cadastros",
     icon: ContactRound,
     items: [
+      { label: "Usuários", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
+      { label: "Lojas", path: "/administracao?tab=lojas", icon: Building2, roles: ["admin"] },
+      { label: "Etiquetas", path: "/administracao?tab=etiquetas", icon: Tags, roles: ["admin"] },
       { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
       { label: "Origens", path: "/origens", icon: Folder },
@@ -115,7 +119,7 @@ const moreGroups: Group[] = [
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
-      { label: "Administração (Usuários)", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
+      
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
     ],
   },
