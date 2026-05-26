@@ -357,6 +357,41 @@ export type Database = {
           },
         ]
       }
+      aprovadores_financeiros: {
+        Row: {
+          aprova_pagar: boolean
+          aprova_receber: boolean
+          created_at: string
+          id: string
+          loja_id: string | null
+          user_id: string
+        }
+        Insert: {
+          aprova_pagar?: boolean
+          aprova_receber?: boolean
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          user_id: string
+        }
+        Update: {
+          aprova_pagar?: boolean
+          aprova_receber?: boolean
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovadores_financeiros_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinatura_eventos: {
         Row: {
           created_at: string
@@ -1734,6 +1769,10 @@ export type Database = {
       lancamentos_financeiros: {
         Row: {
           adendo_pedido_id: string | null
+          aprovacao_motivo: string | null
+          aprovacao_status: string
+          aprovado_em: string | null
+          aprovado_por: string | null
           categoria_id: string | null
           comprovante_storage_path: string | null
           conciliado: boolean | null
@@ -1755,6 +1794,10 @@ export type Database = {
         }
         Insert: {
           adendo_pedido_id?: string | null
+          aprovacao_motivo?: string | null
+          aprovacao_status?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           categoria_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
@@ -1776,6 +1819,10 @@ export type Database = {
         }
         Update: {
           adendo_pedido_id?: string | null
+          aprovacao_motivo?: string | null
+          aprovacao_status?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           categoria_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
