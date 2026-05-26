@@ -24,6 +24,12 @@ import {
   PenLine,
   MoreHorizontal,
   X,
+  ChevronDown,
+  ChevronRight,
+  ContactRound,
+  Truck,
+  Banknote,
+  Cog,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -32,6 +38,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[] };
 type Section = { label: string; items: Item[] };
+type Group = { label: string; icon: React.ComponentType<{ className?: string }>; items: Item[] };
 
 const sections: Section[] = [
   {
@@ -70,16 +77,32 @@ const sections: Section[] = [
   },
 ];
 
-const moreSections: Section[] = [
+// Configuração do sistema agrupada em sub-menus expansíveis
+const moreGroups: Group[] = [
   {
-    label: "Configuração Sistema",
+    label: "Cadastros",
+    icon: ContactRound,
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
-      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
+      { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
+      { label: "Origens", path: "/origens", icon: Folder },
+      { label: "Fornecedores", path: "/fornecedores", icon: Truck },
+    ],
+  },
+  {
+    label: "Financeiro",
+    icon: Banknote,
+    items: [
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
       { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
-      { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
+    ],
+  },
+  {
+    label: "Sistema",
+    icon: Cog,
+    items: [
+      { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
@@ -88,6 +111,7 @@ const moreSections: Section[] = [
     ],
   },
 ];
+
 
 
 const noScrollbar = "[&::-webkit-scrollbar]:hidden [scrollbar-width:none]";
