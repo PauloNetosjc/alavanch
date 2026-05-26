@@ -53,9 +53,13 @@ export default function ExtratoConta() {
     return lancsCompetencia.filter((l) => {
       if (filtroTipo && l.tipo !== filtroTipo) return false;
       if (filtroCat && l.categoria_id !== filtroCat) return false;
+      if (filtroDia) {
+        const d = l.data_pagamento || l.data_vencimento;
+        if (!d || d !== filtroDia) return false;
+      }
       return true;
     });
-  }, [lancsCompetencia, filtroTipo, filtroCat]);
+  }, [lancsCompetencia, filtroTipo, filtroCat, filtroDia]);
 
   const totais = somarMovimento(lancsCompetencia.map((l) => ({ tipo: l.tipo as any, valor: Number(l.valor) || 0 })));
   const saldoInicial = Number(conta?.saldo_inicial || 0);
