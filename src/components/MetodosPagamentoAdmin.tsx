@@ -200,7 +200,9 @@ export function MetodosPagamentoAdmin() {
                         <th className="py-2 px-2 text-left w-16">Parcela</th>
                         <th className="py-2 px-2 text-left">Forma de Pagamento</th>
                         <th className="py-2 px-2 text-left w-28">Juros (%)</th>
+                        <th className="py-2 px-2 text-left w-32">Juros</th>
                         <th className="py-2 px-2 text-left w-28">Desconto (%)</th>
+                        <th className="py-2 px-2 text-left w-36">Agrupamento</th>
                         <th className="py-2 px-2 w-10"></th>
                       </tr>
                     </thead>
@@ -226,12 +228,32 @@ export function MetodosPagamentoAdmin() {
                             />
                           </td>
                           <td className="py-1.5 px-2">
+                            <select
+                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
+                              value={p.juros_modo}
+                              onChange={(e) => updateParcela(i, { juros_modo: e.target.value as ParcelaConfig["juros_modo"] })}
+                            >
+                              <option value="repassar">Repassar ao cliente</option>
+                              <option value="absorver">Absorver (loja)</option>
+                            </select>
+                          </td>
+                          <td className="py-1.5 px-2">
                             <Input
                               type="number" step="0.01" min={0}
                               className="h-8"
                               value={p.desconto_perc}
                               onChange={(e) => updateParcela(i, { desconto_perc: Number(e.target.value) || 0 })}
                             />
+                          </td>
+                          <td className="py-1.5 px-2">
+                            <select
+                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
+                              value={p.agrupamento}
+                              onChange={(e) => updateParcela(i, { agrupamento: e.target.value as ParcelaConfig["agrupamento"] })}
+                            >
+                              <option value="desmembrado">Parcela a parcela</option>
+                              <option value="agrupado">Agrupado (única)</option>
+                            </select>
                           </td>
                           <td className="py-1.5 px-2 text-right">
                             <Button size="sm" variant="ghost" onClick={() => removeParcela(i)}>
