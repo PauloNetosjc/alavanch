@@ -104,8 +104,6 @@ const moreGroups: Group[] = [
       { label: "Bancos", path: "/administracao?tab=bancos", icon: Banknote, roles: ["admin"] },
       { label: "Pagamentos", path: "/administracao?tab=pagamentos", icon: Wallet, roles: ["admin"] },
       { label: "Categorias", path: "/administracao?tab=categorias", icon: Folder, roles: ["admin"] },
-      
-      { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
     ],
   },
   {
