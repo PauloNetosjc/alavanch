@@ -725,6 +725,29 @@ export default function ComercialNegociacao() {
     toast.success("Entrada adicionada");
   };
 
+  // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
+  // O valor é sempre o restante a parcelar (total - entrada).
+  useEffect(() => {
+    if (!novoMetodo) return;
+    const valorPrincipal = Number(Math.max(0, totalProposta - (entrada || 0)).toFixed(2));
+    setPagamentos((prev) => {
+      const outros = prev.filter((p) => !(p as any).is_principal);
+      if (valorPrincipal <= 0) return outros;
+      return [
+        ...outros,
+        {
+          metodo: novoMetodo,
+          valor: valorPrincipal,
+          parcelas: novoParcelas || 1,
+          data_vencimento: novoVenc || null,
+          parcelas_detalhe: null,
+          is_principal: true,
+        } as any,
+      ];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, entrada]);
+
   /* ------------------------- save ------------------------- */
   const persist = async (newStatus?: string) => {
     if (!id) return;
