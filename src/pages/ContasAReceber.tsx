@@ -60,7 +60,7 @@ export default function ContasAReceber() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
-      supabase.from("contas_bancarias").select("id,nome").order("nome"),
+      supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
       supabase.from("profiles").select("user_id,nome_completo"),
     ]);
