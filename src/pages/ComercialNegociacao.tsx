@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
-  Lock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
+  Lock, Unlock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
