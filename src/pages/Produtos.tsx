@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CurvaABC from "@/components/produtos/CurvaABC";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -188,46 +190,57 @@ export default function Produtos() {
         </Dialog>
       </div>
 
-      <Card className="p-4">
-        <Input placeholder="Buscar por descrição, código de barras ou código interno..."
-          value={busca} onChange={(e) => setBusca(e.target.value)} className="max-w-md mb-3" />
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Cód. Barras</TableHead>
-              <TableHead>Cód. Interno</TableHead>
-              <TableHead>Unidade</TableHead>
-              <TableHead className="text-right">Qtd</TableHead>
-              <TableHead className="text-right">Custo</TableHead>
-              <TableHead className="text-right">Venda</TableHead>
-              <TableHead className="w-24"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum produto cadastrado.</TableCell></TableRow>
-            )}
-            {filtered.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.descricao}</TableCell>
-                <TableCell>{p.codigo_barra || "-"}</TableCell>
-                <TableCell>{p.codigo_interno || "-"}</TableCell>
-                <TableCell>{unidadeLabel(p.unidade_medida)}</TableCell>
-                <TableCell className="text-right">{Number(p.quantidade).toLocaleString("pt-BR")}</TableCell>
-                <TableCell className="text-right">{fmt(p.preco_custo)}</TableCell>
-                <TableCell className="text-right">{fmt(p.preco_venda)}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1 justify-end">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <Tabs defaultValue="lista">
+        <TabsList>
+          <TabsTrigger value="lista">Lista de Produtos</TabsTrigger>
+          <TabsTrigger value="abc">Curva ABC</TabsTrigger>
+        </TabsList>
+        <TabsContent value="lista">
+          <Card className="p-4">
+            <Input placeholder="Buscar por descrição, código de barras ou código interno..."
+              value={busca} onChange={(e) => setBusca(e.target.value)} className="max-w-md mb-3" />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Cód. Barras</TableHead>
+                  <TableHead>Cód. Interno</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Venda</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 && (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum produto cadastrado.</TableCell></TableRow>
+                )}
+                {filtered.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{p.descricao}</TableCell>
+                    <TableCell>{p.codigo_barra || "-"}</TableCell>
+                    <TableCell>{p.codigo_interno || "-"}</TableCell>
+                    <TableCell>{unidadeLabel(p.unidade_medida)}</TableCell>
+                    <TableCell className="text-right">{Number(p.quantidade).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">{fmt(p.preco_custo)}</TableCell>
+                    <TableCell className="text-right">{fmt(p.preco_venda)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+        <TabsContent value="abc">
+          <CurvaABC />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
