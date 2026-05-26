@@ -393,7 +393,7 @@ function Usuarios() {
 }
 
 /* ============================== CRUD GENÉRICO ============================== */
-type SimpleField = { name: string; label: string; type?: "text" | "number" | "switch" | "textarea"; placeholder?: string };
+type SimpleField = { name: string; label: string; type?: "text" | "number" | "switch" | "textarea" | "select"; placeholder?: string; optionsTable?: string; optionsLabel?: string; required?: boolean };
 
 function SimpleCrud({
   title, subtitle, icon: Icon, table, fields, defaultRow, orderBy = "nome",
