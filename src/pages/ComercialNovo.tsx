@@ -464,7 +464,7 @@ export default function ComercialNovo() {
   const [tipoOrcamento, setTipoOrcamento] = useState<"pedido" | "adendo" | "complemento">("pedido");
   const [pedidoPaiId, setPedidoPaiId] = useState<string>("");
   const { profile } = useAuth();
-  const { lojas } = useLoja();
+  const { lojas, selectedLojaId } = useLoja();
   const isAdmin = role === "admin" || role === "diretor";
   const [lojaId, setLojaId] = useState<string>("");
 
