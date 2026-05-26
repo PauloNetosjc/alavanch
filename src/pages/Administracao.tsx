@@ -286,6 +286,18 @@ function Usuarios() {
         if (form.data_nascimento && created?.user?.id) {
           await supabase.from("profiles").update({ data_nascimento: form.data_nascimento }).eq("user_id", created.user.id);
         }
+        // Cadastra automaticamente como fornecedor (todo usuário é também fornecedor)
+        try {
+          await supabase.from("fornecedores").insert({
+            nome: form.nome_completo || form.email,
+            email: form.email || null,
+            telefone: form.telefone || null,
+            loja_id: loja_id || null,
+            ativo: true,
+          } as any);
+        } catch (e) {
+          console.warn("Falha ao criar fornecedor automático", e);
+        }
         toast.success("Usuário criado");
       }
       // Atualiza data_nascimento no profile (também no editar)
