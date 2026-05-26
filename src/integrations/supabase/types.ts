@@ -3506,6 +3506,7 @@ export type Database = {
           acao: string
           created_at: string
           descricao: string | null
+          grupo: string | null
           id: string
           modulo: string
         }
@@ -3513,6 +3514,7 @@ export type Database = {
           acao: string
           created_at?: string
           descricao?: string | null
+          grupo?: string | null
           id?: string
           modulo: string
         }
@@ -3520,6 +3522,7 @@ export type Database = {
           acao?: string
           created_at?: string
           descricao?: string | null
+          grupo?: string | null
           id?: string
           modulo?: string
         }
