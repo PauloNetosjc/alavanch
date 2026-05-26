@@ -26,6 +26,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ContactRound,
   Truck,
   Banknote,
