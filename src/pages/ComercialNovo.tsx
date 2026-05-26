@@ -502,14 +502,14 @@ export default function ComercialNovo() {
         supabase.from("parceiros").select("id, nome, percentual_padrao").eq("ativo", true).order("nome"),
         supabase.from("profiles").select("user_id, nome_completo").order("nome_completo"),
         supabase.from("origens_lead").select("id, nome").eq("ativo", true).order("nome"),
-        supabase.from("pedidos").select("id, codigo, cliente_id, nome_projeto").order("created_at", { ascending: false }).limit(500),
+        supabase.from("pedidos").select("id, codigo, cliente_id, orcamentos:orcamento_id(nome_projeto)").order("created_at", { ascending: false }).limit(500),
         supabase.from("configuracoes_empresa" as any).select("usar_markup").limit(1).maybeSingle(),
       ]);
       setClientes((c.data ?? []) as Cliente[]);
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
       setOrigens((og.data ?? []) as any);
-      setPedidosExistentes((peds.data ?? []) as any);
+      setPedidosExistentes(((peds.data ?? []) as any[]).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, nome_projeto: p.orcamentos?.nome_projeto ?? null })));
       setUsarMarkup(!!(cfg.data as any)?.usar_markup);
       // defaults em criação: consultor=usuário, projetista=usuário, loja=loja selecionada no topo (ou do usuário)
       if (!isEdit) {
