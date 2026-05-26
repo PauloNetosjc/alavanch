@@ -20,7 +20,7 @@ export function TopbarLojaSwitcher() {
   if (loading || lojas.length === 0) return null;
 
   const current = lojas.find((l) => l.id === selectedLojaId);
-  const label = current?.nome ?? (role === "admin" ? "Todas as lojas" : "Selecionar loja");
+  const label = current?.nome ?? "Selecionar loja";
 
   // Se só tem 1 loja, mostra apenas como rótulo
   if (lojas.length === 1) {
@@ -57,15 +57,6 @@ export function TopbarLojaSwitcher() {
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/40">
             Loja principal
           </div>
-          {role === "admin" && (
-            <button
-              onClick={() => { setSelectedLojaId(null); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-[13px] hover:bg-secondary flex items-center justify-between"
-            >
-              <span>Todas as lojas</span>
-              {selectedLojaId === null && <Check className="w-3.5 h-3.5 text-primary" />}
-            </button>
-          )}
           {lojas.map((l) => (
             <button
               key={l.id}

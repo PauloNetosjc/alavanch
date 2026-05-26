@@ -48,21 +48,23 @@ export function LojaProvider({ children }: { children: ReactNode }) {
       }
       setLojas(list);
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (role === "admin") {
-        setSelectedLojaIdState(stored === "__all__" ? null : (stored || null));
-      } else {
-        // Se o stored estiver entre as lojas permitidas, mantém; senão usa a primeira / loja do profile
-        const allowed = list.map((l) => l.id);
-        const candidate = stored && stored !== "__all__" && allowed.includes(stored) ? stored : (profile?.loja_id && allowed.includes(profile.loja_id) ? profile.loja_id : (list[0]?.id || null));
-        setSelectedLojaIdState(candidate);
-      }
+      const allowed = list.map((l) => l.id);
+      const candidate =
+        stored && stored !== "__all__" && allowed.includes(stored)
+          ? stored
+          : (profile?.loja_id && allowed.includes(profile.loja_id)
+              ? profile.loja_id
+              : (list[0]?.id || null));
+      setSelectedLojaIdState(candidate);
+      if (candidate) localStorage.setItem(STORAGE_KEY, candidate);
       setLoading(false);
     })();
   }, [user, role, profile?.loja_id]);
 
   const setSelectedLojaId = (id: string | null) => {
+    if (!id) return; // não permite "todas"
     setSelectedLojaIdState(id);
-    localStorage.setItem(STORAGE_KEY, id ?? "__all__");
+    localStorage.setItem(STORAGE_KEY, id);
   };
 
   return (
