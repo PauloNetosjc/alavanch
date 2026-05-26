@@ -128,7 +128,7 @@ export default function ContasAPagar() {
         baixado_em: agora.toISOString(),
       })
       .eq("id", baixaAlvo.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Pago"); load();
   }
   async function cancelar(l: Lanc) {
