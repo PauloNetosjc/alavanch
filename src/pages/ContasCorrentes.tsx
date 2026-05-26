@@ -173,9 +173,6 @@ export default function ContasCorrentes() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => { setEditConta({}); setContaDialog(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Nova Conta
-            </Button>
             <Button onClick={() => setTransferDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
               <Send className="w-4 h-4 mr-1" /> Transferência entre Contas
             </Button>
