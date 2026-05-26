@@ -197,7 +197,7 @@ export default function Financeiro() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   // KPIs
   const pendenteReceber = filtrados
