@@ -286,9 +286,6 @@ export default function KanbanComercial() {
                 <Settings className="w-4 h-4" /> Editar estágios
               </Button>
             )}
-            <Button onClick={() => navigate("/comercial/novo")} variant="outline" className="gap-1.5 rounded-xl">
-              <Plus className="w-4 h-4" /> Novo Orçamento
-            </Button>
           </div>
         }
       />
