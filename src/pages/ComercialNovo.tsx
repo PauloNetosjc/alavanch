@@ -509,7 +509,7 @@ export default function ComercialNovo() {
       setParceiros((p.data ?? []) as Parceiro[]);
       setProfiles((pr.data ?? []) as Profile[]);
       setOrigens((og.data ?? []) as any);
-      setPedidosExistentes((peds.data ?? []) as any);
+      setPedidosExistentes(((peds.data ?? []) as any[]).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, nome_projeto: p.orcamentos?.nome_projeto ?? null })));
       setUsarMarkup(!!(cfg.data as any)?.usar_markup);
       // defaults em criação: consultor=usuário, projetista=usuário, loja=loja selecionada no topo (ou do usuário)
       if (!isEdit) {
