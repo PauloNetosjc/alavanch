@@ -95,6 +95,15 @@ export default function Agenda() {
     }
     const { data } = await q;
     setEventos((data as any) || []);
+
+    // Feriados (nacionais = loja_id null + da loja filtrada)
+    let qf = supabase.from("agenda_feriados" as any).select("data, descricao, loja_id")
+      .gte("data", fmtKey(range.ini)).lte("data", fmtKey(range.fim));
+    if (isAdminOuDiretor && filtroLoja !== "all" && filtroLoja !== "__global__") {
+      qf = qf.or(`loja_id.is.null,loja_id.eq.${filtroLoja}`);
+    }
+    const { data: df } = await qf;
+    setFeriados((df as any) || []);
   };
 
   useEffect(() => {
