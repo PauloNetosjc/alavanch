@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   CheckCircle,
   Star,
+  Wallet,
+  ClipboardCheck,
+  Send,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
@@ -30,21 +33,34 @@ type Pedido = {
   data_medicao_tecnica: string | null;
   data_chegada_material: string | null;
   data_limite_finalizacao: string | null;
+  data_pagamento_fabrica: string | null;
+  data_entrega: string | null;
   workflow_estagio: string | null;
   cliente: { nome: string } | null;
 };
 
-type Etapa = "medicao" | "fabrica" | "material" | "montagem" | "finalizacao";
+type Etapa =
+  | "medicao"
+  | "pagamento_fabrica"
+  | "fabrica"
+  | "material"
+  | "entrega"
+  | "montagem"
+  | "vistoria"
+  | "finalizacao";
 
 const ETAPA_META: Record<
   Etapa,
-  { label: string; icon: any; field: keyof Pedido; color: string; bg: string }
+  { label: string; icon: any; field: keyof Pedido; color: string; bg: string; kanban: string }
 > = {
-  medicao: { label: "Medição", icon: Ruler, field: "data_medicao_tecnica", color: "#0891b2", bg: "#ecfeff" },
-  fabrica: { label: "Fábrica", icon: Factory, field: "data_envio_fabrica", color: "#7c3aed", bg: "#f5f3ff" },
-  material: { label: "Material", icon: Package, field: "data_chegada_material", color: "#d97706", bg: "#fffbeb" },
-  montagem: { label: "Montagem", icon: Truck, field: "data_montagem", color: "#16a34a", bg: "#f0fdf4" },
-  finalizacao: { label: "Finalização", icon: CheckCircle2, field: "data_limite_finalizacao", color: "#0ea5e9", bg: "#f0f9ff" },
+  medicao:           { label: "Medição",          icon: Ruler,          field: "data_medicao_tecnica",    color: "#0891b2", bg: "#ecfeff", kanban: "Revisão" },
+  pagamento_fabrica: { label: "Pagto. Fábrica",   icon: Wallet,         field: "data_pagamento_fabrica",  color: "#0d9488", bg: "#ccfbf1", kanban: "Pós-Venda" },
+  fabrica:           { label: "Fábrica",          icon: Factory,        field: "data_envio_fabrica",      color: "#7c3aed", bg: "#f5f3ff", kanban: "Fábrica" },
+  material:          { label: "Material",         icon: Package,        field: "data_chegada_material",   color: "#d97706", bg: "#fffbeb", kanban: "Montagem" },
+  entrega:           { label: "Entrega",          icon: Send,           field: "data_entrega",            color: "#2563eb", bg: "#eff6ff", kanban: "Montagem" },
+  montagem:          { label: "Montagem",         icon: Truck,          field: "data_montagem",           color: "#16a34a", bg: "#f0fdf4", kanban: "Montagem" },
+  vistoria:          { label: "Vistoria",         icon: ClipboardCheck, field: "data_vistoria",           color: "#9333ea", bg: "#faf5ff", kanban: "Montagem" },
+  finalizacao:       { label: "Finalização",     icon: CheckCircle2,   field: "data_limite_finalizacao", color: "#0ea5e9", bg: "#f0f9ff", kanban: "Pós-Venda" },
 };
 
 const MES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
