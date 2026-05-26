@@ -512,6 +512,15 @@ function SimpleCrud({
                   </div>
                 ) : f.type === "textarea" ? (
                   <Textarea value={form[f.name] ?? ""} onChange={(e) => setForm({ ...form, [f.name]: e.target.value })} rows={4} />
+                ) : f.type === "select" ? (
+                  <Select value={form[f.name] || undefined} onValueChange={(v) => setForm({ ...form, [f.name]: v })}>
+                    <SelectTrigger><SelectValue placeholder={f.placeholder || "Selecione…"} /></SelectTrigger>
+                    <SelectContent>
+                      {(optionsMap[f.name] ?? []).map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input type={f.type === "number" ? "number" : "text"} placeholder={f.placeholder}
                     value={form[f.name] ?? ""} onChange={(e) => setForm({ ...form, [f.name]: f.type === "number" ? Number(e.target.value) : e.target.value })} />
