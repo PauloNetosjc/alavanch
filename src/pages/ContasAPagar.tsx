@@ -159,7 +159,8 @@ export default function ContasAPagar() {
         dtFim={dtFim} setDtFim={setDtFim}
         cats={cats}
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
-        apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
+        incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
+        incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
         incluirAprovadas={incluirAprovadas} setIncluirAprovadas={setIncluirAprovadas}
         incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}
