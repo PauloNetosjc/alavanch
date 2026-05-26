@@ -375,12 +375,14 @@ export default function Financeiro() {
                 <ShieldCheck className="w-4 h-4 mr-1" /> Aprovador
               </Button>
             </Link>
+            <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
             <Button onClick={novoLancamento} className="bg-violet-600 hover:bg-violet-700 text-white">
               <Plus className="w-4 h-4 mr-1" /> Lançar Conta
             </Button>
           </div>
         </div>
       </div>
+
 
       {/* ATALHOS GRANDES: A PAGAR / A RECEBER */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
