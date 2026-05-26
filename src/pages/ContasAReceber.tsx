@@ -153,7 +153,7 @@ export default function ContasAReceber() {
         tipo: "entrada",
         descricao: `${baixaAlvo.descricao || "Recebimento"} — saldo restante`,
         valor: diff,
-        data_vencimento: novoVenc.toISOString().slice(0, 10),
+        data_vencimento: novoVenc,
         categoria_id: baixaAlvo.categoria_id,
         conta_id: p.conta_id,
         pedido_id: baixaAlvo.pedido_id,
