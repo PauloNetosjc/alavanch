@@ -45,6 +45,8 @@ const ContratoVisualizar = lazy(() => import("@/pages/ContratoVisualizar"));
 const PedidoDetalhe = lazy(() => import("@/pages/PedidoDetalhe"));
 const PedidoReceita = lazy(() => import("@/pages/PedidoReceita"));
 const ContasCorrentes = lazy(() => import("@/pages/ContasCorrentes"));
+const ContasAPagar = lazy(() => import("@/pages/ContasAPagar"));
+const ContasAReceber = lazy(() => import("@/pages/ContasAReceber"));
 const ExtratoConta = lazy(() => import("@/pages/ExtratoConta"));
 const CategoriasFinanceiras = lazy(() => import("@/pages/CategoriasFinanceiras"));
 const AuditoriaParceiros = lazy(() => import("@/pages/AuditoriaParceiros"));
