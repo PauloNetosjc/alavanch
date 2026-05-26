@@ -557,14 +557,15 @@ function Lojas() {
 function Bancos() {
   return <SimpleCrud title="Contas Bancárias" subtitle="Bancos e contas para conciliação financeira" icon={Banknote} table="contas_bancarias"
     fields={[
-      { name: "nome", label: "Nome" },
+      { name: "nome", label: "Nome", required: true },
+      { name: "loja_id", label: "Loja", type: "select", optionsTable: "lojas", placeholder: "Selecione a loja", required: true },
       { name: "banco", label: "Banco" },
       { name: "agencia", label: "Agência" },
       { name: "conta", label: "Conta" },
       { name: "saldo_inicial", label: "Saldo inicial", type: "number" },
       { name: "ativo", label: "Ativo", type: "switch" },
     ]}
-    defaultRow={{ nome: "", banco: "", agencia: "", conta: "", saldo_inicial: 0, ativo: true }} />;
+    defaultRow={{ nome: "", loja_id: "", banco: "", agencia: "", conta: "", saldo_inicial: 0, ativo: true }} />;
 }
 
 function MetodosPagamento() {
