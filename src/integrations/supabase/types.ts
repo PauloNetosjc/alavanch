@@ -3622,6 +3622,51 @@ export type Database = {
           },
         ]
       }
+      produtos: {
+        Row: {
+          ativo: boolean
+          codigo_barra: string | null
+          codigo_interno: string | null
+          created_at: string
+          descricao: string
+          id: string
+          loja_id: string | null
+          preco_custo: number
+          preco_venda: number
+          quantidade: number
+          unidade_medida: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_barra?: string | null
+          codigo_interno?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          loja_id?: string | null
+          preco_custo?: number
+          preco_venda?: number
+          quantidade?: number
+          unidade_medida: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_barra?: string | null
+          codigo_interno?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          loja_id?: string | null
+          preco_custo?: number
+          preco_venda?: number
+          quantidade?: number
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean | null
