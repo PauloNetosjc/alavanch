@@ -1,51 +1,47 @@
-# Replicar filtro de Loja nas demais telas financeiras
+## Relatório ABC de Produtos
 
-As 3 telas principais (Financeiro, Contas a Pagar, Contas a Receber) já usam `LojasFilter` + estado `lojasFiltro` (inicializa com a loja do topbar; `[]` = todas as lojas acessíveis). Vou replicar exatamente o mesmo padrão nas demais.
+### Onde fica
+Nova aba **"Curva ABC"** dentro da tela **Cadastros → Produtos** (`/produtos`), ao lado da listagem atual.
 
-## Telas a ajustar
+### Banco de dados
+Hoje os itens dos pedidos estão em `pedido_itens_avulsos`, mas **não têm vínculo com a tabela `produtos`** nem campo de quantidade. Para o ABC funcionar de verdade, vou adicionar:
 
-### 1. `src/pages/ContasCorrentes.tsx`
-- Importar `LojasFilter` e `useLoja`.
-- Estado `lojasFiltro` inicializado com `[lojaSelecionada.id]` (se houver).
-- Adicionar `<LojasFilter />` no header da página (ao lado do botão "Voltar ao Financeiro").
-- Filtrar `contas_bancarias` e `cartoes_credito` por `loja_id ∈ lojasFiltro` (quando `lojasFiltro.length > 0`).
-- Ao criar nova conta/cartão, default `loja_id = lojaSelecionada?.id`.
-- Passar `lojasFiltro` como prop para `FluxoCaixaDashboard`.
+- `pedido_itens_avulsos.produto_id` (UUID, opcional, FK lógica para `produtos.id`)
+- `pedido_itens_avulsos.quantidade` (numeric, default 1)
+- `pedido_itens_avulsos.preco_custo_unit` (numeric, opcional — preenchido a partir do produto na hora da venda; usado para cálculo de lucro mesmo se o custo do produto mudar depois)
 
-### 2. `src/components/financeiro/FluxoCaixaDashboard.tsx`
-- Receber prop `lojasFiltro: string[]`.
-- Aplicar `.in("loja_id", lojasFiltro)` (quando não vazio) nas queries de `contas_bancarias` e `lancamentos_financeiros`.
-- Recalcular saldo/projeção sempre que `lojasFiltro` mudar.
+No formulário de **itens avulsos** do pedido, adiciono um campo opcional de "Produto" (autocomplete buscando em `produtos`). Ao selecionar, ele preenche descrição, preço de venda sugerido e trava o custo do snapshot. Itens manuais sem vínculo continuam funcionando como hoje (ficam fora do ABC).
 
-### 3. `src/pages/AnaliseFinanceira.tsx`
-- Importar `LojasFilter` + `useLoja`; estado `lojasFiltro` inicializado com loja atual.
-- `<LojasFilter />` no header (junto aos filtros de período já existentes).
-- Aplicar filtro em todas as queries: `lancamentos_financeiros`, `pedidos`, `clientes` (via `loja_id`).
-- Recalcular KPIs/DRE/gráficos a partir do dataset filtrado.
+### Tela do Relatório ABC
 
-### 4. `src/pages/AprovadorFinanceiro.tsx`
-- Importar `LojasFilter` + `useLoja`; estado `lojasFiltro` inicializado com loja atual.
-- `<LojasFilter />` no header.
-- Aplicar filtro em `lancamentos_financeiros` (pendentes de aprovação) por `loja_id`.
-- Mantém comportamento de aprovação atual; só a lista exibida muda.
+**Filtros no topo:**
+- Período (data inicial / data final, padrão: últimos 90 dias)
+- Loja (respeita `LojaContext`; admin pode ver "todas")
+- Status do pedido (padrão: somente pedidos "ativos/concluídos")
+- **Critério** (radio): Faturamento • Quantidade • Lucro bruto
+- Faixas A/B/C configuráveis (padrão 80% / 95% / 100%)
 
-## Padrão visual (igual às 3 telas já feitas)
+**Cálculo:**
+1. Buscar `pedido_itens_avulsos` com `produto_id NOT NULL` no período/loja
+2. Agregar por produto: somar `quantidade`, `valor_venda * quantidade`, `(valor_venda - preco_custo_unit) * quantidade`
+3. Ordenar decrescente pelo critério escolhido
+4. Calcular `% individual` e `% acumulado`
+5. Classificar A (≤80%), B (≤95%), C (resto)
 
-```
-<div className="flex items-center justify-between mb-4">
-  <h1 ...>{título}</h1>
-  <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
-</div>
-```
+**Visual:**
+- 3 cards de resumo: total de itens A, B, C (qtd produtos + % faturamento de cada)
+- Gráfico de Pareto (Recharts): barras = valor por produto + linha = % acumulado
+- Tabela ordenada: posição, descrição, código interno, qtd vendida, faturamento, lucro, % individual, % acumulado, **badge da classe** (verde A, amarelo B, cinza C)
+- Botão **Exportar CSV**
 
-## Comportamento garantido (consistente com Financeiro/A Pagar/A Receber)
+### Detalhes técnicos
+- Migration: alteração em `pedido_itens_avulsos` (3 colunas novas, nullable, sem quebra)
+- Componente novo: `src/pages/Produtos.tsx` recebe `Tabs` com "Lista" e "Curva ABC"
+- Subcomponente: `src/components/produtos/CurvaABC.tsx` com filtros, query Supabase, cálculo, gráfico e tabela
+- Form de item avulso (provavelmente em `OrderDetailSheet` ou similar) ganha autocomplete de produto — vou localizar e ajustar
+- Gráfico via `recharts` (já usado no projeto)
+- Exportação CSV client-side (sem libs novas)
 
-- Ao abrir a tela: filtro pré-selecionado com a loja ativa no topbar.
-- Trocar loja no topbar não força reset (usuário controla via filtro local).
-- `lojasFiltro = []` → exibe todas as lojas que o usuário tem permissão para acessar.
-- Se o usuário só tem 1 loja, `LojasFilter` já se renderiza como rótulo (sem dropdown).
-
-## Fora do escopo
-
-- Sem alterações em RLS/migrations (a coluna `loja_id` já existe em `contas_bancarias`, `cartoes_credito` e `lancamentos_financeiros`).
-- Sem mudanças nas 3 telas que já usam o filtro.
+### Fora de escopo
+- Não vou recalcular ABC histórico de itens antigos (sem `produto_id` vinculado) — eles simplesmente não aparecem no relatório. Conforme novos pedidos forem cadastrados vinculando produtos, o ABC ganha massa.
+- Não vou criar tabela separada de "venda de produtos" — reaproveito `pedido_itens_avulsos` para não duplicar fonte de verdade.
