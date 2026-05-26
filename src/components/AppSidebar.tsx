@@ -36,6 +36,7 @@ import {
   Cake,
   Package,
   Shield,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
