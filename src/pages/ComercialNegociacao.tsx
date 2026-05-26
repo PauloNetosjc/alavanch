@@ -1493,7 +1493,7 @@ export default function ComercialNegociacao() {
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
                     const max = Math.max(1, Number(met?.max_parcelas) || 24);
-                    return [1,2,3,4,5,6,8,10,12,18,24].filter((n) => n <= max).map((n) => {
+                    return Array.from({ length: max }, (_, i) => i + 1).map((n) => {
                       const cfg = met?.parcelas_config?.find((p) => Number(p.numero) === n);
                       const desc = Number(cfg?.desconto_perc) || 0;
                       const juros = Number(cfg?.juros_perc ?? met?.taxa_perc_parcela) || 0;
