@@ -284,8 +284,9 @@ function Usuarios() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
           body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: loja_id, lojas_ids, telefone: form.telefone || null }),
         });
-        if (!r.ok) throw new Error((await r.json()).error || "Erro ao criar");
-        const created = await r.json().catch(() => ({}));
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error || "Erro ao criar");
+        const created = body;
         // Persiste data_nascimento no profile recém-criado
         if (form.data_nascimento && created?.user?.id) {
           await supabase.from("profiles").update({ data_nascimento: form.data_nascimento }).eq("user_id", created.user.id);
