@@ -45,7 +45,7 @@ export default function Configuracoes() {
         <TabsContent value="empresa" className="mt-6"><EmpresaTab /></TabsContent>
         <TabsContent value="taxas" className="mt-6"><TaxasTab /></TabsContent>
         <TabsContent value="metas" className="mt-6"><MetasTab /></TabsContent>
-        <TabsContent value="financeiro" className="mt-6"><FinanceiroTab /></TabsContent>
+        <TabsContent value="financeiro" className="mt-6"><AprovadorConfig /></TabsContent>
       </Tabs>
     </div>
   );
