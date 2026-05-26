@@ -16,6 +16,7 @@ import { RequirePermission } from "@/components/RequirePermission";
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
+const InfoSistema = lazy(() => import("@/pages/InfoSistema"));
 const Placeholder = lazy(() => import("@/pages/Placeholder"));
 const Clientes = lazy(() => import("@/pages/Clientes"));
 const Comercial = lazy(() => import("@/pages/Comercial"));
@@ -155,6 +156,7 @@ const App = () => (
                 <Route path="/administracao/checklist-assistencia" element={<ChecklistAssistencia />} />
                 <Route path="/administracao/simulador-automacoes" element={<SimuladorAutomacoes />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/sistema/info" element={<InfoSistema />} />
                 <Route path="/financeiro" element={<RequirePermission modulo="lancamentos"><Financeiro /></RequirePermission>} />
                 <Route path="/financeiro/analise" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
                 <Route path="/financeiro/analise/:id" element={<RequirePermission modulo="lancamentos"><AnaliseFinanceira /></RequirePermission>} />
