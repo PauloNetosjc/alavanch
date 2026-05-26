@@ -58,6 +58,7 @@ type Lanc = {
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
+  aprovacao_status: string | null;
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
@@ -94,6 +95,8 @@ export default function Financeiro() {
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
+  const [incluirAprovadas, setIncluirAprovadas] = useState(true);
+  const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   // Período
   const hoje = new Date();
@@ -161,6 +164,10 @@ export default function Financeiro() {
   // Filtragem
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      const isAprov = l.aprovacao_status === "aprovado";
+      if (!incluirAprovadas && !incluirNaoAprovadas) return false;
+      if (isAprov && !incluirAprovadas) return false;
+      if (!isAprov && !incluirNaoAprovadas) return false;
       const d = l.data_pagamento || l.data_vencimento;
       if (d) {
         if (dtIni && d < dtIni) return false;
@@ -179,7 +186,7 @@ export default function Financeiro() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, apenasPendentes, mostrarCancelados, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   // KPIs
   const pendenteReceber = filtrados
@@ -448,6 +455,14 @@ export default function Financeiro() {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <Checkbox checked={mostrarCancelados} onCheckedChange={(v) => setMostrarCancelados(!!v)} />
             Mostrar Cancelados
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={incluirAprovadas} onCheckedChange={(v) => setIncluirAprovadas(!!v)} />
+            Contas Aprovadas
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={incluirNaoAprovadas} onCheckedChange={(v) => setIncluirNaoAprovadas(!!v)} />
+            Contas Não Aprovadas
           </label>
         </div>
       </div>

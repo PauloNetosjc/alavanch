@@ -19,6 +19,7 @@ type Lanc = {
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
+  aprovacao_status: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
@@ -43,10 +44,12 @@ export default function ContasAReceber() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
+  const [incluirAprovadas, setIncluirAprovadas] = useState(true);
+  const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
-      supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").eq("aprovacao_status", "aprovado").order("data_vencimento", { ascending: true }).limit(2000),
+      supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
@@ -64,6 +67,10 @@ export default function ContasAReceber() {
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      const isAprov = l.aprovacao_status === "aprovado";
+      if (!incluirAprovadas && !incluirNaoAprovadas) return false;
+      if (isAprov && !incluirAprovadas) return false;
+      if (!isAprov && !incluirNaoAprovadas) return false;
       const d = l.data_pagamento || l.data_vencimento;
       if (d) {
         if (dtIni && d < dtIni) return false;
@@ -81,7 +88,7 @@ export default function ContasAReceber() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
     const { error } = await supabase.from("lancamentos_financeiros")
@@ -133,6 +140,8 @@ export default function ContasAReceber() {
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
         apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
+        incluirAprovadas={incluirAprovadas} setIncluirAprovadas={setIncluirAprovadas}
+        incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}
       />
 
       <div className="rounded-2xl border bg-card overflow-hidden">

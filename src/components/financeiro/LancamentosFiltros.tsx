@@ -23,6 +23,10 @@ interface Props {
   setApenasPendentes: (v: boolean) => void;
   mostrarCancelados: boolean;
   setMostrarCancelados: (v: boolean) => void;
+  incluirAprovadas: boolean;
+  setIncluirAprovadas: (v: boolean) => void;
+  incluirNaoAprovadas: boolean;
+  setIncluirNaoAprovadas: (v: boolean) => void;
 }
 
 export default function LancamentosFiltros(p: Props) {
@@ -127,6 +131,14 @@ export default function LancamentosFiltros(p: Props) {
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <Checkbox checked={p.mostrarCancelados} onCheckedChange={(v) => p.setMostrarCancelados(!!v)} />
             Mostrar Cancelados
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={p.incluirAprovadas} onCheckedChange={(v) => p.setIncluirAprovadas(!!v)} />
+            Contas Aprovadas
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={p.incluirNaoAprovadas} onCheckedChange={(v) => p.setIncluirNaoAprovadas(!!v)} />
+            Contas Não Aprovadas
           </label>
         </div>
       </div>
