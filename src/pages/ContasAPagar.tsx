@@ -13,6 +13,8 @@ import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeir
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
+import { useLoja } from "@/contexts/LojaContext";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
 
 type Lanc = {
   id: string;
