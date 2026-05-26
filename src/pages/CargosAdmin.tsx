@@ -254,7 +254,7 @@ function CargosTab() {
                         disabled={selected === "admin"}
                         onCheckedChange={() => toggleModulo(modulo, items, allChecked)}
                       />
-                      <div className="text-[13px] font-semibold uppercase tracking-wide">{modulo}</div>
+                      <div className="text-[13px] font-semibold uppercase tracking-wide">{labelModulo(modulo)}</div>
                       <Badge variant="outline" className="text-[10px] ml-auto">
                         {items.filter(it => granted.has(`${it.modulo}:${it.acao}`)).length}/{items.length}
                       </Badge>
@@ -270,7 +270,7 @@ function CargosTab() {
                               onCheckedChange={(v) => toggle(it.modulo, it.acao, !!v)}
                             />
                             <span>
-                              <span className="font-medium">{it.acao}</span>
+                              <span className="font-medium">{labelAcao(it.acao)}</span>
                               {it.descricao && <span className="text-muted-foreground"> — {it.descricao}</span>}
                             </span>
                           </label>
