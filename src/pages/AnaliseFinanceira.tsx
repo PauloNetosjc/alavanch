@@ -125,11 +125,13 @@ export default function AnaliseFinanceira() {
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <PieChart className="w-5 h-5 text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-display">Resultado</h1>
             <p className="text-xs text-muted-foreground">Análise de Contratos</p>
           </div>
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
         </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-2xl p-8 text-white" style={{ background: "linear-gradient(135deg,#7c3aed,#ec4899)" }}>
