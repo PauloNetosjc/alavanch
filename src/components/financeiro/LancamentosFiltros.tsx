@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, CalendarRange } from "lucide-react";
 
 export type Cat = { id: string; nome: string; parent_id?: string | null };
+export type Fornecedor = { id: string; nome: string };
 
 interface Props {
   // busca
@@ -18,6 +19,10 @@ interface Props {
   cats: Cat[];
   categoriaFiltro: string;
   setCategoriaFiltro: (v: string) => void;
+  // fornecedor
+  fornecedores?: Fornecedor[];
+  fornecedorFiltro?: string;
+  setFornecedorFiltro?: (v: string) => void;
   // opções
   incluirPendentes: boolean;
   setIncluirPendentes: (v: boolean) => void;
