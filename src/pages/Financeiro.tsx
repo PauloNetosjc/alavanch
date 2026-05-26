@@ -305,12 +305,26 @@ export default function Financeiro() {
     const v = Number(editLanc.valor);
     if (!v || v <= 0) return toast.error("Informe um valor válido");
 
+    // Fornecedor obrigatório:
+    // - Toda despesa precisa de fornecedor
+    // - Receita só dispensa fornecedor quando vinculada a um contrato (o cliente do pedido é o pagador)
+    const isReceitaComContrato =
+      editLanc.tipo === "entrada" && editLanc.vincular_contrato && editLanc.pedido_id;
+    if (!isReceitaComContrato && !editLanc.fornecedor_id) {
+      return toast.error(
+        editLanc.tipo === "saida"
+          ? "Selecione ou cadastre o fornecedor da despesa"
+          : "Selecione ou cadastre o pagador (fornecedor) da receita"
+      );
+    }
+
     const base = {
       tipo: editLanc.tipo,
       descricao: editLanc.descricao,
       categoria_id: editLanc.categoria_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
+      fornecedor_id: editLanc.fornecedor_id || null,
       status: "pendente",
     };
 
