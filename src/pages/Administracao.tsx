@@ -210,7 +210,7 @@ function RegrasDesconto() {
 }
 
 /* ============================== USUÁRIOS ============================== */
-type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null };
+type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null; data_nascimento: string | null };
 type Loja = { id: string; nome: string };
 type UserRole = { user_id: string; role: string };
 
@@ -221,7 +221,7 @@ function Usuarios() {
   const [userLojas, setUserLojas] = useState<{ user_id: string; loja_id: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
-  const [form, setForm] = useState<{ email: string; password: string; nome_completo: string; role: string; loja_id: string; telefone: string; lojas_ids: string[] }>({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [] });
+  const [form, setForm] = useState<{ email: string; password: string; nome_completo: string; role: string; loja_id: string; telefone: string; lojas_ids: string[]; data_nascimento: string }>({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [], data_nascimento: "" });
 
   const load = async () => {
     const [p, r, l, ul] = await Promise.all([
@@ -243,13 +243,13 @@ function Usuarios() {
 
   const onCreate = () => {
     setEditing(null);
-    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [] });
+    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [], data_nascimento: "" });
     setOpen(true);
   };
   const onEdit = (p: Profile) => {
     setEditing(p);
     const ids = lojasDoUser(p.user_id);
-    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "", lojas_ids: ids.length ? ids : (p.loja_id ? [p.loja_id] : []) });
+    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "", lojas_ids: ids.length ? ids : (p.loja_id ? [p.loja_id] : []), data_nascimento: p.data_nascimento || "" });
     setOpen(true);
   };
 
@@ -284,8 +284,18 @@ function Usuarios() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
           body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: loja_id, lojas_ids, telefone: form.telefone || null }),
         });
-        if (!r.ok) throw new Error((await r.json()).error || "Erro ao criar");
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error || "Erro ao criar");
+        const created = body;
+        // Persiste data_nascimento no profile recém-criado
+        if (form.data_nascimento && created?.user?.id) {
+          await supabase.from("profiles").update({ data_nascimento: form.data_nascimento }).eq("user_id", created.user.id);
+        }
         toast.success("Usuário criado");
+      }
+      // Atualiza data_nascimento no profile (também no editar)
+      if (editing && form.data_nascimento !== (editing.data_nascimento || "")) {
+        await supabase.from("profiles").update({ data_nascimento: form.data_nascimento || null }).eq("user_id", editing.user_id);
       }
       setOpen(false);
       load();
@@ -339,6 +349,7 @@ function Usuarios() {
             )}
             <div><Label>Nome completo</Label><Input value={form.nome_completo} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} /></div>
             <div><Label>Telefone (WhatsApp)</Label><Input placeholder="(11) 99999-9999" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} /></div>
+            <div><Label>Data de nascimento</Label><Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} /></div>
             <div>
               <Label>Cargo</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
@@ -503,9 +514,11 @@ function Lojas() {
       { name: "telefone", label: "Telefone" },
       { name: "email", label: "Email" },
       { name: "endereco", label: "Endereço", type: "textarea" },
+      { name: "cidade", label: "Cidade" },
+      { name: "uf", label: "UF (sigla — ex.: SP, RJ)" },
       { name: "ativo", label: "Ativo", type: "switch" },
     ]}
-    defaultRow={{ nome: "", cnpj: "", telefone: "", email: "", endereco: "", ativo: true }} />;
+    defaultRow={{ nome: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", uf: "", ativo: true }} />;
 }
 
 function Bancos() {

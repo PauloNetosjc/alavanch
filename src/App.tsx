@@ -61,6 +61,7 @@ const AssinaturaPublica = lazy(() => import("@/pages/AssinaturaPublica"));
 const Assinaturas = lazy(() => import("@/pages/Assinaturas"));
 const Origens = lazy(() => import("@/pages/Origens"));
 const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
+const Aniversariantes = lazy(() => import("@/pages/Aniversariantes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +119,7 @@ const App = () => (
                 <Route path="/ranking" element={<Ranking />} />
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/clientes" element={<Clientes />} />
+                <Route path="/aniversariantes" element={<Aniversariantes />} />
                 <Route path="/comercial" element={<Comercial />} />
                 <Route path="/comercial/kanban" element={<Navigate to="/kanban-comercial" replace />} />
                 <Route path="/comercial/novo" element={<ComercialNovo />} />

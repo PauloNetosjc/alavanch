@@ -33,6 +33,7 @@ import {
   Truck,
   Banknote,
   Cog,
+  Cake,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -89,6 +90,7 @@ const moreGroups: Group[] = [
       { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
       { label: "Origens", path: "/origens", icon: Folder },
       { label: "Fornecedores", path: "/fornecedores", icon: Truck },
+      { label: "Aniversariantes do Mês", path: "/aniversariantes", icon: Cake },
     ],
   },
   {

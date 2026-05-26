@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
-import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { AgendaEventoDialog, AgendaTipo } from "@/components/agenda/AgendaEventoDialog";
 import { EventoDetalheDialog } from "@/components/agenda/EventoDetalheDialog";
+import { toast } from "sonner";
 
 const TIPO_LABEL: Record<string, string> = {
   apresentacao_comercial: "Apresentação",
@@ -145,9 +146,29 @@ export default function Agenda() {
         subtitle="Medições, revisões, entregas, montagens e tarefas internas"
         icon={CalendarDays}
         actions={
-          <Button onClick={() => { setDefaultDate(undefined); setOpenNovo(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> Novo evento
-          </Button>
+          <div className="flex gap-2">
+            {isAdminOuDiretor && (
+              <Button variant="outline" onClick={async () => {
+                const t = toast.loading("Sincronizando feriados…");
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-feriados`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+                  });
+                  const j = await r.json();
+                  toast.dismiss(t);
+                  if (j.ok) toast.success(`Feriados sincronizados: ${j.inseridos} novos (${j.ja_existiam} já existiam)`);
+                  else toast.error(j.error || "Falha ao sincronizar");
+                } catch (e: any) { toast.dismiss(t); toast.error(e.message); }
+              }}>
+                <RefreshCw className="w-4 h-4 mr-2" /> Sincronizar Feriados
+              </Button>
+            )}
+            <Button onClick={() => { setDefaultDate(undefined); setOpenNovo(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Novo evento
+            </Button>
+          </div>
         }
       />
 

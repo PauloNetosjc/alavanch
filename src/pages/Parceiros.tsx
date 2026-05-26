@@ -12,7 +12,7 @@ import { HistoricoParceiroDialog } from "@/components/parceiros/HistoricoParceir
 type Parceiro = {
   id: string; nome: string; tipo: string; email: string | null; telefone: string | null;
   cpf_cnpj: string | null; endereco: string | null; observacoes: string | null;
-  percentual_padrao: number | null; ativo: boolean | null;
+  percentual_padrao: number | null; ativo: boolean | null; data_nascimento: string | null;
 };
 
 type Tab = "fornecedor" | "indicador" | "prestador";
@@ -44,6 +44,7 @@ export default function Parceiros() {
       email: edit.email, telefone: edit.telefone, cpf_cnpj: edit.cpf_cnpj,
       endereco: edit.endereco, observacoes: edit.observacoes,
       percentual_padrao: Number(edit.percentual_padrao) || 0,
+      data_nascimento: edit.data_nascimento || null,
       ativo: edit.ativo ?? true,
     };
     const q = edit.id
@@ -179,7 +180,10 @@ export default function Parceiros() {
               <div><Label>E-mail</Label><Input type="email" value={edit?.email || ""} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></div>
               <div><Label>Telefone</Label><Input value={edit?.telefone || ""} onChange={(e) => setEdit({ ...edit, telefone: e.target.value })} /></div>
             </div>
-            <div><Label>Endereço</Label><Input value={edit?.endereco || ""} onChange={(e) => setEdit({ ...edit, endereco: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Data de nascimento</Label><Input type="date" value={edit?.data_nascimento || ""} onChange={(e) => setEdit({ ...edit, data_nascimento: e.target.value })} /></div>
+              <div><Label>Endereço</Label><Input value={edit?.endereco || ""} onChange={(e) => setEdit({ ...edit, endereco: e.target.value })} /></div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Tipo</Label>
                 <select className="w-full border rounded-md h-9 px-2 bg-background" value={edit?.tipo || tab} onChange={(e) => setEdit({ ...edit, tipo: e.target.value })}>
