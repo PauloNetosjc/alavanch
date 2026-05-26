@@ -584,7 +584,8 @@ export default function ComercialNegociacao() {
   const metodoSelecionado = metodos.find((m) => m.nome === novoMetodo);
   const cfgParcelaSel = metodoSelecionado?.parcelas_config?.find((p) => Number(p.numero) === Number(novoParcelas));
   const descontoMetodoPerc = Number(cfgParcelaSel?.desconto_perc) || 0;
-  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0));
+  const _somaEntradasAdicionadas = pagamentos.reduce((s, p: any) => s + (p.is_entrada ? (p.valor || 0) : 0), 0);
+  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0) - _somaEntradasAdicionadas);
   const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
   const totalProposta = isAdendo
     ? Math.max(0, adendoValor - descontoMetodoValor)
@@ -789,25 +790,30 @@ export default function ComercialNegociacao() {
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
+  const somaEntradas = useMemo(
+    () => pagamentos.filter((p: any) => p.is_entrada).reduce((s, p) => s + (p.valor || 0), 0),
+    [pagamentos],
+  );
+
   const aplicarEntrada = () => {
     if (!entrada || entrada <= 0) return toast.error("Informe o valor da entrada");
     if (!novoMetodo) return toast.error("Selecione o método de pagamento da entrada");
     setPagamentos((prev) => {
-      const semEntrada = prev.filter((p) => !(p as any).is_entrada);
       const hoje = new Date().toISOString().slice(0, 10);
       return [
+        ...prev,
         { metodo: novoMetodo, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
-        ...semEntrada,
       ];
     });
+    setEntrada(0);
     toast.success("Entrada adicionada");
   };
 
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
-  // O valor é sempre o restante a parcelar (total - entrada).
+  // O valor é sempre o restante a parcelar (total - soma das entradas).
   useEffect(() => {
     if (!novoMetodo) return;
-    const valorPrincipal = Number(Math.max(0, totalProposta - (entrada || 0)).toFixed(2));
+    const valorPrincipal = Number(Math.max(0, totalProposta - somaEntradas).toFixed(2));
     setPagamentos((prev) => {
       const outros = prev.filter((p) => !(p as any).is_principal);
       if (valorPrincipal <= 0) return outros;
@@ -824,7 +830,7 @@ export default function ComercialNegociacao() {
       ];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, entrada]);
+  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, somaEntradas]);
 
   /* ------------------------- save ------------------------- */
   const persist = async (newStatus?: string) => {
@@ -1523,16 +1529,23 @@ export default function ComercialNegociacao() {
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
                 A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
-                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - entrada))}</span>
+                {_somaEntradasAdicionadas > 0 && (
+                  <span className="block">Entradas já adicionadas: <b className="text-foreground">{fmtBrl(_somaEntradasAdicionadas)}</b></span>
+                )}
+                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - _somaEntradasAdicionadas - entrada))}</span>
               </div>
               <Button
-                type="button" variant="outline" size="sm"
-                className="w-full mt-2"
+                type="button"
+                size="sm"
+                className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg transition-all font-semibold"
                 onClick={aplicarEntrada}
                 disabled={!entrada || entrada <= 0}
               >
-                <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
+                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada como pagamento
               </Button>
+              <div className="text-[10px] text-muted-foreground mt-1 text-center">
+                Você pode adicionar quantas entradas precisar
+              </div>
             </div>
           </div>
         </div>
