@@ -140,16 +140,25 @@ export default function ContasCorrentes() {
     load();
   }
 
-  const filtradas = contas.filter((c) => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  const aplicaLoja = <T extends { loja_id: string | null }>(arr: T[]) =>
+    lojasFiltro.length === 0 ? arr : arr.filter((x) => lojasFiltro.includes(x.loja_id || ""));
+
+  const contasVisiveis = aplicaLoja(contas);
+  const cartoesVisiveis = aplicaLoja(cartoes);
+  const filtradas = contasVisiveis.filter((c) => c.nome.toLowerCase().includes(busca.toLowerCase()));
 
   return (
     <div className="p-8 space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
-        <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
-      </Button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
+        </Button>
+        <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
+      </div>
 
       {/* FLUXO DE CAIXA */}
-      <FluxoCaixaDashboard />
+      <FluxoCaixaDashboard lojasFiltro={lojasFiltro} />
+
 
       {/* CONTAS CORRENTES */}
       <div className="rounded-2xl border bg-card p-6">
