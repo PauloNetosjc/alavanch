@@ -1340,42 +1340,42 @@ export default function ComercialNegociacao() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-12">Nº</TableHead>
-                                <TableHead className="w-36">Vencimento</TableHead>
-                                <TableHead className="w-32 text-right">Valor</TableHead>
-                                <TableHead>Forma prevista</TableHead>
-                                <TableHead className="w-12 text-center">🔒</TableHead>
+                                <TableHead className="w-12 px-2">Nº</TableHead>
+                                <TableHead className="w-[140px] px-2">Vencimento</TableHead>
+                                <TableHead className="w-[110px] px-2 text-right">Valor</TableHead>
+                                <TableHead className="px-2">Forma prevista</TableHead>
+                                <TableHead className="w-10 px-2 text-center">🔒</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {det.map((v, i) => (
                                 <TableRow key={i}>
-                                  <TableCell className="text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
-                                  <TableCell>
+                                  <TableCell className="px-2 text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
+                                  <TableCell className="px-2">
                                     <Input
                                       type="date"
                                       value={vencs[i] || ""}
                                       disabled={!!locked[i]}
                                       onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
-                                      className="h-8 text-[12px]"
+                                      className="h-8 text-[12px] px-2"
                                     />
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell className="px-2">
                                     <Input
-                                      type="number" step="0.01"
-                                      value={v}
+                                      type="number" step="0.01" inputMode="decimal"
+                                      value={Number.isFinite(v) ? Number(v).toFixed(2) : ""}
                                       disabled={!!locked[i]}
                                       onChange={(e) => editarParcelaValor(idx, i, Number(e.target.value) || 0)}
-                                      className="text-right text-[12px] h-8"
+                                      className="text-right text-[12px] h-8 px-2"
                                     />
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell className="px-2">
                                     <Select
                                       value={formas[i] || p.metodo}
                                       disabled={!!locked[i]}
                                       onValueChange={(val) => editarParcelaForma(idx, i, val)}
                                     >
-                                      <SelectTrigger className="h-8 text-[12px]">
+                                      <SelectTrigger className="h-8 text-[12px] px-2">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -1388,7 +1388,7 @@ export default function ComercialNegociacao() {
                                       </SelectContent>
                                     </Select>
                                   </TableCell>
-                                  <TableCell className="text-center">
+                                  <TableCell className="px-1 text-center">
                                     <Button
                                       variant="ghost"
                                       size="icon"
