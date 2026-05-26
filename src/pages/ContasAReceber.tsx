@@ -106,17 +106,29 @@ export default function ContasAReceber() {
     });
   }, [lancs, dtIni, dtFim, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
-  async function liquidar(l: Lanc) {
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
+
+  function abrirBaixa(l: Lanc) {
+    setBaixaAlvo(l);
+    setBaixaOpen(true);
+  }
+
+  async function confirmarBaixa(p: BaixaPayload) {
+    if (!baixaAlvo) return;
     const agora = new Date();
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
         status: "recebido",
-        data_pagamento: agora.toISOString().slice(0, 10),
+        data_pagamento: p.data_pagamento,
+        conta_id: p.conta_id,
+        forma_pagamento: p.forma_pagamento,
+        valor: p.valor,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
       })
-      .eq("id", l.id);
-    if (error) return toast.error(error.message);
+      .eq("id", baixaAlvo.id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Recebido"); load();
   }
   async function cancelar(l: Lanc) {
