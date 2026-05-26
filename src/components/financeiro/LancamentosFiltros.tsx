@@ -19,8 +19,10 @@ interface Props {
   categoriaFiltro: string;
   setCategoriaFiltro: (v: string) => void;
   // opções
-  apenasPendentes: boolean;
-  setApenasPendentes: (v: boolean) => void;
+  incluirPendentes: boolean;
+  setIncluirPendentes: (v: boolean) => void;
+  incluirLiquidadas: boolean;
+  setIncluirLiquidadas: (v: boolean) => void;
   mostrarCancelados: boolean;
   setMostrarCancelados: (v: boolean) => void;
   incluirAprovadas: boolean;
