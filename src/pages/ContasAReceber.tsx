@@ -70,6 +70,12 @@ export default function ContasAReceber() {
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
