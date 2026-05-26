@@ -27,11 +27,9 @@ function fmtDM(d: string) {
 }
 
 export default function FluxoCaixaDashboard() {
-  const [prazo, setPrazo] = useState<Prazo>(25 as any);
+  const [prazo, setPrazo] = useState<Prazo>(15);
   const [saldoAtual, setSaldoAtual] = useState(0);
   const [lancs, setLancs] = useState<Lanc[]>([]);
-
-  useEffect(() => { setPrazo(15); }, []);
 
   useEffect(() => {
     (async () => {
