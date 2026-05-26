@@ -180,9 +180,23 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
   );
 }
 
-function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
+function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group; pathname: string; search: string; onNavigate?: () => void }) {
   const basePath = (p: string) => p.split("?")[0];
-  const hasActive = group.items.some((it) => pathname.startsWith(basePath(it.path)));
+  const tabOf = (p: string) => {
+    const q = p.split("?")[1];
+    if (!q) return null;
+    return new URLSearchParams(q).get("tab");
+  };
+  const currentTab = new URLSearchParams(search).get("tab");
+  const isItemActive = (itemPath: string) => {
+    const bp = basePath(itemPath);
+    if (!pathname.startsWith(bp)) return false;
+    const itTab = tabOf(itemPath);
+    if (itTab) return currentTab === itTab;
+    // Item without tab matches only when no tab is selected (or path is deeper)
+    return pathname !== bp ? true : !currentTab;
+  };
+  const hasActive = group.items.some((it) => isItemActive(it.path));
   const [open, setOpen] = useState(hasActive);
   return (
     <div className="mt-1.5">
@@ -198,7 +212,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
       {open && (
         <div className="px-2 mt-0.5 flex flex-col gap-0.5">
           {group.items.map((it) => {
-            const active = pathname.startsWith(basePath(it.path));
+            const active = isItemActive(it.path);
             return (
               <NavLink
                 key={it.path}
