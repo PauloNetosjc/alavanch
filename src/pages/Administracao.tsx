@@ -347,11 +347,28 @@ function Usuarios() {
               </Select>
             </div>
             <div>
-              <Label>Loja</Label>
-              <Select value={form.loja_id || undefined} onValueChange={(v) => setForm({ ...form, loja_id: v })}>
+              <Label>Loja Principal</Label>
+              <Select value={form.loja_id || undefined} onValueChange={(v) => setForm({ ...form, loja_id: v, lojas_ids: form.lojas_ids.includes(v) ? form.lojas_ids : [...form.lojas_ids, v] })}>
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                 <SelectContent>{lojas.map((l) => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Lojas que pode acessar</Label>
+              <div className="mt-1 border border-border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                {lojas.map((l) => {
+                  const checked = form.lojas_ids.includes(l.id);
+                  return (
+                    <label key={l.id} className="flex items-center gap-2 text-[12px] py-0.5 cursor-pointer hover:bg-muted/40 rounded px-1">
+                      <input type="checkbox" checked={checked} onChange={() => toggleLojaForm(l.id)} />
+                      <span>{l.nome}</span>
+                      {form.loja_id === l.id && <span className="ml-auto text-[10px] text-muted-foreground">principal</span>}
+                    </label>
+                  );
+                })}
+                {lojas.length === 0 && <div className="text-[11px] text-muted-foreground">Nenhuma loja cadastrada</div>}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Se apenas uma loja for marcada, o usuário verá somente ela.</p>
             </div>
           </div>
           <DialogFooter>
