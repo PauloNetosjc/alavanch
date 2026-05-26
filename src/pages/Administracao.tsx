@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
-import { PermissoesAdmin } from "@/components/PermissoesAdmin";
+
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 
 import { AgendaAdmin } from "@/components/AgendaAdmin";
