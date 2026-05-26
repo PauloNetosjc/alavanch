@@ -297,7 +297,7 @@ export default function ContasCorrentes() {
                   </tr>
                 );
               })}
-              {!cartoes.length && (
+              {!cartoesVisiveis.length && (
                 <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum cartão cadastrado</td></tr>
               )}
             </tbody>
