@@ -180,9 +180,23 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
   );
 }
 
-function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
+function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group; pathname: string; search: string; onNavigate?: () => void }) {
   const basePath = (p: string) => p.split("?")[0];
-  const hasActive = group.items.some((it) => pathname.startsWith(basePath(it.path)));
+  const tabOf = (p: string) => {
+    const q = p.split("?")[1];
+    if (!q) return null;
+    return new URLSearchParams(q).get("tab");
+  };
+  const currentTab = new URLSearchParams(search).get("tab");
+  const isItemActive = (itemPath: string) => {
+    const bp = basePath(itemPath);
+    if (!pathname.startsWith(bp)) return false;
+    const itTab = tabOf(itemPath);
+    if (itTab) return currentTab === itTab;
+    // Item without tab matches only when no tab is selected (or path is deeper)
+    return pathname !== bp ? true : !currentTab;
+  };
+  const hasActive = group.items.some((it) => isItemActive(it.path));
   const [open, setOpen] = useState(hasActive);
   return (
     <div className="mt-1.5">
@@ -198,7 +212,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
       {open && (
         <div className="px-2 mt-0.5 flex flex-col gap-0.5">
           {group.items.map((it) => {
-            const active = pathname.startsWith(basePath(it.path));
+            const active = isItemActive(it.path);
             return (
               <NavLink
                 key={it.path}
@@ -225,7 +239,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
 }
 
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { user, signOut, profile, role } = useAuth();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
@@ -367,7 +381,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
             {visibleMoreGroups.map((group) => (
-              <GroupAccordion key={group.label} group={group} pathname={pathname} onNavigate={onNavigate} />
+              <GroupAccordion key={group.label} group={group} pathname={pathname} search={search} onNavigate={onNavigate} />
             ))}
           </nav>
         </div>
