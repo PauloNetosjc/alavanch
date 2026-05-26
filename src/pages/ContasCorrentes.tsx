@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye, ArrowLeft } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
+import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
 
 type Conta = {
   id: string; nome: string; tipo: string | null; banco: string | null;
@@ -132,6 +133,10 @@ export default function ContasCorrentes() {
       <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
         <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
       </Button>
+
+      {/* FLUXO DE CAIXA */}
+      <FluxoCaixaDashboard />
+
       {/* CONTAS CORRENTES */}
       <div className="rounded-2xl border bg-card p-6">
         <div className="flex items-start justify-between gap-4">
