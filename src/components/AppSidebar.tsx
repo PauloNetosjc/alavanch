@@ -45,11 +45,9 @@ const sections: Section[] = [
     label: "Gestão",
     items: [
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
-      { label: "CRM Comercial", path: "/kanban-comercial", icon: MessageSquare },
-      { label: "Comercial", path: "/comercial", icon: Briefcase },
       { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
-      { label: "Radar de Prazos", path: "/radar", icon: Clock },
-      { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
+      { label: "Comercial", path: "/comercial", icon: Briefcase },
+      { label: "Controle de Prazos", path: "/radar", icon: Clock },
       { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
     ],
   },
@@ -58,7 +56,7 @@ const sections: Section[] = [
     items: [
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Montagem", path: "/montagem", icon: Hammer },
-      { label: "Ocorrências", path: "/ocorrencias", icon: AlertTriangle },
+      { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
   {
