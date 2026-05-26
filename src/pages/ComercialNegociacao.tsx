@@ -1602,6 +1602,28 @@ export default function ComercialNegociacao() {
         onConfirm={gerarContrato}
         loading={confirmando}
       />
+      <AlertDialog open={!!askCascade} onOpenChange={(o) => { if (!o) setAskCascade(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar intervalo de 30 dias?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja que todas as parcelas abaixo desta sigam a ordem de intervalo de 30 dias sequencialmente?
+              Parcelas travadas serão preservadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAskCascade(null)}>Não, manter</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (askCascade) aplicarCascataVenc(askCascade.idxPag, askCascade.idxParc);
+                setAskCascade(null);
+              }}
+            >
+              Sim, aplicar +30 dias
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
