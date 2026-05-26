@@ -67,7 +67,7 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
-type Pedido = { id: string; codigo: string };
+type Pedido = { id: string; codigo: string; cliente_id?: string | null; cliente_nome?: string | null };
 type Parceiro = { id: string; nome: string };
 
 function todayISO() {
@@ -156,14 +156,14 @@ export default function Financeiro() {
       supabase.from("lancamentos_financeiros").select("*").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
-      supabase.from("pedidos").select("id,codigo").order("created_at", { ascending: false }).limit(500),
+      supabase.from("pedidos").select("id,codigo,cliente_id, cliente:cliente_id(nome)").order("created_at", { ascending: false }).limit(500),
       supabase.from("parceiros").select("id,nome").order("nome"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
-    setPedidos((pd as Pedido[]) || []);
+    setPedidos(((pd as any[]) || []).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, cliente_nome: p.cliente?.nome ?? null })));
     setParceiros((pa as Parceiro[]) || []);
     setFornecedores((fr as any[]) || []);
   }
