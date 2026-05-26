@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, CalendarRange } from "lucide-react";
 
 export type Cat = { id: string; nome: string; parent_id?: string | null };
+export type Fornecedor = { id: string; nome: string };
 
 interface Props {
   // busca
@@ -18,6 +19,10 @@ interface Props {
   cats: Cat[];
   categoriaFiltro: string;
   setCategoriaFiltro: (v: string) => void;
+  // fornecedor
+  fornecedores?: Fornecedor[];
+  fornecedorFiltro?: string;
+  setFornecedorFiltro?: (v: string) => void;
   // opções
   incluirPendentes: boolean;
   setIncluirPendentes: (v: boolean) => void;
@@ -104,7 +109,7 @@ export default function LancamentosFiltros(p: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Categoria */}
+        {/* Categoria + Fornecedor */}
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Categoria</div>
           <Select
@@ -121,6 +126,23 @@ export default function LancamentosFiltros(p: Props) {
               ))}
             </SelectContent>
           </Select>
+          {p.setFornecedorFiltro && (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground pt-1">Fornecedor</div>
+              <Select
+                value={p.fornecedorFiltro || "all"}
+                onValueChange={(v) => p.setFornecedorFiltro?.(v === "all" ? "" : v)}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos os fornecedores" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os fornecedores</SelectItem>
+                  {(p.fornecedores || []).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
         {/* Opções */}

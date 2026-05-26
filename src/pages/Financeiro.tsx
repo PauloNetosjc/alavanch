@@ -59,6 +59,7 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
   aprovacao_status: string | null;
+  fornecedor_id: string | null;
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
@@ -83,6 +84,7 @@ export default function Financeiro() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
+  const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
 
   // Filtros
   const [searchParams] = useSearchParams();
@@ -93,6 +95,7 @@ export default function Financeiro() {
     if (q) setBusca(q);
   }, [searchParams]);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("");
+  const [fornecedorFiltro, setFornecedorFiltro] = useState<string>("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -136,18 +139,20 @@ export default function Financeiro() {
   const [liquidando, setLiquidando] = useState<Lanc | null>(null);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").order("created_at", { ascending: false }).limit(500),
       supabase.from("parceiros").select("id,nome").order("nome"),
+      supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
     setParceiros((pa as Parceiro[]) || []);
+    setFornecedores((fr as any[]) || []);
   }
   useEffect(() => { load(); }, []);
 
@@ -176,6 +181,7 @@ export default function Financeiro() {
       }
       if (tipoFiltro !== "todos" && l.tipo !== tipoFiltro) return false;
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       const isLiquidada = l.status === "pago" || l.status === "recebido" || l.status === "conciliado";
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
@@ -191,7 +197,7 @@ export default function Financeiro() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, tipoFiltro, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   // KPIs
   const pendenteReceber = filtrados
@@ -447,6 +453,16 @@ export default function Financeiro() {
                 <SelectItem key={c.id} value={c.id}>
                   {c.parent_id ? `↳ ${c.nome}` : c.nome}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground pt-2">Fornecedor</div>
+          <Select value={fornecedorFiltro || "all"} onValueChange={(v) => setFornecedorFiltro(v === "all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Todos os fornecedores" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os fornecedores</SelectItem>
+              {fornecedores.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>

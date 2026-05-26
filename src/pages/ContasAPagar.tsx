@@ -25,6 +25,7 @@ type Lanc = {
   aprovacao_status: string | null;
   baixado_por: string | null;
   baixado_em: string | null;
+  fornecedor_id: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -43,6 +44,7 @@ export default function ContasAPagar() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -50,6 +52,7 @@ export default function ContasAPagar() {
   const [dtIni, setDtIni] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10));
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -57,18 +60,20 @@ export default function ContasAPagar() {
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
       supabase.from("profiles").select("user_id,nome_completo"),
+      supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
     setProfiles((pf as Profile[]) || []);
+    setFornecedores((fr as any[]) || []);
   }
   useEffect(() => { load(); }, []);
 
@@ -89,6 +94,7 @@ export default function ContasAPagar() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
@@ -104,7 +110,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -207,6 +213,8 @@ export default function ContasAPagar() {
         dtFim={dtFim} setDtFim={setDtFim}
         cats={cats}
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
+        fornecedores={fornecedores}
+        fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
