@@ -26,7 +26,7 @@ type Metodo = {
   parcelas_config: ParcelaConfig[];
 };
 
-const FORMAS = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
+const FORMAS_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
   return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0 };
