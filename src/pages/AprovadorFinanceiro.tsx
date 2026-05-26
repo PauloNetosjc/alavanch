@@ -24,7 +24,9 @@ type Lanc = {
   pedido_id: string | null;
   aprovacao_status: string | null;
   created_at: string;
+  loja_id: string | null;
 };
+
 type Cat = { id: string; nome: string };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
