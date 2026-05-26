@@ -45,7 +45,7 @@ export default function Administracao() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") || "descontos";
+  const tab = searchParams.get("tab") || "usuarios";
 
   useEffect(() => {
     if (!user) return;
@@ -69,39 +69,28 @@ export default function Administracao() {
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="descontos"><Percent className="w-3.5 h-3.5 mr-1.5" />Descontos</TabsTrigger>
-          <TabsTrigger value="juros"><Percent className="w-3.5 h-3.5 mr-1.5" />Política de Juros</TabsTrigger>
           <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
           <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
           <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
-          <TabsTrigger value="bancos"><Banknote className="w-3.5 h-3.5 mr-1.5" />Bancos</TabsTrigger>
-          <TabsTrigger value="pagamentos"><CreditCard className="w-3.5 h-3.5 mr-1.5" />Pagamentos</TabsTrigger>
           <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
-          <TabsTrigger value="categorias"><Tags className="w-3.5 h-3.5 mr-1.5" />Categorias</TabsTrigger>
           <TabsTrigger value="origens"><Tags className="w-3.5 h-3.5 mr-1.5" />Origens</TabsTrigger>
           <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
           <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
           <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
           <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
-          
           <TabsTrigger value="agenda"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Agenda</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="descontos" className="mt-4"><RegrasDesconto /></TabsContent>
-        <TabsContent value="juros" className="mt-4"><PoliticaJurosAdmin /></TabsContent>
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
-        <TabsContent value="bancos" className="mt-4"><Bancos /></TabsContent>
-        <TabsContent value="pagamentos" className="mt-4"><MetodosPagamento /></TabsContent>
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
-        <TabsContent value="categorias" className="mt-4"><CategoriasFinanceiras /></TabsContent>
         <TabsContent value="origens" className="mt-4"><OrigensLead /></TabsContent>
         <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
-        
+
         <TabsContent value="agenda" className="mt-4"><AgendaAdmin /></TabsContent>
       </Tabs>
     </div>
