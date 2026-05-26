@@ -176,7 +176,11 @@ export default function Financeiro() {
       }
       if (tipoFiltro !== "todos" && l.tipo !== tipoFiltro) return false;
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
-      if (apenasPendentes && (l.status === "pago" || l.status === "recebido" || l.status === "conciliado")) return false;
+      const isLiquidada = l.status === "pago" || l.status === "recebido" || l.status === "conciliado";
+      if (l.status !== "cancelado") {
+        if (isLiquidada && !incluirLiquidadas) return false;
+        if (!isLiquidada && !incluirPendentes) return false;
+      }
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
         const t = busca.toLowerCase();
