@@ -135,6 +135,8 @@ export default function ContasAPagar() {
   const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
 
   function abrirEdicao(l: Lanc) { setEditAlvo(l); setEditOpen(true); }
+  const reapprovalPatch = () => souAprovador ? {} : { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null };
+
   async function salvarEdicao(p: EditarPayload) {
     if (!editAlvo) return;
     const { error } = await supabase.from("lancamentos_financeiros").update({
@@ -143,9 +145,10 @@ export default function ContasAPagar() {
       valor: p.valor,
       forma_pagamento: p.forma_pagamento,
       notas: p.notas,
+      ...reapprovalPatch(),
     }).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Parcela atualizada"); load();
+    toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
 
 
