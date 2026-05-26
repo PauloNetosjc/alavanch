@@ -98,8 +98,13 @@ export function UserThemePicker({ collapsed = false }: { collapsed?: boolean }) 
 
       {open && (
         <div
-          className="absolute z-50 bottom-full mb-2 right-0 w-[260px] rounded-md p-3 shadow-xl"
-          style={{ background: "#1A1A1A", border: "0.5px solid #2A2A2A" }}
+          className="fixed z-[100] w-[260px] rounded-md p-3 shadow-xl"
+          style={{
+            background: "#1A1A1A",
+            border: "0.5px solid #2A2A2A",
+            left: (ref.current?.getBoundingClientRect().right ?? 0) + 8,
+            bottom: window.innerHeight - (ref.current?.getBoundingClientRect().bottom ?? 0),
+          }}
         >
           <div className="text-[10px] uppercase tracking-[0.12em] text-[#888] mb-2">Cor de destaque</div>
           <div className="grid grid-cols-4 gap-2 mb-3">
