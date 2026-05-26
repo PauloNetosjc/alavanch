@@ -43,7 +43,8 @@ function fmt(d?: string | null) {
 }
 
 export default function ContasAReceber() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const [souAprovador, setSouAprovador] = useState(false);
   const { can } = usePermissions();
   const podeEditar = can("lancamentos", "edit");
   const [lancs, setLancs] = useState<Lanc[]>([]);
