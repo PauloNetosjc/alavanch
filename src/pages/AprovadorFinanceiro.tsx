@@ -274,9 +274,11 @@ export default function AprovadorFinanceiro() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
           <Badge variant="outline">Pagar: {perm.pagar ? "✓" : "—"}</Badge>
           <Badge variant="outline">Receber: {perm.receber ? "✓" : "—"}</Badge>
         </div>
+
       </div>
 
       {!podeAlgo && (
