@@ -1529,16 +1529,23 @@ export default function ComercialNegociacao() {
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
                 A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
-                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - entrada))}</span>
+                {_somaEntradasAdicionadas > 0 && (
+                  <span className="block">Entradas já adicionadas: <b className="text-foreground">{fmtBrl(_somaEntradasAdicionadas)}</b></span>
+                )}
+                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - _somaEntradasAdicionadas - entrada))}</span>
               </div>
               <Button
-                type="button" variant="outline" size="sm"
-                className="w-full mt-2"
+                type="button"
+                size="sm"
+                className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg transition-all font-semibold"
                 onClick={aplicarEntrada}
                 disabled={!entrada || entrada <= 0}
               >
-                <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
+                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada como pagamento
               </Button>
+              <div className="text-[10px] text-muted-foreground mt-1 text-center">
+                Você pode adicionar quantas entradas precisar
+              </div>
             </div>
           </div>
         </div>
