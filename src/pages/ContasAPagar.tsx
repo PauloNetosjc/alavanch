@@ -5,11 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 
 type Lanc = {
