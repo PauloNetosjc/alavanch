@@ -38,6 +38,7 @@ import {
   AlertTriangle,
   BarChart3,
   FileBarChart,
+  ClipboardCheck,
   ShieldCheck,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -370,6 +371,9 @@ export default function Financeiro() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Link to="/auditoria-parceiros">
+              <Button variant="outline"><ClipboardCheck className="w-4 h-4 mr-1" /> Auditoria de Parceiros</Button>
+            </Link>
             <Link to="/financeiro/aprovador">
               <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
                 <ShieldCheck className="w-4 h-4 mr-1" /> Aprovador
