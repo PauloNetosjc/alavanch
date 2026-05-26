@@ -5,7 +5,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -437,7 +437,7 @@ export default function ComercialNegociacao() {
   const [novoValor, setNovoValor] = useState<number>(0);
   const [novoParcelas, setNovoParcelas] = useState<number>(1);
   const [novoVenc, setNovoVenc] = useState<string>("");
-  const [percRapido, setPercRapido] = useState<number>(25);
+  const [entrada, setEntrada] = useState<number>(0);
 
   // dialogs
   const [openSenha, setOpenSenha] = useState(false);
@@ -701,9 +701,18 @@ export default function ComercialNegociacao() {
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
-  const aplicarRapido = (perc: number) => {
-    setPercRapido(perc);
-    setNovoValor(Number((restante * (perc / 100)).toFixed(2)));
+  const aplicarEntrada = () => {
+    if (!entrada || entrada <= 0) return toast.error("Informe o valor da entrada");
+    if (!novoMetodo) return toast.error("Selecione o método de pagamento da entrada");
+    setPagamentos((prev) => {
+      const semEntrada = prev.filter((p) => !(p as any).is_entrada);
+      const hoje = new Date().toISOString().slice(0, 10);
+      return [
+        { metodo: novoMetodo, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
+        ...semEntrada,
+      ];
+    });
+    toast.success("Entrada adicionada");
   };
 
   /* ------------------------- save ------------------------- */
@@ -1335,25 +1344,29 @@ export default function ComercialNegociacao() {
                 onChange={(e) => setNovoValor(Number(e.target.value) || 0)} placeholder="0,00" />
             </div>
             <div>
-              <div className="text-[12px] font-medium mb-1.5">Preencher rapidamente:</div>
-              <div className="border border-border rounded-md p-3 space-y-2">
-                <div className="flex items-center gap-3">
-                  <Slider value={[percRapido]} max={100} step={1} onValueChange={(v) => aplicarRapido(v[0])} className="flex-1" />
-                  <div className="flex items-center gap-1 text-[12px]">
-                    <Input type="number" min={0} max={100} className="h-7 w-14 text-right text-[12px]"
-                      value={percRapido} onChange={(e) => aplicarRapido(Number(e.target.value) || 0)} />
-                    <span className="text-muted-foreground">%</span>
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  {[10,20,30,40,50,100].map((p) => (
-                    <button key={p} onClick={() => aplicarRapido(p)}
-                      className="flex-1 px-1 py-1 text-[11px] rounded border border-border hover:bg-muted">
-                      {p}%
-                    </button>
-                  ))}
-                </div>
+              <Label>Entrada (à vista, sem juros)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">R$</span>
+                <Input
+                  type="number" min={0} step="0.01"
+                  value={entrada || ""}
+                  onChange={(e) => setEntrada(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  className="pl-9 text-right"
+                />
               </div>
+              <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+                A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
+                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - entrada))}</span>
+              </div>
+              <Button
+                type="button" variant="outline" size="sm"
+                className="w-full mt-2"
+                onClick={aplicarEntrada}
+                disabled={!entrada || entrada <= 0}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
+              </Button>
             </div>
             <Button onClick={addPagamento} className="w-full bg-[#2D6BE5] hover:bg-[#2459C9] text-white">
               <Plus className="w-4 h-4 mr-1.5" /> Adicionar Pagamento
