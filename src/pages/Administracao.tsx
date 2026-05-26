@@ -480,7 +480,11 @@ function SimpleCrud({
               <tr key={r.id} className="border-t border-border">
                 {fields.filter((f) => f.type !== "textarea").map((f) => (
                   <td key={f.name} className="px-3 py-2">
-                    {f.type === "switch" ? (r[f.name] ? "Sim" : "Não") : (r[f.name] ?? "—")}
+                    {f.type === "switch"
+                      ? (r[f.name] ? "Sim" : "Não")
+                      : f.type === "select"
+                        ? (optionsMap[f.name]?.find((o) => o.id === r[f.name])?.label ?? "—")
+                        : (r[f.name] ?? "—")}
                   </td>
                 ))}
                 <td className="px-3 py-2 text-right">
