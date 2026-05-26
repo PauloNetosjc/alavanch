@@ -1,0 +1,2 @@
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS fornecedor_id uuid REFERENCES public.fornecedores(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_produtos_fornecedor_id ON public.produtos(fornecedor_id);

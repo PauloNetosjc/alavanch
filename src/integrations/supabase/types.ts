@@ -3711,6 +3711,7 @@ export type Database = {
           codigo_interno: string | null
           created_at: string
           descricao: string
+          fornecedor_id: string | null
           id: string
           loja_id: string | null
           preco_custo: number
@@ -3725,6 +3726,7 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           descricao: string
+          fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
           preco_custo?: number
@@ -3739,6 +3741,7 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           descricao?: string
+          fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
           preco_custo?: number
@@ -3747,7 +3750,15 @@ export type Database = {
           unidade_medida?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produtos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
