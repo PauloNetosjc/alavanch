@@ -68,23 +68,8 @@ export default function Administracao() {
 
   return (
     <div>
-      {!hideHeader && (
-        <PageHeader
-          icon={Settings} iconVariant="purple"
-          title="Administração"
-          subtitle="Controles do sistema, usuários, cadastros e regras"
-        />
-      )}
-
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
-        {!hideHeader && (
-          <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
-            <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
-            
-            <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
-            
-          </TabsList>
-        )}
+
 
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
         <TabsContent value="permissoes" className="mt-4"><Navigate to="/sistema/cargos" replace /></TabsContent>
