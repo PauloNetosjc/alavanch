@@ -264,6 +264,17 @@ export default function ContasAPagar() {
         </div>
       </div>
       </TooltipProvider>
+
+      <BaixaLancamentoDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        tipo="saida"
+        descricao={baixaAlvo?.descricao ?? null}
+        valorOriginal={Number(baixaAlvo?.valor || 0)}
+        contaIdAtual={baixaAlvo?.conta_id ?? null}
+        contas={contas}
+        onConfirm={confirmarBaixa}
+      />
     </div>
   );
 }
