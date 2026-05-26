@@ -93,7 +93,7 @@ export default function Administracao() {
         )}
 
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
-        <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
+        <TabsContent value="permissoes" className="mt-4"><Navigate to="/sistema/cargos" replace /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
         
