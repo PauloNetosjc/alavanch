@@ -964,7 +964,7 @@ export default function ComercialNovo() {
           <div className="border-t border-border pt-3 space-y-1.5">
             <div className="flex justify-between font-semibold text-[15px]">
               <span>Valor</span>
-              <span className="text-mono">{fmtBrl(adendoValor)}</span>
+              <span className="text-mono">{fmtBrl(total)}</span>
             </div>
           </div>
         </>
@@ -980,12 +980,6 @@ export default function ComercialNovo() {
               <span>Subtotal</span>
               <span className="text-mono text-foreground">{fmtBrl(subtotalAmbientes)}</span>
             </div>
-            {acrescimoParceiro > 0 && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>Acréscimo ({parceiroPerc.toFixed(2)}%)</span>
-                <span className="text-mono text-foreground">{fmtBrl(acrescimoParceiro)}</span>
-              </div>
-            )}
             <div className="flex justify-between font-semibold pt-1 text-[15px]">
               <span>Total</span>
               <span className="text-mono">{fmtBrl(total)}</span>
