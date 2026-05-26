@@ -154,15 +154,26 @@ export default function ExtratoConta() {
             }}><FileText className="w-4 h-4 mr-1" /> PDF</Button>
           </div>
         </div>
-        <div>
-          <div className="text-sm font-medium mb-2">Filtrar por Categoria</div>
-          <Select value={filtroCat || "all"} onValueChange={(v) => setFiltroCat(v === "all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              {cats.filter((c) => !c.parent_id).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <div className="text-sm font-medium mb-2">Filtrar por Categoria</div>
+            <Select value={filtroCat || "all"} onValueChange={(v) => setFiltroCat(v === "all" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {cats.filter((c) => !c.parent_id).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div className="text-sm font-medium mb-2">Filtrar por Dia</div>
+            <div className="flex gap-2">
+              <Input type="date" value={filtroDia} onChange={(e) => setFiltroDia(e.target.value)} />
+              {filtroDia && (
+                <Button variant="outline" size="sm" onClick={() => setFiltroDia("")}>Limpar</Button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto pt-4">
