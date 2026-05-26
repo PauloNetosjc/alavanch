@@ -60,6 +60,14 @@ const sections: Section[] = [
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
   },
+  {
+    label: "Financeiro",
+    items: [
+      { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
+      { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
+      { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
+    ],
+  },
 ];
 
 const moreSections: Section[] = [
@@ -68,14 +76,11 @@ const moreSections: Section[] = [
     items: [
       { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
-      { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
-      { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
       { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
       { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
-      { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
       { label: "Administração (Usuários)", path: "/administracao", icon: Users },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
       { label: "Checklist Assistência", path: "/administracao/checklist-assistencia", icon: LifeBuoy, roles: ["admin"] },
@@ -83,6 +88,7 @@ const moreSections: Section[] = [
     ],
   },
 ];
+
 
 const noScrollbar = "[&::-webkit-scrollbar]:hidden [scrollbar-width:none]";
 
