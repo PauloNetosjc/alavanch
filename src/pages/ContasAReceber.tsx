@@ -323,6 +323,9 @@ export default function ContasAReceber() {
                         {baixaInfo}
                       </div>
                     </td>
+                    <td className="max-w-[180px] text-xs text-muted-foreground truncate" title={l.notas || ""}>
+                      {l.notas || "—"}
+                    </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
                         {!pago && !cancelado && (
@@ -340,13 +343,18 @@ export default function ContasAReceber() {
                             <RotateCcw className="w-4 h-4 text-amber-600" />
                           </Button>
                         )}
+                        {podeEditar && !cancelado && (
+                          <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
+                            <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
