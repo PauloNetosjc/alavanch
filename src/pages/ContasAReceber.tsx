@@ -338,11 +338,6 @@ export default function ContasAReceber() {
                             </Button>
                           </>
                         )}
-                        {pago && !cancelado && (
-                          <Button size="icon" variant="ghost" title="Estornar recebimento" onClick={() => estornar(l)}>
-                            <RotateCcw className="w-4 h-4 text-amber-600" />
-                          </Button>
-                        )}
                         {podeEditar && !cancelado && (
                           <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
                             <Pencil className="w-4 h-4 text-primary" />
