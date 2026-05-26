@@ -32,7 +32,7 @@ export function applyUserTheme(p: Prefs) {
   r.style.setProperty("--sidebar-primary", p.accent);
   // tokens lidos pela sidebar
   r.style.setProperty("--user-accent", p.accent);
-  r.style.setProperty("--user-accent-bg", `hsla(${p.accent}, 0.22)`);
+  r.style.setProperty("--user-accent-bg", `hsl(${p.accent} / 0.22)`);
   // contraste
   if (p.contrast === "alto") {
     r.style.setProperty("--foreground", "0 0% 8%");
