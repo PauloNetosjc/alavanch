@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
-import { PermissoesAdmin } from "@/components/PermissoesAdmin";
+
 import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 
 import { AgendaAdmin } from "@/components/AgendaAdmin";
@@ -80,7 +80,7 @@ export default function Administracao() {
         {!hideHeader && (
           <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
-            <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
+            
             <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
             <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
             
@@ -93,7 +93,7 @@ export default function Administracao() {
         )}
 
         <TabsContent value="usuarios" className="mt-4"><Usuarios /></TabsContent>
-        <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
+        <TabsContent value="permissoes" className="mt-4"><Navigate to="/sistema/cargos" replace /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
         
