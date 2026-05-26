@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info, RotateCcw } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
@@ -117,24 +117,59 @@ export default function ContasAPagar() {
   async function confirmarBaixa(p: BaixaPayload) {
     if (!baixaAlvo) return;
     const agora = new Date();
+    const original = Number(baixaAlvo.valor || 0);
+    const pago = Number(p.valor) || 0;
+    const diff = Math.round((original - pago) * 100) / 100;
+
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
         status: "pago",
         data_pagamento: p.data_pagamento,
         conta_id: p.conta_id,
         forma_pagamento: p.forma_pagamento,
-        valor: p.valor,
+        valor: pago,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
       })
       .eq("id", baixaAlvo.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Pago"); load();
+
+    if (diff > 0.005) {
+      const novoVenc = new Date();
+      novoVenc.setDate(novoVenc.getDate() + 30);
+      const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
+        tipo: "saida",
+        descricao: `${baixaAlvo.descricao || "Pagamento"} — saldo restante`,
+        valor: diff,
+        data_vencimento: novoVenc.toISOString().slice(0, 10),
+        categoria_id: baixaAlvo.categoria_id,
+        conta_id: p.conta_id,
+        pedido_id: baixaAlvo.pedido_id,
+        status: "pendente",
+        aprovacao_status: baixaAlvo.aprovacao_status || "pendente_aprovacao",
+        loja_id: (baixaAlvo as any).loja_id ?? null,
+      });
+      if (e2) toast.error("Baixa OK, mas falhou criar saldo: " + e2.message);
+      else toast.success(`Pago. Parcela de saldo (${diff.toFixed(2)}) criada.`);
+    } else {
+      toast.success("Pago");
+    }
+    load();
   }
+
+  async function estornar(l: Lanc) {
+    if (!confirm("Estornar este pagamento? A parcela voltará para pendente.")) return;
+    const { error } = await supabase.from("lancamentos_financeiros")
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null })
+      .eq("id", l.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Estornado"); load();
+  }
+
   async function cancelar(l: Lanc) {
     if (!confirm("Cancelar este lançamento?")) return;
     const { error } = await supabase.from("lancamentos_financeiros").update({ status: "cancelado" }).eq("id", l.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Cancelado"); load();
   }
 
@@ -247,6 +282,11 @@ export default function ContasAPagar() {
                               <X className="w-4 h-4 text-rose-500" />
                             </Button>
                           </>
+                        )}
+                        {pago && !cancelado && (
+                          <Button size="icon" variant="ghost" title="Estornar pagamento" onClick={() => estornar(l)}>
+                            <RotateCcw className="w-4 h-4 text-amber-600" />
+                          </Button>
                         )}
                       </div>
                     </td>
