@@ -49,7 +49,8 @@ export default function ContasAPagar() {
   const [dtIni, setDtIni] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10));
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
-  const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [incluirPendentes, setIncluirPendentes] = useState(true);
+  const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [incluirAprovadas, setIncluirAprovadas] = useState(true);
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
