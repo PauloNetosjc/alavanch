@@ -436,7 +436,7 @@ export default function ComercialNegociacao() {
   // novo pagamento
   const [novoMetodo, setNovoMetodo] = useState("");
   
-  const [novoParcelas, setNovoParcelas] = useState<number>(1);
+  const [novoParcelas, setNovoParcelas] = useState<number>(24);
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
 
