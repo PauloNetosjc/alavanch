@@ -202,17 +202,18 @@ export default function ContasAPagar() {
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este pagamento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
       .eq("id", l.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Estornado"); load();
+    toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação"); load();
   }
 
   async function cancelar(l: Lanc) {
     if (!confirm("Cancelar este lançamento?")) return;
-    const { error } = await supabase.from("lancamentos_financeiros").update({ status: "cancelado" }).eq("id", l.id);
+    const { error } = await supabase.from("lancamentos_financeiros")
+      .update({ status: "cancelado", ...reapprovalPatch() }).eq("id", l.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Cancelado"); load();
+    toast.success(souAprovador ? "Cancelado" : "Cancelado — enviado para aprovação"); load();
   }
 
   const total = filtrados
