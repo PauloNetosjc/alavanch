@@ -375,6 +375,24 @@ export default function ContasAReceber() {
         contas={contas}
         onConfirm={confirmarBaixa}
       />
+
+      <EditarLancamentoDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        tipo="entrada"
+        lanc={editAlvo ? {
+          id: editAlvo.id,
+          descricao: editAlvo.descricao,
+          data_vencimento: editAlvo.data_vencimento,
+          data_pagamento: editAlvo.data_pagamento,
+          valor: Number(editAlvo.valor || 0),
+          forma_pagamento: editAlvo.forma_pagamento,
+          notas: editAlvo.notas,
+          status: editAlvo.status,
+        } : null}
+        onSave={salvarEdicao}
+        onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
+      />
     </div>
   );
 }
