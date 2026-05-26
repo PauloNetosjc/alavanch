@@ -13,7 +13,6 @@ type ParcelaConfig = {
   juros_perc: number;
   forma_pagamento: string;
   desconto_perc: number;
-  juros_modo: "absorver" | "repassar";
 };
 
 type Metodo = {
@@ -21,6 +20,7 @@ type Metodo = {
   nome: string;
   ativo: boolean;
   agrupado: boolean;
+  juros_modo: "absorver" | "repassar";
   taxa_perc_parcela: number;
   max_parcelas: number;
   parcelas_config: ParcelaConfig[];
@@ -29,7 +29,7 @@ type Metodo = {
 const FORMAS = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
-  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0, juros_modo: "repassar" };
+  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0 };
 }
 
 export function MetodosPagamentoAdmin() {
@@ -42,12 +42,13 @@ export function MetodosPagamentoAdmin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("metodos_pagamento")
-      .select("id, nome, ativo, agrupado, taxa_perc_parcela, max_parcelas, parcelas_config")
+      .select("id, nome, ativo, agrupado, juros_modo, taxa_perc_parcela, max_parcelas, parcelas_config")
       .order("nome");
     if (error) toast.error(error.message);
     setRows(((data ?? []) as any[]).map((r) => ({
       ...r,
       agrupado: !!r.agrupado,
+      juros_modo: (r.juros_modo === "absorver" ? "absorver" : "repassar") as Metodo["juros_modo"],
       parcelas_config: Array.isArray(r.parcelas_config) ? r.parcelas_config : [],
     })) as Metodo[]);
     setLoading(false);
@@ -56,22 +57,23 @@ export function MetodosPagamentoAdmin() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => {
-    setEditing({ id: "", nome: "", ativo: true, agrupado: false, taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
+    setEditing({ id: "", nome: "", ativo: true, agrupado: false, juros_modo: "repassar", taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
     setOpen(true);
   };
 
   const openEdit = (m: Metodo) => {
     const parcelas: ParcelaConfig[] = m.parcelas_config.length > 0
       ? m.parcelas_config.map((p) => ({
-          juros_modo: "repassar",
-          ...p,
+          numero: p.numero,
+          juros_perc: p.juros_perc ?? 0,
+          forma_pagamento: p.forma_pagamento ?? "Boleto",
+          desconto_perc: p.desconto_perc ?? 0,
         }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
           numero: i + 1,
           juros_perc: m.taxa_perc_parcela || 0,
           forma_pagamento: "Boleto",
           desconto_perc: 0,
-          juros_modo: "repassar" as const,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
     setOpen(true);
@@ -84,6 +86,7 @@ export function MetodosPagamentoAdmin() {
       nome: editing.nome.trim(),
       ativo: editing.ativo,
       agrupado: editing.agrupado,
+      juros_modo: editing.juros_modo,
       taxa_perc_parcela: editing.taxa_perc_parcela || 0,
       max_parcelas: editing.parcelas_config.length || 1,
       parcelas_config: editing.parcelas_config as any,
@@ -149,6 +152,7 @@ export function MetodosPagamentoAdmin() {
               <tr>
                 <th className="py-2 px-2">Nome</th>
                 <th className="py-2 px-2">Parcelas</th>
+                <th className="py-2 px-2">Juros</th>
                 <th className="py-2 px-2">Agrupado</th>
                 <th className="py-2 px-2">Ativo</th>
                 <th className="py-2 px-2 w-24 text-right">Ações</th>
@@ -159,6 +163,7 @@ export function MetodosPagamentoAdmin() {
                 <tr key={r.id} className="border-b border-border/60 hover:bg-muted/30">
                   <td className="py-2 px-2 font-medium">{r.nome}</td>
                   <td className="py-2 px-2">{r.parcelas_config?.length || r.max_parcelas}</td>
+                  <td className="py-2 px-2">{r.juros_modo === "absorver" ? "Absorver" : "Repassar"}</td>
                   <td className="py-2 px-2">{r.agrupado ? "Sim" : "Não"}</td>
                   <td className="py-2 px-2">{r.ativo ? "Sim" : "Não"}</td>
                   <td className="py-2 px-2 text-right">
@@ -192,14 +197,31 @@ export function MetodosPagamentoAdmin() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-muted/30">
-                <Switch checked={editing.agrupado} onCheckedChange={(v) => setEditing({ ...editing, agrupado: v })} />
-                <div>
-                  <div className="text-[13px] font-medium">Agrupar parcelas no financeiro</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {editing.agrupado
-                      ? "Cai como uma única parcela agrupada no financeiro."
-                      : "Cai desmembrado, parcela a parcela, no financeiro."}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-muted/30">
+                  <Switch checked={editing.agrupado} onCheckedChange={(v) => setEditing({ ...editing, agrupado: v })} />
+                  <div>
+                    <div className="text-[13px] font-medium">Agrupar parcelas no financeiro</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {editing.agrupado
+                        ? "Cai como uma única parcela agrupada."
+                        : "Cai desmembrado, parcela a parcela."}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-muted/30">
+                  <Switch
+                    checked={editing.juros_modo === "absorver"}
+                    onCheckedChange={(v) => setEditing({ ...editing, juros_modo: v ? "absorver" : "repassar" })}
+                  />
+                  <div>
+                    <div className="text-[13px] font-medium">Absorver juros</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {editing.juros_modo === "absorver"
+                        ? "Loja absorve os juros das parcelas."
+                        : "Juros repassados ao cliente."}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -216,7 +238,6 @@ export function MetodosPagamentoAdmin() {
                         <th className="py-2 px-2 text-left w-16">Parcela</th>
                         <th className="py-2 px-2 text-left">Forma de Pagamento</th>
                         <th className="py-2 px-2 text-left w-28">Juros (%)</th>
-                        <th className="py-2 px-2 text-left w-40">Juros</th>
                         <th className="py-2 px-2 text-left w-28">Desconto (%)</th>
                         <th className="py-2 px-2 w-10"></th>
                       </tr>
@@ -241,16 +262,6 @@ export function MetodosPagamentoAdmin() {
                               value={p.juros_perc}
                               onChange={(e) => updateParcela(i, { juros_perc: Number(e.target.value) || 0 })}
                             />
-                          </td>
-                          <td className="py-1.5 px-2">
-                            <select
-                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
-                              value={p.juros_modo}
-                              onChange={(e) => updateParcela(i, { juros_modo: e.target.value as ParcelaConfig["juros_modo"] })}
-                            >
-                              <option value="repassar">Repassar ao cliente</option>
-                              <option value="absorver">Absorver (loja)</option>
-                            </select>
                           </td>
                           <td className="py-1.5 px-2">
                             <Input
