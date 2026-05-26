@@ -350,6 +350,33 @@ export default function Financeiro() {
         </div>
       </div>
 
+      {/* ATALHOS GRANDES: A PAGAR / A RECEBER */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link to="/financeiro/a-pagar" className="group">
+          <div className="rounded-2xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 to-rose-100/50 p-8 hover:shadow-xl hover:border-rose-500 transition-all flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <ArrowDownCircle className="w-9 h-9 text-rose-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-rose-700">A Pagar</div>
+              <div className="text-sm text-rose-700/70">Acessar contas a pagar</div>
+            </div>
+          </div>
+        </Link>
+        <Link to="/financeiro/a-receber" className="group">
+          <div className="rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-8 hover:shadow-xl hover:border-emerald-500 transition-all flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <ArrowUpCircle className="w-9 h-9 text-emerald-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-emerald-700">A Receber</div>
+              <div className="text-sm text-emerald-700/70">Acessar contas a receber</div>
+            </div>
+          </div>
+        </Link>
+      </div>
+
+
       {/* FILTROS: TIPO E BUSCA + PERÍODO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-2xl border bg-card p-5 space-y-4">
