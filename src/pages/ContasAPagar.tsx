@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
@@ -20,10 +22,13 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
   aprovacao_status: string | null;
+  baixado_por: string | null;
+  baixado_em: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
+type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -31,10 +36,12 @@ function fmt(d?: string | null) {
 }
 
 export default function ContasAPagar() {
+  const { user } = useAuth();
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -48,26 +55,28 @@ export default function ContasAPagar() {
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
+      supabase.from("profiles").select("user_id,nome_completo"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
+    setProfiles((pf as Profile[]) || []);
   }
   useEffect(() => { load(); }, []);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+  const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
-      // Filtro aprovação: ao menos um deve estar marcado
       const isAprov = l.aprovacao_status === "aprovado";
       if (!incluirAprovadas && !incluirNaoAprovadas) return false;
       if (isAprov && !incluirAprovadas) return false;
@@ -92,8 +101,14 @@ export default function ContasAPagar() {
   }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
+    const agora = new Date();
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pago", data_pagamento: new Date().toISOString().slice(0, 10) })
+      .update({
+        status: "pago",
+        data_pagamento: agora.toISOString().slice(0, 10),
+        baixado_por: user?.id ?? null,
+        baixado_em: agora.toISOString(),
+      })
       .eq("id", l.id);
     if (error) return toast.error(error.message);
     toast.success("Pago"); load();
@@ -145,6 +160,7 @@ export default function ContasAPagar() {
         incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}
       />
 
+      <TooltipProvider delayDuration={150}>
       <div className="rounded-2xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -165,6 +181,20 @@ export default function ContasAPagar() {
                 const cod = pedidoCod(l.pedido_id);
                 const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
                 const cancelado = l.status === "cancelado";
+                const baixaInfo = pago && l.baixado_em ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center ml-1 cursor-help">
+                        <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs">
+                      <div className="font-semibold mb-1">Baixa registrada</div>
+                      <div><span className="text-muted-foreground">Por:</span> {userName(l.baixado_por)}</div>
+                      <div><span className="text-muted-foreground">Em:</span> {new Date(l.baixado_em).toLocaleString("pt-BR")}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
                     <td className="py-4 px-5 whitespace-nowrap">{fmt(l.data_vencimento)}</td>
@@ -180,9 +210,12 @@ export default function ContasAPagar() {
                     <td>{contaName(l.conta_id)}</td>
                     <td className="text-right font-semibold whitespace-nowrap text-rose-700">{BRL(Number(l.valor || 0))}</td>
                     <td className="text-center">
-                      {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
-                        : pago ? <Badge className="bg-emerald-500/15 text-emerald-700">PAGO</Badge>
-                        : <Badge className="bg-violet-500/15 text-violet-700">PENDENTE</Badge>}
+                      <div className="inline-flex items-center">
+                        {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
+                          : pago ? <Badge className="bg-emerald-500/15 text-emerald-700">PAGO</Badge>
+                          : <Badge className="bg-violet-500/15 text-violet-700">PENDENTE</Badge>}
+                        {baixaInfo}
+                      </div>
                     </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
@@ -211,6 +244,7 @@ export default function ContasAPagar() {
           </table>
         </div>
       </div>
+      </TooltipProvider>
     </div>
   );
 }
