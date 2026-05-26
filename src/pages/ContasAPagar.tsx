@@ -43,10 +43,12 @@ export default function ContasAPagar() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
+  const [incluirAprovadas, setIncluirAprovadas] = useState(true);
+  const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
-      supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").eq("aprovacao_status", "aprovado").order("data_vencimento", { ascending: true }).limit(2000),
+      supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
