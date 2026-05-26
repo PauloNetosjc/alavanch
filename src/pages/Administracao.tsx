@@ -80,7 +80,7 @@ export default function Administracao() {
         {!hideHeader && (
           <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
-            <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
+            
             <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
             <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
             
