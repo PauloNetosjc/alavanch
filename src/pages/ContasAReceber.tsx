@@ -121,6 +121,23 @@ export default function ContasAReceber() {
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
+
+  function abrirEdicao(l: Lanc) { setEditAlvo(l); setEditOpen(true); }
+  async function salvarEdicao(p: EditarPayload) {
+    if (!editAlvo) return;
+    const { error } = await supabase.from("lancamentos_financeiros").update({
+      data_vencimento: p.data_vencimento,
+      data_pagamento: p.data_pagamento,
+      valor: p.valor,
+      forma_pagamento: p.forma_pagamento,
+      notas: p.notas,
+    }).eq("id", editAlvo.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Parcela atualizada"); load();
+  }
+
 
   function abrirBaixa(l: Lanc) {
     setBaixaAlvo(l);
