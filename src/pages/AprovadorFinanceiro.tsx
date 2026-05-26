@@ -88,8 +88,13 @@ export default function AprovadorFinanceiro() {
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
 
-  const pendentesPagar = useMemo(() => lancs.filter((l) => l.tipo === "saida"), [lancs]);
-  const pendentesReceber = useMemo(() => lancs.filter((l) => l.tipo === "entrada"), [lancs]);
+  const lancsFiltrados = useMemo(
+    () => lojasFiltro.length === 0 ? lancs : lancs.filter((l) => lojasFiltro.includes(l.loja_id || "")),
+    [lancs, lojasFiltro]
+  );
+  const pendentesPagar = useMemo(() => lancsFiltrados.filter((l) => l.tipo === "saida"), [lancsFiltrados]);
+  const pendentesReceber = useMemo(() => lancsFiltrados.filter((l) => l.tipo === "entrada"), [lancsFiltrados]);
+
 
   function toggleSel(id: string) {
     setSelecionados((s) => {
