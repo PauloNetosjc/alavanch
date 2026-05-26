@@ -43,7 +43,8 @@ function fmt(d?: string | null) {
 }
 
 export default function ContasAPagar() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const [souAprovador, setSouAprovador] = useState(false);
   const { can } = usePermissions();
   const podeEditar = can("lancamentos", "edit");
   const [lancs, setLancs] = useState<Lanc[]>([]);
@@ -83,6 +84,15 @@ export default function ContasAPagar() {
     setFornecedores((fr as any[]) || []);
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      if (role === "admin") { setSouAprovador(true); return; }
+      const { data } = await supabase.from("aprovadores_financeiros" as any)
+        .select("aprova_pagar").eq("user_id", user.id);
+      setSouAprovador(((data as any[]) || []).some((r) => r.aprova_pagar));
+    })();
+  }, [user, role]);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
@@ -125,6 +135,8 @@ export default function ContasAPagar() {
   const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
 
   function abrirEdicao(l: Lanc) { setEditAlvo(l); setEditOpen(true); }
+  const reapprovalPatch = () => souAprovador ? {} : { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null };
+
   async function salvarEdicao(p: EditarPayload) {
     if (!editAlvo) return;
     const { error } = await supabase.from("lancamentos_financeiros").update({
@@ -133,9 +145,10 @@ export default function ContasAPagar() {
       valor: p.valor,
       forma_pagamento: p.forma_pagamento,
       notas: p.notas,
+      ...reapprovalPatch(),
     }).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Parcela atualizada"); load();
+    toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
 
 
@@ -189,17 +202,18 @@ export default function ContasAPagar() {
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este pagamento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
       .eq("id", l.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Estornado"); load();
+    toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação"); load();
   }
 
   async function cancelar(l: Lanc) {
     if (!confirm("Cancelar este lançamento?")) return;
-    const { error } = await supabase.from("lancamentos_financeiros").update({ status: "cancelado" }).eq("id", l.id);
+    const { error } = await supabase.from("lancamentos_financeiros")
+      .update({ status: "cancelado", ...reapprovalPatch() }).eq("id", l.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Cancelado"); load();
+    toast.success(souAprovador ? "Cancelado" : "Cancelado — enviado para aprovação"); load();
   }
 
   const total = filtrados
