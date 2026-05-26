@@ -151,7 +151,7 @@ export default function ContasAPagar() {
               </tr>
             </thead>
             <tbody>
-              {lancs.map((l) => {
+              {filtrados.map((l) => {
                 const cod = pedidoCod(l.pedido_id);
                 const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
                 const cancelado = l.status === "cancelado";
