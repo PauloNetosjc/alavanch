@@ -95,16 +95,17 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut, profile, role } = useAuth();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
-  const visibleSections = sections
-    .map((s) => ({
-      ...s,
-      items: s.items.filter((it) => {
-        if (it.modulo && !can(it.modulo, "view")) return false;
-        if (it.roles && !it.roles.includes(role || "")) return false;
-        return true;
-      }),
-    }))
-    .filter((s) => s.items.length > 0);
+  const filterSection = (s: Section) => ({
+    ...s,
+    items: s.items.filter((it) => {
+      if (it.modulo && !can(it.modulo, "view")) return false;
+      if (it.roles && !it.roles.includes(role || "")) return false;
+      return true;
+    }),
+  });
+  const visibleSections = sections.map(filterSection).filter((s) => s.items.length > 0);
+  const visibleMoreSections = moreSections.map(filterSection).filter((s) => s.items.length > 0);
+
 
   const initials = (profile?.nome_completo || user?.email || "?")
     .split(" ")
