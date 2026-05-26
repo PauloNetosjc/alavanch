@@ -210,7 +210,7 @@ function RegrasDesconto() {
 }
 
 /* ============================== USUÁRIOS ============================== */
-type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null };
+type Profile = { id: string; user_id: string; nome_completo: string | null; loja_id: string | null; ativo: boolean; telefone: string | null; data_nascimento: string | null };
 type Loja = { id: string; nome: string };
 type UserRole = { user_id: string; role: string };
 
