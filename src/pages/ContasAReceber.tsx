@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
@@ -20,10 +22,13 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
   aprovacao_status: string | null;
+  baixado_por: string | null;
+  baixado_em: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
+type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -31,10 +36,12 @@ function fmt(d?: string | null) {
 }
 
 export default function ContasAReceber() {
+  const { user } = useAuth();
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -48,22 +55,25 @@ export default function ContasAReceber() {
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
+      supabase.from("profiles").select("user_id,nome_completo"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
+    setProfiles((pf as Profile[]) || []);
   }
   useEffect(() => { load(); }, []);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+  const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
@@ -91,8 +101,14 @@ export default function ContasAReceber() {
   }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
+    const agora = new Date();
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "recebido", data_pagamento: new Date().toISOString().slice(0, 10) })
+      .update({
+        status: "recebido",
+        data_pagamento: agora.toISOString().slice(0, 10),
+        baixado_por: user?.id ?? null,
+        baixado_em: agora.toISOString(),
+      })
       .eq("id", l.id);
     if (error) return toast.error(error.message);
     toast.success("Recebido"); load();
