@@ -27,6 +27,7 @@ import { CrmEstagiosAdmin } from "@/components/CrmEstagiosAdmin";
 import { AgendaAdmin } from "@/components/AgendaAdmin";
 import { PoliticaJurosAdmin } from "@/components/PoliticaJurosAdmin";
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
+import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
