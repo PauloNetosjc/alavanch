@@ -315,7 +315,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
             </div>
           )}
           {collapsed && !moreOpen && (
-            <button onClick={toggleCollapse} title="Expandir menu" className="absolute mt-9 text-[#666] hover:text-white transition-colors">
+            <button onClick={toggleCollapse} title="Expandir menu" className="mt-2 mx-auto block text-[#666] hover:text-white transition-colors">
               <ChevronsRight className="w-4 h-4" />
             </button>
           )}
