@@ -34,7 +34,7 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
-type Pedido = { id: string; codigo: string };
+type Pedido = { id: string; codigo: string; created_at: string | null };
 type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
@@ -72,7 +72,7 @@ export default function ContasAReceber() {
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
-      supabase.from("pedidos").select("id,codigo").limit(500),
+      supabase.from("pedidos").select("id,codigo,created_at").limit(500),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
@@ -97,6 +97,11 @@ export default function ContasAReceber() {
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+  const pedidoData = (id: string | null) => {
+    const p = pedidos.find((x) => x.id === id);
+    if (!p?.created_at) return "—";
+    try { return new Date(p.created_at).toLocaleDateString("pt-BR"); } catch { return "—"; }
+  };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
   const filtrados = useMemo(() => {
@@ -286,7 +291,8 @@ export default function ContasAReceber() {
 
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-                <th className="text-left py-3 px-5 font-medium">Vencimento</th>
+                <th className="text-left py-3 px-5 font-medium">Data Contrato</th>
+                <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
                 <th className="text-left py-3 font-medium">Conta</th>
@@ -317,7 +323,8 @@ export default function ContasAReceber() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap">{fmt(l.data_vencimento)}</td>
+                    <td className="py-4 px-5 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
+                    <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
                       <div className="font-medium">{l.descricao || "—"}</div>
                       {cod && (
@@ -363,12 +370,25 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
               )}
             </tbody>
+            {filtrados.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 bg-muted/40 font-semibold">
+                  <td colSpan={5} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                    Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
+                  </td>
+                  <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => s + Number(l.valor || 0), 0))}
+                  </td>
+                  <td colSpan={3} />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
