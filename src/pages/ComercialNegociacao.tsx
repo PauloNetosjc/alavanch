@@ -1376,7 +1376,7 @@ export default function ComercialNegociacao() {
                                   </TableCell>
                                   <TableCell className="px-2">
                                     <Select
-                                      value={formas[i] || p.metodo}
+                                      value={formas[i] || "Boleto"}
                                       disabled={!!locked[i]}
                                       onValueChange={(val) => editarParcelaForma(idx, i, val)}
                                     >
@@ -1384,12 +1384,9 @@ export default function ComercialNegociacao() {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {metodos.map((m) => (
-                                          <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                                        {FORMAS_PAGAMENTO.map((f) => (
+                                          <SelectItem key={f} value={f}>{f}</SelectItem>
                                         ))}
-                                        {!metodos.find((m) => m.nome === (formas[i] || p.metodo)) && (
-                                          <SelectItem value={formas[i] || p.metodo}>{formas[i] || p.metodo}</SelectItem>
-                                        )}
                                       </SelectContent>
                                     </Select>
                                   </TableCell>
