@@ -94,6 +94,7 @@ export default function ContasAPagar() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
