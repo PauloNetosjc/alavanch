@@ -108,6 +108,7 @@ export default function ContasCorrentes() {
       bandeira: editCartao.bandeira, dia_fechamento: Number(editCartao.dia_fechamento) || null,
       dia_vencimento: Number(editCartao.dia_vencimento) || null,
       conta_id: editCartao.conta_id || null, ativo: editCartao.ativo ?? true,
+      loja_id: editCartao.loja_id ?? selectedLojaId ?? null,
     };
     const q = editCartao.id
       ? supabase.from("cartoes_credito").update(payload).eq("id", editCartao.id)
@@ -117,6 +118,7 @@ export default function ContasCorrentes() {
     toast.success("Salvo");
     setCartaoDialog(false); setEditCartao(null); load();
   }
+
 
   async function deletarCartao(id: string) {
     if (!confirm("Excluir cartão?")) return;
