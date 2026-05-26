@@ -22,6 +22,7 @@ export default function ExtratoConta() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [filtroTipo, setFiltroTipo] = useState<"" | "entrada" | "saida">("");
   const [filtroCat, setFiltroCat] = useState<string>("");
+  const [filtroDia, setFiltroDia] = useState<string>("");
   const [compIdx, setCompIdx] = useState(5);
 
   const competencias = useMemo(() => ultimasCompetencias(new Date(), 6), []);
