@@ -449,7 +449,7 @@ export default function ComercialNovo() {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [origens, setOrigens] = useState<{ id: string; nome: string }[]>([]);
-  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null }[]>([]);
+  const [pedidosExistentes, setPedidosExistentes] = useState<{ id: string; codigo: string; cliente_id: string | null; nome_projeto: string | null }[]>([]);
   const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
 
   // ---- step 1 ----
