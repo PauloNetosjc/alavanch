@@ -1476,7 +1476,7 @@ export default function ComercialNegociacao() {
           <div className="space-y-3">
             <div>
               <Label>Método de Pagamento</Label>
-              <Select value={novoMetodo} onValueChange={setNovoMetodo}>
+              <Select value={novoMetodo} onValueChange={(v) => { setNovoMetodo(v); setNovoParcelas(0); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione um método..." /></SelectTrigger>
                 <SelectContent>
                   {metodos.map((m) => (
