@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye, ArrowLeft } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
+import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
 
 type Conta = {
   id: string; nome: string; tipo: string | null; banco: string | null;
