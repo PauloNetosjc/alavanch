@@ -58,7 +58,6 @@ const sections: Section[] = [
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
       { label: "Comercial", path: "/comercial", icon: Briefcase },
-      { label: "Controle de Prazos", path: "/radar", icon: Clock },
       { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
     ],
   },

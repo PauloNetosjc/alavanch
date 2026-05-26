@@ -6,6 +6,7 @@ import { Target, BarChart3, TrendingUp, TrendingDown, Clock, Ruler, Pencil, Fact
 import { BRL } from "@/lib/financeiro";
 import { PageFilters, defaultPeriodoMes, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 import { useLoja } from "@/contexts/LojaContext";
+import RadarPrazos from "@/pages/RadarPrazos";
 
 type Pedido = {
   id: string;
@@ -267,12 +268,6 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Distribuição Ativa por Estágio de Produção</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate("/radar-prazos")}
-            className="text-[11px] px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors flex items-center gap-1"
-          >
-            <AlertTriangle className="w-3.5 h-3.5" /> Radar de prazos
-          </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {fluxo.map((f) => {
@@ -304,6 +299,20 @@ export default function Dashboard() {
             );
           })}
         </div>
+      </div>
+
+      {/* Controle de Prazos (Radar) – mesmos estágios dos Kanbans */}
+      <div className="surface-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-rose-700" />
+          </div>
+          <div>
+            <h2 className="text-xl font-display">Controle de Prazos</h2>
+            <p className="text-xs text-muted-foreground">Etapas com prazo definidas nos Kanbans</p>
+          </div>
+        </div>
+        <RadarPrazos embedded />
       </div>
     </div>
   );

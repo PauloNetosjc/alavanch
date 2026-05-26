@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   CheckCircle,
   Star,
+  Wallet,
+  ClipboardCheck,
+  Send,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
@@ -30,21 +33,34 @@ type Pedido = {
   data_medicao_tecnica: string | null;
   data_chegada_material: string | null;
   data_limite_finalizacao: string | null;
+  data_pagamento_fabrica: string | null;
+  data_entrega: string | null;
   workflow_estagio: string | null;
   cliente: { nome: string } | null;
 };
 
-type Etapa = "medicao" | "fabrica" | "material" | "montagem" | "finalizacao";
+type Etapa =
+  | "medicao"
+  | "pagamento_fabrica"
+  | "fabrica"
+  | "material"
+  | "entrega"
+  | "montagem"
+  | "vistoria"
+  | "finalizacao";
 
 const ETAPA_META: Record<
   Etapa,
-  { label: string; icon: any; field: keyof Pedido; color: string; bg: string }
+  { label: string; icon: any; field: keyof Pedido; color: string; bg: string; kanban: string }
 > = {
-  medicao: { label: "Medição", icon: Ruler, field: "data_medicao_tecnica", color: "#0891b2", bg: "#ecfeff" },
-  fabrica: { label: "Fábrica", icon: Factory, field: "data_envio_fabrica", color: "#7c3aed", bg: "#f5f3ff" },
-  material: { label: "Material", icon: Package, field: "data_chegada_material", color: "#d97706", bg: "#fffbeb" },
-  montagem: { label: "Montagem", icon: Truck, field: "data_montagem", color: "#16a34a", bg: "#f0fdf4" },
-  finalizacao: { label: "Finalização", icon: CheckCircle2, field: "data_limite_finalizacao", color: "#0ea5e9", bg: "#f0f9ff" },
+  medicao:           { label: "Medição",          icon: Ruler,          field: "data_medicao_tecnica",    color: "#0891b2", bg: "#ecfeff", kanban: "Revisão" },
+  pagamento_fabrica: { label: "Pagto. Fábrica",   icon: Wallet,         field: "data_pagamento_fabrica",  color: "#0d9488", bg: "#ccfbf1", kanban: "Pós-Venda" },
+  fabrica:           { label: "Fábrica",          icon: Factory,        field: "data_envio_fabrica",      color: "#7c3aed", bg: "#f5f3ff", kanban: "Fábrica" },
+  material:          { label: "Material",         icon: Package,        field: "data_chegada_material",   color: "#d97706", bg: "#fffbeb", kanban: "Montagem" },
+  entrega:           { label: "Entrega",          icon: Send,           field: "data_entrega",            color: "#2563eb", bg: "#eff6ff", kanban: "Montagem" },
+  montagem:          { label: "Montagem",         icon: Truck,          field: "data_montagem",           color: "#16a34a", bg: "#f0fdf4", kanban: "Montagem" },
+  vistoria:          { label: "Vistoria",         icon: ClipboardCheck, field: "data_vistoria",           color: "#9333ea", bg: "#faf5ff", kanban: "Montagem" },
+  finalizacao:       { label: "Finalização",     icon: CheckCircle2,   field: "data_limite_finalizacao", color: "#0ea5e9", bg: "#f0f9ff", kanban: "Pós-Venda" },
 };
 
 const MES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -64,7 +80,7 @@ type Row = {
   days: number; // diff
 };
 
-export default function RadarPrazos() {
+export default function RadarPrazos({ embedded = false }: { embedded?: boolean } = {}) {
   const nav = useNavigate();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +93,7 @@ export default function RadarPrazos() {
     const { data } = await supabase
       .from("pedidos")
       .select(
-        "id, codigo, status, valor_total, vip, critico, workflow_estagio, data_envio_fabrica, data_montagem, data_vistoria, data_medicao_tecnica, data_chegada_material, data_limite_finalizacao, cliente:clientes(nome)"
+        "id, codigo, status, valor_total, vip, critico, workflow_estagio, data_envio_fabrica, data_montagem, data_vistoria, data_medicao_tecnica, data_chegada_material, data_limite_finalizacao, data_pagamento_fabrica, data_entrega, cliente:clientes(nome)"
       )
       .order("created_at", { ascending: false });
     setPedidos((data || []) as any);
@@ -132,24 +148,20 @@ export default function RadarPrazos() {
   }, [allRows]);
 
   const concluir = async (row: Row) => {
-    // Marca a data como "concluída" avançando o workflow
-    const next = (() => {
-      const order: Etapa[] = ["medicao", "fabrica", "material", "montagem", "finalizacao"];
-      const idx = order.indexOf(row.etapa);
-      if (idx < order.length - 1) return order[idx + 1];
-      return "concluido" as any;
-    })();
-    const stageMap: Record<string, string> = {
+    // Avança o workflow_estagio do pedido para um valor coerente
+    const stageMap: Record<Etapa, string> = {
       medicao: "revisao",
+      pagamento_fabrica: "fabrica",
       fabrica: "fabrica",
       material: "entrega",
-      montagem: "montagem",
+      entrega: "montagem",
+      montagem: "vistoria",
+      vistoria: "concluido",
       finalizacao: "concluido",
-      concluido: "concluido",
     };
     await supabase
       .from("pedidos")
-      .update({ workflow_estagio: stageMap[next] || row.pedido.workflow_estagio })
+      .update({ workflow_estagio: stageMap[row.etapa] || row.pedido.workflow_estagio })
       .eq("id", row.pedido.id);
     load();
   };
@@ -161,12 +173,14 @@ export default function RadarPrazos() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={CalendarDays}
-        iconVariant="purple"
-        title="Radar de Prazos"
-        subtitle="Gestão Inteligente de Cronogramas"
-      />
+      {!embedded && (
+        <PageHeader
+          icon={CalendarDays}
+          iconVariant="purple"
+          title="Radar de Prazos"
+          subtitle="Gestão Inteligente de Cronogramas"
+        />
+      )}
 
       {/* KPIs coloridos */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
