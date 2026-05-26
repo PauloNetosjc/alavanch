@@ -466,7 +466,7 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
           .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
           .eq("orcamento_id", id),
