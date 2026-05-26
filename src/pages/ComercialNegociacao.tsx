@@ -1374,10 +1374,6 @@ export default function ComercialNegociacao() {
               )}
             </div>
             <div>
-              <Label>Data de Vencimento</Label>
-              <Input type="date" value={novoVenc} onChange={(e) => setNovoVenc(e.target.value)} />
-            </div>
-            <div>
               <Label>Entrada (à vista, sem juros)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">R$</span>
