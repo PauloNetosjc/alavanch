@@ -3879,6 +3879,257 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_cargos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          setor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          setor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          setor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_cargos_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "rh_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_documentos: {
+        Row: {
+          created_at: string
+          funcionario_id: string
+          id: string
+          nome_arquivo: string | null
+          observacoes: string | null
+          tipo: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          funcionario_id: string
+          id?: string
+          nome_arquivo?: string | null
+          observacoes?: string | null
+          tipo: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          funcionario_id?: string
+          id?: string
+          nome_arquivo?: string | null
+          observacoes?: string | null
+          tipo?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_documentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_ferias: {
+        Row: {
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_ferias_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_funcionarios: {
+        Row: {
+          cargo_id: string | null
+          cpf: string | null
+          created_at: string
+          data_admissao: string | null
+          data_desligamento: string | null
+          data_fim_contrato: string | null
+          data_fim_experiencia: string | null
+          email: string | null
+          endereco: string | null
+          foto_url: string | null
+          id: string
+          loja_id: string | null
+          nome_completo: string
+          observacoes: string | null
+          rg: string | null
+          salario: number | null
+          setor_id: string | null
+          status: string
+          telefone: string | null
+          tipo_contrato: string
+          updated_at: string
+        }
+        Insert: {
+          cargo_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_fim_contrato?: string | null
+          data_fim_experiencia?: string | null
+          email?: string | null
+          endereco?: string | null
+          foto_url?: string | null
+          id?: string
+          loja_id?: string | null
+          nome_completo: string
+          observacoes?: string | null
+          rg?: string | null
+          salario?: number | null
+          setor_id?: string | null
+          status?: string
+          telefone?: string | null
+          tipo_contrato?: string
+          updated_at?: string
+        }
+        Update: {
+          cargo_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_fim_contrato?: string | null
+          data_fim_experiencia?: string | null
+          email?: string | null
+          endereco?: string | null
+          foto_url?: string | null
+          id?: string
+          loja_id?: string | null
+          nome_completo?: string
+          observacoes?: string | null
+          rg?: string | null
+          salario?: number | null
+          setor_id?: string | null
+          status?: string
+          telefone?: string | null
+          tipo_contrato?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_funcionarios_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_funcionarios_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "rh_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_ocorrencias: {
+        Row: {
+          anexo_url: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          funcionario_id: string
+          id: string
+          responsavel: string | null
+          tipo: string
+        }
+        Insert: {
+          anexo_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          funcionario_id: string
+          id?: string
+          responsavel?: string | null
+          tipo: string
+        }
+        Update: {
+          anexo_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          funcionario_id?: string
+          id?: string
+          responsavel?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_ocorrencias_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_setores: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       role_permissoes: {
         Row: {
           acao: string

@@ -1,0 +1,865 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/PageHeader";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { KpiCard } from "@/components/KpiCard";
+import { toast } from "@/hooks/use-toast";
+import { maskCpf, maskPhone } from "@/lib/masks";
+import {
+  Users, UserPlus, Plane, AlertTriangle, Briefcase, UserX, Search,
+  FileText, Upload, Trash2, Pencil, Calendar, AlertCircle,
+} from "lucide-react";
+
+type Setor = { id: string; nome: string };
+type Cargo = { id: string; nome: string; setor_id: string | null };
+type Funcionario = {
+  id: string;
+  nome_completo: string;
+  foto_url: string | null;
+  cpf: string | null;
+  rg: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+  cargo_id: string | null;
+  setor_id: string | null;
+  salario: number | null;
+  data_admissao: string | null;
+  tipo_contrato: "clt" | "pj" | "terceirizado" | "autonomo";
+  data_fim_experiencia: string | null;
+  data_fim_contrato: string | null;
+  status: "ativo" | "afastado" | "ferias" | "desligado";
+  data_desligamento: string | null;
+  observacoes: string | null;
+};
+type Ferias = { id: string; funcionario_id: string; data_inicio: string; data_fim: string; status: string; observacoes: string | null };
+type Ocorrencia = { id: string; funcionario_id: string; data: string; tipo: string; descricao: string | null; responsavel: string | null; anexo_url: string | null };
+type Documento = { id: string; funcionario_id: string; tipo: string; nome_arquivo: string | null; url: string; observacoes: string | null };
+
+const STATUS_LABEL: Record<string, string> = { ativo: "Ativo", afastado: "Afastado", ferias: "Em férias", desligado: "Desligado" };
+const STATUS_COLOR: Record<string, string> = {
+  ativo: "bg-emerald-100 text-emerald-800",
+  afastado: "bg-amber-100 text-amber-800",
+  ferias: "bg-sky-100 text-sky-800",
+  desligado: "bg-rose-100 text-rose-800",
+};
+const CONTRATO_LABEL: Record<string, string> = { clt: "CLT", pj: "PJ", terceirizado: "Terceirizado", autonomo: "Autônomo" };
+const TIPOS_DOC = ["RG", "CPF", "Comprovante de endereço", "Contrato", "CNH", "ASO", "Outros"];
+
+const emptyFunc: Partial<Funcionario> = {
+  tipo_contrato: "clt", status: "ativo",
+};
+
+function daysUntil(date: string | null) {
+  if (!date) return null;
+  const d = new Date(date + "T00:00:00").getTime();
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((d - now.getTime()) / 86400000);
+}
+
+export default function RH() {
+  const [tab, setTab] = useState("dashboard");
+  const [setores, setSetores] = useState<Setor[]>([]);
+  const [cargos, setCargos] = useState<Cargo[]>([]);
+  const [funcs, setFuncs] = useState<Funcionario[]>([]);
+  const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [busca, setBusca] = useState("");
+  const [filtroCargo, setFiltroCargo] = useState<string>("todos");
+  const [filtroSetor, setFiltroSetor] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
+
+  const [funcDialog, setFuncDialog] = useState(false);
+  const [funcForm, setFuncForm] = useState<Partial<Funcionario>>(emptyFunc);
+  const [setorDialog, setSetorDialog] = useState(false);
+  const [cargoDialog, setCargoDialog] = useState(false);
+  const [novoSetor, setNovoSetor] = useState("");
+  const [novoCargo, setNovoCargo] = useState({ nome: "", setor_id: "" });
+
+  const [detalheFunc, setDetalheFunc] = useState<Funcionario | null>(null);
+  const [feriasDialog, setFeriasDialog] = useState(false);
+  const [feriasForm, setFeriasForm] = useState<Partial<Ferias>>({ status: "programada" });
+  const [ocoDialog, setOcoDialog] = useState(false);
+  const [ocoForm, setOcoForm] = useState<Partial<Ocorrencia>>({ data: new Date().toISOString().slice(0,10) });
+  const [docDialog, setDocDialog] = useState(false);
+  const [docForm, setDocForm] = useState<{ tipo: string; observacoes: string }>({ tipo: "RG", observacoes: "" });
+  const [docFile, setDocFile] = useState<File | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const [s, c, f, fe, oc, dc] = await Promise.all([
+      supabase.from("rh_setores").select("*").order("nome"),
+      supabase.from("rh_cargos").select("*").order("nome"),
+      supabase.from("rh_funcionarios").select("*").order("nome_completo"),
+      supabase.from("rh_ferias").select("*").order("data_inicio", { ascending: false }),
+      supabase.from("rh_ocorrencias").select("*").order("data", { ascending: false }),
+      supabase.from("rh_documentos").select("*").order("created_at", { ascending: false }),
+    ]);
+    setSetores((s.data as Setor[]) || []);
+    setCargos((c.data as Cargo[]) || []);
+    setFuncs((f.data as Funcionario[]) || []);
+    setFerias((fe.data as Ferias[]) || []);
+    setOcorrencias((oc.data as Ocorrencia[]) || []);
+    setDocumentos((dc.data as Documento[]) || []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  // Atualizar status com base em férias do dia
+  useEffect(() => {
+    const hoje = new Date().toISOString().slice(0,10);
+    ferias.forEach(async (f) => {
+      if (f.data_inicio <= hoje && f.data_fim >= hoje && f.status !== "em_andamento") {
+        await supabase.from("rh_ferias").update({ status: "em_andamento" }).eq("id", f.id);
+      } else if (f.data_fim < hoje && f.status !== "finalizada") {
+        await supabase.from("rh_ferias").update({ status: "finalizada" }).eq("id", f.id);
+      }
+    });
+  }, [ferias]);
+
+  const ativos = funcs.filter(f => f.status !== "desligado");
+  const desligados = funcs.filter(f => f.status === "desligado");
+  const emFerias = funcs.filter(f => {
+    const hoje = new Date().toISOString().slice(0,10);
+    return ferias.some(fe => fe.funcionario_id === f.id && fe.data_inicio <= hoje && fe.data_fim >= hoje);
+  });
+
+  const proximosVencimentos = useMemo(() => {
+    return ativos.flatMap(f => {
+      const out: { funcionario: Funcionario; tipo: string; data: string; dias: number }[] = [];
+      if (f.tipo_contrato === "clt" && f.data_fim_experiencia) {
+        const d = daysUntil(f.data_fim_experiencia);
+        if (d !== null && d >= 0 && d <= 30) out.push({ funcionario: f, tipo: "Fim de experiência (CLT)", data: f.data_fim_experiencia, dias: d });
+      }
+      if (f.tipo_contrato === "pj" && f.data_fim_contrato) {
+        const d = daysUntil(f.data_fim_contrato);
+        if (d !== null && d >= 0 && d <= 60) out.push({ funcionario: f, tipo: "Fim de contrato (PJ)", data: f.data_fim_contrato, dias: d });
+      }
+      return out;
+    }).sort((a,b) => a.dias - b.dias);
+  }, [ativos]);
+
+  const filtrados = useMemo(() => {
+    let base = funcs;
+    if (filtroStatus === "ativos") base = base.filter(f => f.status !== "desligado");
+    else if (filtroStatus !== "todos") base = base.filter(f => f.status === filtroStatus);
+    if (filtroCargo !== "todos") base = base.filter(f => f.cargo_id === filtroCargo);
+    if (filtroSetor !== "todos") base = base.filter(f => f.setor_id === filtroSetor);
+    if (busca.trim()) {
+      const q = busca.toLowerCase();
+      base = base.filter(f =>
+        f.nome_completo.toLowerCase().includes(q) ||
+        (f.email || "").toLowerCase().includes(q) ||
+        (f.cpf || "").includes(q)
+      );
+    }
+    return base;
+  }, [funcs, filtroStatus, filtroCargo, filtroSetor, busca]);
+
+  const cargoNome = (id: string | null) => cargos.find(c => c.id === id)?.nome || "—";
+  const setorNome = (id: string | null) => setores.find(s => s.id === id)?.nome || "—";
+
+  async function salvarSetor() {
+    if (!novoSetor.trim()) return;
+    const { error } = await supabase.from("rh_setores").insert({ nome: novoSetor.trim() });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setNovoSetor(""); setSetorDialog(false); load();
+  }
+  async function removerSetor(id: string) {
+    if (!confirm("Remover setor?")) return;
+    const { error } = await supabase.from("rh_setores").delete().eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    load();
+  }
+  async function salvarCargo() {
+    if (!novoCargo.nome.trim()) return;
+    const { error } = await supabase.from("rh_cargos").insert({
+      nome: novoCargo.nome.trim(),
+      setor_id: novoCargo.setor_id || null,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setNovoCargo({ nome: "", setor_id: "" }); setCargoDialog(false); load();
+  }
+  async function removerCargo(id: string) {
+    if (!confirm("Remover cargo?")) return;
+    const { error } = await supabase.from("rh_cargos").delete().eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    load();
+  }
+
+  function abrirNovoFunc() { setFuncForm(emptyFunc); setFuncDialog(true); }
+  function abrirEditarFunc(f: Funcionario) { setFuncForm(f); setFuncDialog(true); }
+
+  async function uploadFoto(file: File): Promise<string | null> {
+    const path = `funcionarios/${crypto.randomUUID()}-${file.name}`;
+    const { error } = await supabase.storage.from("rh").upload(path, file);
+    if (error) { toast({ title: "Erro upload", description: error.message, variant: "destructive" }); return null; }
+    const { data } = supabase.storage.from("rh").getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async function salvarFunc() {
+    if (!funcForm.nome_completo?.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
+    const payload: any = {
+      nome_completo: funcForm.nome_completo,
+      foto_url: funcForm.foto_url || null,
+      cpf: funcForm.cpf || null,
+      rg: funcForm.rg || null,
+      telefone: funcForm.telefone || null,
+      email: funcForm.email || null,
+      endereco: funcForm.endereco || null,
+      cargo_id: funcForm.cargo_id || null,
+      setor_id: funcForm.setor_id || null,
+      salario: funcForm.salario || null,
+      data_admissao: funcForm.data_admissao || null,
+      tipo_contrato: funcForm.tipo_contrato || "clt",
+      data_fim_experiencia: funcForm.data_fim_experiencia || null,
+      data_fim_contrato: funcForm.data_fim_contrato || null,
+      status: funcForm.status || "ativo",
+      data_desligamento: funcForm.status === "desligado" ? (funcForm.data_desligamento || new Date().toISOString().slice(0,10)) : null,
+      observacoes: funcForm.observacoes || null,
+    };
+    const { error } = funcForm.id
+      ? await supabase.from("rh_funcionarios").update(payload).eq("id", funcForm.id)
+      : await supabase.from("rh_funcionarios").insert(payload);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Salvo" });
+    setFuncDialog(false); load();
+  }
+
+  async function desligar(f: Funcionario) {
+    if (!confirm(`Desligar ${f.nome_completo}?`)) return;
+    await supabase.from("rh_funcionarios").update({
+      status: "desligado",
+      data_desligamento: new Date().toISOString().slice(0,10),
+    }).eq("id", f.id);
+    load();
+  }
+  async function reativar(f: Funcionario) {
+    await supabase.from("rh_funcionarios").update({ status: "ativo", data_desligamento: null }).eq("id", f.id);
+    load();
+  }
+
+  async function salvarFerias() {
+    if (!detalheFunc || !feriasForm.data_inicio || !feriasForm.data_fim) return;
+    const { error } = await supabase.from("rh_ferias").insert({
+      funcionario_id: detalheFunc.id,
+      data_inicio: feriasForm.data_inicio,
+      data_fim: feriasForm.data_fim,
+      status: feriasForm.status || "programada",
+      observacoes: feriasForm.observacoes || null,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setFeriasForm({ status: "programada" }); setFeriasDialog(false); load();
+  }
+  async function removerFerias(id: string) {
+    if (!confirm("Remover período de férias?")) return;
+    await supabase.from("rh_ferias").delete().eq("id", id); load();
+  }
+
+  async function salvarOcorrencia() {
+    if (!detalheFunc || !ocoForm.tipo) return;
+    let anexo_url: string | null = null;
+    if ((ocoForm as any)._file instanceof File) {
+      const file = (ocoForm as any)._file as File;
+      const path = `ocorrencias/${crypto.randomUUID()}-${file.name}`;
+      const { error: e } = await supabase.storage.from("rh").upload(path, file);
+      if (!e) anexo_url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
+    }
+    const { error } = await supabase.from("rh_ocorrencias").insert({
+      funcionario_id: detalheFunc.id,
+      data: ocoForm.data || new Date().toISOString().slice(0,10),
+      tipo: ocoForm.tipo,
+      descricao: ocoForm.descricao || null,
+      responsavel: ocoForm.responsavel || null,
+      anexo_url,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setOcoForm({ data: new Date().toISOString().slice(0,10) }); setOcoDialog(false); load();
+  }
+  async function removerOcorrencia(id: string) {
+    if (!confirm("Remover ocorrência?")) return;
+    await supabase.from("rh_ocorrencias").delete().eq("id", id); load();
+  }
+
+  async function salvarDocumento() {
+    if (!detalheFunc || !docFile) return;
+    const path = `documentos/${detalheFunc.id}/${crypto.randomUUID()}-${docFile.name}`;
+    const { error: eU } = await supabase.storage.from("rh").upload(path, docFile);
+    if (eU) { toast({ title: "Erro upload", description: eU.message, variant: "destructive" }); return; }
+    const url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.from("rh_documentos").insert({
+      funcionario_id: detalheFunc.id, tipo: docForm.tipo, nome_arquivo: docFile.name, url, observacoes: docForm.observacoes || null,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setDocFile(null); setDocForm({ tipo: "RG", observacoes: "" }); setDocDialog(false); load();
+  }
+  async function removerDocumento(id: string) {
+    if (!confirm("Remover documento?")) return;
+    await supabase.from("rh_documentos").delete().eq("id", id); load();
+  }
+
+  const docsFunc = detalheFunc ? documentos.filter(d => d.funcionario_id === detalheFunc.id) : [];
+  const feriasFunc = detalheFunc ? ferias.filter(d => d.funcionario_id === detalheFunc.id) : [];
+  const ocoFunc = detalheFunc ? ocorrencias.filter(d => d.funcionario_id === detalheFunc.id) : [];
+
+  return (
+    <div>
+      <PageHeader icon={Users} iconVariant="green" title="Recursos Humanos" subtitle="Gestão de funcionários, documentos, férias e ocorrências." />
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
+          <TabsTrigger value="ferias">Férias</TabsTrigger>
+          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+          <TabsTrigger value="cargos">Cargos & Setores</TabsTrigger>
+          <TabsTrigger value="desligados">Desligados</TabsTrigger>
+        </TabsList>
+
+        {/* DASHBOARD */}
+        <TabsContent value="dashboard" className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <KpiCard label="Funcionários ativos" value={ativos.length} />
+            <KpiCard label="Em férias hoje" value={emFerias.length} />
+            <KpiCard label="Vencimentos próximos (30/60 dias)" value={proximosVencimentos.length} />
+            <KpiCard label="Desligados" value={desligados.length} />
+          </div>
+
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600" /> Próximos vencimentos</h3>
+            {proximosVencimentos.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum vencimento próximo.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {proximosVencimentos.map((v, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm border-b pb-1.5 last:border-0">
+                    <div>
+                      <span className="font-medium">{v.funcionario.nome_completo}</span>
+                      <span className="text-muted-foreground"> — {v.tipo}</span>
+                    </div>
+                    <Badge variant={v.dias <= 7 ? "destructive" : "secondary"}>
+                      {v.dias === 0 ? "Hoje" : `${v.dias} dias`} ({new Date(v.data + "T00:00").toLocaleDateString("pt-BR")})
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Plane className="w-4 h-4 text-sky-600" /> Em férias hoje</h3>
+            {emFerias.length === 0 ? <p className="text-xs text-muted-foreground">Ninguém em férias hoje.</p> :
+              <div className="flex flex-wrap gap-2">
+                {emFerias.map(f => <Badge key={f.id} variant="secondary">{f.nome_completo}</Badge>)}
+              </div>}
+          </Card>
+        </TabsContent>
+
+        {/* FUNCIONÁRIOS */}
+        <TabsContent value="funcionarios" className="mt-4">
+          <Card className="p-4 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              <div className="relative lg:col-span-2">
+                <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Buscar nome, CPF, e-mail..." value={busca} onChange={e => setBusca(e.target.value)} />
+              </div>
+              <Select value={filtroCargo} onValueChange={setFiltroCargo}>
+                <SelectTrigger><SelectValue placeholder="Cargo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os cargos</SelectItem>
+                  {cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filtroSetor} onValueChange={setFiltroSetor}>
+                <SelectTrigger><SelectValue placeholder="Setor" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os setores</SelectItem>
+                  {setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativos">Ativos (não desligados)</SelectItem>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="afastado">Afastado</SelectItem>
+                  <SelectItem value="ferias">Em férias</SelectItem>
+                  <SelectItem value="desligado">Desligados</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button onClick={abrirNovoFunc}><UserPlus className="w-4 h-4 mr-1.5" /> Novo funcionário</Button>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-3 py-2">Funcionário</th>
+                    <th className="px-3 py-2">Cargo / Setor</th>
+                    <th className="px-3 py-2">Contrato</th>
+                    <th className="px-3 py-2">Admissão</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Carregando...</td></tr>
+                  ) : filtrados.length === 0 ? (
+                    <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Nenhum funcionário encontrado.</td></tr>
+                  ) : filtrados.map(f => (
+                    <tr key={f.id} className="border-t hover:bg-muted/30">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          {f.foto_url ? (
+                            <img src={f.foto_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                              {f.nome_completo.split(" ").map(x => x[0]).slice(0,2).join("")}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-medium">{f.nome_completo}</div>
+                            <div className="text-xs text-muted-foreground">{f.email || f.telefone || ""}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div>{cargoNome(f.cargo_id)}</div>
+                        <div className="text-xs text-muted-foreground">{setorNome(f.setor_id)}</div>
+                      </td>
+                      <td className="px-3 py-2">{CONTRATO_LABEL[f.tipo_contrato]}</td>
+                      <td className="px-3 py-2">{f.data_admissao ? new Date(f.data_admissao + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLOR[f.status]}`}>{STATUS_LABEL[f.status]}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => setDetalheFunc(f)}><FileText className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => abrirEditarFunc(f)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        {f.status !== "desligado" ? (
+                          <Button size="sm" variant="ghost" onClick={() => desligar(f)} className="text-rose-600"><UserX className="w-3.5 h-3.5" /></Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => reativar(f)} className="text-emerald-600">Reativar</Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* FÉRIAS */}
+        <TabsContent value="ferias" className="mt-4">
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-3 py-2">Funcionário</th>
+                    <th className="px-3 py-2">Início</th>
+                    <th className="px-3 py-2">Fim</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Observações</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ferias.length === 0 ? (
+                    <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Sem registros.</td></tr>
+                  ) : ferias.map(f => {
+                    const fu = funcs.find(x => x.id === f.funcionario_id);
+                    return (
+                      <tr key={f.id} className="border-t">
+                        <td className="px-3 py-2">{fu?.nome_completo || "—"}</td>
+                        <td className="px-3 py-2">{new Date(f.data_inicio + "T00:00").toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2">{new Date(f.data_fim + "T00:00").toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2"><Badge variant="secondary">{f.status}</Badge></td>
+                        <td className="px-3 py-2 text-muted-foreground">{f.observacoes || "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button size="sm" variant="ghost" onClick={() => removerFerias(f.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          <p className="text-xs text-muted-foreground mt-2">Para programar férias, abra o detalhe do funcionário.</p>
+        </TabsContent>
+
+        {/* OCORRÊNCIAS */}
+        <TabsContent value="ocorrencias" className="mt-4">
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-3 py-2">Data</th>
+                    <th className="px-3 py-2">Funcionário</th>
+                    <th className="px-3 py-2">Tipo</th>
+                    <th className="px-3 py-2">Descrição</th>
+                    <th className="px-3 py-2">Responsável</th>
+                    <th className="px-3 py-2">Anexo</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ocorrencias.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Sem registros.</td></tr>
+                  ) : ocorrencias.map(o => {
+                    const fu = funcs.find(x => x.id === o.funcionario_id);
+                    return (
+                      <tr key={o.id} className="border-t">
+                        <td className="px-3 py-2">{new Date(o.data + "T00:00").toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2">{fu?.nome_completo || "—"}</td>
+                        <td className="px-3 py-2">{o.tipo}</td>
+                        <td className="px-3 py-2">{o.descricao || "—"}</td>
+                        <td className="px-3 py-2">{o.responsavel || "—"}</td>
+                        <td className="px-3 py-2">{o.anexo_url ? <a className="text-primary underline" href={o.anexo_url} target="_blank" rel="noreferrer">ver</a> : "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button size="sm" variant="ghost" onClick={() => removerOcorrencia(o.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          <p className="text-xs text-muted-foreground mt-2">Para registrar uma ocorrência, abra o detalhe do funcionário.</p>
+        </TabsContent>
+
+        {/* CARGOS & SETORES */}
+        <TabsContent value="cargos" className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><Briefcase className="w-4 h-4" /> Setores</h3>
+              <Button size="sm" onClick={() => setSetorDialog(true)}>+ Novo</Button>
+            </div>
+            <div className="space-y-1">
+              {setores.map(s => (
+                <div key={s.id} className="flex items-center justify-between border-b py-1.5 text-sm">
+                  <span>{s.nome}</span>
+                  <Button size="sm" variant="ghost" onClick={() => removerSetor(s.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><Briefcase className="w-4 h-4" /> Cargos</h3>
+              <Button size="sm" onClick={() => setCargoDialog(true)}>+ Novo</Button>
+            </div>
+            <div className="space-y-1">
+              {cargos.map(c => (
+                <div key={c.id} className="flex items-center justify-between border-b py-1.5 text-sm">
+                  <span>{c.nome} <span className="text-xs text-muted-foreground">({setorNome(c.setor_id)})</span></span>
+                  <Button size="sm" variant="ghost" onClick={() => removerCargo(c.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* DESLIGADOS */}
+        <TabsContent value="desligados" className="mt-4">
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-3 py-2">Funcionário</th>
+                    <th className="px-3 py-2">Cargo / Setor</th>
+                    <th className="px-3 py-2">Admissão</th>
+                    <th className="px-3 py-2">Desligamento</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {desligados.length === 0 ? (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Nenhum desligado.</td></tr>
+                  ) : desligados.map(f => (
+                    <tr key={f.id} className="border-t">
+                      <td className="px-3 py-2">{f.nome_completo}</td>
+                      <td className="px-3 py-2">{cargoNome(f.cargo_id)} / {setorNome(f.setor_id)}</td>
+                      <td className="px-3 py-2">{f.data_admissao ? new Date(f.data_admissao + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                      <td className="px-3 py-2">{f.data_desligamento ? new Date(f.data_desligamento + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                      <td className="px-3 py-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => setDetalheFunc(f)}><FileText className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => reativar(f)} className="text-emerald-600">Reativar</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog Funcionário */}
+      <Dialog open={funcDialog} onOpenChange={setFuncDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{funcForm.id ? "Editar" : "Novo"} funcionário</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <Label>Foto</Label>
+              <div className="flex items-center gap-3 mt-1">
+                {funcForm.foto_url && <img src={funcForm.foto_url} className="w-16 h-16 rounded-full object-cover" />}
+                <Input type="file" accept="image/*" onChange={async (e) => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const url = await uploadFoto(f); if (url) setFuncForm(p => ({ ...p, foto_url: url }));
+                }} />
+              </div>
+            </div>
+            <div className="md:col-span-2"><Label>Nome completo *</Label><Input value={funcForm.nome_completo || ""} onChange={e => setFuncForm(p => ({...p, nome_completo: e.target.value}))} /></div>
+            <div><Label>CPF</Label><Input value={funcForm.cpf || ""} onChange={e => setFuncForm(p => ({...p, cpf: maskCpf(e.target.value)}))} /></div>
+            <div><Label>RG</Label><Input value={funcForm.rg || ""} onChange={e => setFuncForm(p => ({...p, rg: e.target.value}))} /></div>
+            <div><Label>Telefone</Label><Input value={funcForm.telefone || ""} onChange={e => setFuncForm(p => ({...p, telefone: maskPhone(e.target.value)}))} /></div>
+            <div><Label>E-mail</Label><Input type="email" value={funcForm.email || ""} onChange={e => setFuncForm(p => ({...p, email: e.target.value}))} /></div>
+            <div className="md:col-span-2"><Label>Endereço</Label><Input value={funcForm.endereco || ""} onChange={e => setFuncForm(p => ({...p, endereco: e.target.value}))} /></div>
+            <div>
+              <Label>Setor</Label>
+              <Select value={funcForm.setor_id || ""} onValueChange={v => setFuncForm(p => ({...p, setor_id: v}))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Cargo</Label>
+              <Select value={funcForm.cargo_id || ""} onValueChange={v => setFuncForm(p => ({...p, cargo_id: v}))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Salário</Label><Input type="number" step="0.01" value={funcForm.salario || ""} onChange={e => setFuncForm(p => ({...p, salario: e.target.value ? Number(e.target.value) : null}))} /></div>
+            <div><Label>Data de admissão</Label><Input type="date" value={funcForm.data_admissao || ""} onChange={e => setFuncForm(p => ({...p, data_admissao: e.target.value}))} /></div>
+            <div>
+              <Label>Tipo de contrato</Label>
+              <Select value={funcForm.tipo_contrato || "clt"} onValueChange={v => setFuncForm(p => ({...p, tipo_contrato: v as any}))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clt">CLT</SelectItem>
+                  <SelectItem value="pj">PJ</SelectItem>
+                  <SelectItem value="terceirizado">Terceirizado</SelectItem>
+                  <SelectItem value="autonomo">Autônomo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={funcForm.status || "ativo"} onValueChange={v => setFuncForm(p => ({...p, status: v as any}))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="afastado">Afastado</SelectItem>
+                  <SelectItem value="desligado">Desligado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {funcForm.tipo_contrato === "clt" && (
+              <div><Label>Fim da experiência</Label><Input type="date" value={funcForm.data_fim_experiencia || ""} onChange={e => setFuncForm(p => ({...p, data_fim_experiencia: e.target.value}))} /></div>
+            )}
+            {funcForm.tipo_contrato === "pj" && (
+              <div><Label>Fim do contrato</Label><Input type="date" value={funcForm.data_fim_contrato || ""} onChange={e => setFuncForm(p => ({...p, data_fim_contrato: e.target.value}))} /></div>
+            )}
+            <div className="md:col-span-2"><Label>Observações</Label><Textarea rows={3} value={funcForm.observacoes || ""} onChange={e => setFuncForm(p => ({...p, observacoes: e.target.value}))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setFuncDialog(false)}>Cancelar</Button>
+            <Button onClick={salvarFunc}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Setor */}
+      <Dialog open={setorDialog} onOpenChange={setSetorDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Novo setor</DialogTitle></DialogHeader>
+          <Input placeholder="Nome do setor" value={novoSetor} onChange={e => setNovoSetor(e.target.value)} />
+          <DialogFooter><Button onClick={salvarSetor}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Cargo */}
+      <Dialog open={cargoDialog} onOpenChange={setCargoDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Novo cargo</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Input placeholder="Nome do cargo" value={novoCargo.nome} onChange={e => setNovoCargo({...novoCargo, nome: e.target.value})} />
+            <Select value={novoCargo.setor_id} onValueChange={v => setNovoCargo({...novoCargo, setor_id: v})}>
+              <SelectTrigger><SelectValue placeholder="Setor (opcional)" /></SelectTrigger>
+              <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <DialogFooter><Button onClick={salvarCargo}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detalhe Funcionário */}
+      <Dialog open={!!detalheFunc} onOpenChange={(o) => !o && setDetalheFunc(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {detalheFunc && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  {detalheFunc.foto_url ? <img src={detalheFunc.foto_url} className="w-10 h-10 rounded-full object-cover" /> :
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                      {detalheFunc.nome_completo.split(" ").map(x => x[0]).slice(0,2).join("")}
+                    </div>}
+                  {detalheFunc.nome_completo}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3">
+                <div><span className="text-muted-foreground">Cargo:</span> {cargoNome(detalheFunc.cargo_id)}</div>
+                <div><span className="text-muted-foreground">Setor:</span> {setorNome(detalheFunc.setor_id)}</div>
+                <div><span className="text-muted-foreground">Contrato:</span> {CONTRATO_LABEL[detalheFunc.tipo_contrato]}</div>
+                <div><span className="text-muted-foreground">Status:</span> <span className={`px-2 py-0.5 rounded ${STATUS_COLOR[detalheFunc.status]}`}>{STATUS_LABEL[detalheFunc.status]}</span></div>
+                <div><span className="text-muted-foreground">CPF:</span> {detalheFunc.cpf || "—"}</div>
+                <div><span className="text-muted-foreground">Telefone:</span> {detalheFunc.telefone || "—"}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">E-mail:</span> {detalheFunc.email || "—"}</div>
+              </div>
+
+              <Tabs defaultValue="documentos">
+                <TabsList>
+                  <TabsTrigger value="documentos">Documentos ({docsFunc.length})</TabsTrigger>
+                  <TabsTrigger value="ferias">Férias ({feriasFunc.length})</TabsTrigger>
+                  <TabsTrigger value="ocorrencias">Ocorrências ({ocoFunc.length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="documentos" className="mt-3">
+                  <Button size="sm" onClick={() => setDocDialog(true)} className="mb-2"><Upload className="w-3.5 h-3.5 mr-1" /> Anexar documento</Button>
+                  <div className="space-y-1">
+                    {docsFunc.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum documento.</p> :
+                      docsFunc.map(d => (
+                        <div key={d.id} className="flex items-center justify-between border rounded px-2 py-1.5 text-sm">
+                          <div>
+                            <span className="font-medium">{d.tipo}</span>
+                            <span className="text-muted-foreground"> — </span>
+                            <a href={d.url} target="_blank" rel="noreferrer" className="text-primary underline">{d.nome_arquivo || "arquivo"}</a>
+                            {d.observacoes && <span className="text-xs text-muted-foreground"> ({d.observacoes})</span>}
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => removerDocumento(d.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="ferias" className="mt-3">
+                  <Button size="sm" onClick={() => setFeriasDialog(true)} className="mb-2"><Calendar className="w-3.5 h-3.5 mr-1" /> Programar férias</Button>
+                  <div className="space-y-1">
+                    {feriasFunc.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma férias.</p> :
+                      feriasFunc.map(f => (
+                        <div key={f.id} className="flex items-center justify-between border rounded px-2 py-1.5 text-sm">
+                          <div>
+                            {new Date(f.data_inicio + "T00:00").toLocaleDateString("pt-BR")} → {new Date(f.data_fim + "T00:00").toLocaleDateString("pt-BR")}
+                            <Badge variant="secondary" className="ml-2">{f.status}</Badge>
+                            {f.observacoes && <div className="text-xs text-muted-foreground">{f.observacoes}</div>}
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => removerFerias(f.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="ocorrencias" className="mt-3">
+                  <Button size="sm" onClick={() => setOcoDialog(true)} className="mb-2"><AlertTriangle className="w-3.5 h-3.5 mr-1" /> Nova ocorrência</Button>
+                  <div className="space-y-1">
+                    {ocoFunc.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma ocorrência.</p> :
+                      ocoFunc.map(o => (
+                        <div key={o.id} className="flex items-center justify-between border rounded px-2 py-1.5 text-sm">
+                          <div>
+                            <span className="font-medium">{o.tipo}</span>
+                            <span className="text-muted-foreground"> — {new Date(o.data + "T00:00").toLocaleDateString("pt-BR")}</span>
+                            {o.descricao && <div className="text-xs">{o.descricao}</div>}
+                            {o.responsavel && <div className="text-xs text-muted-foreground">Responsável: {o.responsavel}</div>}
+                            {o.anexo_url && <a href={o.anexo_url} target="_blank" rel="noreferrer" className="text-xs text-primary underline">ver anexo</a>}
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => removerOcorrencia(o.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Férias */}
+      <Dialog open={feriasDialog} onOpenChange={setFeriasDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Programar férias</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label>Início</Label><Input type="date" value={feriasForm.data_inicio || ""} onChange={e => setFeriasForm(p => ({...p, data_inicio: e.target.value}))} /></div>
+            <div><Label>Fim</Label><Input type="date" value={feriasForm.data_fim || ""} onChange={e => setFeriasForm(p => ({...p, data_fim: e.target.value}))} /></div>
+            <div>
+              <Label>Status</Label>
+              <Select value={feriasForm.status || "programada"} onValueChange={v => setFeriasForm(p => ({...p, status: v}))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="programada">Programada</SelectItem>
+                  <SelectItem value="em_andamento">Em andamento</SelectItem>
+                  <SelectItem value="finalizada">Finalizada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Observações</Label><Textarea value={feriasForm.observacoes || ""} onChange={e => setFeriasForm(p => ({...p, observacoes: e.target.value}))} /></div>
+          </div>
+          <DialogFooter><Button onClick={salvarFerias}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Ocorrência */}
+      <Dialog open={ocoDialog} onOpenChange={setOcoDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova ocorrência</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label>Data</Label><Input type="date" value={ocoForm.data || ""} onChange={e => setOcoForm(p => ({...p, data: e.target.value}))} /></div>
+            <div><Label>Tipo</Label><Input placeholder="Advertência, elogio, atestado..." value={ocoForm.tipo || ""} onChange={e => setOcoForm(p => ({...p, tipo: e.target.value}))} /></div>
+            <div><Label>Descrição</Label><Textarea value={ocoForm.descricao || ""} onChange={e => setOcoForm(p => ({...p, descricao: e.target.value}))} /></div>
+            <div><Label>Responsável</Label><Input value={ocoForm.responsavel || ""} onChange={e => setOcoForm(p => ({...p, responsavel: e.target.value}))} /></div>
+            <div><Label>Anexo (opcional)</Label><Input type="file" onChange={e => setOcoForm(p => ({...p, _file: e.target.files?.[0]} as any))} /></div>
+          </div>
+          <DialogFooter><Button onClick={salvarOcorrencia}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Documento */}
+      <Dialog open={docDialog} onOpenChange={setDocDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Anexar documento</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={docForm.tipo} onValueChange={v => setDocForm({...docForm, tipo: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{TIPOS_DOC.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Arquivo</Label><Input type="file" onChange={e => setDocFile(e.target.files?.[0] || null)} /></div>
+            <div><Label>Observações</Label><Textarea value={docForm.observacoes} onChange={e => setDocForm({...docForm, observacoes: e.target.value})} /></div>
+          </div>
+          <DialogFooter><Button onClick={salvarDocumento} disabled={!docFile}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

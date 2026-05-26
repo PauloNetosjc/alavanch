@@ -79,9 +79,11 @@ const sections: Section[] = [
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
+      { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh" },
     ],
   },
 ];
+
 
 // Configuração do sistema agrupada em sub-menus expansíveis
 const moreGroups: Group[] = [
