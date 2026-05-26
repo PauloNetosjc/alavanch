@@ -673,6 +673,39 @@ export default function Financeiro() {
                 </Select>
               </div>
 
+              {/* Fornecedor / Pagador */}
+              {(() => {
+                const isEntrada = editLanc.tipo === "entrada";
+                const labelTitle = isEntrada ? "Receber de (fornecedor/pagador) *" : "Pagar a (fornecedor) *";
+                const placeholder = isEntrada ? "Selecione o pagador…" : "Selecione o fornecedor…";
+                const pedidoSel = editLanc.vincular_contrato && editLanc.pedido_id
+                  ? pedidos.find((p) => p.id === editLanc.pedido_id) : null;
+                if (isEntrada && pedidoSel) {
+                  return (
+                    <div className="rounded-lg border border-emerald-300 bg-emerald-50/60 p-4">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-700">Pagador (cliente do contrato)</div>
+                      <div className="font-medium text-emerald-900 mt-1">
+                        {pedidoSel.cliente_nome || "(cliente sem nome)"} <span className="text-xs text-emerald-700">• {pedidoSel.codigo}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelTitle}</Label>
+                    <div className="flex gap-2">
+                      <Select value={editLanc.fornecedor_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, fornecedor_id: v })}>
+                        <SelectTrigger className="flex-1"><SelectValue placeholder={placeholder} /></SelectTrigger>
+                        <SelectContent>
+                          {fornecedores.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="outline" onClick={() => setNovoFornOpen(true)}>+ Novo</Button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Dados */}
               <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Dados do Lançamento</div>
