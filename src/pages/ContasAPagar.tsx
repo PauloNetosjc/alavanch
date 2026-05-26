@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
+import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 
 type Lanc = {
   id: string;
@@ -19,7 +20,7 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
 };
-type Cat = { id: string; nome: string };
+type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
 
@@ -34,10 +35,19 @@ export default function ContasAPagar() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
+  // Filtros
+  const hoje = new Date();
+  const [busca, setBusca] = useState("");
+  const [dtIni, setDtIni] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10));
+  const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [mostrarCancelados, setMostrarCancelados] = useState(false);
+
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
-      supabase.from("categorias_financeiras").select("id,nome").order("nome"),
+      supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
     ]);
@@ -51,6 +61,27 @@ export default function ContasAPagar() {
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+
+  const filtrados = useMemo(() => {
+    return lancs.filter((l) => {
+      const d = l.data_pagamento || l.data_vencimento;
+      if (d) {
+        if (dtIni && d < dtIni) return false;
+        if (dtFim && d > dtFim) return false;
+      }
+      if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (apenasPendentes && ["pago", "recebido", "conciliado"].includes(l.status || "")) return false;
+      if (!mostrarCancelados && l.status === "cancelado") return false;
+      if (busca) {
+        const t = busca.toLowerCase();
+        const ok = (l.descricao || "").toLowerCase().includes(t)
+          || catName(l.categoria_id).toLowerCase().includes(t)
+          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t);
+        if (!ok) return false;
+      }
+      return true;
+    });
+  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
     const { error } = await supabase.from("lancamentos_financeiros")
@@ -66,9 +97,10 @@ export default function ContasAPagar() {
     toast.success("Cancelado"); load();
   }
 
-  const total = lancs
+  const total = filtrados
     .filter((l) => !["pago", "recebido", "conciliado", "cancelado"].includes(l.status || ""))
     .reduce((s, l) => s + Number(l.valor || 0), 0);
+
 
   return (
     <div className="p-8 space-y-6">
@@ -93,9 +125,20 @@ export default function ContasAPagar() {
         </div>
       </div>
 
+      <LancamentosFiltros
+        busca={busca} setBusca={setBusca}
+        dtIni={dtIni} setDtIni={setDtIni}
+        dtFim={dtFim} setDtFim={setDtFim}
+        cats={cats}
+        categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
+        apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
+        mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
+      />
+
       <div className="rounded-2xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Vencimento</th>
@@ -108,7 +151,7 @@ export default function ContasAPagar() {
               </tr>
             </thead>
             <tbody>
-              {lancs.map((l) => {
+              {filtrados.map((l) => {
                 const cod = pedidoCod(l.pedido_id);
                 const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
                 const cancelado = l.status === "cancelado";
@@ -148,7 +191,7 @@ export default function ContasAPagar() {
                   </tr>
                 );
               })}
-              {!lancs.length && (
+              {!filtrados.length && (
                 <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a pagar
