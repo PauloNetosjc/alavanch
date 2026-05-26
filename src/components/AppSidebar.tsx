@@ -90,6 +90,45 @@ const moreSections: Section[] = [
   },
 ];
 
+function renderSection(section: Section, pathname: string, onNavigate?: () => void) {
+  return (
+    <div key={section.label} className="mt-2">
+      <div
+        className="px-6 pt-3 pb-1.5 text-[9px] uppercase"
+        style={{ color: "#444", letterSpacing: "0.12em" }}
+      >
+        {section.label}
+      </div>
+      <div className="px-2 flex flex-col gap-0.5">
+        {section.items.map((it) => {
+          const active = pathname.startsWith(it.path);
+          return (
+            <NavLink
+              key={it.path}
+              to={it.path}
+              onClick={onNavigate}
+              className="group flex items-center gap-2.5 rounded-md transition-colors"
+              style={{
+                padding: "7px 14px",
+                background: active ? "#1F1F1F" : "transparent",
+                color: active ? "#FFFFFF" : "#888888",
+                fontSize: "12.5px",
+              }}
+            >
+              <span
+                className="inline-block rounded-full"
+                style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }}
+              />
+              <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
+              <span className="flex-1">{it.label}</span>
+            </NavLink>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
