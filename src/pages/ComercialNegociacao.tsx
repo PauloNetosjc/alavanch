@@ -584,7 +584,8 @@ export default function ComercialNegociacao() {
   const metodoSelecionado = metodos.find((m) => m.nome === novoMetodo);
   const cfgParcelaSel = metodoSelecionado?.parcelas_config?.find((p) => Number(p.numero) === Number(novoParcelas));
   const descontoMetodoPerc = Number(cfgParcelaSel?.desconto_perc) || 0;
-  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0));
+  const _somaEntradasAdicionadas = pagamentos.reduce((s, p: any) => s + (p.is_entrada ? (p.valor || 0) : 0), 0);
+  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0) - _somaEntradasAdicionadas);
   const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
   const totalProposta = isAdendo
     ? Math.max(0, adendoValor - descontoMetodoValor)
