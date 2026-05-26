@@ -789,25 +789,30 @@ export default function ComercialNegociacao() {
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
+  const somaEntradas = useMemo(
+    () => pagamentos.filter((p: any) => p.is_entrada).reduce((s, p) => s + (p.valor || 0), 0),
+    [pagamentos],
+  );
+
   const aplicarEntrada = () => {
     if (!entrada || entrada <= 0) return toast.error("Informe o valor da entrada");
     if (!novoMetodo) return toast.error("Selecione o método de pagamento da entrada");
     setPagamentos((prev) => {
-      const semEntrada = prev.filter((p) => !(p as any).is_entrada);
       const hoje = new Date().toISOString().slice(0, 10);
       return [
+        ...prev,
         { metodo: novoMetodo, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
-        ...semEntrada,
       ];
     });
+    setEntrada(0);
     toast.success("Entrada adicionada");
   };
 
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
-  // O valor é sempre o restante a parcelar (total - entrada).
+  // O valor é sempre o restante a parcelar (total - soma das entradas).
   useEffect(() => {
     if (!novoMetodo) return;
-    const valorPrincipal = Number(Math.max(0, totalProposta - (entrada || 0)).toFixed(2));
+    const valorPrincipal = Number(Math.max(0, totalProposta - somaEntradas).toFixed(2));
     setPagamentos((prev) => {
       const outros = prev.filter((p) => !(p as any).is_principal);
       if (valorPrincipal <= 0) return outros;
@@ -824,7 +829,7 @@ export default function ComercialNegociacao() {
       ];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, entrada]);
+  }, [novoMetodo, novoParcelas, novoVenc, totalProposta, somaEntradas]);
 
   /* ------------------------- save ------------------------- */
   const persist = async (newStatus?: string) => {
