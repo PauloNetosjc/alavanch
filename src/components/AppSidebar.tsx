@@ -93,8 +93,12 @@ const moreGroups: Group[] = [
     label: "Financeiro",
     icon: Banknote,
     items: [
+      { label: "Descontos", path: "/administracao?tab=descontos", icon: Folder, roles: ["admin"] },
+      { label: "Política de Juros", path: "/administracao?tab=juros", icon: Folder, roles: ["admin"] },
+      { label: "Bancos", path: "/administracao?tab=bancos", icon: Banknote, roles: ["admin"] },
+      { label: "Pagamentos", path: "/administracao?tab=pagamentos", icon: Wallet, roles: ["admin"] },
+      { label: "Categorias", path: "/administracao?tab=categorias", icon: Folder, roles: ["admin"] },
       { label: "Contas Correntes", path: "/contas", icon: Wallet, modulo: "contas" },
-      { label: "Categorias", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
       { label: "Auditoria de Parceiros", path: "/auditoria-parceiros", icon: ClipboardCheck, modulo: "auditoria_parceiros" },
     ],
   },
@@ -104,7 +108,7 @@ const moreGroups: Group[] = [
     items: [
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
-      { label: "Administração (Usuários)", path: "/administracao", icon: Users },
+      { label: "Administração (Usuários)", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
       { label: "Modelos de Checklist", path: "/administracao/checklist-templates", icon: ListChecks, roles: ["admin"] },
       { label: "Checklist Assistência", path: "/administracao/checklist-assistencia", icon: LifeBuoy, roles: ["admin"] },
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
@@ -177,7 +181,8 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
 }
 
 function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
-  const hasActive = group.items.some((it) => pathname.startsWith(it.path));
+  const basePath = (p: string) => p.split("?")[0];
+  const hasActive = group.items.some((it) => pathname.startsWith(basePath(it.path)));
   const [open, setOpen] = useState(hasActive);
   return (
     <div className="mt-1.5">
@@ -193,7 +198,7 @@ function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathnam
       {open && (
         <div className="px-2 mt-0.5 flex flex-col gap-0.5">
           {group.items.map((it) => {
-            const active = pathname.startsWith(it.path);
+            const active = pathname.startsWith(basePath(it.path));
             return (
               <NavLink
                 key={it.path}

@@ -18,7 +18,7 @@ import {
   CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { maskPhone } from "@/lib/masks";
 import { PermissoesAdmin } from "@/components/PermissoesAdmin";
@@ -44,6 +44,8 @@ const ROLES = ["admin","diretor","gerente","vendedor","projetista","financeiro",
 export default function Administracao() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "descontos";
 
   useEffect(() => {
     if (!user) return;
@@ -65,7 +67,7 @@ export default function Administracao() {
         subtitle="Controles do sistema, usuários, cadastros e regras"
       />
 
-      <Tabs defaultValue="descontos" className="w-full">
+      <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="descontos"><Percent className="w-3.5 h-3.5 mr-1.5" />Descontos</TabsTrigger>
           <TabsTrigger value="juros"><Percent className="w-3.5 h-3.5 mr-1.5" />Política de Juros</TabsTrigger>
