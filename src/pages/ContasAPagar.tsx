@@ -44,6 +44,8 @@ function fmt(d?: string | null) {
 
 export default function ContasAPagar() {
   const { user } = useAuth();
+  const { can } = usePermissions();
+  const podeEditar = can("lancamentos", "edit");
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
