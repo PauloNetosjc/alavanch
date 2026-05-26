@@ -2144,6 +2144,7 @@ export type Database = {
           ativo: boolean | null
           created_at: string
           id: string
+          juros_modo: string
           max_parcelas: number
           nome: string
           parcelas_config: Json
@@ -2154,6 +2155,7 @@ export type Database = {
           ativo?: boolean | null
           created_at?: string
           id?: string
+          juros_modo?: string
           max_parcelas?: number
           nome: string
           parcelas_config?: Json
@@ -2164,6 +2166,7 @@ export type Database = {
           ativo?: boolean | null
           created_at?: string
           id?: string
+          juros_modo?: string
           max_parcelas?: number
           nome?: string
           parcelas_config?: Json
