@@ -218,44 +218,61 @@ function Usuarios() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
+  const [userLojas, setUserLojas] = useState<{ user_id: string; loja_id: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
+  const [form, setForm] = useState<{ email: string; password: string; nome_completo: string; role: string; loja_id: string; telefone: string; lojas_ids: string[] }>({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [] });
 
   const load = async () => {
-    const [p, r, l] = await Promise.all([
+    const [p, r, l, ul] = await Promise.all([
       supabase.from("profiles").select("*").order("nome_completo"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("lojas").select("id, nome").eq("ativo", true).order("nome"),
+      supabase.from("user_lojas").select("user_id, loja_id"),
     ]);
     setProfiles((p.data ?? []) as Profile[]);
     setRoles((r.data ?? []) as UserRole[]);
     setLojas((l.data ?? []) as Loja[]);
+    setUserLojas((ul.data ?? []) as any);
   };
   useEffect(() => { load(); }, []);
 
   const roleOf = (uid: string) => roles.find((x) => x.user_id === uid)?.role || "—";
   const lojaNome = (id: string | null) => lojas.find((l) => l.id === id)?.nome || "—";
+  const lojasDoUser = (uid: string) => userLojas.filter((x) => x.user_id === uid).map((x) => x.loja_id);
 
   const onCreate = () => {
     setEditing(null);
-    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "" });
+    setForm({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [] });
     setOpen(true);
   };
   const onEdit = (p: Profile) => {
     setEditing(p);
-    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "" });
+    const ids = lojasDoUser(p.user_id);
+    setForm({ email: "", password: "", nome_completo: p.nome_completo || "", role: roleOf(p.user_id), loja_id: p.loja_id || "", telefone: p.telefone || "", lojas_ids: ids.length ? ids : (p.loja_id ? [p.loja_id] : []) });
     setOpen(true);
+  };
+
+  const toggleLojaForm = (id: string) => {
+    setForm((f) => {
+      const has = f.lojas_ids.includes(id);
+      const next = has ? f.lojas_ids.filter((x) => x !== id) : [...f.lojas_ids, id];
+      // Se loja principal não estiver na lista, ajusta para a primeira selecionada
+      const principal = next.includes(f.loja_id) ? f.loja_id : (next[0] || "");
+      return { ...f, lojas_ids: next, loja_id: principal };
+    });
   };
 
   const salvar = async () => {
     try {
+      const lojas_ids = form.lojas_ids;
+      const loja_id = form.loja_id || lojas_ids[0] || null;
       if (editing) {
         const { data: { session } } = await supabase.auth.getSession();
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id: form.loja_id || null, telefone: form.telefone || null }),
+          body: JSON.stringify({ user_id: editing.user_id, nome_completo: form.nome_completo, role: form.role, loja_id, lojas_ids, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao atualizar");
         toast.success("Usuário atualizado");
@@ -265,7 +282,7 @@ function Usuarios() {
         const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: form.loja_id || null, telefone: form.telefone || null }),
+          body: JSON.stringify({ email: form.email, password: form.password, full_name: form.nome_completo, role: form.role, store_id: loja_id, lojas_ids, telefone: form.telefone || null }),
         });
         if (!r.ok) throw new Error((await r.json()).error || "Erro ao criar");
         toast.success("Usuário criado");
