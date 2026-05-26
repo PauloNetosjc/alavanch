@@ -117,24 +117,59 @@ export default function ContasAReceber() {
   async function confirmarBaixa(p: BaixaPayload) {
     if (!baixaAlvo) return;
     const agora = new Date();
+    const original = Number(baixaAlvo.valor || 0);
+    const recebido = Number(p.valor) || 0;
+    const diff = Math.round((original - recebido) * 100) / 100;
+
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
         status: "recebido",
         data_pagamento: p.data_pagamento,
         conta_id: p.conta_id,
         forma_pagamento: p.forma_pagamento,
-        valor: p.valor,
+        valor: recebido,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
       })
       .eq("id", baixaAlvo.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Recebido"); load();
+
+    if (diff > 0.005) {
+      const novoVenc = new Date();
+      novoVenc.setDate(novoVenc.getDate() + 30);
+      const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
+        tipo: "entrada",
+        descricao: `${baixaAlvo.descricao || "Recebimento"} — saldo restante`,
+        valor: diff,
+        data_vencimento: novoVenc.toISOString().slice(0, 10),
+        categoria_id: baixaAlvo.categoria_id,
+        conta_id: p.conta_id,
+        pedido_id: baixaAlvo.pedido_id,
+        status: "pendente",
+        aprovacao_status: baixaAlvo.aprovacao_status || "pendente_aprovacao",
+        loja_id: (baixaAlvo as any).loja_id ?? null,
+      });
+      if (e2) toast.error("Baixa OK, mas falhou criar saldo: " + e2.message);
+      else toast.success(`Recebido. Parcela de saldo (${diff.toFixed(2)}) criada.`);
+    } else {
+      toast.success("Recebido");
+    }
+    load();
   }
+
+  async function estornar(l: Lanc) {
+    if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
+    const { error } = await supabase.from("lancamentos_financeiros")
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null })
+      .eq("id", l.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Estornado"); load();
+  }
+
   async function cancelar(l: Lanc) {
     if (!confirm("Cancelar este lançamento?")) return;
     const { error } = await supabase.from("lancamentos_financeiros").update({ status: "cancelado" }).eq("id", l.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Cancelado"); load();
   }
 
