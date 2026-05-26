@@ -699,15 +699,6 @@ export default function ComercialNegociacao() {
     }));
   };
 
-  const addPagamento = () => {
-    if (!novoMetodo) return toast.error("Selecione o método");
-    if (!novoValor || novoValor <= 0) return toast.error("Valor inválido");
-    setPagamentos((p) => [
-      ...p,
-      { metodo: novoMetodo, valor: novoValor, parcelas: novoParcelas || 1, data_vencimento: novoVenc || null, parcelas_detalhe: null },
-    ]);
-    setNovoMetodo(""); setNovoValor(0); setNovoParcelas(1); setNovoVenc("");
-  };
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
