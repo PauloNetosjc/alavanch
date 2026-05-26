@@ -256,50 +256,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Fluxo de Trabalho Industrial */}
-      <div>
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Factory className="w-5 h-5 text-purple-700" />
-            </div>
-            <div>
-              <h2 className="text-xl font-display">Fluxo de Trabalho Industrial</h2>
-              <p className="text-xs text-muted-foreground">Distribuição Ativa por Estágio de Produção</p>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {fluxo.map((f) => {
-            const Icon = f.icon;
-            const pct = (f.qtd / totalFluxo) * 100;
-            return (
-              <button
-                key={f.key}
-                onClick={() => navigate(f.rota)}
-                className="surface-card p-5 text-left hover:border-primary/50 transition-colors group"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                    <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
-                  </div>
-                  {f.vencidos > 0 && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-medium flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {f.vencidos} vencido{f.vencidos > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</div>
-                <div className="text-3xl font-display mt-1">{f.qtd}</div>
-                <div className="text-xs text-muted-foreground mt-2">Valor: {BRL(f.valor)}</div>
-                <div className="h-1 bg-muted rounded mt-2 overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Controle de Prazos (Radar) – mesmos estágios dos Kanbans */}
       <div className="surface-card p-5">
