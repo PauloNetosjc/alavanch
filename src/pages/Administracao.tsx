@@ -405,6 +405,7 @@ function SimpleCrud({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(defaultRow);
+  const [optionsMap, setOptionsMap] = useState<Record<string, { id: string; label: string }[]>>({});
 
   const load = async () => {
     const { data, error } = await (supabase as any).from(table).select("*").order(orderBy);
@@ -412,6 +413,19 @@ function SimpleCrud({
     setRows(data ?? []);
   };
   useEffect(() => { load(); }, [table]);
+  useEffect(() => {
+    (async () => {
+      const map: Record<string, { id: string; label: string }[]> = {};
+      for (const f of fields) {
+        if (f.type === "select" && f.optionsTable) {
+          const labelCol = f.optionsLabel || "nome";
+          const { data } = await (supabase as any).from(f.optionsTable).select(`id, ${labelCol}`).order(labelCol);
+          map[f.name] = (data ?? []).map((r: any) => ({ id: r.id, label: r[labelCol] }));
+        }
+      }
+      setOptionsMap(map);
+    })();
+  }, [table]);
 
   const onNew = () => { setEditing(null); setForm(defaultRow); setOpen(true); };
   const onEdit = (r: any) => { setEditing(r); setForm({ ...r }); setOpen(true); };
