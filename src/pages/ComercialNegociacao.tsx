@@ -812,7 +812,10 @@ export default function ComercialNegociacao() {
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
   // O valor é sempre o restante a parcelar (total - soma das entradas).
   useEffect(() => {
-    if (!novoMetodo) return;
+    if (!novoMetodo || !novoParcelas || novoParcelas < 1) {
+      setPagamentos((prev) => prev.filter((p) => !(p as any).is_principal));
+      return;
+    }
     const valorPrincipal = Number(Math.max(0, totalProposta - somaEntradas).toFixed(2));
     setPagamentos((prev) => {
       const outros = prev.filter((p) => !(p as any).is_principal);
@@ -1476,7 +1479,7 @@ export default function ComercialNegociacao() {
           <div className="space-y-3">
             <div>
               <Label>Método de Pagamento</Label>
-              <Select value={novoMetodo} onValueChange={setNovoMetodo}>
+              <Select value={novoMetodo} onValueChange={(v) => { setNovoMetodo(v); setNovoParcelas(0); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione um método..." /></SelectTrigger>
                 <SelectContent>
                   {metodos.map((m) => (
@@ -1488,7 +1491,7 @@ export default function ComercialNegociacao() {
             <div>
               <Label>Número de Parcelas</Label>
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
-                <SelectTrigger><span className="text-[13px]">{novoParcelas}x</span></SelectTrigger>
+                <SelectTrigger><span className="text-[13px]">{novoParcelas > 0 ? `${novoParcelas}x` : <span className="text-muted-foreground">Selecione...</span>}</span></SelectTrigger>
                 <SelectContent>
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
