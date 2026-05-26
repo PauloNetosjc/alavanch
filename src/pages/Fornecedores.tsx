@@ -126,7 +126,7 @@ export default function Fornecedores() {
   });
 
   function maskDoc(v: string, tipo: string) {
-    return tipo === "CPF" ? maskCPF(v) : maskCNPJ(v);
+    return tipo === "CPF" ? maskCpf(v) : maskCnpj(v);
   }
 
   return (
