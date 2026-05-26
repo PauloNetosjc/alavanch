@@ -119,7 +119,7 @@ const moreGroups: Group[] = [
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
-      { label: "Administração (Usuários)", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
+      
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
     ],
   },
