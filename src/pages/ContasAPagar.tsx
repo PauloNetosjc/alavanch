@@ -36,10 +36,12 @@ function fmt(d?: string | null) {
 }
 
 export default function ContasAPagar() {
+  const { user } = useAuth();
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -53,26 +55,28 @@ export default function ContasAPagar() {
   const [incluirNaoAprovadas, setIncluirNaoAprovadas] = useState(false);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
+      supabase.from("profiles").select("id,nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
+    setProfiles((pf as Profile[]) || []);
   }
   useEffect(() => { load(); }, []);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
+  const userName = (id: string | null) => profiles.find((p) => p.id === id)?.nome || "Usuário";
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
-      // Filtro aprovação: ao menos um deve estar marcado
       const isAprov = l.aprovacao_status === "aprovado";
       if (!incluirAprovadas && !incluirNaoAprovadas) return false;
       if (isAprov && !incluirAprovadas) return false;
@@ -97,8 +101,14 @@ export default function ContasAPagar() {
   }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
+    const agora = new Date();
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pago", data_pagamento: new Date().toISOString().slice(0, 10) })
+      .update({
+        status: "pago",
+        data_pagamento: agora.toISOString().slice(0, 10),
+        baixado_por: user?.id ?? null,
+        baixado_em: agora.toISOString(),
+      })
       .eq("id", l.id);
     if (error) return toast.error(error.message);
     toast.success("Pago"); load();
