@@ -1102,16 +1102,22 @@ export default function ComercialNovo() {
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                    <div className="mt-2 flex items-center gap-2 border border-input rounded-md px-3 py-2.5">
-                      <span className="text-[13px] text-muted-foreground">Ind do Parceiro:</span>
-                      <Input
-                        type="number" min={0} max={100} step={0.01}
-                        value={parceiroPerc}
-                        onChange={(e) => setParceiroPerc(Number(e.target.value) || 0)}
-                        className="w-24 h-8"
-                      />
-                      <span className="text-[13px] text-muted-foreground">%</span>
-                    </div>
+                    <details className="mt-2 group">
+                      <summary className="flex items-center justify-between border border-input rounded-md px-3 py-2 text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-muted/40">
+                        <span className="text-muted-foreground">Ind do Parceiro</span>
+                        <span className="font-medium">{(parceiroPerc || 0).toFixed(2)}%</span>
+                      </summary>
+                      <div className="mt-2 flex items-center gap-2 border border-input rounded-md px-3 py-2.5">
+                        <span className="text-[13px] text-muted-foreground">Ind do Parceiro:</span>
+                        <Input
+                          type="number" min={0} max={100} step={0.01}
+                          value={parceiroPerc}
+                          onChange={(e) => setParceiroPerc(Number(e.target.value) || 0)}
+                          className="w-24 h-8"
+                        />
+                        <span className="text-[13px] text-muted-foreground">%</span>
+                      </div>
+                    </details>
                   </>
                 ) : (
                   <ComboInput
