@@ -41,6 +41,12 @@ export default function ContasCorrentes() {
   const [transferDialog, setTransferDialog] = useState(false);
   const [transfer, setTransfer] = useState({ origem: "", destino: "", valor: "", data: new Date().toISOString().slice(0, 10) });
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
   async function load() {
     const [{ data: c }, { data: ct }] = await Promise.all([
       supabase.from("contas_bancarias").select("*").order("created_at"),
@@ -48,6 +54,7 @@ export default function ContasCorrentes() {
     ]);
     setContas((c as Conta[]) || []);
     setCartoes((ct as Cartao[]) || []);
+
 
     // Saldos atuais a partir de lancamentos_financeiros (status = pago/conciliado)
     const { data: lf } = await supabase
