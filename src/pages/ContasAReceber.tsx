@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info } from "lucide-
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
+import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
 
 type Lanc = {
   id: string;
@@ -26,7 +27,7 @@ type Lanc = {
   baixado_em: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
-type Conta = { id: string; nome: string };
+type Conta = { id: string; nome: string; banco: string | null };
 type Pedido = { id: string; codigo: string };
 type Profile = { user_id: string; nome_completo: string | null };
 
@@ -59,7 +60,7 @@ export default function ContasAReceber() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
-      supabase.from("contas_bancarias").select("id,nome").order("nome"),
+      supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
       supabase.from("pedidos").select("id,codigo").limit(500),
       supabase.from("profiles").select("user_id,nome_completo"),
     ]);
@@ -105,17 +106,29 @@ export default function ContasAReceber() {
     });
   }, [lancs, dtIni, dtFim, categoriaFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
-  async function liquidar(l: Lanc) {
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
+
+  function abrirBaixa(l: Lanc) {
+    setBaixaAlvo(l);
+    setBaixaOpen(true);
+  }
+
+  async function confirmarBaixa(p: BaixaPayload) {
+    if (!baixaAlvo) return;
     const agora = new Date();
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
         status: "recebido",
-        data_pagamento: agora.toISOString().slice(0, 10),
+        data_pagamento: p.data_pagamento,
+        conta_id: p.conta_id,
+        forma_pagamento: p.forma_pagamento,
+        valor: p.valor,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
       })
-      .eq("id", l.id);
-    if (error) return toast.error(error.message);
+      .eq("id", baixaAlvo.id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Recebido"); load();
   }
   async function cancelar(l: Lanc) {
@@ -227,7 +240,7 @@ export default function ContasAReceber() {
                       <div className="flex justify-end gap-1">
                         {!pago && !cancelado && (
                           <>
-                            <Button size="icon" variant="ghost" title="Receber" onClick={() => liquidar(l)}>
+                            <Button size="icon" variant="ghost" title="Receber" onClick={() => abrirBaixa(l)}>
                               <Check className="w-4 h-4 text-emerald-600" />
                             </Button>
                             <Button size="icon" variant="ghost" title="Cancelar" onClick={() => cancelar(l)}>
@@ -251,6 +264,17 @@ export default function ContasAReceber() {
         </div>
       </div>
       </TooltipProvider>
+
+      <BaixaLancamentoDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        tipo="entrada"
+        descricao={baixaAlvo?.descricao ?? null}
+        valorOriginal={Number(baixaAlvo?.valor || 0)}
+        contaIdAtual={baixaAlvo?.conta_id ?? null}
+        contas={contas}
+        onConfirm={confirmarBaixa}
+      />
     </div>
   );
 }

@@ -1785,6 +1785,7 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
+          forma_pagamento: string | null
           id: string
           loja_id: string | null
           pedido_id: string | null
@@ -1812,6 +1813,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          forma_pagamento?: string | null
           id?: string
           loja_id?: string | null
           pedido_id?: string | null
@@ -1839,6 +1841,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          forma_pagamento?: string | null
           id?: string
           loja_id?: string | null
           pedido_id?: string | null

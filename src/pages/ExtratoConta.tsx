@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronLeft, ChevronRight, FileDown, FileText } from "lucide-react";
@@ -21,6 +22,7 @@ export default function ExtratoConta() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [filtroTipo, setFiltroTipo] = useState<"" | "entrada" | "saida">("");
   const [filtroCat, setFiltroCat] = useState<string>("");
+  const [filtroDia, setFiltroDia] = useState<string>("");
   const [compIdx, setCompIdx] = useState(5);
 
   const competencias = useMemo(() => ultimasCompetencias(new Date(), 6), []);
@@ -51,9 +53,13 @@ export default function ExtratoConta() {
     return lancsCompetencia.filter((l) => {
       if (filtroTipo && l.tipo !== filtroTipo) return false;
       if (filtroCat && l.categoria_id !== filtroCat) return false;
+      if (filtroDia) {
+        const d = l.data_pagamento || l.data_vencimento;
+        if (!d || d !== filtroDia) return false;
+      }
       return true;
     });
-  }, [lancsCompetencia, filtroTipo, filtroCat]);
+  }, [lancsCompetencia, filtroTipo, filtroCat, filtroDia]);
 
   const totais = somarMovimento(lancsCompetencia.map((l) => ({ tipo: l.tipo as any, valor: Number(l.valor) || 0 })));
   const saldoInicial = Number(conta?.saldo_inicial || 0);
@@ -148,15 +154,26 @@ export default function ExtratoConta() {
             }}><FileText className="w-4 h-4 mr-1" /> PDF</Button>
           </div>
         </div>
-        <div>
-          <div className="text-sm font-medium mb-2">Filtrar por Categoria</div>
-          <Select value={filtroCat || "all"} onValueChange={(v) => setFiltroCat(v === "all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              {cats.filter((c) => !c.parent_id).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <div className="text-sm font-medium mb-2">Filtrar por Categoria</div>
+            <Select value={filtroCat || "all"} onValueChange={(v) => setFiltroCat(v === "all" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {cats.filter((c) => !c.parent_id).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div className="text-sm font-medium mb-2">Filtrar por Dia</div>
+            <div className="flex gap-2">
+              <Input type="date" value={filtroDia} onChange={(e) => setFiltroDia(e.target.value)} />
+              {filtroDia && (
+                <Button variant="outline" size="sm" onClick={() => setFiltroDia("")}>Limpar</Button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto pt-4">
