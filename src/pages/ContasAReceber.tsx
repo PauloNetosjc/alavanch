@@ -27,7 +27,7 @@ type Lanc = {
   baixado_em: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
-type Conta = { id: string; nome: string };
+type Conta = { id: string; nome: string; banco: string | null };
 type Pedido = { id: string; codigo: string };
 type Profile = { user_id: string; nome_completo: string | null };
 
