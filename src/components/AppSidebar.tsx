@@ -176,6 +176,49 @@ function SectionIcons({ section, pathname, onNavigate }: { section: Section; pat
   );
 }
 
+function GroupAccordion({ group, pathname, onNavigate }: { group: Group; pathname: string; onNavigate?: () => void }) {
+  const hasActive = group.items.some((it) => pathname.startsWith(it.path));
+  const [open, setOpen] = useState(hasActive);
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-4 py-2 rounded-md transition-colors hover:bg-[#1A1A1A]"
+        style={{ color: hasActive ? "#FFFFFF" : "#CCCCCC" }}
+      >
+        <group.icon className="w-3.5 h-3.5" style={{ color: hasActive ? "#C9B99A" : "#888" }} />
+        <span className="flex-1 text-left text-[12.5px] font-medium">{group.label}</span>
+        {open ? <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#666]" />}
+      </button>
+      {open && (
+        <div className="px-2 mt-0.5 flex flex-col gap-0.5">
+          {group.items.map((it) => {
+            const active = pathname.startsWith(it.path);
+            return (
+              <NavLink
+                key={it.path}
+                to={it.path}
+                onClick={onNavigate}
+                className="flex items-center gap-2.5 rounded-md transition-colors"
+                style={{
+                  padding: "6px 14px 6px 32px",
+                  background: active ? "#1F1F1F" : "transparent",
+                  color: active ? "#FFFFFF" : "#888888",
+                  fontSize: "12px",
+                }}
+              >
+                <span className="inline-block rounded-full" style={{ width: 4, height: 4, background: active ? "#C9B99A" : "#444" }} />
+                <it.icon className={active ? "w-3.5 h-3.5 text-white" : "w-3.5 h-3.5 text-[#666]"} />
+                <span className="flex-1">{it.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut, profile, role } = useAuth();
