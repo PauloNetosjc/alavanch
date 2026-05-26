@@ -219,42 +219,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Receita Esperada vs Despesa Prevista */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl p-5" style={{ background: "hsl(142 70% 96%)" }}>
-          <div className="flex items-center gap-2 text-green-700">
-            <TrendingUp className="w-4 h-4" /><span className="text-xs uppercase tracking-wider font-medium">Receita Esperada</span>
-          </div>
-          <div className="text-3xl font-display text-green-900 mt-2">{BRL(receitaEsperada)}</div>
-          <div className="flex justify-between text-xs text-green-700 mt-3">
-            <span>Realizado</span><span>{pctReal.toFixed(0)}%</span>
-          </div>
-          <div className="h-1.5 bg-green-200 rounded mt-1 overflow-hidden">
-            <div className="h-full bg-green-600" style={{ width: `${Math.min(100, pctReal)}%` }} />
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-            <div><div className="text-muted-foreground">Recebido</div><div className="font-medium">{BRL(recebido)}</div></div>
-            <div><div className="text-muted-foreground">Pendente</div><div className="font-medium">{BRL(pendenteRec)}</div></div>
-          </div>
-        </div>
+      {/* Fluxo de Caixa Previsto */}
+      <FluxoCaixaDashboard />
 
-        <div className="rounded-xl p-5" style={{ background: "hsl(0 70% 97%)" }}>
-          <div className="flex items-center gap-2 text-red-700">
-            <TrendingDown className="w-4 h-4" /><span className="text-xs uppercase tracking-wider font-medium">Despesa Prevista</span>
-          </div>
-          <div className="text-3xl font-display text-red-900 mt-2">{BRL(despesaPrev)}</div>
-          <div className="flex justify-between text-xs text-red-700 mt-3">
-            <span>Realizado</span><span>{pctRealDesp.toFixed(0)}%</span>
-          </div>
-          <div className="h-1.5 bg-red-200 rounded mt-1 overflow-hidden">
-            <div className="h-full bg-red-600" style={{ width: `${Math.min(100, pctRealDesp)}%` }} />
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-            <div><div className="text-muted-foreground">Pago</div><div className="font-medium">{BRL(pago)}</div></div>
-            <div><div className="text-muted-foreground">Pendente</div><div className="font-medium">{BRL(pendentePag)}</div></div>
-          </div>
-        </div>
-      </div>
 
 
       {/* Controle de Prazos (Radar) – mesmos estágios dos Kanbans */}
