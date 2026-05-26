@@ -260,6 +260,10 @@ export default function Financeiro() {
   }
 
   // CRUD lançamento
+  const [novoFornOpen, setNovoFornOpen] = useState(false);
+  const [novoFornNome, setNovoFornNome] = useState("");
+  const [novoFornDoc, setNovoFornDoc] = useState("");
+
   function novoLancamento() {
     setEditLanc({
       tipo: "saida",
@@ -271,11 +275,29 @@ export default function Financeiro() {
       conta_id: "",
       pedido_id: "",
       parceiro_id: "",
+      fornecedor_id: "",
       parcelas: 2,
       vincular_contrato: false,
       informar_parceiro: false,
     });
     setLancarOpen(true);
+  }
+
+  async function criarFornecedorRapido() {
+    const nome = novoFornNome.trim();
+    if (!nome) return toast.error("Informe o nome do fornecedor");
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .insert({ nome, documento: novoFornDoc.trim() || null, ativo: true })
+      .select("id,nome")
+      .single();
+    if (error) return toast.error(error.message);
+    setFornecedores((prev) => [...prev, { id: data!.id, nome: data!.nome }].sort((a, b) => a.nome.localeCompare(b.nome)));
+    setEditLanc((prev: any) => ({ ...prev, fornecedor_id: data!.id }));
+    setNovoFornNome("");
+    setNovoFornDoc("");
+    setNovoFornOpen(false);
+    toast.success("Fornecedor cadastrado");
   }
 
   async function salvarLancamento() {
