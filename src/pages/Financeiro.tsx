@@ -454,8 +454,12 @@ export default function Financeiro() {
         <div className="rounded-2xl border bg-card p-5 space-y-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Opções</div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <Checkbox checked={apenasPendentes} onCheckedChange={(v) => setApenasPendentes(!!v)} />
-            Apenas Pendentes
+            <Checkbox checked={incluirPendentes} onCheckedChange={(v) => setIncluirPendentes(!!v)} />
+            Contas Pendentes
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={incluirLiquidadas} onCheckedChange={(v) => setIncluirLiquidadas(!!v)} />
+            Contas Liquidadas
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <Checkbox checked={mostrarCancelados} onCheckedChange={(v) => setMostrarCancelados(!!v)} />
