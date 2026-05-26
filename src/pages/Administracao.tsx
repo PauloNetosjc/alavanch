@@ -79,7 +79,7 @@ export default function Administracao() {
             <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
             <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
             <TabsTrigger value="parceiros"><Handshake className="w-3.5 h-3.5 mr-1.5" />Parceiros</TabsTrigger>
-            <TabsTrigger value="origens"><Tags className="w-3.5 h-3.5 mr-1.5" />Origens</TabsTrigger>
+            
             <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
             <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
             <TabsTrigger value="contrato"><FileText className="w-3.5 h-3.5 mr-1.5" />Contrato</TabsTrigger>
@@ -92,7 +92,7 @@ export default function Administracao() {
         <TabsContent value="permissoes" className="mt-4"><PermissoesAdmin /></TabsContent>
         <TabsContent value="lojas" className="mt-4"><Lojas /></TabsContent>
         <TabsContent value="parceiros" className="mt-4"><Parceiros /></TabsContent>
-        <TabsContent value="origens" className="mt-4"><OrigensLead /></TabsContent>
+        
         <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
