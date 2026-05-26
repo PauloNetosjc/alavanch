@@ -37,7 +37,10 @@ import {
   Building2,
   AlertTriangle,
   BarChart3,
+  FileBarChart,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 import { BRL } from "@/lib/financeiro";
 import { exportarCSV, type LancRow } from "@/lib/exportFinanceiro";
 import { toast } from "sonner";
@@ -330,7 +333,16 @@ export default function Financeiro() {
             </Button>
             <Button variant="outline" onClick={exportarExcel}><FileSpreadsheet className="w-4 h-4 mr-1" /> Excel</Button>
             <Link to="/contas"><Button variant="outline"><Wallet className="w-4 h-4 mr-1" /> Contas Correntes</Button></Link>
-            <Link to="/financeiro/analise"><Button variant="secondary"><BarChart3 className="w-4 h-4 mr-1" /> Resultado por Contrato</Button></Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary"><FileBarChart className="w-4 h-4 mr-1" /> Relatórios</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/financeiro/analise"><BarChart3 className="w-4 h-4 mr-2" /> Resultado por Contrato</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={novoLancamento} className="bg-violet-600 hover:bg-violet-700 text-white">
               <Plus className="w-4 h-4 mr-1" /> Lançar Conta
             </Button>
