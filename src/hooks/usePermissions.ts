@@ -10,13 +10,16 @@ export type Permissao = { modulo: string; acao: string };
  *    permissões padrão do cargo (role_permissoes) + concessões individuais (permissoes).
  */
 export function usePermissions() {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [perms, setPerms] = useState<Permissao[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) { setLoading(true); return; }
     if (!user) { setPerms([]); setLoading(false); return; }
     if (role === "admin") { setPerms([]); setLoading(false); return; }
+    // se o usuário está logado mas o role ainda não foi resolvido, aguarda
+    if (role === null || role === undefined) { setLoading(true); return; }
     (async () => {
       const { data } = await supabase
         .from("v_my_permissions" as any)
@@ -24,7 +27,7 @@ export function usePermissions() {
       setPerms(((data as unknown) as Permissao[]) || []);
       setLoading(false);
     })();
-  }, [user, role]);
+  }, [user, role, authLoading]);
 
   /** Verifica permissão. Para acoes derivadas (view), 'edit' implica 'view'. */
   function can(modulo: string, acao: string = "view"): boolean {
