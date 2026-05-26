@@ -1488,7 +1488,7 @@ export default function ComercialNegociacao() {
             <div>
               <Label>Número de Parcelas</Label>
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><span className="text-[13px]">{novoParcelas}x</span></SelectTrigger>
                 <SelectContent>
                   {(() => {
                     const met = metodos.find((m) => m.nome === novoMetodo);
@@ -1496,13 +1496,9 @@ export default function ComercialNegociacao() {
                     return Array.from({ length: max }, (_, i) => i + 1).map((n) => {
                       const cfg = met?.parcelas_config?.find((p) => Number(p.numero) === n);
                       const desc = Number(cfg?.desconto_perc) || 0;
-                      const juros = Number(cfg?.juros_perc ?? met?.taxa_perc_parcela) || 0;
-                      const extras: string[] = [];
-                      if (desc > 0) extras.push(`-${desc.toFixed(2)}% desc.`);
-                      if (juros > 0 && n > 1) extras.push(`${juros.toFixed(2)}% juros`);
                       return (
                         <SelectItem key={n} value={String(n)}>
-                          {n}x{extras.length ? ` · ${extras.join(" · ")}` : ""}
+                          {n}x{desc > 0 ? ` · -${desc.toFixed(2)}% desc.` : ""}
                         </SelectItem>
                       );
                     });
