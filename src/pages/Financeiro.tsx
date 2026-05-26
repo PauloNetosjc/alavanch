@@ -456,6 +456,16 @@ export default function Financeiro() {
               ))}
             </SelectContent>
           </Select>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground pt-2">Fornecedor</div>
+          <Select value={fornecedorFiltro || "all"} onValueChange={(v) => setFornecedorFiltro(v === "all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Todos os fornecedores" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os fornecedores</SelectItem>
+              {fornecedores.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="rounded-2xl border bg-card p-5 space-y-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Opções</div>
