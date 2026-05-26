@@ -82,6 +82,8 @@ const sections: Section[] = [
       { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh" },
     ],
   },
+];
+
 
 // Configuração do sistema agrupada em sub-menus expansíveis
 const moreGroups: Group[] = [
