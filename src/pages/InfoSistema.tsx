@@ -47,7 +47,7 @@ export default function InfoSistema() {
       icon: Building2,
       title: "Lojas cadastradas",
       value: lojas == null ? "…" : `${lojas}`,
-      sub: "unidades de negócio",
+      sub: "",
     },
     {
       icon: HardDrive,
