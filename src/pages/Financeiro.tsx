@@ -59,6 +59,7 @@ type Lanc = {
   pedido_id: string | null;
   status: string | null;
   aprovacao_status: string | null;
+  fornecedor_id: string | null;
 };
 type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
 type Conta = { id: string; nome: string };
