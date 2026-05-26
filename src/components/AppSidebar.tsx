@@ -239,7 +239,7 @@ function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group;
 }
 
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { user, signOut, profile, role } = useAuth();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
