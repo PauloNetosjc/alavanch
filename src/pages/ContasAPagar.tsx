@@ -19,6 +19,7 @@ type Lanc = {
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
+  aprovacao_status: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string };
@@ -66,6 +67,11 @@ export default function ContasAPagar() {
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
+      // Filtro aprovação: ao menos um deve estar marcado
+      const isAprov = l.aprovacao_status === "aprovado";
+      if (!incluirAprovadas && !incluirNaoAprovadas) return false;
+      if (isAprov && !incluirAprovadas) return false;
+      if (!isAprov && !incluirNaoAprovadas) return false;
       const d = l.data_pagamento || l.data_vencimento;
       if (d) {
         if (dtIni && d < dtIni) return false;
@@ -83,7 +89,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, busca, cats, pedidos]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, apenasPendentes, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos]);
 
   async function liquidar(l: Lanc) {
     const { error } = await supabase.from("lancamentos_financeiros")
@@ -135,6 +141,8 @@ export default function ContasAPagar() {
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
         apenasPendentes={apenasPendentes} setApenasPendentes={setApenasPendentes}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
+        incluirAprovadas={incluirAprovadas} setIncluirAprovadas={setIncluirAprovadas}
+        incluirNaoAprovadas={incluirNaoAprovadas} setIncluirNaoAprovadas={setIncluirNaoAprovadas}
       />
 
       <div className="rounded-2xl border bg-card overflow-hidden">
