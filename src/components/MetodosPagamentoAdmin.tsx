@@ -13,6 +13,8 @@ type ParcelaConfig = {
   juros_perc: number;
   forma_pagamento: string;
   desconto_perc: number;
+  juros_modo: "absorver" | "repassar";
+  agrupamento: "agrupado" | "desmembrado";
 };
 
 type Metodo = {
@@ -27,7 +29,7 @@ type Metodo = {
 const FORMAS = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
-  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0 };
+  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0, juros_modo: "repassar", agrupamento: "desmembrado" };
 }
 
 export function MetodosPagamentoAdmin() {
@@ -58,13 +60,19 @@ export function MetodosPagamentoAdmin() {
   };
 
   const openEdit = (m: Metodo) => {
-    const parcelas = m.parcelas_config.length > 0
-      ? m.parcelas_config
+    const parcelas: ParcelaConfig[] = m.parcelas_config.length > 0
+      ? m.parcelas_config.map((p) => ({
+          juros_modo: "repassar",
+          agrupamento: "desmembrado",
+          ...p,
+        }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
           numero: i + 1,
           juros_perc: m.taxa_perc_parcela || 0,
           forma_pagamento: "Boleto",
           desconto_perc: 0,
+          juros_modo: "repassar" as const,
+          agrupamento: "desmembrado" as const,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
     setOpen(true);
@@ -192,7 +200,9 @@ export function MetodosPagamentoAdmin() {
                         <th className="py-2 px-2 text-left w-16">Parcela</th>
                         <th className="py-2 px-2 text-left">Forma de Pagamento</th>
                         <th className="py-2 px-2 text-left w-28">Juros (%)</th>
+                        <th className="py-2 px-2 text-left w-32">Juros</th>
                         <th className="py-2 px-2 text-left w-28">Desconto (%)</th>
+                        <th className="py-2 px-2 text-left w-36">Agrupamento</th>
                         <th className="py-2 px-2 w-10"></th>
                       </tr>
                     </thead>
@@ -218,12 +228,32 @@ export function MetodosPagamentoAdmin() {
                             />
                           </td>
                           <td className="py-1.5 px-2">
+                            <select
+                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
+                              value={p.juros_modo}
+                              onChange={(e) => updateParcela(i, { juros_modo: e.target.value as ParcelaConfig["juros_modo"] })}
+                            >
+                              <option value="repassar">Repassar ao cliente</option>
+                              <option value="absorver">Absorver (loja)</option>
+                            </select>
+                          </td>
+                          <td className="py-1.5 px-2">
                             <Input
                               type="number" step="0.01" min={0}
                               className="h-8"
                               value={p.desconto_perc}
                               onChange={(e) => updateParcela(i, { desconto_perc: Number(e.target.value) || 0 })}
                             />
+                          </td>
+                          <td className="py-1.5 px-2">
+                            <select
+                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
+                              value={p.agrupamento}
+                              onChange={(e) => updateParcela(i, { agrupamento: e.target.value as ParcelaConfig["agrupamento"] })}
+                            >
+                              <option value="desmembrado">Parcela a parcela</option>
+                              <option value="agrupado">Agrupado (única)</option>
+                            </select>
                           </td>
                           <td className="py-1.5 px-2 text-right">
                             <Button size="sm" variant="ghost" onClick={() => removeParcela(i)}>
