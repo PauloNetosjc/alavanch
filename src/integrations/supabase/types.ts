@@ -1773,6 +1773,8 @@ export type Database = {
           aprovacao_status: string
           aprovado_em: string | null
           aprovado_por: string | null
+          baixado_em: string | null
+          baixado_por: string | null
           categoria_id: string | null
           comprovante_storage_path: string | null
           conciliado: boolean | null
@@ -1798,6 +1800,8 @@ export type Database = {
           aprovacao_status?: string
           aprovado_em?: string | null
           aprovado_por?: string | null
+          baixado_em?: string | null
+          baixado_por?: string | null
           categoria_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
@@ -1823,6 +1827,8 @@ export type Database = {
           aprovacao_status?: string
           aprovado_em?: string | null
           aprovado_por?: string | null
+          baixado_em?: string | null
+          baixado_por?: string | null
           categoria_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
