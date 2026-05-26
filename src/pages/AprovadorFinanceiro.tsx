@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowLeft, ShieldCheck, Check, X, AlertTriangle, ArrowDownCircle, ArrowUpCircle, CheckCheck } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
+
 
 type Lanc = {
   id: string;
@@ -21,7 +24,9 @@ type Lanc = {
   pedido_id: string | null;
   aprovacao_status: string | null;
   created_at: string;
+  loja_id: string | null;
 };
+
 type Cat = { id: string; nome: string };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string };
@@ -40,6 +45,14 @@ export default function AprovadorFinanceiro() {
   const [perm, setPerm] = useState<{ pagar: boolean; receber: boolean }>({ pagar: false, receber: false });
   const [tab, setTab] = useState<"pagar" | "receber">("pagar");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
+
 
   async function loadPerm() {
     if (!user) return;
@@ -75,8 +88,13 @@ export default function AprovadorFinanceiro() {
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
 
-  const pendentesPagar = useMemo(() => lancs.filter((l) => l.tipo === "saida"), [lancs]);
-  const pendentesReceber = useMemo(() => lancs.filter((l) => l.tipo === "entrada"), [lancs]);
+  const lancsFiltrados = useMemo(
+    () => lojasFiltro.length === 0 ? lancs : lancs.filter((l) => lojasFiltro.includes(l.loja_id || "")),
+    [lancs, lojasFiltro]
+  );
+  const pendentesPagar = useMemo(() => lancsFiltrados.filter((l) => l.tipo === "saida"), [lancsFiltrados]);
+  const pendentesReceber = useMemo(() => lancsFiltrados.filter((l) => l.tipo === "entrada"), [lancsFiltrados]);
+
 
   function toggleSel(id: string) {
     setSelecionados((s) => {
@@ -256,9 +274,11 @@ export default function AprovadorFinanceiro() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
           <Badge variant="outline">Pagar: {perm.pagar ? "✓" : "—"}</Badge>
           <Badge variant="outline">Receber: {perm.receber ? "✓" : "—"}</Badge>
         </div>
+
       </div>
 
       {!podeAlgo && (

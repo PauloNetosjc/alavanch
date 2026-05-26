@@ -26,17 +26,20 @@ function fmtDM(d: string) {
   return `${day}/${m}`;
 }
 
-export default function FluxoCaixaDashboard() {
+export default function FluxoCaixaDashboard({ lojasFiltro = [] }: { lojasFiltro?: string[] }) {
   const [prazo, setPrazo] = useState<Prazo>(15);
   const [saldoAtual, setSaldoAtual] = useState(0);
   const [lancs, setLancs] = useState<Lanc[]>([]);
 
   useEffect(() => {
     (async () => {
-      const [{ data: contas }, { data: lf }] = await Promise.all([
-        supabase.from("contas_bancarias").select("saldo_inicial,ativo"),
-        supabase.from("lancamentos_financeiros").select("tipo,valor,data_vencimento,data_pagamento,status").limit(5000),
-      ]);
+      let qContas = supabase.from("contas_bancarias").select("saldo_inicial,ativo,loja_id");
+      let qLanc = supabase.from("lancamentos_financeiros").select("tipo,valor,data_vencimento,data_pagamento,status,loja_id").limit(5000);
+      if (lojasFiltro.length > 0) {
+        qContas = qContas.in("loja_id", lojasFiltro);
+        qLanc = qLanc.in("loja_id", lojasFiltro);
+      }
+      const [{ data: contas }, { data: lf }] = await Promise.all([qContas, qLanc]);
       const movs = (lf as Lanc[]) || [];
       // Saldo atual = saldos iniciais + liquidados
       const inicial = (contas || []).filter((c: any) => c.ativo !== false)
@@ -47,7 +50,8 @@ export default function FluxoCaixaDashboard() {
       setSaldoAtual(inicial + liquido);
       setLancs(movs);
     })();
-  }, []);
+  }, [lojasFiltro.join(",")]);
+
 
   const data = useMemo(() => {
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);

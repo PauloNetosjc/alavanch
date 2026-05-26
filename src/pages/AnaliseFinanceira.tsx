@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, BarChart3, PieChart, Search, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
-type Pedido = { id: string; codigo: string; cliente_id: string | null; valor_total: number };
+type Pedido = { id: string; codigo: string; cliente_id: string | null; valor_total: number; loja_id: string | null };
+
 type Lanc = {
   id: string;
   tipo: string;
@@ -30,10 +33,16 @@ export default function AnaliseFinanceira() {
   const [lancs, setLancs] = useState<Lanc[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
   useEffect(() => {
     supabase
       .from("pedidos")
-      .select("id, codigo, cliente_id, valor_total")
+      .select("id, codigo, cliente_id, valor_total, loja_id")
       .order("created_at", { ascending: false })
       .limit(100)
       .then(({ data }) => setPedidos((data as Pedido[]) || []));
@@ -42,6 +51,8 @@ export default function AnaliseFinanceira() {
       .select("id, nome")
       .then(({ data }) => setCats((data as Cat[]) || []));
   }, []);
+
+
 
   useEffect(() => {
     if (!id) return;
@@ -69,9 +80,13 @@ export default function AnaliseFinanceira() {
   }
 
   const filtrados = useMemo(
-    () => pedidos.filter((p) => p.codigo.toLowerCase().includes(busca.toLowerCase())),
-    [pedidos, busca]
+    () => pedidos.filter((p) =>
+      p.codigo.toLowerCase().includes(busca.toLowerCase()) &&
+      (lojasFiltro.length === 0 || lojasFiltro.includes(p.loja_id || ""))
+    ),
+    [pedidos, busca, lojasFiltro]
   );
+
 
   const recebimentoReal = useMemo(
     () => lancs.filter((l) => l.tipo === "entrada" && l.status === "pago").reduce((a, b) => a + Number(b.valor), 0),
@@ -110,11 +125,13 @@ export default function AnaliseFinanceira() {
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <PieChart className="w-5 h-5 text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-display">Resultado</h1>
             <p className="text-xs text-muted-foreground">Análise de Contratos</p>
           </div>
+          <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
         </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-2xl p-8 text-white" style={{ background: "linear-gradient(135deg,#7c3aed,#ec4899)" }}>

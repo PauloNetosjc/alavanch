@@ -11,16 +11,19 @@ import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye, 
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
 type Conta = {
   id: string; nome: string; tipo: string | null; banco: string | null;
   agencia: string | null; conta: string | null; saldo_inicial: number | null;
-  ativo: boolean | null; cor: string | null;
+  ativo: boolean | null; cor: string | null; loja_id: string | null;
 };
 type Cartao = {
   id: string; nome: string; ultimos_digitos: string | null; bandeira: string | null;
-  dia_fechamento: number | null; dia_vencimento: number | null; conta_id: string | null; ativo: boolean | null;
+  dia_fechamento: number | null; dia_vencimento: number | null; conta_id: string | null; ativo: boolean | null; loja_id: string | null;
 };
+
 
 export default function ContasCorrentes() {
   const nav = useNavigate();
@@ -38,6 +41,12 @@ export default function ContasCorrentes() {
   const [transferDialog, setTransferDialog] = useState(false);
   const [transfer, setTransfer] = useState({ origem: "", destino: "", valor: "", data: new Date().toISOString().slice(0, 10) });
 
+  const { selectedLojaId } = useLoja();
+  const [lojasFiltro, setLojasFiltro] = useState<string[]>([]);
+  useEffect(() => {
+    if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
+  }, [selectedLojaId]);
+
   async function load() {
     const [{ data: c }, { data: ct }] = await Promise.all([
       supabase.from("contas_bancarias").select("*").order("created_at"),
@@ -45,6 +54,7 @@ export default function ContasCorrentes() {
     ]);
     setContas((c as Conta[]) || []);
     setCartoes((ct as Cartao[]) || []);
+
 
     // Saldos atuais a partir de lancamentos_financeiros (status = pago/conciliado)
     const { data: lf } = await supabase
@@ -72,6 +82,7 @@ export default function ContasCorrentes() {
       banco: editConta.banco, agencia: editConta.agencia, conta: editConta.conta,
       saldo_inicial: Number(editConta.saldo_inicial) || 0,
       ativo: editConta.ativo ?? true, cor: editConta.cor || "#6366f1",
+      loja_id: editConta.loja_id ?? selectedLojaId ?? null,
     };
     const q = editConta.id
       ? supabase.from("contas_bancarias").update(payload).eq("id", editConta.id)
@@ -81,6 +92,7 @@ export default function ContasCorrentes() {
     toast.success("Salvo");
     setContaDialog(false); setEditConta(null); load();
   }
+
 
   async function deletarConta(id: string) {
     if (!confirm("Excluir conta?")) return;
@@ -96,6 +108,7 @@ export default function ContasCorrentes() {
       bandeira: editCartao.bandeira, dia_fechamento: Number(editCartao.dia_fechamento) || null,
       dia_vencimento: Number(editCartao.dia_vencimento) || null,
       conta_id: editCartao.conta_id || null, ativo: editCartao.ativo ?? true,
+      loja_id: editCartao.loja_id ?? selectedLojaId ?? null,
     };
     const q = editCartao.id
       ? supabase.from("cartoes_credito").update(payload).eq("id", editCartao.id)
@@ -105,6 +118,7 @@ export default function ContasCorrentes() {
     toast.success("Salvo");
     setCartaoDialog(false); setEditCartao(null); load();
   }
+
 
   async function deletarCartao(id: string) {
     if (!confirm("Excluir cartão?")) return;
@@ -126,16 +140,25 @@ export default function ContasCorrentes() {
     load();
   }
 
-  const filtradas = contas.filter((c) => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  const aplicaLoja = <T extends { loja_id: string | null }>(arr: T[]) =>
+    lojasFiltro.length === 0 ? arr : arr.filter((x) => lojasFiltro.includes(x.loja_id || ""));
+
+  const contasVisiveis = aplicaLoja(contas);
+  const cartoesVisiveis = aplicaLoja(cartoes);
+  const filtradas = contasVisiveis.filter((c) => c.nome.toLowerCase().includes(busca.toLowerCase()));
 
   return (
     <div className="p-8 space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
-        <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
-      </Button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
+        </Button>
+        <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
+      </div>
 
       {/* FLUXO DE CAIXA */}
-      <FluxoCaixaDashboard />
+      <FluxoCaixaDashboard lojasFiltro={lojasFiltro} />
+
 
       {/* CONTAS CORRENTES */}
       <div className="rounded-2xl border bg-card p-6">
@@ -242,7 +265,7 @@ export default function ContasCorrentes() {
               </tr>
             </thead>
             <tbody>
-              {cartoes.map((ct) => {
+              {cartoesVisiveis.map((ct) => {
                 const conta = contas.find((c) => c.id === ct.conta_id);
                 return (
                   <tr key={ct.id} className="border-b hover:bg-muted/30">
@@ -274,7 +297,7 @@ export default function ContasCorrentes() {
                   </tr>
                 );
               })}
-              {!cartoes.length && (
+              {!cartoesVisiveis.length && (
                 <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum cartão cadastrado</td></tr>
               )}
             </tbody>
