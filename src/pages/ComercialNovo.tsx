@@ -1492,9 +1492,7 @@ export default function ComercialNovo() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Indicador</div>
                   <div className="bg-[#FDECEC] border border-[#F5D6D6] rounded-md px-4 py-3">
                     <div className="text-[15px] font-semibold">{parceiro.nome}</div>
-                    <div className="text-[12px] text-muted-foreground mt-0.5">
-                      Ind: <span className="font-semibold text-foreground">{parceiroPerc.toFixed(2)}%</span>
-                    </div>
+                  </div>
                   </div>
                 </div>
               )}
