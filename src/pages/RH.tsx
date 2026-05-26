@@ -633,9 +633,9 @@ export default function RH() {
               </div>
             </div>
             <div className="md:col-span-2"><Label>Nome completo *</Label><Input value={funcForm.nome_completo || ""} onChange={e => setFuncForm(p => ({...p, nome_completo: e.target.value}))} /></div>
-            <div><Label>CPF</Label><Input value={funcForm.cpf || ""} onChange={e => setFuncForm(p => ({...p, cpf: mascararCPF(e.target.value)}))} /></div>
+            <div><Label>CPF</Label><Input value={funcForm.cpf || ""} onChange={e => setFuncForm(p => ({...p, cpf: maskCpf(e.target.value)}))} /></div>
             <div><Label>RG</Label><Input value={funcForm.rg || ""} onChange={e => setFuncForm(p => ({...p, rg: e.target.value}))} /></div>
-            <div><Label>Telefone</Label><Input value={funcForm.telefone || ""} onChange={e => setFuncForm(p => ({...p, telefone: mascararTelefone(e.target.value)}))} /></div>
+            <div><Label>Telefone</Label><Input value={funcForm.telefone || ""} onChange={e => setFuncForm(p => ({...p, telefone: maskPhone(e.target.value)}))} /></div>
             <div><Label>E-mail</Label><Input type="email" value={funcForm.email || ""} onChange={e => setFuncForm(p => ({...p, email: e.target.value}))} /></div>
             <div className="md:col-span-2"><Label>Endereço</Label><Input value={funcForm.endereco || ""} onChange={e => setFuncForm(p => ({...p, endereco: e.target.value}))} /></div>
             <div>
