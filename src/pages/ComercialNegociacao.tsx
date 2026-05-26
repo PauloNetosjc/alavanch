@@ -436,7 +436,7 @@ export default function ComercialNegociacao() {
   // novo pagamento
   const [novoMetodo, setNovoMetodo] = useState("");
   
-  const [novoParcelas, setNovoParcelas] = useState<number>(1);
+  const [novoParcelas, setNovoParcelas] = useState<number>(24);
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
 
@@ -1344,10 +1344,6 @@ export default function ComercialNegociacao() {
               </Select>
             </div>
             <div>
-              <Label>Data de Vencimento</Label>
-              <Input type="date" value={novoVenc} onChange={(e) => setNovoVenc(e.target.value)} />
-            </div>
-            <div>
               <Label>Número de Parcelas</Label>
               <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1376,6 +1372,10 @@ export default function ComercialNegociacao() {
                   Desconto da forma de pagamento: -{descontoMetodoPerc.toFixed(2)}% ({fmtBrl(descontoMetodoValor)})
                 </div>
               )}
+            </div>
+            <div>
+              <Label>Data de Vencimento</Label>
+              <Input type="date" value={novoVenc} onChange={(e) => setNovoVenc(e.target.value)} />
             </div>
             <div>
               <Label>Entrada (à vista, sem juros)</Label>
