@@ -63,10 +63,11 @@ export default function Administracao() {
 
   const FINANCEIRO_TABS = ["descontos", "juros", "bancos", "pagamentos", "categorias"];
   const isFinanceiro = FINANCEIRO_TABS.includes(tab);
+  const hideHeader = isFinanceiro || tab === "contrato";
 
   return (
     <div>
-      {!isFinanceiro && (
+      {!hideHeader && (
         <PageHeader
           icon={Settings} iconVariant="purple"
           title="Administração"
@@ -75,7 +76,7 @@ export default function Administracao() {
       )}
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
-        {!isFinanceiro && (
+        {!hideHeader && (
           <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
             <TabsTrigger value="permissoes"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Permissões</TabsTrigger>
