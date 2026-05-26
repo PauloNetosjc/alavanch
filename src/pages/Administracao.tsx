@@ -79,12 +79,6 @@ export default function Administracao() {
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="w-full">
         {!hideHeader && (
           <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
-            <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1.5" />Usuários</TabsTrigger>
-            
-            <TabsTrigger value="lojas"><Building2 className="w-3.5 h-3.5 mr-1.5" />Lojas</TabsTrigger>
-            
-            
-            <TabsTrigger value="etiquetas"><Tags className="w-3.5 h-3.5 mr-1.5" />Etiquetas</TabsTrigger>
             <TabsTrigger value="mensagens"><MessageSquare className="w-3.5 h-3.5 mr-1.5" />Mensagens</TabsTrigger>
             
             <TabsTrigger value="crm"><KanbanSquare className="w-3.5 h-3.5 mr-1.5" />CRM</TabsTrigger>
