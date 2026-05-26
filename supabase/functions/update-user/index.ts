@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const { data: roleCheck } = await supabase.from("user_roles").select("role").eq("user_id", callerId).eq("role", "admin").maybeSingle();
     if (!roleCheck) return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: corsHeaders });
 
-    const { user_id, email, password, full_name, role, store_id, telefone, nome_completo, loja_id } = await req.json();
+    const { user_id, email, password, full_name, role, store_id, telefone, nome_completo, loja_id, lojas_ids } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), { status: 400, headers: corsHeaders });
     }
@@ -45,7 +45,6 @@ Deno.serve(async (req) => {
     const finalName = nome_completo ?? full_name;
     const finalLoja = loja_id ?? store_id;
 
-    // Update auth user (email/password)
     const updatePayload: Record<string, unknown> = {};
     if (email) updatePayload.email = email;
     if (password) updatePayload.password = password;
@@ -56,7 +55,6 @@ Deno.serve(async (req) => {
       if (authError) return new Response(JSON.stringify({ error: authError.message }), { status: 400, headers: corsHeaders });
     }
 
-    // Update profile
     const profilePayload: Record<string, unknown> = {};
     if (finalName !== undefined) profilePayload.nome_completo = finalName;
     if (finalLoja !== undefined) profilePayload.loja_id = finalLoja || null;
@@ -65,7 +63,6 @@ Deno.serve(async (req) => {
       await supabase.from("profiles").update(profilePayload).eq("user_id", user_id);
     }
 
-    // Update role if provided
     if (role) {
       const { data: existingRole } = await supabase.from("user_roles").select("id").eq("user_id", user_id).maybeSingle();
       if (existingRole) {
@@ -73,6 +70,15 @@ Deno.serve(async (req) => {
       } else {
         await supabase.from("user_roles").insert({ user_id, role });
       }
+    }
+
+    // Sync user_lojas (multi-loja access)
+    if (Array.isArray(lojas_ids)) {
+      await supabase.from("user_lojas").delete().eq("user_id", user_id);
+      const rows = lojas_ids.filter(Boolean).map((lid: string) => ({ user_id, loja_id: lid }));
+      if (rows.length > 0) await supabase.from("user_lojas").insert(rows);
+    } else if (finalLoja) {
+      await supabase.from("user_lojas").upsert({ user_id, loja_id: finalLoja });
     }
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
