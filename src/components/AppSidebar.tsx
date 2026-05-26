@@ -34,6 +34,7 @@ import {
   Banknote,
   Cog,
   Cake,
+  Package,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
