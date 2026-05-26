@@ -13,6 +13,8 @@ type ParcelaConfig = {
   juros_perc: number;
   forma_pagamento: string;
   desconto_perc: number;
+  juros_modo: "absorver" | "repassar";
+  agrupamento: "agrupado" | "desmembrado";
 };
 
 type Metodo = {
@@ -27,7 +29,7 @@ type Metodo = {
 const FORMAS = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
-  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0 };
+  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0, juros_modo: "repassar", agrupamento: "desmembrado" };
 }
 
 export function MetodosPagamentoAdmin() {
