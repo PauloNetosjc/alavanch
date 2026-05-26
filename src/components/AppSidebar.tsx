@@ -23,7 +23,9 @@ import {
   LifeBuoy,
   Zap,
   PenLine,
+  MoreHorizontal,
 } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
