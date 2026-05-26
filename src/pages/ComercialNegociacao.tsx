@@ -488,7 +488,7 @@ export default function ComercialNegociacao() {
       setCliente((o?.cliente ?? null) as ClienteRow | null);
       setParceiro((o?.parceiro ?? null) as any);
       setAmbientes((amb ?? []) as Ambiente[]);
-      setMetodos((m ?? []) as Metodo[]);
+      setMetodos(((m ?? []) as any[]).map((mm) => ({ ...mm, parcelas_config: Array.isArray(mm.parcelas_config) ? mm.parcelas_config : [] })) as Metodo[]);
       setPagamentos(((pgs ?? []) as any).map((p: any) => ({
         ...p,
         parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
