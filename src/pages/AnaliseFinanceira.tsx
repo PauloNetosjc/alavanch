@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, BarChart3, PieChart, Search, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
-type Pedido = { id: string; codigo: string; cliente_id: string | null; valor_total: number };
+type Pedido = { id: string; codigo: string; cliente_id: string | null; valor_total: number; loja_id: string | null };
+
 type Lanc = {
   id: string;
   tipo: string;
