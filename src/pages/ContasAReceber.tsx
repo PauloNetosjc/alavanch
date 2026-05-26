@@ -264,6 +264,17 @@ export default function ContasAReceber() {
         </div>
       </div>
       </TooltipProvider>
+
+      <BaixaLancamentoDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        tipo="entrada"
+        descricao={baixaAlvo?.descricao ?? null}
+        valorOriginal={Number(baixaAlvo?.valor || 0)}
+        contaIdAtual={baixaAlvo?.conta_id ?? null}
+        contas={contas}
+        onConfirm={confirmarBaixa}
+      />
     </div>
   );
 }
