@@ -189,7 +189,7 @@ export default function Relatorios() {
             <p className="text-[12px] text-muted-foreground mt-1">Análise de desempenho comercial</p>
           </div>
         </div>
-        <PageFilters value={periodo} onChange={setPeriodo} />
+        <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
       </div>
 
       {/* KPIs */}
