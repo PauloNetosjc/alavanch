@@ -121,6 +121,7 @@ const App = () => (
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="/aniversariantes" element={<Aniversariantes />} />
+                <Route path="/produtos" element={<Produtos />} />
                 <Route path="/comercial" element={<Comercial />} />
                 <Route path="/comercial/kanban" element={<Navigate to="/kanban-comercial" replace />} />
                 <Route path="/comercial/novo" element={<ComercialNovo />} />
