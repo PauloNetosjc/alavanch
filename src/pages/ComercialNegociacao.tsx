@@ -701,9 +701,18 @@ export default function ComercialNegociacao() {
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
-  const aplicarRapido = (perc: number) => {
-    setPercRapido(perc);
-    setNovoValor(Number((restante * (perc / 100)).toFixed(2)));
+  const aplicarEntrada = () => {
+    if (!entrada || entrada <= 0) return toast.error("Informe o valor da entrada");
+    if (!novoMetodo) return toast.error("Selecione o método de pagamento da entrada");
+    setPagamentos((prev) => {
+      const semEntrada = prev.filter((p) => !(p as any).is_entrada);
+      const hoje = new Date().toISOString().slice(0, 10);
+      return [
+        { metodo: novoMetodo, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
+        ...semEntrada,
+      ];
+    });
+    toast.success("Entrada adicionada");
   };
 
   /* ------------------------- save ------------------------- */
