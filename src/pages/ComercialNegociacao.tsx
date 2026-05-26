@@ -1335,25 +1335,29 @@ export default function ComercialNegociacao() {
                 onChange={(e) => setNovoValor(Number(e.target.value) || 0)} placeholder="0,00" />
             </div>
             <div>
-              <div className="text-[12px] font-medium mb-1.5">Preencher rapidamente:</div>
-              <div className="border border-border rounded-md p-3 space-y-2">
-                <div className="flex items-center gap-3">
-                  <Slider value={[percRapido]} max={100} step={1} onValueChange={(v) => aplicarRapido(v[0])} className="flex-1" />
-                  <div className="flex items-center gap-1 text-[12px]">
-                    <Input type="number" min={0} max={100} className="h-7 w-14 text-right text-[12px]"
-                      value={percRapido} onChange={(e) => aplicarRapido(Number(e.target.value) || 0)} />
-                    <span className="text-muted-foreground">%</span>
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  {[10,20,30,40,50,100].map((p) => (
-                    <button key={p} onClick={() => aplicarRapido(p)}
-                      className="flex-1 px-1 py-1 text-[11px] rounded border border-border hover:bg-muted">
-                      {p}%
-                    </button>
-                  ))}
-                </div>
+              <Label>Entrada (à vista, sem juros)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">R$</span>
+                <Input
+                  type="number" min={0} step="0.01"
+                  value={entrada || ""}
+                  onChange={(e) => setEntrada(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  className="pl-9 text-right"
+                />
               </div>
+              <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+                A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
+                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - entrada))}</span>
+              </div>
+              <Button
+                type="button" variant="outline" size="sm"
+                className="w-full mt-2"
+                onClick={aplicarEntrada}
+                disabled={!entrada || entrada <= 0}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar entrada como pagamento
+              </Button>
             </div>
             <Button onClick={addPagamento} className="w-full bg-[#2D6BE5] hover:bg-[#2459C9] text-white">
               <Plus className="w-4 h-4 mr-1.5" /> Adicionar Pagamento
