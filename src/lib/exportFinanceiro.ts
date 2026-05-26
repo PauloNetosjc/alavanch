@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { BRL } from "./financeiro";
 
 export type LancRow = {
@@ -78,4 +79,60 @@ export function exportarPDF(rows: LancRow[], titulo: string, filtros: ExportFilt
     headStyles: { fillColor: [30, 30, 30] },
   });
   doc.save(filename);
+}
+
+export function exportarExcel(rows: LancRow[], filename = "extrato.xlsx") {
+  const data = rows.map((r) => ({
+    Data: fmtData(r.data),
+    Descrição: r.descricao || "",
+    Categoria: r.categoria || "",
+    Conta: r.conta || "",
+    Tipo: r.tipo,
+    Status: r.status,
+    Valor: Number(r.valor || 0),
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+  XLSX.writeFile(wb, filename);
+}
+
+export function imprimirLista(rows: LancRow[], titulo: string) {
+  const totalEnt = rows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + Number(r.valor || 0), 0);
+  const totalSai = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + Number(r.valor || 0), 0);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:24px;color:#111}
+    h1{font-size:18px;margin:0 0 12px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}
+    th{background:#f4f4f4}
+    tfoot td{font-weight:bold;background:#fafafa}
+    .right{text-align:right}
+  </style></head><body>
+  <h1>${titulo}</h1>
+  <table>
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th class="right">Valor</th></tr></thead>
+    <tbody>
+      ${rows.map((r) => `<tr>
+        <td>${fmtData(r.data)}</td>
+        <td>${(r.descricao || "—").replace(/</g, "&lt;")}</td>
+        <td>${(r.categoria || "—").replace(/</g, "&lt;")}</td>
+        <td>${(r.conta || "—").replace(/</g, "&lt;")}</td>
+        <td>${r.tipo}</td>
+        <td>${r.status}</td>
+        <td class="right">${BRL(Number(r.valor || 0))}</td>
+      </tr>`).join("")}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="6" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
+      <tr><td colspan="6" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
+    </tfoot>
+  </table>
+  <script>window.onload=()=>{window.print();}</script>
+  </body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
 }

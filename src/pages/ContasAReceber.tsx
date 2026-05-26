@@ -5,11 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 
 type Lanc = {
   id: string;
@@ -184,6 +185,16 @@ export default function ContasAReceber() {
     .reduce((s, l) => s + Number(l.valor || 0), 0);
 
 
+  const toRows = (): LancRow[] => filtrados.map((l) => ({
+    data: l.data_pagamento || l.data_vencimento || "",
+    descricao: l.descricao || "",
+    categoria: catName(l.categoria_id),
+    conta: contaName(l.conta_id),
+    tipo: l.tipo,
+    status: l.status || "",
+    valor: Number(l.valor || 0),
+  }));
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -201,9 +212,19 @@ export default function ContasAReceber() {
             </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Pendente</div>
-          <div className="text-2xl font-bold text-emerald-700">{BRL(total)}</div>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => imprimirLista(toRows(), "Contas a Receber")}>
+              <Printer className="w-4 h-4 mr-1" /> Imprimir
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportarExcel(toRows(), `contas-a-receber-${dtIni}_a_${dtFim}.xlsx`)}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Excel
+            </Button>
+          </div>
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Pendente</div>
+            <div className="text-2xl font-bold text-emerald-700">{BRL(total)}</div>
+          </div>
         </div>
       </div>
 
