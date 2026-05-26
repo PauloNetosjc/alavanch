@@ -89,6 +89,9 @@ const moreGroups: Group[] = [
     label: "Cadastros",
     icon: ContactRound,
     items: [
+      { label: "Usuários", path: "/administracao?tab=usuarios", icon: Users, roles: ["admin"] },
+      { label: "Lojas", path: "/administracao?tab=lojas", icon: Building2, roles: ["admin"] },
+      { label: "Etiquetas", path: "/administracao?tab=etiquetas", icon: Tags, roles: ["admin"] },
       { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Parceiros", path: "/parceiros", icon: Building2, modulo: "parceiros" },
       { label: "Origens", path: "/origens", icon: Folder },
