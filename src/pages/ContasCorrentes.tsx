@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye } from "lucide-react";
+import { Wallet, Plus, Send, Search, FileText, Pencil, Trash2, CreditCard, Eye, ArrowLeft } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 
@@ -129,6 +129,9 @@ export default function ContasCorrentes() {
 
   return (
     <div className="p-8 space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => nav("/financeiro")} className="gap-2">
+        <ArrowLeft className="w-4 h-4" /> Voltar ao Financeiro
+      </Button>
       {/* CONTAS CORRENTES */}
       <div className="rounded-2xl border bg-card p-6">
         <div className="flex items-start justify-between gap-4">
