@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Store, User, CheckCircle2, Clock, FileText, Eye, PenLine } from "lucide-react";
+import { Copy, ExternalLink, Store, User, CheckCircle2, Clock, FileText, Eye, PenLine, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
+import { UploadContratoManualDialog } from "@/components/assinaturas/UploadContratoManualDialog";
 
 type Part = {
   id: string;
