@@ -483,7 +483,7 @@ export default function ComercialNegociacao() {
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
-          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
+          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe, parcelas_vencimentos, parcelas_formas")
           .eq("orcamento_id", id),
         supabase.auth.getUser(),
       ]);
