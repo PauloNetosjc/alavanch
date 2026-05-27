@@ -71,7 +71,10 @@ type PedidoRow = {
   codigo: string;
   cliente_nome: string;
   data: string;
-  valor_total: number;
+  valor_total: number;     // bruto (com RT e juros)
+  valor_liquido: number;   // base p/ comissão (sem RT e juros)
+  rt: number;
+  juros: number;
   consultor_id: string | null;
   projetista_id: string | null;
   participantes: Participante[]; // efetivos (override ou padrão)
@@ -81,9 +84,10 @@ type PessoaRow = {
   user_id: string;
   nome: string;
   papel: string;
-  vendido: number;
+  vendido: number;          // líquido (base comissão)
+  vendido_bruto: number;
   qtd: number;
-  pedidos: { pedido_id: string; valor_atribuido: number; percentual: number }[];
+  pedidos: { pedido_id: string; valor_atribuido: number; valor_bruto_atribuido: number; percentual: number }[];
 };
 
 export default function Comissoes() {
