@@ -1,5 +1,6 @@
 // Helpers para renderizar contratos a partir do template + dados do orçamento.
 import type { ClienteRow } from "@/components/clientes/ClienteFormDialog";
+import { buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
 
 export type ContratoTemplate = {
   id: string;
@@ -14,7 +15,7 @@ export type ContratoTemplate = {
 export type ContratoCtx = {
   numero: string;
   emitido_em: Date;
-  empresa: { nome: string; cnpj?: string | null; endereco?: string | null; telefone?: string | null };
+  empresa: { nome: string; cnpj?: string | null; endereco?: string | null; telefone?: string | null; razao_social?: string | null; nome_fantasia?: string | null };
   cliente: ClienteRow | null;
   ambientes: { nome: string; descricao: string | null; preco_base: number; preco_final: number }[];
   subtotal: number;
@@ -98,12 +99,18 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        <div style="white-space:pre-wrap;border:1px solid #E5E5E5;border-radius:6px;padding:12px;background:#FAFAFA;font-size:12px;line-height:1.5">${ctx.observacoes_adicionais}</div>`
     : "";
 
-  const assinaturaLojaHtml = ctx.assinatura_loja_url
-    ? `<div class="loja-signature"><img src="${escapeHtml(ctx.assinatura_loja_url)}" alt="Assinatura e carimbo da loja" /></div>`
-    : `<div class="loja-signature empty"></div>`;
+  const assinaturaLojaUrl = ctx.assinatura_loja_url || buildLojaSignatureDataUrl({
+    nome: ctx.empresa.nome || "Loja",
+    razao_social: ctx.empresa.razao_social || ctx.empresa.nome || "Loja",
+    nome_fantasia: ctx.empresa.nome_fantasia || ctx.empresa.nome || null,
+    cnpj: ctx.empresa.cnpj || null,
+    endereco: ctx.empresa.endereco || null,
+    responsavel: ctx.loja_assinatura_nome || ctx.empresa.nome || "Loja",
+  });
+  const assinaturaLojaHtml = `<div class="loja-signature"><img src="${escapeHtml(assinaturaLojaUrl)}" alt="Assinatura digital e carimbo da loja com CNPJ e razão social" /></div>`;
   const assinaturaLojaMeta = ctx.loja_assinado_em
     ? `<div class="lb">Pré-assinado digitalmente pela loja em ${fmtDate(ctx.loja_assinado_em)}</div>`
-    : `<div class="lb">Assinatura / Responsável</div>`;
+    : `<div class="lb">Assinatura digital da loja com carimbo</div>`;
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
@@ -135,9 +142,8 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   .data-loc { text-align:center; margin-top:30px; font-style:italic; font-size:13px; }
   .sigs { display:flex; justify-content:space-between; gap:60px; margin-top:48px; }
   .sigs .col { flex:1; text-align:center; }
-  .loja-signature { height:104px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
-  .loja-signature img { max-width:280px; max-height:104px; object-fit:contain; }
-  .loja-signature.empty { height:0; }
+  .loja-signature { height:128px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
+  .loja-signature img { width:320px; max-width:100%; max-height:128px; object-fit:contain; }
   .sigs .line { border-top:1px solid #1A1A1A; padding-top:6px; }
   .sigs .nm { font-weight:700; font-size:13px; }
   .sigs .lb { color:#6B6760; font-size:11px; }
