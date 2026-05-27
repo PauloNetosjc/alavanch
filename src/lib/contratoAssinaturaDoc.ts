@@ -4,6 +4,47 @@ import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
+const formatDateBr = (value?: string | Date | null) => {
+  const fallback = new Date();
+  const parsed = value instanceof Date ? value : value ? new Date(value) : fallback;
+  const date = Number.isNaN(parsed.getTime()) ? fallback : parsed;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
+
+const getContratoDate = (contrato: any, solicitacao: any) =>
+  contrato?.emitido_em || contrato?.gerado_em || contrato?.created_at || contrato?.criado_em || solicitacao?.created_at || new Date();
+
+const templateHasDateVariable = (tpl: Partial<ContratoTemplate> | null | undefined) =>
+  /\{\{\s*data(?:_contrato)?\s*\}\}/i.test([
+    tpl?.titulo,
+    tpl?.subtitulo,
+    tpl?.clausulas,
+    tpl?.observacoes_padrao,
+    tpl?.rodape,
+  ].filter(Boolean).join("\n"));
+
+const ensureContratoDateHtml = (html: string, dateLabel: string, injectDiscreteDate: boolean) => {
+  if (!dateLabel.trim()) throw new Error("Data do contrato vazia antes da geração do PDF.");
+  let out = html
+    .replace(/\{\{\s*data_contrato\s*\}\}/gi, dateLabel)
+    .replace(/\{\{\s*data\s*\}\}/gi, dateLabel);
+
+  if (injectDiscreteDate && !/Data do contrato\s*:/i.test(out)) {
+    const dateHtml = `<div class="contract-date-auto" style="text-align:center;margin:4px 0 14px;font-size:11px;color:#6B6760">Data do contrato: ${dateLabel}</div>`;
+    if (/<h2\b[^>]*>\s*DADOS DO CLIENTE\s*<\/h2>/i.test(out)) {
+      out = out.replace(/(<h2\b[^>]*>\s*DADOS DO CLIENTE\s*<\/h2>)/i, `${dateHtml}\n$1`);
+    } else {
+      out = out.replace(/(<body[^>]*>)/i, `$1${dateHtml}`);
+    }
+  }
+
+  if (/\{\{\s*data(?:_contrato)?\s*\}\}/i.test(out)) {
+    throw new Error("Variável de data do contrato não foi substituída no HTML.");
+  }
+  return out;
+};
+
+
 async function waitForImages(root: HTMLElement) {
   const images = Array.from(root.querySelectorAll("img"));
   await Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => {
@@ -35,16 +76,16 @@ function canvasIsMostlyBlank(canvas: HTMLCanvasElement): boolean {
 }
 
 async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
-  // A4 com margens — mesma área útil do window.print()
   const A4_W_MM = 210;
   const A4_H_MM = 297;
   const M_LEFT = 12, M_RIGHT = 12, M_TOP = 10, M_BOTTOM = 10;
-  const CONTENT_W_MM = A4_W_MM - M_LEFT - M_RIGHT;       // 186mm
-  const CONTENT_H_MM = A4_H_MM - M_TOP - M_BOTTOM;       // 277mm
-  // 96 DPI: 1mm ≈ 3.78px → 186mm ≈ 703px de largura útil
-  const CONTENT_W_PX = Math.round(CONTENT_W_MM * 3.7795);
+  const CONTENT_W_MM = A4_W_MM - M_LEFT - M_RIGHT;
+  const CONTENT_H_MM = A4_H_MM - M_TOP - M_BOTTOM;
+  const PX_PER_MM = 3.7795;
+  const CONTENT_W_PX = Math.round(CONTENT_W_MM * PX_PER_MM);
+  const PAGE_W_PX = CONTENT_W_PX;
+  const PAGE_H_PX = Math.round(CONTENT_H_MM * PX_PER_MM);
 
-  // CSS agressivo de quebra/wrap injetado no <head> do iframe — força tudo a caber em CONTENT_W_PX.
   const safetyCss = `
     <style id="pdf-overflow-fix">
       *, *::before, *::after { box-sizing: border-box !important; max-width: 100% !important; }
@@ -57,6 +98,7 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         color: #111111 !important;
         overflow-x: hidden !important;
       }
+      body { font-size: 13px; line-height: 1.5; }
       p, div, span, section, article, li, td, th, h1, h2, h3, h4, h5, h6, label, dd, dt, blockquote {
         white-space: normal !important;
         overflow-wrap: anywhere !important;
@@ -85,31 +127,31 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         overflow-wrap: anywhere;
         word-break: normal;
         white-space: normal;
-        transform-origin: top left;
       }
-      /* page-break control */
-      p, div, section, article, table, tr, li, h1, h2, h3, h4, h5, h6,
-      .no-break, .clausula, .contract-section, .contrato-section, .section-title, .payment-table, .signature-block {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
+      .__pdf_page {
+        width: ${PAGE_W_PX}px !important;
+        height: ${PAGE_H_PX}px !important;
+        min-height: ${PAGE_H_PX}px !important;
+        max-height: ${PAGE_H_PX}px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
       }
-      table { page-break-inside: auto !important; }
-      thead { display: table-header-group !important; }
-      tfoot { display: table-footer-group !important; }
-      h1, h2, h3, h4 { break-after: avoid !important; page-break-after: avoid !important; }
+      .__pdf_page table { page-break-inside: auto !important; }
+      .__pdf_page thead { display: table-header-group !important; }
+      .__pdf_page tfoot { display: table-footer-group !important; }
       .pdf-page-image, .anexo-imagem, img[data-pdf-page="true"], img[data-anexo="true"] {
         display: block !important;
         max-width: 100% !important;
         max-height: 100% !important;
         object-fit: contain !important;
         margin: 0 auto !important;
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
       }
     </style>
   `;
-  // Move o conteúdo do <body> original para dentro de um wrapper de largura útil
-  // preservando o restante (head, styles do template, etc.).
+
   let htmlForPdf = html;
   if (/<body[^>]*>/i.test(htmlForPdf)) {
     htmlForPdf = htmlForPdf.replace(/<body([^>]*)>([\s\S]*?)<\/body>/i,
@@ -158,54 +200,26 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     await new Promise((r) => setTimeout(r, 250));
 
     const wrapper = (doc.querySelector(".__pdf_wrapper") as HTMLElement) || doc.body;
-
-    // Mede overflow horizontal ANTES do html2canvas
     const bodyScrollWidth = doc.body.scrollWidth;
     const bodyClientWidth = doc.body.clientWidth;
     const htmlScrollWidth = doc.documentElement.scrollWidth;
     const htmlClientWidth = doc.documentElement.clientWidth;
     const wrapperScrollWidth = wrapper.scrollWidth;
     const wrapperClientWidth = wrapper.clientWidth;
+    const worstScroll = Math.max(bodyScrollWidth, htmlScrollWidth, wrapperScrollWidth);
     // eslint-disable-next-line no-console
     console.log("[contratoPDF] overflow check", {
       bodyScrollWidth, bodyClientWidth, htmlScrollWidth, htmlClientWidth,
       wrapperScrollWidth, wrapperClientWidth,
     });
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] scaleFixDisabledForText", true, { worstScroll, contentWidth: CONTENT_W_PX });
 
-    // Se algum elemento ainda estoura, aplica scale para encolher o conteúdo até caber.
-    const worstScroll = Math.max(bodyScrollWidth, htmlScrollWidth, wrapperScrollWidth);
-    let scaleFix = 1;
-    if (worstScroll > CONTENT_W_PX + 1) {
-      scaleFix = CONTENT_W_PX / worstScroll;
-      wrapper.style.transform = `scale(${scaleFix})`;
-      wrapper.style.transformOrigin = "top left";
-      wrapper.style.width = `${Math.ceil(worstScroll)}px`;
-      // eslint-disable-next-line no-console
-      console.log("[contratoPDF] scaleFix", scaleFix);
-      await new Promise((r) => setTimeout(r, 80));
-    }
-
-    const realHeight = Math.max(
-      Math.ceil((wrapper.scrollHeight || 0) * scaleFix),
-      doc.body.scrollHeight,
-      doc.documentElement.scrollHeight,
-      200,
-    );
-    iframe.style.height = `${realHeight}px`;
+    iframe.style.height = `${Math.max(wrapper.scrollHeight, PAGE_H_PX, 1200)}px`;
     await new Promise((r) => setTimeout(r, 100));
 
-    // eslint-disable-next-line no-console
-    console.log("[contratoPDF] wrapper", {
-      clientWidth: wrapper.clientWidth,
-      scrollWidth: wrapper.scrollWidth,
-      scrollHeight: wrapper.scrollHeight,
-      realHeight,
-      textLen: (wrapper.innerText || "").length,
-      hOverflow: wrapper.scrollWidth > wrapper.clientWidth,
-      scaleFix,
-    });
-
-    if ((wrapper.innerText || "").trim().length < 20 || realHeight < 50) {
+    const textLen = (wrapper.innerText || "").trim().length;
+    if (textLen < 20 || wrapper.scrollHeight < 50) {
       throw new Error("Conteúdo do contrato não foi renderizado dentro do iframe.");
     }
 
@@ -214,31 +228,37 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       import("jspdf"),
     ]);
 
-    // ============== PAGINAÇÃO POR BLOCOS ==============
-    // Em vez de fatiar um canvas gigante, distribuímos os blocos de topo do wrapper em
-    // páginas A4 reais dentro do iframe, depois renderizamos uma a uma. Imagens anexas
-    // (.pdf-page-image, .anexo-imagem, [data-pdf-page], [data-anexo]) ganham página própria.
-    const PAGE_W_PX = CONTENT_W_PX;
-    const PAGE_H_PX = Math.round(CONTENT_H_MM * 3.7795); // ~1047px para 277mm
+    const pagesHost = doc.createElement("div");
+    pagesHost.style.cssText = "position:absolute;left:0;top:0;width:" + PAGE_W_PX + "px;background:#fff;";
+    doc.body.appendChild(pagesHost);
 
-    const isAttachmentImage = (el: Element): boolean =>
-      el instanceof HTMLElement &&
-      !!el.matches?.("img.pdf-page-image, img.anexo-imagem, img[data-pdf-page='true'], img[data-anexo='true'], .pdf-page-image, .anexo-imagem, [data-pdf-page='true'], [data-anexo='true']");
+    const measureHost = doc.createElement("div");
+    measureHost.style.cssText = [
+      "position:absolute",
+      "left:0",
+      "top:0",
+      `width:${PAGE_W_PX}px`,
+      "opacity:0",
+      "pointer-events:none",
+      "z-index:-2",
+      "background:#fff",
+    ].join(";");
+    doc.body.appendChild(measureHost);
 
-    // Pega blocos de topo. Se houver só 1 filho que é container, desce um nível.
-    let topNodes: HTMLElement[] = Array.from(wrapper.children) as HTMLElement[];
-    while (topNodes.length === 1 && topNodes[0].children.length > 1) {
-      topNodes = Array.from(topNodes[0].children) as HTMLElement[];
-    }
-    if (topNodes.length === 0) topNodes = [wrapper];
+    const pages: HTMLDivElement[] = [];
+    let current: HTMLDivElement;
+    let blocksCount = 0;
+    let oversizedBlockCount = 0;
 
-    // Estilo base de cada página construída em memória dentro do iframe
-    const makePage = (): HTMLDivElement => {
+    const makePage = () => {
       const p = doc.createElement("div");
       p.className = "__pdf_page";
+      p.dataset.blockCount = "0";
       p.style.cssText = [
         `width:${PAGE_W_PX}px`,
+        `height:${PAGE_H_PX}px`,
         `min-height:${PAGE_H_PX}px`,
+        `max-height:${PAGE_H_PX}px`,
         "background:#ffffff",
         "color:#111111",
         "padding:0",
@@ -250,79 +270,212 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       return p;
     };
 
-    // Container offscreen no iframe para montar páginas
-    const pagesHost = doc.createElement("div");
-    pagesHost.style.cssText = "position:absolute;left:0;top:0;background:#fff;";
-    doc.body.appendChild(pagesHost);
-
-    const pages: HTMLDivElement[] = [];
-    const attachmentPages: { node: HTMLElement; isolated: true }[] = [];
-    let current = makePage();
-    pages.push(current);
-    pagesHost.appendChild(current);
-    let blocksMoved = 0;
-
     const flushNewPage = () => {
       current = makePage();
       pages.push(current);
       pagesHost.appendChild(current);
     };
 
-    for (const node of topNodes) {
-      // Imagem anexa: página exclusiva
-      if (isAttachmentImage(node)) {
-        // fecha página atual se já tem conteúdo
-        if (current.children.length > 0) flushNewPage();
-        const clone = node.cloneNode(true) as HTMLElement;
-        clone.style.maxWidth = "100%";
-        clone.style.maxHeight = `${PAGE_H_PX}px`;
-        clone.style.width = "auto";
-        clone.style.height = "auto";
-        clone.style.objectFit = "contain";
-        clone.style.display = "block";
-        clone.style.margin = "0 auto";
-        const wrap = doc.createElement("div");
-        wrap.style.cssText = `width:${PAGE_W_PX}px;height:${PAGE_H_PX}px;display:flex;align-items:center;justify-content:center;background:#fff;`;
-        wrap.appendChild(clone);
-        current.appendChild(wrap);
-        (current as any).__attachment = true;
-        // eslint-disable-next-line no-console
-        console.log("[contratoPDF] imagem anexa página exclusiva");
-        flushNewPage();
-        continue;
+    flushNewPage();
+
+    const pageOverflowed = (page: HTMLElement) => page.scrollHeight > PAGE_H_PX + 2;
+    const incrementPageBlocks = () => {
+      current.dataset.blockCount = String(Number(current.dataset.blockCount || "0") + 1);
+      blocksCount++;
+    };
+
+    const measureElementHeight = (el: HTMLElement) => {
+      const probe = el.cloneNode(true) as HTMLElement;
+      probe.style.maxWidth = "100%";
+      probe.style.width = probe.style.width || "100%";
+      measureHost.replaceChildren(probe);
+      const rect = probe.getBoundingClientRect();
+      return Math.ceil(Math.max(probe.scrollHeight, rect.height, 0));
+    };
+
+    const isAttachmentImage = (el: Element): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.matches("img.pdf-page-image, img.anexo-imagem, img[data-pdf-page='true'], img[data-anexo='true'], .pdf-page-image, .anexo-imagem, [data-pdf-page='true'], [data-anexo='true']")) return true;
+      if (el.closest(".header, .logo-box, .qr, .sigs, .loja-signature, .auth-block")) return false;
+      const images = Array.from(el.matches("img") ? [el] : el.querySelectorAll("img"));
+      return images.length === 1 && (el.innerText || "").trim().length === 0;
+    };
+
+    const makeShellWithChild = (parent: HTMLElement, child: HTMLElement) => {
+      const shell = parent.cloneNode(false) as HTMLElement;
+      shell.appendChild(child.cloneNode(true));
+      return shell;
+    };
+
+    const splitTextBlock = (el: HTMLElement): HTMLElement[] => {
+      const text = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text) return [];
+      const sentences = text.match(/[^.!?;:]+[.!?;:]?|\S+/g) || [text];
+      const chunks: string[] = [];
+      let currentText = "";
+      for (const sentence of sentences) {
+        const next = `${currentText}${currentText ? " " : ""}${sentence.trim()}`.trim();
+        if (next.length > 650 && currentText) {
+          chunks.push(currentText);
+          currentText = sentence.trim();
+        } else {
+          currentText = next;
+        }
+      }
+      if (currentText) chunks.push(currentText);
+      return chunks.map((chunk) => {
+        const clone = el.cloneNode(false) as HTMLElement;
+        clone.textContent = chunk;
+        return clone;
+      });
+    };
+
+    const splitTable = (table: HTMLElement): HTMLElement[] => {
+      const rows = Array.from(table.querySelectorAll("tbody tr"));
+      if (!rows.length) return [];
+      return rows.map((row) => {
+        const tableClone = table.cloneNode(false) as HTMLElement;
+        Array.from(table.children).forEach((child) => {
+          if (child.tagName.toLowerCase() === "tbody") return;
+          tableClone.appendChild(child.cloneNode(true));
+        });
+        const tbody = doc.createElement("tbody");
+        tbody.appendChild(row.cloneNode(true));
+        tableClone.appendChild(tbody);
+        return tableClone;
+      });
+    };
+
+    const splitBlock = (el: HTMLElement): HTMLElement[] => {
+      if (el.tagName.toLowerCase() === "table") {
+        const rows = splitTable(el);
+        if (rows.length > 1) return rows;
       }
 
-      // Bloco de texto/tabela normal
+      const children = Array.from(el.children).filter((child) => {
+        const tag = child.tagName.toLowerCase();
+        return tag !== "script" && tag !== "style";
+      }) as HTMLElement[];
+
+      if (children.length > 0) {
+        return children.map((child) => makeShellWithChild(el, child));
+      }
+
+      return splitTextBlock(el);
+    };
+
+    const appendAttachmentPage = (node: HTMLElement) => {
+      if (current.children.length > 0) flushNewPage();
+      const sourceImg = (node.matches("img") ? node : node.querySelector("img")) as HTMLImageElement | null;
+      const clone = (sourceImg ? sourceImg.cloneNode(true) : node.cloneNode(true)) as HTMLElement;
+      clone.style.maxWidth = "100%";
+      clone.style.maxHeight = `${PAGE_H_PX}px`;
+      clone.style.width = "auto";
+      clone.style.height = "auto";
+      clone.style.objectFit = "contain";
+      clone.style.display = "block";
+      clone.style.margin = "0 auto";
+      const wrap = doc.createElement("div");
+      wrap.style.cssText = `width:${PAGE_W_PX}px;height:${PAGE_H_PX}px;display:flex;align-items:center;justify-content:center;background:#fff;`;
+      wrap.appendChild(clone);
+      current.appendChild(wrap);
+      incrementPageBlocks();
+      // eslint-disable-next-line no-console
+      console.log("[contratoPDF] imagem anexa página exclusiva");
+      flushNewPage();
+    };
+
+    const appendBlock = (node: HTMLElement, depth = 0) => {
+      if (isAttachmentImage(node)) {
+        appendAttachmentPage(node);
+        return;
+      }
+
       const clone = node.cloneNode(true) as HTMLElement;
       current.appendChild(clone);
-      // Se estourou a altura da página e há outros blocos antes, move para nova página
-      if (current.scrollHeight > PAGE_H_PX && current.children.length > 1) {
-        current.removeChild(clone);
-        flushNewPage();
-        current.appendChild(clone);
-        blocksMoved++;
-        // eslint-disable-next-line no-console
-        console.log("[contratoPDF] block moved to next page");
-        // Se o bloco isolado ainda for maior que uma página, deixa estourar (será fatiado dentro do bloco).
+      if (!pageOverflowed(current)) {
+        incrementPageBlocks();
+        return;
       }
-    }
 
-    // Remove páginas vazias do fim
+      current.removeChild(clone);
+      if (current.children.length > 0) flushNewPage();
+
+      const isolatedHeight = measureElementHeight(node);
+      if (isolatedHeight <= PAGE_H_PX || depth >= 8) {
+        if (isolatedHeight > PAGE_H_PX) {
+          oversizedBlockCount++;
+          // eslint-disable-next-line no-console
+          console.log("[contratoPDF] oversizedBlockDetected", { height: isolatedHeight, pageHeight: PAGE_H_PX, tag: node.tagName, className: node.className });
+          if (node.querySelector("img") && (node.innerText || "").trim().length === 0) {
+            appendAttachmentPage(node);
+            return;
+          }
+        }
+        const finalClone = node.cloneNode(true) as HTMLElement;
+        current.appendChild(finalClone);
+        incrementPageBlocks();
+        return;
+      }
+
+      const pieces = splitBlock(node);
+      if (pieces.length <= 1) {
+        const textPieces = splitTextBlock(node);
+        if (textPieces.length > 1) {
+          textPieces.forEach((piece) => appendBlock(piece, depth + 1));
+          return;
+        }
+        oversizedBlockCount++;
+        // eslint-disable-next-line no-console
+        console.log("[contratoPDF] oversizedBlockDetected", { height: isolatedHeight, pageHeight: PAGE_H_PX, tag: node.tagName, className: node.className });
+        const finalClone = node.cloneNode(true) as HTMLElement;
+        current.appendChild(finalClone);
+        incrementPageBlocks();
+        return;
+      }
+
+      pieces.forEach((piece) => appendBlock(piece, depth + 1));
+    };
+
+    const collectTopBlocks = (root: HTMLElement): HTMLElement[] => {
+      let nodes = Array.from(root.children).filter((child) => {
+        const tag = child.tagName.toLowerCase();
+        return tag !== "script" && tag !== "style";
+      }) as HTMLElement[];
+      while (nodes.length === 1 && nodes[0].children.length > 1 && !isAttachmentImage(nodes[0])) {
+        nodes = Array.from(nodes[0].children).filter((child) => {
+          const tag = child.tagName.toLowerCase();
+          return tag !== "script" && tag !== "style";
+        }) as HTMLElement[];
+      }
+      return nodes.length ? nodes : [root];
+    };
+
+    const topBlocks = collectTopBlocks(wrapper);
+    topBlocks.forEach((node) => appendBlock(node));
+
     while (pages.length > 1 && pages[pages.length - 1].children.length === 0) {
       const p = pages.pop()!;
       p.remove();
     }
 
+    const pageBlockCounts = pages.map((p) => Number(p.dataset.blockCount || "0"));
+    const pageHeights = pages.map((p) => Math.min(p.scrollHeight, PAGE_H_PX));
     // eslint-disable-next-line no-console
-    console.log("[contratoPDF] pages generated", pages.length, "blocksMoved", blocksMoved);
+    console.log("[contratoPDF] totalPages", pages.length);
     // eslint-disable-next-line no-console
-    console.log("[contratoPDF] page heights", pages.map((p) => p.scrollHeight));
+    console.log("[contratoPDF] blocksCount", blocksCount);
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pageBlockCounts", pageBlockCounts);
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pageHeights", pageHeights);
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] oversizedBlockDetected", oversizedBlockCount);
 
-    // Aguarda layout
+    await waitForImages(pagesHost);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await new Promise((r) => setTimeout(r, 100));
 
-    // PDF A4 em mm com margens
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     // eslint-disable-next-line no-console
     console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM });
@@ -337,23 +490,16 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         logging: false,
         windowWidth: PAGE_W_PX,
         width: PAGE_W_PX,
-        height: Math.max(pageEl.scrollHeight, PAGE_H_PX),
+        height: PAGE_H_PX,
       });
       if (!pageCanvas.width || !pageCanvas.height) continue;
-
-      const pImgW_mm = CONTENT_W_MM;
-      let pImgH_mm = (pageCanvas.height * pImgW_mm) / pageCanvas.width;
-      // Se uma página individual ficou maior que CONTENT_H_MM (bloco gigante), reduz proporcional
-      if (pImgH_mm > CONTENT_H_MM) {
-        pImgH_mm = CONTENT_H_MM;
-      }
       const data = pageCanvas.toDataURL("image/jpeg", 0.95);
       if (i > 0) pdf.addPage();
-      pdf.addImage(data, "JPEG", M_LEFT, M_TOP, pImgW_mm, pImgH_mm);
+      pdf.addImage(data, "JPEG", M_LEFT, M_TOP, CONTENT_W_MM, CONTENT_H_MM);
     }
 
+    measureHost.remove();
     pagesHost.remove();
-
 
     const blob = pdf.output("blob") as Blob;
     if (!blob || blob.size < 5000) throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
@@ -364,7 +510,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     cleanup();
   }
 }
-
 
 
 async function ensurePastaDocumentos(pedidoId: string) {
@@ -457,8 +602,14 @@ export async function prepararContratoParaAssinatura(
   if (tpl.id && tpl.id !== contrato.template_id) {
     await supabase.from("contratos").update({ template_id: tpl.id }).eq("id", contrato.id);
   }
+  const contratoDate = getContratoDate(contrato, solic);
+  const contratoDateLabel = formatDateBr(contratoDate);
   const ctx = {
     ...snapshot,
+    numero: (snapshot as any)?.numero || contrato.numero || pedido.codigo || solic.id,
+    emitido_em: contratoDate,
+    data: contratoDateLabel,
+    data_contrato: contratoDateLabel,
     empresa: {
       ...(empresaSnapshot || {}),
       nome: lojaNome,
@@ -490,7 +641,8 @@ export async function prepararContratoParaAssinatura(
     cliente_assinado_em: solicCtx.cliente_assinado_em || "",
     cliente_ip: solicCtx.cliente_ip || "",
   };
-  const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
+  const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
+  const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);
   // Caminho versionado por timestamp para evitar cache de CDN/navegador no PDF antigo em branco.
