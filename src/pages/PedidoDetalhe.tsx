@@ -97,49 +97,78 @@ export default function PedidoDetalhe() {
     const { data: ped } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
     if (!ped) { setLoading(false); return; }
     setPedido(ped);
-    if (ped.orcamento_id) {
-      const { data: orc } = await supabase.from("orcamentos").select("*").eq("id", ped.orcamento_id).maybeSingle();
-      setOrcamento(orc);
-      if (orc) {
-        const { data: ambs } = await supabase.from("ambientes").select("*").eq("orcamento_id", orc.id).order("ordem");
-        setAmbientes(ambs || []);
-        const ambIds = (ambs || []).map((a: any) => a.id);
-        if (ambIds.length) {
-          const { data: subs } = await supabase.from("sub_itens_ambiente").select("*").in("ambiente_id", ambIds);
-          setSubItens(subs || []);
-        } else { setSubItens([]); }
-        const { data: pags } = await supabase.from("pagamentos_orcamento").select("*").eq("orcamento_id", orc.id);
-        setPagamentos(pags || []);
-      }
-    }
-    // Itens avulsos do pedido
-    const { data: ias } = await supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem");
-    setItensAvulsos(ias || []);
-    if (ped.cliente_id) {
-      const { data: cli } = await supabase.from("clientes").select("*").eq("id", ped.cliente_id).maybeSingle();
-      setCliente(cli);
-    }
-    const { data: ct } = await supabase.from("contratos").select("*").eq("orcamento_id", ped.orcamento_id).maybeSingle();
-    setContrato(ct);
-    if (ct) {
-      const { data: sa } = await supabase
-        .from("solicitacoes_assinatura")
-        .select("*")
-        .eq("pedido_id", id)
-        .eq("contrato_id", ct.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
-        await prepararContratoParaAssinatura(sa.id);
-      }
-      setSolicAssin(sa);
+
+    const orcId = ped.orcamento_id;
+    const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
+    const PROJ_VIRTUAL_ID = "__virtual_projetos_importados__";
+
+    // === DISPARA TODAS AS CONSULTAS EM PARALELO ===
+    const [
+      orcRes, cliRes, ctRes, iasRes, pstRes, dcsRes, orcDocsRes,
+      chRes, rvRes, profRes, paiRes, origemRes, filhosAdRes, filhosCompRes,
+      ljRes, solsRes,
+    ] = await Promise.all([
+      orcId ? supabase.from("orcamentos").select("*").eq("id", orcId).maybeSingle() : Promise.resolve({ data: null } as any),
+      ped.cliente_id ? supabase.from("clientes").select("*").eq("id", ped.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).maybeSingle() : Promise.resolve({ data: null } as any),
+      supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem"),
+      supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem"),
+      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
+      orcId ? supabase.from("orcamento_documentos" as any).select("*").eq("orcamento_id", orcId).order("created_at", { ascending: false }) : Promise.resolve({ data: [] } as any),
+      supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at"),
+      supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at"),
+      supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true),
+      ped.pedido_pai_id ? supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      ped.pedido_origem_complemento_id ? supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at"),
+      supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_origem_complemento_id", raizId).order("created_at"),
+      ped.loja_id ? supabase.from("lojas").select("*").eq("id", ped.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      supabase.from("solicitacoes_assinatura").select("*, tipos_documento(nome,slug,requer_assinatura_loja)").eq("pedido_id", id).order("created_at", { ascending: false }),
+    ]);
+
+    const orc = orcRes.data;
+    setOrcamento(orc);
+    setCliente(cliRes.data);
+    setContrato(ctRes.data);
+    setItensAvulsos(iasRes.data || []);
+    setChat(chRes.data || []);
+    setRevisoes(rvRes.data || []);
+    setUsuarios(profRes.data || []);
+    setPedidoPai(paiRes.data);
+    setPedidoOrigemComplemento(origemRes.data);
+    setAdendos(filhosAdRes.data || []);
+    setComplementos(filhosCompRes.data || []);
+    setLoja(ljRes.data);
+    setSolicitacoes(solsRes.data || []);
+
+    // === SEGUNDO NÍVEL (depende dos primeiros resultados) — também em paralelo ===
+    const ambsP = orc
+      ? supabase.from("ambientes").select("*").eq("orcamento_id", orc.id).order("ordem")
+      : Promise.resolve({ data: [] } as any);
+    const pagsP = orc
+      ? supabase.from("pagamentos_orcamento").select("*").eq("orcamento_id", orc.id)
+      : Promise.resolve({ data: [] } as any);
+    const ct = ctRes.data;
+    const saP = ct
+      ? supabase.from("solicitacoes_assinatura").select("*").eq("pedido_id", id).eq("contrato_id", ct.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
+      : Promise.resolve({ data: null } as any);
+
+    const [ambsRes, pagsRes, saRes] = await Promise.all([ambsP, pagsP, saP]);
+    const ambs = ambsRes.data || [];
+    setAmbientes(ambs);
+    setPagamentos(pagsRes.data || []);
+
+    // Sub-itens dos ambientes
+    const ambIds = ambs.map((a: any) => a.id);
+    if (ambIds.length) {
+      supabase.from("sub_itens_ambiente").select("*").in("ambiente_id", ambIds)
+        .then(({ data }) => setSubItens(data || []));
     } else {
-      setSolicAssin(null);
+      setSubItens([]);
     }
-    let { data: pst } = await supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem");
-    pst = pst || [];
-    // Auto-cria as pastas padrão se não existirem
+
+    // Pastas padrão — cria as faltantes
+    let pst = pstRes.data || [];
     const padroes = ["Projetos/PDF", "Documentos", "Check-in Obra", "Fotos/Entrega"];
     const faltando = padroes.filter((nome) => !pst!.some((p: any) => p.nome.toLowerCase() === nome.toLowerCase()));
     if (faltando.length) {
@@ -148,73 +177,36 @@ export default function PedidoDetalhe() {
       const { data: criadas } = await supabase.from("pedido_pastas").insert(novas).select("*");
       pst = [...pst, ...(criadas || [])];
     }
-    // Pasta virtual para projetos importados (read-only)
-    const PROJ_VIRTUAL_ID = "__virtual_projetos_importados__";
     setPastas([{ id: PROJ_VIRTUAL_ID, nome: "Projetos Importados", _virtual: true }, ...pst]);
-    const { data: dcs } = await supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false });
-    // Também traz documentos anexados na fase de orçamento (Promob, XML, Excel etc.)
-    let docsCombinados: any[] = dcs || [];
-    if (ped.orcamento_id) {
-      const { data: orcDocs } = await supabase
-        .from("orcamento_documentos" as any)
-        .select("*")
-        .eq("orcamento_id", ped.orcamento_id)
-        .order("created_at", { ascending: false });
-      const mapped = (orcDocs || []).map((d: any) => ({
-        ...d,
-        pasta_id: PROJ_VIRTUAL_ID,
-        _bucket: "orcamento-docs",
-        _readonly: true,
-        nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
-      }));
-      docsCombinados = [...mapped, ...docsCombinados];
-    }
-    setDocs(docsCombinados);
-    const { data: ch } = await supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at");
-    setChat(ch || []);
-    const { data: rv } = await supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at");
-    setRevisoes(rv || []);
-    const { data: prof } = await supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true);
-    setUsuarios(prof || []);
-    // Pedido pai (adendo) e pedido de origem (complemento) — define o "raiz" para as abas
-    if (ped.pedido_pai_id) {
-      const { data: pai } = await supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle();
-      setPedidoPai(pai);
-    } else { setPedidoPai(null); }
-    if (ped.pedido_origem_complemento_id) {
-      const { data: origem } = await supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle();
-      setPedidoOrigemComplemento(origem);
-    } else { setPedidoOrigemComplemento(null); }
-    // raiz = pai (se adendo) OU origem-complemento (se complemento) OU o próprio
-    const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
-    const { data: filhosAd } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_pai_id", raizId).order("created_at");
-    setAdendos(filhosAd || []);
-    const { data: filhosComp } = await supabase.from("pedidos").select("id, codigo, valor_total, status, created_at").eq("pedido_origem_complemento_id", raizId).order("created_at");
-    setComplementos(filhosComp || []);
 
-    // Loja
-    if (ped.loja_id) {
-      const { data: lj } = await supabase.from("lojas").select("*").eq("id", ped.loja_id).maybeSingle();
-      setLoja(lj);
-    }
-    // Solicitações de assinatura (todas) deste pedido
-    const { data: sols } = await supabase
-      .from("solicitacoes_assinatura")
-      .select("*, tipos_documento(nome,slug,requer_assinatura_loja)")
-      .eq("pedido_id", id)
-      .order("created_at", { ascending: false });
-    setSolicitacoes(sols || []);
+    // Documentos (combina orcamento + pedido)
+    const orcDocsMapped = (orcDocsRes.data || []).map((d: any) => ({
+      ...d,
+      pasta_id: PROJ_VIRTUAL_ID,
+      _bucket: "orcamento-docs",
+      _readonly: true,
+      nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
+    }));
+    setDocs([...orcDocsMapped, ...(dcsRes.data || [])]);
 
-    // Vendedor / Responsável (projetista tem prioridade sobre estagio_responsavel_id)
-    const ids: string[] = [];
-    if (orcamento?.vendedor_id) ids.push(orcamento.vendedor_id);
+    // Solicitação de assinatura mais recente — prepara contrato se necessário (não bloqueia render)
+    const sa = saRes.data;
+    if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
+      prepararContratoParaAssinatura(sa.id).catch(() => {});
+    }
+    setSolicAssin(sa);
+
+    // Vendedor / Responsável
+    const vendedorId = orc?.vendedor_id;
     const responsavelId = ped.projetista_id || ped.estagio_responsavel_id;
-    if (responsavelId) ids.push(responsavelId);
-    if (ids.length) {
-      const { data: profs } = await supabase
-        .from("profiles").select("user_id, nome_completo, cargo").in("user_id", ids);
-      setVendedor((profs || []).find((p: any) => p.user_id === orcamento?.vendedor_id) || null);
-      setResponsavel((profs || []).find((p: any) => p.user_id === responsavelId) || null);
+    const userIds = [vendedorId, responsavelId].filter(Boolean) as string[];
+    if (userIds.length) {
+      supabase.from("profiles").select("user_id, nome_completo, cargo").in("user_id", userIds)
+        .then(({ data }) => {
+          const profs = data || [];
+          setVendedor(profs.find((p: any) => p.user_id === vendedorId) || null);
+          setResponsavel(profs.find((p: any) => p.user_id === responsavelId) || null);
+        });
     } else { setVendedor(null); setResponsavel(null); }
 
     setLoading(false);
