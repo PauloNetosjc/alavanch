@@ -216,7 +216,7 @@ export default function Relatorios() {
           <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(kpi.margemValor)} badge={`${kpi.margemPerc.toFixed(1)}%`} hint={`Custo previsto: ${fmtBRL(kpi.custoTotal)}`} />
           <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtdPv} contratos`} hint="Somente PV (sem adendo/complemento)" />
           <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." hint={`${kpi.fechadosPed}/${kpi.totalOrcPed} orçamentos PV`} />
-          <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" hint={`Desconto aplicado: ${fmtBRL(kpi.descontoTotal)}`} />
+          <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" hint={`Desconto aplicado: ${fmtBRL(kpi.descontoTotal)}${kpi.bruto > 0 ? ` (${((kpi.descontoTotal / kpi.bruto) * 100).toFixed(1)}% das vendas)` : ""}`} />
         </div>
       </div>
 
