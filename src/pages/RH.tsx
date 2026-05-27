@@ -166,13 +166,16 @@ export default function RH() {
 
   async function load() {
     setLoading(true);
-    const [s, c, f, fe, oc, dc] = await Promise.all([
+    const [s, c, f, fe, oc, dc, t, z, p] = await Promise.all([
       supabase.from("rh_setores").select("*").order("nome"),
       supabase.from("rh_cargos").select("*").order("nome"),
       supabase.from("rh_funcionarios").select("*").order("nome_completo"),
       supabase.from("rh_ferias").select("*").order("data_inicio", { ascending: false }),
       supabase.from("rh_ocorrencias").select("*").order("data", { ascending: false }),
       supabase.from("rh_documentos").select("*").order("created_at", { ascending: false }),
+      supabase.from("rh_turnos" as any).select("*").order("nome"),
+      supabase.from("rh_zonas_ponto" as any).select("*").order("nome"),
+      supabase.from("rh_pontos" as any).select("*").order("marcado_em", { ascending: false }),
     ]);
     setSetores((s.data as Setor[]) || []);
     setCargos((c.data as Cargo[]) || []);
@@ -180,6 +183,9 @@ export default function RH() {
     setFerias((fe.data as Ferias[]) || []);
     setOcorrencias((oc.data as Ocorrencia[]) || []);
     setDocumentos((dc.data as Documento[]) || []);
+    setTurnos(((t.data as unknown) as Turno[]) || []);
+    setZonas(((z.data as unknown) as Zona[]) || []);
+    setPontos(((p.data as unknown) as Ponto[]) || []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
