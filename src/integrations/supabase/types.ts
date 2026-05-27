@@ -4237,7 +4237,9 @@ export type Database = {
       }
       rh_zonas_ponto: {
         Row: {
+          cargo_id: string | null
           created_at: string
+          funcionario_id: string | null
           id: string
           latitude: number
           longitude: number
@@ -4246,7 +4248,9 @@ export type Database = {
           setor_id: string | null
         }
         Insert: {
+          cargo_id?: string | null
           created_at?: string
+          funcionario_id?: string | null
           id?: string
           latitude: number
           longitude: number
@@ -4255,7 +4259,9 @@ export type Database = {
           setor_id?: string | null
         }
         Update: {
+          cargo_id?: string | null
           created_at?: string
+          funcionario_id?: string | null
           id?: string
           latitude?: number
           longitude?: number
@@ -4264,6 +4270,20 @@ export type Database = {
           setor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rh_zonas_ponto_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_zonas_ponto_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rh_zonas_ponto_setor_id_fkey"
             columns: ["setor_id"]

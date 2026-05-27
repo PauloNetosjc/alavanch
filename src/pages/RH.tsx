@@ -26,7 +26,7 @@ type Turno = {
   hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
   dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
 };
-type Zona = { id: string; setor_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
+type Zona = { id: string; setor_id: string | null; cargo_id: string | null; funcionario_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
 type Ponto = {
   id: string; funcionario_id: string; data: string;
   tipo: "entrada" | "saida_almoco" | "volta_almoco" | "saida";
@@ -420,10 +420,14 @@ export default function RH() {
   // ===== Zonas =====
   async function salvarZona() {
     if (!zonaForm.nome?.trim() || zonaForm.latitude == null || zonaForm.longitude == null) {
-      toast({ title: "Preencha nome, latitude e longitude", variant: "destructive" }); return;
+      toast({ title: "Preencha nome e localização (CEP)", variant: "destructive" }); return;
     }
+    const escopo = (zonaForm as any)._escopo || "todos";
     const { error } = await supabase.from("rh_zonas_ponto" as any).insert({
-      nome: zonaForm.nome, setor_id: zonaForm.setor_id || null,
+      nome: zonaForm.nome,
+      setor_id: escopo === "setor" ? (zonaForm.setor_id || null) : null,
+      cargo_id: escopo === "cargo" ? (zonaForm.cargo_id || null) : null,
+      funcionario_id: escopo === "funcionario" ? (zonaForm.funcionario_id || null) : null,
       latitude: zonaForm.latitude, longitude: zonaForm.longitude,
       raio_metros: zonaForm.raio_metros ?? 150,
     });
@@ -510,7 +514,12 @@ export default function RH() {
       toast({ title: "Localização necessária", description: e.message, variant: "destructive" }); return;
     }
     // valida zona
-    const zonasAplic = zonas.filter(z => !z.setor_id || z.setor_id === func.setor_id);
+    const zonasAplic = zonas.filter(z =>
+      (!z.setor_id && !z.cargo_id && !z.funcionario_id) ||
+      (z.funcionario_id && z.funcionario_id === func.id) ||
+      (z.cargo_id && z.cargo_id === func.cargo_id) ||
+      (z.setor_id && z.setor_id === func.setor_id)
+    );
     if (zonasAplic.length > 0) {
       const ok = zonasAplic.some(z => haversineM(lat!, lng!, z.latitude, z.longitude) <= z.raio_metros);
       if (!ok) { toast({ title: "Fora da zona autorizada", description: "Aproxime-se do local de trabalho.", variant: "destructive" }); return; }
@@ -968,7 +977,12 @@ export default function RH() {
                   <div key={z.id} className="flex items-center justify-between border-b py-1.5 text-sm">
                     <div>
                       <span className="font-medium">{z.nome}</span>
-                      <span className="text-xs text-muted-foreground"> · {z.setor_id ? setorNome(z.setor_id) : "Todos os setores"} · raio {z.raio_metros}m</span>
+                      <span className="text-xs text-muted-foreground"> · {
+                        z.funcionario_id ? `Funcionário: ${funcs.find(x => x.id === z.funcionario_id)?.nome_completo || "—"}` :
+                        z.cargo_id ? `Cargo: ${cargoNome(z.cargo_id)}` :
+                        z.setor_id ? `Setor: ${setorNome(z.setor_id)}` :
+                        "Todos"
+                      } · raio {z.raio_metros}m</span>
                       <div className="text-xs text-muted-foreground">{z.latitude.toFixed(5)}, {z.longitude.toFixed(5)}</div>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => removerZona(z.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
@@ -1406,12 +1420,47 @@ export default function RH() {
           <div className="space-y-2">
             <div><Label>Nome *</Label><Input value={zonaForm.nome || ""} onChange={e => setZonaForm(p => ({...p, nome: e.target.value}))} /></div>
             <div>
-              <Label>Setor (opcional — em branco vale para todos)</Label>
-              <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
-                <SelectTrigger><SelectValue placeholder="Todos os setores" /></SelectTrigger>
-                <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+              <Label>Aplicar a</Label>
+              <Select
+                value={(zonaForm as any)._escopo || "todos"}
+                onValueChange={v => setZonaForm(p => ({ ...p, _escopo: v, setor_id: null, cargo_id: null, funcionario_id: null } as any))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os funcionários</SelectItem>
+                  <SelectItem value="setor">Setor específico</SelectItem>
+                  <SelectItem value="cargo">Cargo específico</SelectItem>
+                  <SelectItem value="funcionario">Funcionário específico</SelectItem>
+                </SelectContent>
               </Select>
             </div>
+            {(zonaForm as any)._escopo === "setor" && (
+              <div>
+                <Label>Setor *</Label>
+                <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            {(zonaForm as any)._escopo === "cargo" && (
+              <div>
+                <Label>Cargo *</Label>
+                <Select value={zonaForm.cargo_id || ""} onValueChange={v => setZonaForm(p => ({...p, cargo_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            {(zonaForm as any)._escopo === "funcionario" && (
+              <div>
+                <Label>Funcionário *</Label>
+                <Select value={zonaForm.funcionario_id || ""} onValueChange={v => setZonaForm(p => ({...p, funcionario_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
                 <Label>CEP *</Label>
