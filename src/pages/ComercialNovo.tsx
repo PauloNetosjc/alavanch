@@ -584,6 +584,57 @@ export default function ComercialNovo() {
   const [mDescricao, setMDescricao] = useState("");
   const [mVenda, setMVenda] = useState<string>("");
 
+  // ---- estoque (terceira forma de adicionar ambiente) ----
+  const [estoqueProdutos, setEstoqueProdutos] = useState<ProdutoEstoque[]>([]);
+  const [estoquePickerOpen, setEstoquePickerOpen] = useState(false);
+  const [estoqueNome, setEstoqueNome] = useState("");
+  const [estoqueSelecionados, setEstoqueSelecionados] = useState<Array<{ produto: ProdutoEstoque; qtd: number }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,descricao,codigo_barra,codigo_interno,unidade_medida,quantidade,preco_custo,preco_venda")
+        .eq("ativo", true)
+        .order("descricao");
+      setEstoqueProdutos((data as ProdutoEstoque[]) || []);
+    })();
+  }, []);
+
+  const addEstoqueAmbiente = () => {
+    if (!estoqueNome.trim()) return toast.error("Nome do ambiente é obrigatório");
+    if (estoqueSelecionados.length === 0) return toast.error("Selecione ao menos um produto");
+    const itens: Item[] = estoqueSelecionados.map((s) => ({
+      descricao: s.produto.descricao,
+      quantidade: s.qtd,
+      largura: null, altura: null, profundidade: null,
+      custo_cliente: Number(s.produto.preco_venda || 0),
+      custo_loja: Number(s.produto.preco_custo || 0),
+      custo_fabrica: Number(s.produto.preco_custo || 0),
+      cor: null, categoria: null,
+      codigo: s.produto.codigo_interno || s.produto.codigo_barra || null,
+    }));
+    const custo = itens.reduce((a, i) => a + i.custo_fabrica * i.quantidade, 0);
+    const venda = itens.reduce((a, i) => a + i.custo_cliente * i.quantidade, 0);
+    const novo: Ambiente = {
+      id: uid(),
+      nome: estoqueNome.trim(),
+      descricao: "Ambiente montado a partir do estoque",
+      prazo_dias: null,
+      custo_aquisicao: Number(custo.toFixed(2)),
+      preco_sugerido: Number(venda.toFixed(2)),
+      markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
+      itens,
+      manual: true,
+    };
+    setAmbientes((prev) => [...prev, novo]);
+    setEstoqueNome("");
+    setEstoqueSelecionados([]);
+    toast.success("Ambiente criado a partir do estoque");
+  };
+
+
+
 
   /* --------------------------------- load --------------------------------- */
   useEffect(() => {
@@ -1388,13 +1439,14 @@ export default function ComercialNovo() {
                 </div>
                 <div>
                   <h1 className="text-[26px] font-semibold leading-none">Adicione Ambientes</h1>
-                  <p className="text-[13px] text-muted-foreground mt-1.5">
-                    Importe XML do Promob ou adicione manualmente
+                <p className="text-[13px] text-muted-foreground mt-1.5">
+                    Importe um projeto, monte a partir do estoque ou adicione manualmente
                   </p>
+
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                 {/* Importar */}
                 <div className="rounded-lg border border-border p-5">
                   <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
@@ -1451,7 +1503,118 @@ export default function ComercialNovo() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Estoque */}
+                <div className="rounded-lg border border-border p-5">
+                  <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
+                    <Package className="w-4 h-4 text-[#2D6BE5]" />
+                    Montar do Estoque
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Nome do Ambiente</Label>
+                      <Input
+                        value={estoqueNome}
+                        onChange={(e) => setEstoqueNome(e.target.value)}
+                        placeholder="Ex: Cozinha modulada"
+                      />
+                    </div>
+                    <div>
+                      <Label>Produtos</Label>
+                      <Popover open={estoquePickerOpen} onOpenChange={setEstoquePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span className="truncate">
+                              {estoqueSelecionados.length === 0
+                                ? "Selecionar produtos…"
+                                : `${estoqueSelecionados.length} produto(s) selecionado(s)`}
+                            </span>
+                            <ChevronDown className="w-4 h-4 opacity-60" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[380px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar produto..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {estoqueProdutos.map((p) => {
+                                  const sel = estoqueSelecionados.some((s) => s.produto.id === p.id);
+                                  return (
+                                    <CommandItem
+                                      key={p.id}
+                                      value={`${p.descricao} ${p.codigo_interno ?? ""} ${p.codigo_barra ?? ""}`}
+                                      onSelect={() => {
+                                        setEstoqueSelecionados((prev) =>
+                                          sel
+                                            ? prev.filter((s) => s.produto.id !== p.id)
+                                            : [...prev, { produto: p, qtd: 1 }],
+                                        );
+                                      }}
+                                      className="flex items-start gap-2"
+                                    >
+                                      <Checkbox checked={sel} className="mt-1" />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[13px] font-medium truncate">{p.descricao}</div>
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {(p.codigo_interno || p.codigo_barra || "—")} · {fmtBrl(p.preco_venda)}
+                                        </div>
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className={Number(p.quantidade) <= 0 ? "text-rose-600 border-rose-300" : ""}
+                                      >
+                                        {Number(p.quantidade)} {p.unidade_medida}
+                                      </Badge>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {estoqueSelecionados.length > 0 && (
+                      <div className="space-y-1.5 max-h-40 overflow-auto pr-1">
+                        {estoqueSelecionados.map((s) => (
+                          <div key={s.produto.id} className="flex items-center gap-2 text-[12px]">
+                            <span className="flex-1 truncate">{s.produto.descricao}</span>
+                            <Input
+                              type="number" min={1} step="1"
+                              value={s.qtd}
+                              onChange={(e) =>
+                                setEstoqueSelecionados((prev) =>
+                                  prev.map((x) =>
+                                    x.produto.id === s.produto.id
+                                      ? { ...x, qtd: Math.max(1, Number(e.target.value) || 1) }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              className="h-7 w-16 text-center"
+                            />
+                            <Button
+                              variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() =>
+                                setEstoqueSelecionados((prev) => prev.filter((x) => x.produto.id !== s.produto.id))
+                              }
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <Button onClick={addEstoqueAmbiente} className="w-full">
+                      <Plus className="w-4 h-4 mr-1.5" /> Criar Ambiente
+                    </Button>
+                  </div>
+                </div>
               </div>
+
             </div>
 
             {/* Tabela ambientes */}
