@@ -6,6 +6,7 @@ import { Copy, ExternalLink, Eye, RefreshCcw, Send, FileText, ShieldCheck, Loade
 import { toast } from "sonner";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
+import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
 
 type Solic = {
   id: string;
@@ -76,22 +77,7 @@ export function AssinaturasDigitaisPanel({ pedidoId }: { pedidoId: string }) {
   };
 
   const baixarAssinado = async (s: Solic) => {
-    if (s.contrato_id) {
-      const { data } = await supabase
-        .from("contratos")
-        .select("pdf_assinado_url")
-        .eq("id", s.contrato_id)
-        .maybeSingle();
-      if (data?.pdf_assinado_url) {
-        window.open(data.pdf_assinado_url, "_blank");
-        return;
-      }
-    }
-    if (s.assinatura_cliente_url) {
-      window.open(s.assinatura_cliente_url, "_blank");
-      return;
-    }
-    toast.error("Documento assinado ainda não disponível");
+    await baixarPdfFinalAssinatura(s.id, s.file_name || "documento-assinado");
   };
 
   return (
