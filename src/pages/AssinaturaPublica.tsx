@@ -508,8 +508,17 @@ export default function AssinaturaPublica() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-1">
-            <div><span className="text-muted-foreground">Assinando como:</span> {participante?.tipo === "loja" ? "Loja" : "Cliente"}</div>
-            <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
+            <div><span className="text-muted-foreground">Assinando como:</span> <strong>{participante?.tipo === "loja" ? "Loja (representante)" : "Cliente"}</strong></div>
+            {participante?.tipo === "loja" && (
+              <>
+                <div><span className="text-muted-foreground">Loja:</span> {loja?.nome || "—"}</div>
+                <div><span className="text-muted-foreground">Representante:</span> {nome || "(preencha abaixo)"}</div>
+                <div><span className="text-muted-foreground">Cliente (referência):</span> {cliente?.nome || "—"}</div>
+              </>
+            )}
+            {participante?.tipo === "cliente" && (
+              <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
+            )}
             <div><span className="text-muted-foreground">Pedido:</span> {pedido?.codigo || "—"}</div>
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
           </CardContent>
