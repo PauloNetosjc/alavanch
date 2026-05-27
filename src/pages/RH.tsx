@@ -514,7 +514,12 @@ export default function RH() {
       toast({ title: "Localização necessária", description: e.message, variant: "destructive" }); return;
     }
     // valida zona
-    const zonasAplic = zonas.filter(z => !z.setor_id || z.setor_id === func.setor_id);
+    const zonasAplic = zonas.filter(z =>
+      (!z.setor_id && !z.cargo_id && !z.funcionario_id) ||
+      (z.funcionario_id && z.funcionario_id === func.id) ||
+      (z.cargo_id && z.cargo_id === func.cargo_id) ||
+      (z.setor_id && z.setor_id === func.setor_id)
+    );
     if (zonasAplic.length > 0) {
       const ok = zonasAplic.some(z => haversineM(lat!, lng!, z.latitude, z.longitude) <= z.raio_metros);
       if (!ok) { toast({ title: "Fora da zona autorizada", description: "Aproxime-se do local de trabalho.", variant: "destructive" }); return; }
