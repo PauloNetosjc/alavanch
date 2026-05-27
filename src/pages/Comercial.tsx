@@ -47,6 +47,9 @@ const fmtBrl = (n: number) =>
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+const displayDate = (r: { status: string; created_at: string; confirmado_em?: string | null }) =>
+  fmtDate((r.status === "convertido" || r.status === "aprovado") && r.confirmado_em ? r.confirmado_em : r.created_at);
+
 /* ---------------- Big KPI tile ---------------- */
 
 type BigVariant = "purple" | "green" | "violet";
