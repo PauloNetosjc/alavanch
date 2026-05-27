@@ -7,7 +7,7 @@ import { BRL } from "@/lib/financeiro";
 import { PageFilters, defaultPeriodoMes, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 import { useLoja } from "@/contexts/LojaContext";
 import RadarPrazos from "@/pages/RadarPrazos";
-import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
+
 
 type Pedido = {
   id: string;
@@ -220,8 +220,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Fluxo de Caixa Previsto */}
-      <FluxoCaixaDashboard />
 
 
 
