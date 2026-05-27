@@ -122,7 +122,17 @@ export async function prepararContratoParaAssinatura(
         telefone: configEmpresa?.telefone || empresaSnapshot.telefone || "",
       },
       cliente: (snapshot?.cliente || cliente || null),
-      signing_url: getPublicSignatureUrl(solic.token),
+      signing_url: await (async () => {
+        await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: solic.id });
+        const { data: pc } = await supabase
+          .from("assinatura_participantes" as any)
+          .select("token")
+          .eq("solicitacao_id", solic.id)
+          .eq("tipo", "cliente")
+          .maybeSingle();
+        const tk = (pc as any)?.token;
+        return tk ? getPublicSignatureUrl(tk) : "";
+      })(),
       assinatura_loja_url: solicCtx.assinatura_loja_url || "",
       loja_assinado_em: solicCtx.loja_assinado_em || "",
       loja_assinatura_nome: assinanteLoja?.nome || solicCtx.loja_assinatura_nome || (snapshot as any)?.loja_assinatura_nome || null,

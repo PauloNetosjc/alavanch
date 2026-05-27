@@ -114,31 +114,9 @@ export default function AssinaturaPublica() {
       let solicId: string | null = (part as any)?.solicitacao_id ?? null;
       let participanteAtual: Participante | null = (part as any) || null;
 
-      // 2) Fallback legado: token da solicitação → redireciona pro participante cliente
+      // Fallback legado DESATIVADO temporariamente: nunca confiar em solicitacoes_assinatura.token
       if (!part) {
-        const { data: legacy } = await supabase
-          .from("solicitacoes_assinatura")
-          .select("id")
-          .eq("token", token)
-          .maybeSingle();
-        if (legacy?.id) {
-          const { data: candidatos } = await supabase
-            .from("assinatura_participantes" as any)
-            .select("token,tipo,status")
-            .eq("solicitacao_id", legacy.id)
-            .order("created_at", { ascending: true });
-          const cli = (candidatos as any[] | null)?.find(p => p.tipo === "cliente" && p.status !== "assinado");
-          if (cli?.token) {
-            setRedirectTo(`/assinatura/${cli.token}`);
-            setLoading(false);
-            return;
-          }
-          // sem participante cliente disponível: link inválido (não marca nada como assinado)
-          setErro("Link de assinatura indisponível. Solicite um novo link à loja.");
-          setLoading(false);
-          return;
-        }
-        setErro("Link inválido.");
+        setErro("Link antigo ou inválido. Gere um novo link no pedido.");
         setLoading(false);
         return;
       }

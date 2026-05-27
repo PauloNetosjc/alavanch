@@ -96,15 +96,16 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         .single();
       if (error) throw error;
 
-      // participante cliente
-      await supabase.from("assinatura_participantes").insert({
-        solicitacao_id: data.id,
-        tipo: "cliente",
-        nome: cliente?.nome || null,
-        email,
-        telefone,
-        status: "pendente",
-      });
+      // Garante participantes obrigatórios (trigger SQL já dispara — chamamos por segurança)
+      await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: data.id });
+
+      // Atualiza dados do participante cliente com email/telefone informados no diálogo
+      await supabase
+        .from("assinatura_participantes" as any)
+        .update({ email, telefone, nome: cliente?.nome || null })
+        .eq("solicitacao_id", data.id)
+        .eq("tipo", "cliente");
+
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: data.id,
         tipo_evento: "solicitacao_criada",
@@ -120,8 +121,16 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         }
       }
 
-
-      const url = getPublicSignatureUrl(data.token);
+      // Busca token do PARTICIPANTE cliente (nunca usar data.token da solicitação)
+      const { data: partCliente } = await supabase
+        .from("assinatura_participantes" as any)
+        .select("token")
+        .eq("solicitacao_id", data.id)
+        .eq("tipo", "cliente")
+        .maybeSingle();
+      const tokenCliente = (partCliente as any)?.token as string | undefined;
+      if (!tokenCliente) throw new Error("Falha ao gerar link do participante.");
+      const url = getPublicSignatureUrl(tokenCliente);
       setLink(url);
       onCreated?.(data.id, url);
       toast.success("Solicitação criada");

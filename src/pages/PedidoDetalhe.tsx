@@ -991,7 +991,6 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   };
 
   const enviarParaAssinatura = async (doc: any) => {
-    // Determina o tipo: contrato se for adendo/complemento, senão "projeto_inicial" como padrão
     const tipoSlug = (doc.tipo_documento_slug as string) || "projeto_inicial";
     const { data, error } = await supabase.rpc("criar_solic_assinatura_documento", {
       p_pedido_id: pedidoId,
@@ -1000,15 +999,19 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
       p_dias_validade: 30,
     });
     if (error) { toast.error(error.message); return; }
-    // Busca o token recém criado (ou existente)
-    const { data: solic } = await supabase
-      .from("solicitacoes_assinatura")
+    const solicId = data as string;
+    // Garante participantes (trigger já dispara, redundância segura) e busca token do cliente
+    await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: solicId });
+    const { data: partCliente } = await supabase
+      .from("assinatura_participantes" as any)
       .select("token")
-      .eq("id", data as string)
+      .eq("solicitacao_id", solicId)
+      .eq("tipo", "cliente")
       .maybeSingle();
-    if (!solic?.token) { toast.error("Não foi possível obter o link de assinatura."); return; }
+    const tokenCliente = (partCliente as any)?.token as string | undefined;
+    if (!tokenCliente) { toast.error("Não foi possível obter o link de assinatura."); return; }
     await supabase.from("pedido_documentos").update({ enviado_para_assinatura: true }).eq("id", doc.id);
-    setAssinaturaOpen({ ...doc, signing_token: solic.token });
+    setAssinaturaOpen({ ...doc, signing_token: tokenCliente });
     toast.success("Solicitação de assinatura criada");
     onChange();
   };
@@ -1084,7 +1087,29 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
           const assinaturaCompleta = !!sol?.cliente_assinado_em && (!requerLoja || !!sol?.loja_assinado_em) && sol?.status === "concluido";
           const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
-          const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
+          // Token do participante (nunca solicitação) — buscado sob demanda
+          const getTokenParticipante = async (tipo: "cliente" | "loja"): Promise<string | null> => {
+            if (!sol) return null;
+            await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: sol.id });
+            const { data: p } = await supabase
+              .from("assinatura_participantes" as any)
+              .select("token")
+              .eq("solicitacao_id", sol.id)
+              .eq("tipo", tipo)
+              .maybeSingle();
+            return (p as any)?.token || null;
+          };
+          const copiarLinkPart = async (tipo: "cliente" | "loja") => {
+            const t = await getTokenParticipante(tipo);
+            if (!t) return toast.error(`Sem participante ${tipo}.`);
+            await navigator.clipboard.writeText(getPublicSignatureUrl(t));
+            toast.success(`Link da ${tipo === "loja" ? "loja" : "cliente"} copiado`);
+          };
+          const abrirLinkPart = async (tipo: "cliente" | "loja") => {
+            const t = await getTokenParticipante(tipo);
+            if (!t) return toast.error(`Sem participante ${tipo}.`);
+            window.open(getPublicSignatureUrl(t), "_blank");
+          };
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -1113,12 +1138,17 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     </Button>
                   </>
                 )}
-                {sol && linkPub && (
+                {sol && (
                   <>
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(linkPub); toast.success("Link copiado"); }}>
-                      <Copy className="w-3.5 h-3.5 mr-1" /> Copiar link
+                    {requerLoja && (
+                      <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
+                        <Copy className="w-3.5 h-3.5 mr-1" /> Link loja
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
+                      <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => window.open(linkPub, "_blank")}>
+                    <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
@@ -2095,10 +2125,25 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
   const [criando, setCriando] = useState(false);
+  const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
 
-  // SEMPRE usa o novo módulo público /assinatura/:token
-  const newSigningUrl = solic?.token ? getPublicSignatureUrl(solic.token) : null;
-  const signingUrl = newSigningUrl;
+  // Carrega tokens dos PARTICIPANTES (nunca solicitacao.token)
+  useEffect(() => {
+    (async () => {
+      if (!solic?.id) { setTokens({}); return; }
+      await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: solic.id });
+      const { data: parts } = await supabase
+        .from("assinatura_participantes" as any)
+        .select("tipo,token")
+        .eq("solicitacao_id", solic.id);
+      const map: any = {};
+      for (const p of (parts as any[]) || []) map[p.tipo] = p.token;
+      setTokens(map);
+    })();
+  }, [solic?.id]);
+
+  const linkCliente = tokens.cliente ? getPublicSignatureUrl(tokens.cliente) : null;
+  const linkLoja = tokens.loja ? getPublicSignatureUrl(tokens.loja) : null;
 
   const criarSolicitacao = async () => {
     setCriando(true);
@@ -2115,28 +2160,28 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
     } finally { setCriando(false); }
   };
 
-  const copiarLink = async () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
-    await navigator.clipboard.writeText(signingUrl);
-    toast.success("Link copiado");
+  const copiar = async (url: string | null, label: string) => {
+    if (!url) return toast.error("Link indisponível.");
+    await navigator.clipboard.writeText(url);
+    toast.success(`Link da ${label} copiado`);
   };
 
   const enviarEmail = () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
+    if (!linkCliente) return toast.error("Link do cliente indisponível.");
     if (!cliente?.email) return toast.error("Cliente sem e-mail cadastrado");
     const assunto = encodeURIComponent(`Contrato ${contrato.numero} - assinatura`);
     const corpo = encodeURIComponent(
-      `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${signingUrl}\n\nObrigado!`
+      `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${linkCliente}\n\nObrigado!`
     );
     window.open(`mailto:${cliente.email}?subject=${assunto}&body=${corpo}`, "_blank");
   };
 
   const enviarWhatsapp = () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
+    if (!linkCliente) return toast.error("Link do cliente indisponível.");
     if (!cliente?.telefone) return toast.error("Cliente sem telefone cadastrado");
     const fone = String(cliente.telefone).replace(/\D/g, "");
     const msg = encodeURIComponent(
-      `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${signingUrl}`
+      `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${linkCliente}`
     );
     window.open(`https://wa.me/55${fone}?text=${msg}`, "_blank");
   };
@@ -2170,8 +2215,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
       )}
       {solic && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={copiarLink}>
-            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link
+          {linkLoja && (
+            <Button size="sm" variant="outline" onClick={() => copiar(linkLoja, "loja")}>
+              <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link da loja
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => copiar(linkCliente, "cliente")}>
+            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link do cliente
           </Button>
           <Button size="sm" variant="outline" onClick={enviarEmail}>
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por e-mail
@@ -2186,7 +2236,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
           Solicitação criada em {new Date(solic.created_at).toLocaleString("pt-BR")}.
         </div>
       )}
-
     </div>
   );
 }
