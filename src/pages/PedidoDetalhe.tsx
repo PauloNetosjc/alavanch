@@ -1130,6 +1130,10 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
             if (!t) return toast.error(`Sem participante ${tipo}.`);
             window.open(getPublicSignatureUrl(t), "_blank");
           };
+          const partes = (sol && partsBySol[sol.id]) || [];
+          const partesReq = partes.filter((p: any) => p.tipo === "cliente" || (p.tipo === "loja" && requerLoja !== false));
+          const assinadosCount = partesReq.filter((p: any) => !!p.assinado_em).length;
+          const totalCount = partesReq.length;
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -1138,8 +1142,14 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                   <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
                     <span className="truncate">{d.nome}</span>
                     {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
+                    {sol && totalCount > 0 && (
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${assinadosCount === totalCount ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-amber-50 text-amber-700 border-amber-300"}`}>
+                        Assinaturas: {assinadosCount}/{totalCount}
+                      </Badge>
+                    )}
                     {requerLoja && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
                   </div>
+
                   <div className="text-[10px] text-muted-foreground">
                     {fmtDateTime(d.created_at)}
                     {sol?.cliente_assinado_em && ` • Cliente: ${new Date(sol.cliente_assinado_em).toLocaleString("pt-BR")}`}
