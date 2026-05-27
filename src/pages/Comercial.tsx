@@ -564,7 +564,7 @@ export default function Comercial() {
                             onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#C0392B]"
                           >
-                            <XCircle className="w-3.5 h-3.5" /> Declinar
+                            <XCircle className="w-3.5 h-3.5" /> Cancelar
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
