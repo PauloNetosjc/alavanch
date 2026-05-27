@@ -935,16 +935,21 @@ export default function ComercialNegociacao() {
     await supabase.from("pagamentos_orcamento").delete().eq("orcamento_id", id);
     if (pagamentos.length > 0) {
       const { error: e2 } = await supabase.from("pagamentos_orcamento").insert(
-        pagamentos.map((p) => ({
-          orcamento_id: id,
-          metodo: p.metodo,
-          valor: p.valor,
-          parcelas: p.parcelas,
-          data_vencimento: p.data_vencimento,
-          parcelas_detalhe: p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas ? p.parcelas_detalhe : null,
-          parcelas_vencimentos: (p as any).parcelas_vencimentos && (p as any).parcelas_vencimentos.length === p.parcelas ? (p as any).parcelas_vencimentos : null,
-          parcelas_formas: (p as any).parcelas_formas && (p as any).parcelas_formas.length === p.parcelas ? (p as any).parcelas_formas : null,
-        })) as any,
+        pagamentos.map((p) => {
+          // Garante que parcelas_detalhe/vencimentos/formas sejam sempre persistidos,
+          // mesmo quando o usuário não abrir o editor de parcelas.
+          const { det, vencs, formas } = ensureArrays(p);
+          return {
+            orcamento_id: id,
+            metodo: p.metodo,
+            valor: p.valor,
+            parcelas: p.parcelas,
+            data_vencimento: p.data_vencimento || vencs[0] || null,
+            parcelas_detalhe: det,
+            parcelas_vencimentos: vencs,
+            parcelas_formas: formas,
+          };
+        }) as any,
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
