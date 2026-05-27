@@ -121,6 +121,7 @@ export function CrmEstagiosEditDialog({
       concluir_acao: e.concluir_acao ?? "proxima",
       concluir_pipeline_destino: e.concluir_pipeline_destino ?? null,
       concluir_estagio_destino_id: e.concluir_estagio_destino_id ?? null,
+      criar_card_em: Array.isArray(e.criar_card_em) ? e.criar_card_em : [],
     }));
     setRows(mapped);
     setOutrosPipelinesEstagios(((outros ?? []) as any[]).map((e) => ({
