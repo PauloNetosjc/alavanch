@@ -1292,6 +1292,7 @@ export type Database = {
           conteudo_snapshot: Json | null
           created_at: string
           created_by: string | null
+          documento_cliente_url: string | null
           documento_url: string | null
           enviado_em: string | null
           enviado_via: string | null
@@ -1319,6 +1320,7 @@ export type Database = {
           conteudo_snapshot?: Json | null
           created_at?: string
           created_by?: string | null
+          documento_cliente_url?: string | null
           documento_url?: string | null
           enviado_em?: string | null
           enviado_via?: string | null
@@ -1346,6 +1348,7 @@ export type Database = {
           conteudo_snapshot?: Json | null
           created_at?: string
           created_by?: string | null
+          documento_cliente_url?: string | null
           documento_url?: string | null
           enviado_em?: string | null
           enviado_via?: string | null
