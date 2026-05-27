@@ -2503,9 +2503,11 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
 
   return (
     <>
-      <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" onClick={() => setOpen(true)}>
-        <PieChart className="w-4 h-4 mr-1.5" /> Resumo Financeiro
-      </Button>
+      {!hideTrigger && (
+        <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" onClick={() => setOpen(true)}>
+          <PieChart className="w-4 h-4 mr-1.5" /> Resumo Financeiro
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Resumo Financeiro</DialogTitle></DialogHeader>
