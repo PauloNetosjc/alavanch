@@ -111,6 +111,12 @@ export default function BaterPonto() {
 
   async function baterPonto(tipo: Ponto["tipo"]) {
     if (!func) return;
+    const idx = ORDEM.indexOf(tipo);
+    if (idx > 0 && !jaFez(ORDEM[idx - 1])) {
+      toast({ title: "Sequência obrigatória", description: `Bata primeiro: ${TIPO_PONTO_LABEL[ORDEM[idx - 1]]}.`, variant: "destructive" });
+      return;
+    }
+    if (jaFez(tipo)) return;
     setMarcando(tipo);
     try {
       let lat: number | null = null, lng: number | null = null;
