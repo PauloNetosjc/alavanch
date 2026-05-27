@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Copy, Loader2, MessageCircle, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
-import { buildLojaSignatureDataUrl, buildLojaSignaturePngBlob } from "@/lib/lojaSignature";
 import { useAuth } from "@/contexts/AuthContext";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
@@ -112,83 +111,6 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         status_novo: "aguardando_cliente",
         descricao: "Solicitação de assinatura criada",
       });
-
-      // === Pré-assinatura automática da loja (carimbo + assinatura simulada) ===
-      try {
-        const [{ data: lojaInfo }, { data: configEmpresa }] = await Promise.all([
-          supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle(),
-          supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco").eq("loja_id", pedido.loja_id).maybeSingle(),
-        ]);
-        const responsavel = (profile as any)?.nome_completo || user?.email || "Loja";
-        const razaoSocial = configEmpresa?.nome_empresa || lojaInfo?.nome || "Loja";
-        const nomeFantasia = configEmpresa?.nome_fantasia || lojaInfo?.nome || razaoSocial;
-        const sigData = {
-          nome: nomeFantasia,
-          razao_social: razaoSocial,
-          nome_fantasia: nomeFantasia,
-          cnpj: lojaInfo?.cnpj || configEmpresa?.cnpj,
-          endereco: lojaInfo?.endereco || configEmpresa?.endereco,
-          cidade: lojaInfo?.cidade,
-          uf: lojaInfo?.uf,
-          responsavel,
-        };
-        const sigBlob = await buildLojaSignaturePngBlob(sigData);
-        const sigPath = `${data.id}/assinatura-loja-${Date.now()}.png`;
-        let assinaturaLojaUrl = "";
-        const up = await supabase.storage
-          .from("assinaturas-evidencias")
-          .upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" });
-        if (!up.error) {
-          assinaturaLojaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
-        } else {
-          // fallback: data URL inline caso storage falhe
-          assinaturaLojaUrl = buildLojaSignatureDataUrl(sigData);
-        }
-
-        const { data: partLoja } = await supabase
-          .from("assinatura_participantes")
-          .insert({
-            solicitacao_id: data.id,
-            tipo: "loja",
-            nome: responsavel,
-            user_id: user?.id || null,
-            cargo: role || null,
-            status: "assinado",
-            assinado_em: new Date().toISOString(),
-            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-          })
-          .select()
-          .single();
-
-        await supabase.from("assinatura_evidencias").insert({
-          solicitacao_id: data.id,
-          participante_id: partLoja?.id,
-          assinatura_url: assinaturaLojaUrl,
-          aceite: true,
-          aceite_texto: "Pré-assinatura digital da loja (carimbo eletrônico)",
-          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-        });
-
-        await supabase
-          .from("solicitacoes_assinatura")
-          .update({
-            loja_assinado_em: new Date().toISOString(),
-            assinatura_loja_url: assinaturaLojaUrl,
-          })
-          .eq("id", data.id);
-
-        await supabase.from("assinatura_eventos").insert({
-          solicitacao_id: data.id,
-          tipo_evento: "loja_assinou",
-          status_anterior: "aguardando_cliente",
-          status_novo: "aguardando_cliente",
-          descricao: `Loja pré-assinou automaticamente (${responsavel})`,
-          user_id: user?.id || null,
-        });
-      } catch (preErr) {
-        // Não bloqueia a criação se a pré-assinatura falhar
-        console.warn("Falha ao gerar pré-assinatura da loja:", preErr);
-      }
 
       if (defaults?.contrato_id) {
         try {
