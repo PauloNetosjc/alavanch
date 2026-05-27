@@ -18,7 +18,9 @@ function fmt(d?: string | null) {
 }
 
 export default function ValidarContrato() {
-  const { token } = useParams();
+  const params = useParams();
+  const [search] = useSearchParams();
+  const token = params.token || search.get("token") || "";
   const [s, setS] = useState<Estado>({ loading: true, found: false });
 
   useEffect(() => {
