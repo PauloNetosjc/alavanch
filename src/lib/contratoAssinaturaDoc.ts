@@ -87,6 +87,25 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         white-space: normal;
         transform-origin: top left;
       }
+      /* page-break control */
+      p, div, section, article, table, tr, li, h1, h2, h3, h4, h5, h6,
+      .no-break, .clausula, .contract-section, .contrato-section, .section-title, .payment-table, .signature-block {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      table { page-break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tfoot { display: table-footer-group !important; }
+      h1, h2, h3, h4 { break-after: avoid !important; page-break-after: avoid !important; }
+      .pdf-page-image, .anexo-imagem, img[data-pdf-page="true"], img[data-anexo="true"] {
+        display: block !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        margin: 0 auto !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
     </style>
   `;
   // Move o conteúdo do <body> original para dentro de um wrapper de largura útil
@@ -195,57 +214,146 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       import("jspdf"),
     ]);
 
-    const canvas = await html2canvas(wrapper, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      windowWidth: CONTENT_W_PX,
-      windowHeight: realHeight,
-      width: CONTENT_W_PX,
-      height: realHeight,
-      // @ts-ignore
-      foreignObjectRendering: false,
-    });
+    // ============== PAGINAÇÃO POR BLOCOS ==============
+    // Em vez de fatiar um canvas gigante, distribuímos os blocos de topo do wrapper em
+    // páginas A4 reais dentro do iframe, depois renderizamos uma a uma. Imagens anexas
+    // (.pdf-page-image, .anexo-imagem, [data-pdf-page], [data-anexo]) ganham página própria.
+    const PAGE_W_PX = CONTENT_W_PX;
+    const PAGE_H_PX = Math.round(CONTENT_H_MM * 3.7795); // ~1047px para 277mm
 
-    // eslint-disable-next-line no-console
-    console.log("[contratoPDF] canvas", { w: canvas.width, h: canvas.height });
+    const isAttachmentImage = (el: Element): boolean =>
+      el instanceof HTMLElement &&
+      !!el.matches?.("img.pdf-page-image, img.anexo-imagem, img[data-pdf-page='true'], img[data-anexo='true'], .pdf-page-image, .anexo-imagem, [data-pdf-page='true'], [data-anexo='true']");
 
-    if (!canvas.width || !canvas.height) throw new Error("Canvas do contrato com dimensão zero.");
-    if (canvasIsMostlyBlank(canvas)) throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
+    // Pega blocos de topo. Se houver só 1 filho que é container, desce um nível.
+    let topNodes: HTMLElement[] = Array.from(wrapper.children) as HTMLElement[];
+    while (topNodes.length === 1 && topNodes[0].children.length > 1) {
+      topNodes = Array.from(topNodes[0].children) as HTMLElement[];
+    }
+    if (topNodes.length === 0) topNodes = [wrapper];
 
-    // PDF A4 em mm com margens reais
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    const imgW_mm = CONTENT_W_MM;
-    const imgH_mm = (canvas.height * imgW_mm) / canvas.width;
-    // eslint-disable-next-line no-console
-    console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM, imgH_mm });
+    // Estilo base de cada página construída em memória dentro do iframe
+    const makePage = (): HTMLDivElement => {
+      const p = doc.createElement("div");
+      p.className = "__pdf_page";
+      p.style.cssText = [
+        `width:${PAGE_W_PX}px`,
+        `min-height:${PAGE_H_PX}px`,
+        "background:#ffffff",
+        "color:#111111",
+        "padding:0",
+        "margin:0",
+        "box-sizing:border-box",
+        "overflow:hidden",
+        "position:relative",
+      ].join(";");
+      return p;
+    };
 
-    if (imgH_mm <= CONTENT_H_MM) {
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", M_LEFT, M_TOP, imgW_mm, imgH_mm);
-    } else {
-      // Paginação: fatia o canvas em alturas correspondentes a CONTENT_H_MM
-      const sliceHpx = Math.floor((CONTENT_H_MM * canvas.width) / imgW_mm);
-      let renderedPx = 0;
-      let first = true;
-      while (renderedPx < canvas.height) {
-        const h = Math.min(sliceHpx, canvas.height - renderedPx);
-        const slice = document.createElement("canvas");
-        slice.width = canvas.width;
-        slice.height = h;
-        const sctx = slice.getContext("2d")!;
-        sctx.fillStyle = "#ffffff";
-        sctx.fillRect(0, 0, slice.width, slice.height);
-        sctx.drawImage(canvas, 0, renderedPx, canvas.width, h, 0, 0, canvas.width, h);
-        const data = slice.toDataURL("image/jpeg", 0.95);
-        const sliceH_mm = (h * imgW_mm) / canvas.width;
-        if (!first) pdf.addPage();
-        pdf.addImage(data, "JPEG", M_LEFT, M_TOP, imgW_mm, sliceH_mm);
-        renderedPx += h;
-        first = false;
+    // Container offscreen no iframe para montar páginas
+    const pagesHost = doc.createElement("div");
+    pagesHost.style.cssText = "position:absolute;left:0;top:0;background:#fff;";
+    doc.body.appendChild(pagesHost);
+
+    const pages: HTMLDivElement[] = [];
+    const attachmentPages: { node: HTMLElement; isolated: true }[] = [];
+    let current = makePage();
+    pages.push(current);
+    pagesHost.appendChild(current);
+    let blocksMoved = 0;
+
+    const flushNewPage = () => {
+      current = makePage();
+      pages.push(current);
+      pagesHost.appendChild(current);
+    };
+
+    for (const node of topNodes) {
+      // Imagem anexa: página exclusiva
+      if (isAttachmentImage(node)) {
+        // fecha página atual se já tem conteúdo
+        if (current.children.length > 0) flushNewPage();
+        const clone = node.cloneNode(true) as HTMLElement;
+        clone.style.maxWidth = "100%";
+        clone.style.maxHeight = `${PAGE_H_PX}px`;
+        clone.style.width = "auto";
+        clone.style.height = "auto";
+        clone.style.objectFit = "contain";
+        clone.style.display = "block";
+        clone.style.margin = "0 auto";
+        const wrap = doc.createElement("div");
+        wrap.style.cssText = `width:${PAGE_W_PX}px;height:${PAGE_H_PX}px;display:flex;align-items:center;justify-content:center;background:#fff;`;
+        wrap.appendChild(clone);
+        current.appendChild(wrap);
+        (current as any).__attachment = true;
+        // eslint-disable-next-line no-console
+        console.log("[contratoPDF] imagem anexa página exclusiva");
+        flushNewPage();
+        continue;
+      }
+
+      // Bloco de texto/tabela normal
+      const clone = node.cloneNode(true) as HTMLElement;
+      current.appendChild(clone);
+      // Se estourou a altura da página e há outros blocos antes, move para nova página
+      if (current.scrollHeight > PAGE_H_PX && current.children.length > 1) {
+        current.removeChild(clone);
+        flushNewPage();
+        current.appendChild(clone);
+        blocksMoved++;
+        // eslint-disable-next-line no-console
+        console.log("[contratoPDF] block moved to next page");
+        // Se o bloco isolado ainda for maior que uma página, deixa estourar (será fatiado dentro do bloco).
       }
     }
+
+    // Remove páginas vazias do fim
+    while (pages.length > 1 && pages[pages.length - 1].children.length === 0) {
+      const p = pages.pop()!;
+      p.remove();
+    }
+
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pages generated", pages.length, "blocksMoved", blocksMoved);
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] page heights", pages.map((p) => p.scrollHeight));
+
+    // Aguarda layout
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 100));
+
+    // PDF A4 em mm com margens
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM });
+
+    for (let i = 0; i < pages.length; i++) {
+      const pageEl = pages[i];
+      const pageCanvas = await html2canvas(pageEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: PAGE_W_PX,
+        width: PAGE_W_PX,
+        height: Math.max(pageEl.scrollHeight, PAGE_H_PX),
+      });
+      if (!pageCanvas.width || !pageCanvas.height) continue;
+
+      const pImgW_mm = CONTENT_W_MM;
+      let pImgH_mm = (pageCanvas.height * pImgW_mm) / pageCanvas.width;
+      // Se uma página individual ficou maior que CONTENT_H_MM (bloco gigante), reduz proporcional
+      if (pImgH_mm > CONTENT_H_MM) {
+        pImgH_mm = CONTENT_H_MM;
+      }
+      const data = pageCanvas.toDataURL("image/jpeg", 0.95);
+      if (i > 0) pdf.addPage();
+      pdf.addImage(data, "JPEG", M_LEFT, M_TOP, pImgW_mm, pImgH_mm);
+    }
+
+    pagesHost.remove();
+
 
     const blob = pdf.output("blob") as Blob;
     if (!blob || blob.size < 5000) throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
