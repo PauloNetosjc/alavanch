@@ -1337,22 +1337,30 @@ function ProdutosTabela({ ambientes, subItens, itensAvulsos, total }: any) {
     descricao: string; quantidade: number; unitario: number; total: number;
     descLonga?: string | null; sub?: any[];
   };
+  const somaOriginal =
+    (ambientes || []).reduce((s: number, a: any) => s + Number(a.preco_sugerido || 0), 0) +
+    (itensAvulsos || []).reduce((s: number, i: any) => s + Number(i.valor_venda || 0), 0);
+  // Escala proporcional para refletir o valor final negociado (com desconto).
+  const fator = somaOriginal > 0 && total > 0 ? total / somaOriginal : 1;
   const linhas: Linha[] = [
     ...ambientes.map((a: any) => {
       const subs = (subItens || []).filter((s: any) => s.ambiente_id === a.id);
-      const v = Number(a.preco_sugerido || 0);
+      const v = Number(a.preco_sugerido || 0) * fator;
       return {
         id: a.id, tipo: "Ambiente" as const, codigo: null,
         descricao: a.nome, quantidade: 1, unitario: v, total: v,
         descLonga: a.descricao, sub: subs,
       };
     }),
-    ...(itensAvulsos || []).map((i: any) => ({
-      id: i.id, tipo: "Avulso" as const, codigo: null,
-      descricao: i.nome, quantidade: 1,
-      unitario: Number(i.valor_venda || 0), total: Number(i.valor_venda || 0),
-      descLonga: i.descricao, sub: [],
-    })),
+    ...(itensAvulsos || []).map((i: any) => {
+      const v = Number(i.valor_venda || 0) * fator;
+      return {
+        id: i.id, tipo: "Avulso" as const, codigo: null,
+        descricao: i.nome, quantidade: 1,
+        unitario: v, total: v,
+        descLonga: i.descricao, sub: [],
+      };
+    }),
   ];
 
   return (
