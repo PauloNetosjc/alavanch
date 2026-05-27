@@ -118,8 +118,9 @@ export function EstagiosEditDialog({
       supabase.from("profiles").select("user_id,nome_completo").order("nome_completo"),
       supabase.from("checklist_template_itens").select("template_id,descricao,ordem").order("ordem"),
     ]);
-    setRows((ests ?? []) as Estagio[]);
-    setTodosEstagios((todos ?? []) as Estagio[]);
+    const norm = (e: any): Estagio => ({ ...e, criar_card_em: Array.isArray(e.criar_card_em) ? e.criar_card_em : [] });
+    setRows(((ests ?? []) as any[]).map(norm));
+    setTodosEstagios(((todos ?? []) as any[]).map(norm));
     setTemplates((tpls ?? []) as Template[]);
     const itensMap: Record<string, { descricao: string }[]> = {};
     ((itens ?? []) as any[]).forEach((it) => {
