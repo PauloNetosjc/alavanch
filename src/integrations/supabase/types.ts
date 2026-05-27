@@ -4201,6 +4201,7 @@ export type Database = {
           hora_saida: string
           hora_saida_almoco: string | null
           hora_volta_almoco: string | null
+          horarios_por_dia: Json
           id: string
           nome: string
           observacoes: string | null
@@ -4214,6 +4215,7 @@ export type Database = {
           hora_saida: string
           hora_saida_almoco?: string | null
           hora_volta_almoco?: string | null
+          horarios_por_dia?: Json
           id?: string
           nome: string
           observacoes?: string | null
@@ -4227,6 +4229,7 @@ export type Database = {
           hora_saida?: string
           hora_saida_almoco?: string | null
           hora_volta_almoco?: string | null
+          horarios_por_dia?: Json
           id?: string
           nome?: string
           observacoes?: string | null
