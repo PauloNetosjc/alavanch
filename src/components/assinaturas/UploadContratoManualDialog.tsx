@@ -44,6 +44,7 @@ export function UploadContratoManualDialog({
   const submit = async () => {
     if (!solicitacaoId) return;
     if (!contrato) return toast.error("Anexe o contrato assinado.");
+    if (!confirmado) return toast.error("Confirme que o contrato foi assinado manualmente.");
     setBusy(true);
     try {
       const ct = await upload(contrato, "contrato");
