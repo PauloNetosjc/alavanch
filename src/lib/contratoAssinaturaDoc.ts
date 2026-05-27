@@ -78,18 +78,32 @@ export async function prepararContratoParaAssinatura(
 
   const [{ data: contrato }, { data: pedido }] = await Promise.all([
     supabase.from("contratos").select("*").eq("id", solic.contrato_id).maybeSingle(),
-    supabase.from("pedidos").select("id,codigo,cliente_id,loja_id").eq("id", solic.pedido_id).maybeSingle(),
+    supabase.from("pedidos").select("id,codigo,cliente_id,loja_id,orcamento_id,data_entrega").eq("id", solic.pedido_id).maybeSingle(),
   ]);
   if (!contrato || !pedido) return;
 
-  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tplLoja }, { data: tplContrato }] = await Promise.all([
+  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tplLoja }, { data: tplContrato }, { data: orcamento }] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.loja_id ? supabase.from("contratos_template").select("*").eq("loja_id", pedido.loja_id).eq("ativo", true).order("updated_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    (pedido as any).orcamento_id ? supabase.from("orcamentos").select("vendedor_id").eq("id", (pedido as any).orcamento_id).maybeSingle() : Promise.resolve({ data: null } as any),
   ]);
   const tpl = tplLoja || tplContrato;
+  if (!tpl) {
+    throw new Error("Nenhum template de contrato ativo encontrado para esta loja. Configure um template em Administração → Contratos antes de gerar o contrato.");
+  }
+
+  let vendedor: { nome?: string | null; email?: string | null } | null = null;
+  if ((orcamento as any)?.vendedor_id) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("nome_completo,email")
+      .eq("id", (orcamento as any).vendedor_id)
+      .maybeSingle();
+    if (prof) vendedor = { nome: (prof as any).nome_completo, email: (prof as any).email };
+  }
 
   const snapshot = ((contrato.conteudo_snapshot as any) || {});
   const empresaSnapshot = snapshot.empresa || {};
