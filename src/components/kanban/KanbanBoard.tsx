@@ -490,6 +490,20 @@ export default function KanbanBoard({
                               <AlertTriangle className="w-3 h-3" /> Crítico
                             </div>
                           )}
+                          {c.etiquetas && c.etiquetas.length > 0 && (
+                            <div className="-mx-2.5 -mb-2.5 mt-2 flex flex-col overflow-hidden rounded-b">
+                              {c.etiquetas.map((et) => (
+                                <div
+                                  key={et.id}
+                                  className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white text-center leading-tight"
+                                  style={{ background: et.cor }}
+                                  title={et.nome}
+                                >
+                                  {et.nome}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
