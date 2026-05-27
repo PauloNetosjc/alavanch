@@ -12,54 +12,133 @@ async function waitForImages(root: HTMLElement) {
   })));
 }
 
-async function htmlToPdfBlob(html: string, filename: string) {
+function canvasIsMostlyBlank(canvas: HTMLCanvasElement): boolean {
+  try {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return true;
+    const w = canvas.width, h = canvas.height;
+    if (!w || !h) return true;
+    // Amostra ~400 pontos espalhados
+    const samples = 400;
+    let nonWhite = 0;
+    for (let i = 0; i < samples; i++) {
+      const x = Math.floor((i % 20) * (w / 20));
+      const y = Math.floor(Math.floor(i / 20) * (h / 20));
+      const d = ctx.getImageData(x, y, 1, 1).data;
+      if (d[0] < 245 || d[1] < 245 || d[2] < 245) nonWhite++;
+      if (nonWhite > 8) return false;
+    }
+    return true;
+  } catch {
+    return false; // se tainted, não bloqueia
+  }
+}
+
+async function htmlToPdfBlob(html: string, _filename: string) {
   const container = document.createElement("div");
-  // Container visível fora da tela (não display:none) para garantir layout/render.
+  // Visível fora da viewport (não display:none nem -10000px) para o html2canvas capturar corretamente.
   container.style.cssText = [
     "position:fixed",
-    "left:-10000px",
+    "left:0",
     "top:0",
     "width:794px",
-    "min-height:1123px",
     "background:#ffffff",
     "color:#111111",
     "padding:24px",
     "font-family: 'DM Sans', Arial, sans-serif",
-    "z-index:-1",
+    "z-index:-9999",
+    "opacity:1",
+    "pointer-events:none",
     "overflow:visible",
+    "transform:translateX(100vw)",
   ].join(";");
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
   const styles = Array.from(html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)).map((s) => s[1]).join("\n");
   container.innerHTML = `${styles ? `<style>${styles}</style>` : ""}<div style="background:#fff;color:#111;width:100%;">${body}</div>`;
   document.body.appendChild(container);
 
-  // Aguarda fontes + imagens + um frame de layout
   try { await (document as any).fonts?.ready; } catch { /* noop */ }
   await waitForImages(container);
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  await new Promise((r) => setTimeout(r, 150));
+  await new Promise((r) => setTimeout(r, 200));
 
-  // Sanidade: container precisa ter altura renderizada
-  if (container.offsetHeight < 50) {
+  // eslint-disable-next-line no-console
+  console.log("[contratoPDF] container", {
+    offsetWidth: container.offsetWidth,
+    offsetHeight: container.offsetHeight,
+    textLen: container.innerText.length,
+    htmlSnippet: container.innerHTML.slice(0, 300),
+  });
+
+  if (container.offsetHeight < 50 || container.innerText.trim().length < 20) {
     container.remove();
     throw new Error("Conteúdo do contrato não foi renderizado.");
   }
 
-  const html2pdf = (await import("html2pdf.js")).default;
-  const blob = await html2pdf().set({
-    margin: 10,
-    filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false, windowWidth: 794 },
-    jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css", "legacy"] },
-  } as any).from(container).outputPdf("blob");
+  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+
+  const canvas = await html2canvas(container, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+    windowWidth: 794,
+    width: container.offsetWidth,
+    height: container.offsetHeight,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("[contratoPDF] canvas", { w: canvas.width, h: canvas.height });
+
+  if (canvasIsMostlyBlank(canvas)) {
+    container.remove();
+    throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
+  }
+
+  // jsPDF A4 portrait em pt: 595.28 x 841.89
+  const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const imgW = pageW;
+  const imgH = (canvas.height * imgW) / canvas.width;
+
+  // Multi-página: corta o canvas em fatias verticais.
+  if (imgH <= pageH) {
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+  } else {
+    const pageHeightInCanvasPx = Math.floor((pageH * canvas.width) / imgW);
+    let renderedPx = 0;
+    let first = true;
+    while (renderedPx < canvas.height) {
+      const sliceH = Math.min(pageHeightInCanvasPx, canvas.height - renderedPx);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = sliceH;
+      const sctx = slice.getContext("2d")!;
+      sctx.fillStyle = "#ffffff";
+      sctx.fillRect(0, 0, slice.width, slice.height);
+      sctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const data = slice.toDataURL("image/jpeg", 0.95);
+      const sliceImgH = (sliceH * imgW) / canvas.width;
+      if (!first) pdf.addPage();
+      pdf.addImage(data, "JPEG", 0, 0, imgW, sliceImgH);
+      renderedPx += sliceH;
+      first = false;
+    }
+  }
+
+  const blob = pdf.output("blob") as Blob;
   container.remove();
 
-  if (!blob || blob.size < 2000) {
-    throw new Error("Falha ao gerar PDF do contrato. Tente novamente ou use a impressão manual.");
+  if (!blob || blob.size < 5000) {
+    throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
   }
-  return blob as Blob;
+  return blob;
 }
 
 async function ensurePastaDocumentos(pedidoId: string) {
@@ -188,10 +267,13 @@ export async function prepararContratoParaAssinatura(
   const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);
-  const path = `${solic.pedido_id}/contrato-${safeName(contrato.numero || solic.id)}-${solic.id}.pdf`;
+  // Caminho versionado por timestamp para evitar cache de CDN/navegador no PDF antigo em branco.
+  const version = Date.now();
+  const path = `${solic.pedido_id}/contrato-${safeName(contrato.numero || solic.id)}-${solic.id}-v${version}.pdf`;
   const { error: upErr } = await supabase.storage.from("contratos-assinatura").upload(path, blob, {
     upsert: true,
     contentType: "application/pdf",
+    cacheControl: "0",
   });
   if (upErr) throw upErr;
   const publicUrl = supabase.storage.from("contratos-assinatura").getPublicUrl(path).data.publicUrl;
