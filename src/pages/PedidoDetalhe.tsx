@@ -1012,6 +1012,41 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
   const [verAssinaturasId, setVerAssinaturasId] = useState<string | null>(null);
   const [partsBySol, setPartsBySol] = useState<Record<string, any[]>>({});
+  const [viewDoc, setViewDoc] = useState<{ url: string; mime: string; nome: string; bucket: string; path: string } | null>(null);
+
+  const abrirViewer = async (d: any, bucketOverride?: string) => {
+    try {
+      const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
+      const path = d.storage_path;
+      if (!path) throw new Error("Arquivo sem caminho");
+      const { data: blob, error } = await supabase.storage.from(bucket).download(path);
+      if (error || !blob) throw error || new Error("Falha ao baixar arquivo");
+      const ext = (path.split(".").pop() || "").toLowerCase();
+      let mime = blob.type || "";
+      if (!mime) {
+        if (ext === "pdf") mime = "application/pdf";
+        else if (["png","jpg","jpeg","gif","webp","svg"].includes(ext)) mime = `image/${ext === "jpg" ? "jpeg" : ext}`;
+      }
+      const typed = mime ? new Blob([blob], { type: mime }) : blob;
+      const url = URL.createObjectURL(typed);
+      setViewDoc({ url, mime, nome: sanitizeNome(d.nome || path.split("/").pop() || "arquivo"), bucket, path });
+    } catch (e: any) {
+      toast.error("Erro ao abrir visualizador: " + (e?.message || "desconhecido"));
+    }
+  };
+
+  const baixarDoc = async (d: any, bucketOverride?: string) => {
+    try {
+      const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
+      const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+      if (error || !blob) throw error || new Error("Falha ao baixar");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = sanitizeNome(d.nome || "arquivo");
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e: any) { toast.error("Erro ao baixar: " + (e?.message || "desconhecido")); }
+  };
 
   // Mapa: pedido_documento_id -> última solicitação
   const solicByDoc = useMemo(() => {
