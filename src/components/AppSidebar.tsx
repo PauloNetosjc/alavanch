@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import alavanchLogo from "@/assets/alavanch-logo.png";
 import { UserThemePicker, useUserThemeBoot } from "@/components/UserThemePicker";
 import {
   LayoutDashboard,
