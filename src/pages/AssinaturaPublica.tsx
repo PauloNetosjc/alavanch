@@ -215,7 +215,14 @@ export default function AssinaturaPublica() {
       if (errE) throw errE;
 
       // Atualiza status + snapshot
-      const novoStatus = requerLoja ? "aguardando_loja" : "concluido";
+      // Se a loja já pré-assinou, conclui direto; caso contrário, segue o fluxo configurado
+      const { data: sCheck } = await supabase
+        .from("solicitacoes_assinatura")
+        .select("loja_assinado_em")
+        .eq("id", solic.id)
+        .maybeSingle();
+      const lojaJaAssinou = !!sCheck?.loja_assinado_em;
+      const novoStatus = lojaJaAssinou ? "concluido" : (requerLoja ? "aguardando_loja" : "concluido");
       const upd: any = {
         status: novoStatus,
         cliente_assinado_em: new Date().toISOString(),
