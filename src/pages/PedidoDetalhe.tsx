@@ -1206,9 +1206,23 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
 
       {/* Lista de docs */}
       <div className="space-y-2">
-        {docsDaPasta.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
-        ) : docsDaPasta.map((d: any) => {
+        {(() => {
+          // Quando há assinatura manual registrada, oculta o contrato digital original
+          // (mantém o card "Contrato assinado manualmente - ..." como principal)
+          const solicsManual = new Set(
+            (solicitacoes || [])
+              .filter((s: any) => s?.status === "assinado_manual")
+              .map((s: any) => s.id),
+          );
+          const docsFiltrados = docsDaPasta.filter((d: any) => {
+            if (!d.solicitacao_id || !solicsManual.has(d.solicitacao_id)) return true;
+            const ehManual = d.bucket_name === "assinaturas-evidencias"
+              || /assinado manualmente|documento do cliente/i.test(d.nome || "");
+            return ehManual; // esconde o original digital
+          });
+          return docsFiltrados.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
+          ) : docsFiltrados.map((d: any) => {
           const sol = solicByDoc[d.id];
           const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
             rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
@@ -1217,11 +1231,13 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
             aguardando_loja: { label: "Aguardando loja", tone: "bg-indigo-100 text-indigo-800" },
             assinado_loja: { label: "Loja assinou", tone: "bg-blue-100 text-blue-800" },
             concluido: { label: "Concluído", tone: "bg-emerald-100 text-emerald-800" },
+            assinado_manual: { label: "Assinado manualmente", tone: "bg-emerald-100 text-emerald-800" },
             recusado: { label: "Recusado", tone: "bg-red-100 text-red-800" },
             cancelado: { label: "Cancelado", tone: "bg-muted text-muted-foreground" },
             expirado: { label: "Expirado", tone: "bg-muted text-muted-foreground" },
           };
           const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
+
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
           const assinaturaCompleta = !!sol?.cliente_assinado_em && (!requerLoja || !!sol?.loja_assinado_em) && sol?.status === "concluido";
           const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
@@ -1265,12 +1281,12 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                   <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
                     <span className="truncate">{nomeExibido}</span>
                     {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
-                    {sol && totalCount > 0 && (
+                    {sol && sol.status !== "assinado_manual" && totalCount > 0 && (
                       <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${assinadosCount === totalCount ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-amber-50 text-amber-700 border-amber-300"}`}>
                         Assinaturas: {assinadosCount}/{totalCount}
                       </Badge>
                     )}
-                    {requerLoja && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
+                    {requerLoja && sol?.status !== "assinado_manual" && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
                   </div>
 
                   <div className="text-[10px] text-muted-foreground">
@@ -1291,7 +1307,28 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     </Button>
                   </>
                 )}
-                {sol && (
+                {sol && sol.status === "assinado_manual" && (
+                  <>
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={async () => {
+                      try {
+                        const bucket = d.bucket_name || "assinaturas-evidencias";
+                        const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+                        if (error || !blob) throw error || new Error("Falha ao baixar");
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url; a.download = sanitizeNome(d.nome || "contrato-assinado.pdf");
+                        document.body.appendChild(a); a.click(); a.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                      } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                    }}>
+                      <FileText className="w-3.5 h-3.5 mr-1" /> Baixar contrato
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
+                    </Button>
+                  </>
+                )}
+                {sol && sol.status !== "assinado_manual" && (
                   <>
                     {!assinaturaCompleta && requerLoja && (
                       <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
@@ -1409,8 +1446,10 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
               </div>
             </div>
           );
-        })}
+        });
+        })()}
       </div>
+
 
       {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
         <div className="mt-4 text-center text-[11px] text-muted-foreground italic">
