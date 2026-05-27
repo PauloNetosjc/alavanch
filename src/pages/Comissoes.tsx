@@ -463,7 +463,15 @@ export default function Comissoes() {
           <div className="text-[14px] font-medium flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-500" /> Cálculo individual
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-[12px] flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-card cursor-pointer">
+              <input type="checkbox" checked={incluirAdendos} onChange={(e) => setIncluirAdendos(e.target.checked)} className="accent-primary" />
+              Incluir adendos
+            </label>
+            <label className="text-[12px] flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-card cursor-pointer">
+              <input type="checkbox" checked={incluirComplementos} onChange={(e) => setIncluirComplementos(e.target.checked)} className="accent-primary" />
+              Incluir complementos
+            </label>
             <Button size="sm" variant="outline" onClick={exportExcel}>
               <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> Excel
             </Button>
