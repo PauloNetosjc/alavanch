@@ -24,6 +24,9 @@ export type ContratoCtx = {
   pagamentos: { metodo: string; parcelas: number; valor: number; data_vencimento: string | null }[];
   observacoes_adicionais: string;
   signing_url: string;
+  assinatura_loja_url?: string | null;
+  loja_assinado_em?: string | null;
+  loja_assinatura_nome?: string | null;
 };
 
 export const fmtBrl = (n: number) =>
@@ -31,6 +34,9 @@ export const fmtBrl = (n: number) =>
 
 const fmtDate = (d: string | Date) =>
   new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+const escapeHtml = (v: string) =>
+  String(v).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c] as string));
 
 export function applyVariables(text: string, ctx: ContratoCtx): string {
   const map: Record<string, string> = {
@@ -92,6 +98,13 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        <div style="white-space:pre-wrap;border:1px solid #E5E5E5;border-radius:6px;padding:12px;background:#FAFAFA;font-size:12px;line-height:1.5">${ctx.observacoes_adicionais}</div>`
     : "";
 
+  const assinaturaLojaHtml = ctx.assinatura_loja_url
+    ? `<div class="loja-signature"><img src="${escapeHtml(ctx.assinatura_loja_url)}" alt="Assinatura e carimbo da loja" /></div>`
+    : `<div class="loja-signature empty"></div>`;
+  const assinaturaLojaMeta = ctx.loja_assinado_em
+    ? `<div class="lb">Pré-assinado digitalmente pela loja em ${fmtDate(ctx.loja_assinado_em)}</div>`
+    : `<div class="lb">Assinatura / Responsável</div>`;
+
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
 <style>
@@ -122,6 +135,9 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   .data-loc { text-align:center; margin-top:30px; font-style:italic; font-size:13px; }
   .sigs { display:flex; justify-content:space-between; gap:60px; margin-top:48px; }
   .sigs .col { flex:1; text-align:center; }
+  .loja-signature { height:104px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
+  .loja-signature img { max-width:280px; max-height:104px; object-fit:contain; }
+  .loja-signature.empty { height:0; }
   .sigs .line { border-top:1px solid #1A1A1A; padding-top:6px; }
   .sigs .nm { font-weight:700; font-size:13px; }
   .sigs .lb { color:#6B6760; font-size:11px; }
@@ -206,9 +222,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
 
   <div class="sigs">
     <div class="col">
+      ${assinaturaLojaHtml}
       <div class="line">
         <div class="nm">${ctx.empresa.nome}</div>
-        <div class="lb">Assinatura / Responsável</div>
+        ${assinaturaLojaMeta}
       </div>
     </div>
     <div class="col">

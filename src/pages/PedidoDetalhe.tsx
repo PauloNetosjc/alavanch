@@ -28,6 +28,7 @@ import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaD
 import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
@@ -129,6 +130,9 @@ export default function PedidoDetalhe() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
+        await prepararContratoParaAssinatura(sa.id);
+      }
       setSolicAssin(sa);
     } else {
       setSolicAssin(null);
@@ -2097,6 +2101,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
       });
       if (error) throw error;
       if (data) toast.success("Solicitação de assinatura criada");
+      if (data) await prepararContratoParaAssinatura(data as string);
       onChange();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar solicitação");

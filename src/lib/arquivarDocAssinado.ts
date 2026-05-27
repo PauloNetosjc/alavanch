@@ -1,11 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Após a conclusão de uma solicitação de assinatura, move o documento
- * vinculado para a pasta "Documentos" da Central de Documentos do pedido,
- * arquivando-o automaticamente junto com o acesso às evidências
- * (que continuam acessíveis via solicitacoes_assinatura.pedido_documento_id).
- */
+/** Move o documento vinculado para a pasta "Documentos" da Central de Documentos. */
 export async function arquivarDocumentoAssinado(solicitacaoId: string) {
   try {
     const { data: solic } = await supabase
@@ -15,7 +10,6 @@ export async function arquivarDocumentoAssinado(solicitacaoId: string) {
       .maybeSingle();
 
     if (!solic?.pedido_id || !solic?.pedido_documento_id) return;
-    if (solic.status !== "concluido") return;
 
     // Garante a pasta "Documentos"
     let { data: pasta } = await supabase
