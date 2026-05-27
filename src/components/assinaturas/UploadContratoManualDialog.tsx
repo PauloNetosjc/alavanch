@@ -125,11 +125,24 @@ export function UploadContratoManualDialog({
               className="mt-1 text-[13px]"
             />
           </div>
+
+          <label className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border cursor-pointer">
+            <input
+              type="checkbox"
+              checked={confirmado}
+              onChange={(e) => setConfirmado(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="text-[12px] leading-snug">
+              Confirmo que este contrato foi assinado manualmente pelo cliente e pela loja e que esta assinatura
+              <b> substituirá o fluxo de assinatura digital pendente</b>, encerrando os links de assinatura online.
+            </span>
+          </label>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
-          <Button onClick={submit} disabled={busy || !contrato} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={submit} disabled={busy || !contrato || !confirmado} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Salvando...</> : <><Upload className="w-4 h-4 mr-1" /> Registrar</>}
           </Button>
         </DialogFooter>
