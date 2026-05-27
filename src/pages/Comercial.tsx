@@ -243,6 +243,17 @@ export default function Comercial() {
 
   useEffect(() => { load(); }, []);
 
+  const handleDeclinar = async (orcId: string) => {
+    if (!confirm("Deseja realmente declinar (perder) este orçamento?")) return;
+    const { error } = await supabase.from("orcamentos").update({ status: "perdido" }).eq("id", orcId);
+    if (error) {
+      toast.error("Erro ao declinar orçamento: " + error.message);
+    } else {
+      toast.success("Orçamento declinado com sucesso");
+      load();
+    }
+  };
+
   const visibleRows = useMemo(() => {
     return rows.filter((r) => {
       if (!showCancelled && r.status === "perdido") return false;
