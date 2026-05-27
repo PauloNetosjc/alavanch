@@ -507,6 +507,8 @@ export default function ComercialNegociacao() {
       setPagamentos(((pgs ?? []) as any).map((p: any) => ({
         ...p,
         parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
+        parcelas_vencimentos: Array.isArray(p.parcelas_vencimentos) ? p.parcelas_vencimentos.map((v: any) => v || null) : null,
+        parcelas_formas: Array.isArray(p.parcelas_formas) ? p.parcelas_formas.map(String) : null,
       })));
 
       const ambIds = (amb ?? []).map((a: any) => a.id);
