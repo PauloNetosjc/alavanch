@@ -727,7 +727,11 @@ export async function prepararContratoParaAssinatura(
       endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco || "",
       telefone: configEmpresa?.telefone || empresaSnapshot.telefone || "",
     },
-    cliente: (snapshot?.cliente || cliente || null),
+    cliente: {
+      ...((snapshot?.cliente || cliente || {}) as any),
+      nome: (snapshot?.cliente?.nome) || (cliente as any)?.nome || solicCtx.cliente_nome || partCli?.nome || null,
+      cpf_cnpj: (snapshot?.cliente?.cpf_cnpj) || (cliente as any)?.cpf_cnpj || solicCtx.cliente_documento || partCli?.documento || null,
+    },
     vendedor: vendedor || (snapshot as any)?.vendedor || null,
     prazo_entrega: (pedido as any)?.data_entrega || (snapshot as any)?.prazo_entrega || null,
     signing_url: await (async () => {
