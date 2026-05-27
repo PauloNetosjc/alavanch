@@ -28,6 +28,7 @@ type Props = {
 };
 
 export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, defaults, onCreated }: Props) {
+  const { user, profile, role } = useAuth();
   const [tipos, setTipos] = useState<any[]>([]);
   const [tipoId, setTipoId] = useState<string>("");
   const [pedido, setPedido] = useState<any>(null);
