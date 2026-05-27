@@ -184,7 +184,7 @@ export default function Dashboard() {
   const totalJuros = pedidosPeriodo.reduce((s, p) => s + (jurosMap[p.id] ?? Number(p.juros_total || 0)), 0);
   const totalRT = pedidosPeriodo.reduce((s, p) => s + (rtMap[p.id] ?? Number(p.rt_repassado || 0)), 0);
   const vendaLiquida = vendaBruta - totalJuros - totalRT;
-  const pctMeta = meta ? (vendaBruta / meta) * 100 : 0;
+  const pctMeta = meta ? (vendaLiquida / meta) * 100 : 0;
 
   const receitaEsperada = lancs.filter((l) => l.tipo === "entrada").reduce((s, l) => s + Number(l.valor), 0);
   const recebido = lancs.filter((l) => l.tipo === "entrada" && l.status === "pago").reduce((s, l) => s + Number(l.valor), 0);
