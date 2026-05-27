@@ -2555,6 +2555,7 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
             </div>
             <div className="space-y-3">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
+              <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
               <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
               <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" percValue={fretePerc} onPercChange={setFretePerc} />
               <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" percValue={comissaoLojaPerc} onPercChange={setComissaoLojaPerc} />
