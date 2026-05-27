@@ -1087,7 +1087,29 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
           const assinaturaCompleta = !!sol?.cliente_assinado_em && (!requerLoja || !!sol?.loja_assinado_em) && sol?.status === "concluido";
           const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
-          const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
+          // Token do participante (nunca solicitação) — buscado sob demanda
+          const getTokenParticipante = async (tipo: "cliente" | "loja"): Promise<string | null> => {
+            if (!sol) return null;
+            await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: sol.id });
+            const { data: p } = await supabase
+              .from("assinatura_participantes" as any)
+              .select("token")
+              .eq("solicitacao_id", sol.id)
+              .eq("tipo", tipo)
+              .maybeSingle();
+            return (p as any)?.token || null;
+          };
+          const copiarLinkPart = async (tipo: "cliente" | "loja") => {
+            const t = await getTokenParticipante(tipo);
+            if (!t) return toast.error(`Sem participante ${tipo}.`);
+            await navigator.clipboard.writeText(getPublicSignatureUrl(t));
+            toast.success(`Link da ${tipo === "loja" ? "loja" : "cliente"} copiado`);
+          };
+          const abrirLinkPart = async (tipo: "cliente" | "loja") => {
+            const t = await getTokenParticipante(tipo);
+            if (!t) return toast.error(`Sem participante ${tipo}.`);
+            window.open(getPublicSignatureUrl(t), "_blank");
+          };
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -1116,12 +1138,17 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     </Button>
                   </>
                 )}
-                {sol && linkPub && (
+                {sol && (
                   <>
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(linkPub); toast.success("Link copiado"); }}>
-                      <Copy className="w-3.5 h-3.5 mr-1" /> Copiar link
+                    {requerLoja && (
+                      <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
+                        <Copy className="w-3.5 h-3.5 mr-1" /> Link loja
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
+                      <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => window.open(linkPub, "_blank")}>
+                    <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
