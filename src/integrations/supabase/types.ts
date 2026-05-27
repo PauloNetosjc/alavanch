@@ -4878,6 +4878,10 @@ export type Database = {
         Returns: boolean
       }
       concluir_kanban_card: { Args: { _card_id: string }; Returns: undefined }
+      contrato_has_active_anon_solic: {
+        Args: { _contrato_id: string }
+        Returns: boolean
+      }
       criar_solic_assinatura_documento: {
         Args: {
           p_dias_validade?: number
@@ -5006,6 +5010,10 @@ export type Database = {
       revisao_avancar_preparo_pj_final: {
         Args: { _pedido_id: string; _revisao_data: string }
         Returns: undefined
+      }
+      solic_belongs_to_validated_contrato: {
+        Args: { _solic_id: string }
+        Returns: boolean
       }
       sub_dias_uteis: {
         Args: { _fim: string; _loja: string; _n: number }
