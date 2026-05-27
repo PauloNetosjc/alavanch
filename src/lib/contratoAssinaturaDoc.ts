@@ -40,8 +40,9 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
   ]);
   if (!contrato || !pedido) return;
 
-  const [{ data: loja }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
+  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
     supabase.auth.getUser(),
@@ -52,12 +53,18 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     ? await supabase.from("profiles").select("nome_completo,cargo").eq("user_id", currentUser.id).maybeSingle()
     : ({ data: null } as any);
 
-  const lojaNome = loja?.nome || (contrato.conteudo_snapshot as any)?.empresa?.nome || "Loja";
+  const snapshot = ((contrato.conteudo_snapshot as any) || {});
+  const empresaSnapshot = snapshot.empresa || {};
+  const razaoSocial = configEmpresa?.nome_empresa || loja?.nome || empresaSnapshot.razao_social || empresaSnapshot.nome || "Loja";
+  const nomeFantasia = configEmpresa?.nome_fantasia || loja?.nome || empresaSnapshot.nome_fantasia || empresaSnapshot.nome || razaoSocial;
+  const lojaNome = nomeFantasia || razaoSocial;
   const responsavel = profile?.nome_completo || currentUser?.email || lojaNome;
   const assinaturaLojaUrl = solic.assinatura_loja_url || buildLojaSignatureDataUrl({
     nome: lojaNome,
-    cnpj: loja?.cnpj || (contrato.conteudo_snapshot as any)?.empresa?.cnpj,
-    endereco: loja?.endereco || (contrato.conteudo_snapshot as any)?.empresa?.endereco,
+    razao_social: razaoSocial,
+    nome_fantasia: nomeFantasia,
+    cnpj: loja?.cnpj || configEmpresa?.cnpj || empresaSnapshot.cnpj,
+    endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco,
     cidade: loja?.cidade,
     uf: loja?.uf,
     responsavel,
