@@ -883,6 +883,199 @@ export default function RH() {
             </div>
           </Card>
         </TabsContent>
+
+        {/* TURNOS */}
+        <TabsContent value="turnos" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><Clock className="w-4 h-4" /> Turnos de trabalho</h3>
+              <Button size="sm" onClick={abrirNovoTurno}>+ Novo turno</Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Nome</th>
+                  <th className="px-3 py-2">Entrada</th>
+                  <th className="px-3 py-2">Almoço</th>
+                  <th className="px-3 py-2">Saída</th>
+                  <th className="px-3 py-2">Dias</th>
+                  <th className="px-3 py-2">Tolerância</th>
+                  <th className="px-3 py-2"></th>
+                </tr></thead>
+                <tbody>
+                  {turnos.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Nenhum turno cadastrado.</td></tr>
+                  ) : turnos.map(t => (
+                    <tr key={t.id} className="border-t">
+                      <td className="px-3 py-2 font-medium">{t.nome}</td>
+                      <td className="px-3 py-2">{t.hora_entrada?.slice(0,5)}</td>
+                      <td className="px-3 py-2">{t.hora_saida_almoco?.slice(0,5) || "—"} / {t.hora_volta_almoco?.slice(0,5) || "—"}</td>
+                      <td className="px-3 py-2">{t.hora_saida?.slice(0,5)}</td>
+                      <td className="px-3 py-2 text-xs">{(t.dias_semana || []).map(d => DIAS_SEMANA[d]).join(", ")}</td>
+                      <td className="px-3 py-2">{t.tolerancia_min} min</td>
+                      <td className="px-3 py-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => abrirEditarTurno(t)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => removerTurno(t.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Zonas autorizadas para bater ponto</h3>
+              <Button size="sm" onClick={() => setZonaDialog(true)}>+ Nova zona</Button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">A marcação só é aceita dentro do raio de uma zona aplicável (do setor do funcionário ou geral).</p>
+            <div className="space-y-1">
+              {zonas.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma zona cadastrada — qualquer localização será aceita.</p> :
+                zonas.map(z => (
+                  <div key={z.id} className="flex items-center justify-between border-b py-1.5 text-sm">
+                    <div>
+                      <span className="font-medium">{z.nome}</span>
+                      <span className="text-xs text-muted-foreground"> · {z.setor_id ? setorNome(z.setor_id) : "Todos os setores"} · raio {z.raio_metros}m</span>
+                      <div className="text-xs text-muted-foreground">{z.latitude.toFixed(5)}, {z.longitude.toFixed(5)}</div>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => removerZona(z.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </div>
+                ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* BATER PONTO */}
+        <TabsContent value="ponto" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Fingerprint className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">Marcação de ponto</h3>
+                <p className="text-xs text-muted-foreground">Requer localização autorizada e selfie. Funciona em computador e celular.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <Label>Funcionário</Label>
+                <Select value={pontoFuncId} onValueChange={setPontoFuncId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o funcionário" /></SelectTrigger>
+                  <SelectContent>
+                    {ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {pontoFuncId && (() => {
+                const f = funcs.find(x => x.id === pontoFuncId);
+                const t = turnos.find(x => x.id === f?.turno_id);
+                return (
+                  <div className="text-sm">
+                    <Label>Turno</Label>
+                    <div className="border rounded px-3 py-2 mt-1 text-xs">
+                      {t ? <><span className="font-medium">{t.nome}</span> · {t.hora_entrada.slice(0,5)} → {t.hora_saida.slice(0,5)} · tol. {t.tolerancia_min} min</>
+                        : <span className="text-muted-foreground">Sem turno atribuído</span>}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {pontoFuncId && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(["entrada","saida_almoco","volta_almoco","saida"] as const).map(t => (
+                  <Button key={t} variant="outline" onClick={() => baterPonto(pontoFuncId, t)} className="h-auto py-3 flex-col">
+                    <Camera className="w-4 h-4 mb-1" />
+                    <span className="text-xs">{TIPO_PONTO_LABEL[t]}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="w-4 h-4" /> Últimas marcações</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Data/Hora</th>
+                  <th className="px-3 py-2">Funcionário</th>
+                  <th className="px-3 py-2">Tipo</th>
+                  <th className="px-3 py-2">Origem</th>
+                  <th className="px-3 py-2">Atraso</th>
+                  <th className="px-3 py-2">Geo</th>
+                  <th className="px-3 py-2">Selfie</th>
+                </tr></thead>
+                <tbody>
+                  {pontos.slice(0, 50).map(p => {
+                    const f = funcs.find(x => x.id === p.funcionario_id);
+                    return (
+                      <tr key={p.id} className="border-t">
+                        <td className="px-3 py-2">{new Date(p.marcado_em).toLocaleString("pt-BR")}</td>
+                        <td className="px-3 py-2">{f?.nome_completo || "—"}</td>
+                        <td className="px-3 py-2">{TIPO_PONTO_LABEL[p.tipo]}</td>
+                        <td className="px-3 py-2"><Badge variant="secondary">{p.origem}</Badge></td>
+                        <td className="px-3 py-2">{p.atraso_min > 0 ? <span className="text-rose-600">+{p.atraso_min} min</span> : "—"}</td>
+                        <td className="px-3 py-2 text-xs">{p.latitude != null ? `${p.latitude.toFixed(4)}, ${p.longitude!.toFixed(4)}` : "—"}</td>
+                        <td className="px-3 py-2">{p.selfie_url ? <a href={p.selfie_url} target="_blank" rel="noreferrer"><img src={p.selfie_url} className="w-8 h-8 rounded object-cover" /></a> : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                  {pontos.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Sem marcações ainda.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* BANCO DE HORAS */}
+        <TabsContent value="banco" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
+              <div>
+                <Label>Funcionário</Label>
+                <Select value={bancoFiltroFunc} onValueChange={setBancoFiltroFunc}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>De</Label><Input type="date" value={bancoDe} onChange={e => setBancoDe(e.target.value)} /></div>
+              <div><Label>Até</Label><Input type="date" value={bancoAte} onChange={e => setBancoAte(e.target.value)} /></div>
+              <div className="flex items-end">
+                <div className="surface-card w-full text-center">
+                  <div className="kpi-label">Saldo total</div>
+                  <div className={`kpi-value mt-1 ${bancoTotal < 0 ? "text-rose-600" : "text-emerald-600"}`}>{minToHM(bancoTotal)}</div>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Data</th>
+                  <th className="px-3 py-2">Funcionário</th>
+                  <th className="px-3 py-2">Previsto</th>
+                  <th className="px-3 py-2">Trabalhado</th>
+                  <th className="px-3 py-2">Saldo</th>
+                </tr></thead>
+                <tbody>
+                  {bancoLinhas.length === 0 ? (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Sem registros no período.</td></tr>
+                  ) : bancoLinhas.map((l, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-2">{new Date(l.data + "T00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-2">{l.funcionario.nome_completo}</td>
+                      <td className="px-3 py-2">{minToHM(l.previsto)}</td>
+                      <td className="px-3 py-2">{minToHM(l.trabalhado)}</td>
+                      <td className={`px-3 py-2 font-medium ${l.saldo < 0 ? "text-rose-600" : "text-emerald-600"}`}>{minToHM(l.saldo)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Dialog Funcionário */}
