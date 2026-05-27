@@ -24,6 +24,7 @@ type OrcRow = {
   status: string;
   total: number | null;
   created_at: string;
+  confirmado_em?: string | null;
   cliente_id: string | null;
   loja_id?: string | null;
   cliente?: { nome: string } | null;
@@ -45,6 +46,9 @@ const fmtBrl = (n: number) =>
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+const displayDate = (r: { status: string; created_at: string; confirmado_em?: string | null }) =>
+  fmtDate((r.status === "convertido" || r.status === "aprovado") && r.confirmado_em ? r.confirmado_em : r.created_at);
 
 /* ---------------- Big KPI tile ---------------- */
 
@@ -189,7 +193,7 @@ export default function Comercial() {
     setLoading(true);
     const { data, error } = await supabase
       .from("orcamentos")
-      .select("id, codigo, nome_projeto, status, total, created_at, cliente_id, loja_id, cliente:clientes(nome)")
+      .select("id, codigo, nome_projeto, status, total, created_at, confirmado_em, cliente_id, loja_id, cliente:clientes(nome)")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     const orcs = (data ?? []) as any[];
@@ -524,7 +528,7 @@ export default function Comercial() {
                         <div className="flex items-center gap-1.5 text-mono text-[11px]">
                           {r.codigo}
                           {assinaturaPendente && <Clock className="w-3 h-3 text-amber-600" />}
-                          <span className="text-muted-foreground">· {fmtDate(r.created_at)}</span>
+                          <span className="text-muted-foreground">· {displayDate(r)}</span>
                         </div>
                         <div className="font-medium text-[14px] mt-1 truncate">{r.cliente?.nome ?? "—"}</div>
                         {r.nome_projeto && (
@@ -603,7 +607,7 @@ export default function Comercial() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[12px] text-muted-foreground">{fmtDate(r.created_at)}</div>
+                          <div className="text-[12px] text-muted-foreground">{displayDate(r)}</div>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{r.cliente?.nome ?? "—"}</div>
