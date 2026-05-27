@@ -99,18 +99,21 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        <div style="white-space:pre-wrap;border:1px solid #E5E5E5;border-radius:6px;padding:12px;background:#FAFAFA;font-size:12px;line-height:1.5">${ctx.observacoes_adicionais}</div>`
     : "";
 
-  const assinaturaLojaUrl = ctx.assinatura_loja_url || buildLojaSignatureDataUrl({
+  // Sempre gera a assinatura simulada da loja (carimbo + assinatura caligráfica)
+  // inline (data URL SVG) para garantir renderização confiável, sem depender de URLs externas.
+  const responsavelLoja = ctx.loja_assinatura_nome || ctx.empresa.nome || "Loja";
+  const assinaturaLojaUrl = buildLojaSignatureDataUrl({
     nome: ctx.empresa.nome || "Loja",
     razao_social: ctx.empresa.razao_social || ctx.empresa.nome || "Loja",
     nome_fantasia: ctx.empresa.nome_fantasia || ctx.empresa.nome || null,
     cnpj: ctx.empresa.cnpj || null,
     endereco: ctx.empresa.endereco || null,
-    responsavel: ctx.loja_assinatura_nome || ctx.empresa.nome || "Loja",
+    responsavel: responsavelLoja,
   });
   const assinaturaLojaHtml = `<div class="loja-signature"><img src="${escapeHtml(assinaturaLojaUrl)}" alt="Assinatura digital e carimbo da loja com CNPJ e razão social" /></div>`;
-  const assinaturaLojaMeta = ctx.loja_assinado_em
-    ? `<div class="lb">Pré-assinado digitalmente pela loja em ${fmtDate(ctx.loja_assinado_em)}</div>`
-    : `<div class="lb">Assinatura digital da loja com carimbo</div>`;
+  const dataAssinaturaLoja = ctx.loja_assinado_em || ctx.emitido_em || new Date().toISOString();
+  const assinaturaLojaMeta = `<div class="lb">Assinatura / Responsável</div>
+       <div class="lb" style="margin-top:2px;font-size:10px">Pré-assinado digitalmente em ${fmtDate(dataAssinaturaLoja)}</div>`;
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
