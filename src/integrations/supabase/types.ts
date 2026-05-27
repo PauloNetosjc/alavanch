@@ -1145,6 +1145,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           formacao_preco_extras: Json
+          formacao_preco_labels: Json
           frete_compra_perc: number | null
           frete_venda_perc: number | null
           icms_compra_perc: number | null
@@ -1181,6 +1182,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           formacao_preco_extras?: Json
+          formacao_preco_labels?: Json
           frete_compra_perc?: number | null
           frete_venda_perc?: number | null
           icms_compra_perc?: number | null
@@ -1217,6 +1219,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           formacao_preco_extras?: Json
+          formacao_preco_labels?: Json
           frete_compra_perc?: number | null
           frete_venda_perc?: number | null
           icms_compra_perc?: number | null
