@@ -139,6 +139,10 @@ export default function BaterPonto() {
   async function baterPonto(tipo: Ponto["tipo"]) {
     if (!func) return;
     const idx = ORDEM.indexOf(tipo);
+    if (idx < 0) {
+      toast({ title: "Marcação não permitida hoje", description: "Turno reduzido: apenas Entrada e Saída final.", variant: "destructive" });
+      return;
+    }
     if (idx > 0 && !jaFez(ORDEM[idx - 1])) {
       toast({ title: "Sequência obrigatória", description: `Bata primeiro: ${TIPO_PONTO_LABEL[ORDEM[idx - 1]]}.`, variant: "destructive" });
       return;
