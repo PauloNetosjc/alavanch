@@ -104,6 +104,8 @@ export default function Comissoes() {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [dialogPedido, setDialogPedido] = useState<PedidoRow | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [incluirAdendos, setIncluirAdendos] = useState(true);
+  const [incluirComplementos, setIncluirComplementos] = useState(true);
 
   const { inicio, fim } = useMemo(() => resolvePeriodo(periodo), [periodo]);
   const lojaRegrasId = lojasFiltro[0] || null;
@@ -137,7 +139,7 @@ export default function Comissoes() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, codigo, valor_total, valor_liquido, rt_repassado, juros_total, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
+        .select("id, codigo, valor_total, valor_liquido, rt_repassado, juros_total, is_adendo, is_complemento, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
       if (inicio && fim) qPed = qPed.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
       if (lojasFiltro.length > 0) qPed = qPed.in("loja_id", lojasFiltro);
 
@@ -157,7 +159,10 @@ export default function Comissoes() {
         divByPed.set(d.pedido_id, arr);
       });
 
-      const list: PedidoRow[] = (peds || []).map((p: any) => {
+      const pedsFiltrados = (peds || []).filter((p: any) =>
+        (incluirAdendos || !p.is_adendo) && (incluirComplementos || !p.is_complemento)
+      );
+      const list: PedidoRow[] = pedsFiltrados.map((p: any) => {
         const orc = p.orcamentos || {};
         const consultor = orc.consultor_id || orc.vendedor_id || null;
         const projetista = p.projetista_id || orc.projetista_id || null;
@@ -200,7 +205,7 @@ export default function Comissoes() {
       setPedidos(list);
       setLoading(false);
     })();
-  }, [periodo, lojasFiltro, reloadKey]);
+  }, [periodo, lojasFiltro, reloadKey, incluirAdendos, incluirComplementos]);
 
   // Agregação por pessoa
   const pessoas = useMemo<PessoaRow[]>(() => {
@@ -458,7 +463,15 @@ export default function Comissoes() {
           <div className="text-[14px] font-medium flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-500" /> Cálculo individual
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-[12px] flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-card cursor-pointer">
+              <input type="checkbox" checked={incluirAdendos} onChange={(e) => setIncluirAdendos(e.target.checked)} className="accent-primary" />
+              Incluir adendos
+            </label>
+            <label className="text-[12px] flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-card cursor-pointer">
+              <input type="checkbox" checked={incluirComplementos} onChange={(e) => setIncluirComplementos(e.target.checked)} className="accent-primary" />
+              Incluir complementos
+            </label>
             <Button size="sm" variant="outline" onClick={exportExcel}>
               <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> Excel
             </Button>
