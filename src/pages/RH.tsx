@@ -21,6 +21,18 @@ import {
 
 type Setor = { id: string; nome: string };
 type Cargo = { id: string; nome: string; setor_id: string | null };
+type Turno = {
+  id: string; nome: string;
+  hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
+  dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
+};
+type Zona = { id: string; setor_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
+type Ponto = {
+  id: string; funcionario_id: string; data: string;
+  tipo: "entrada" | "saida_almoco" | "volta_almoco" | "saida";
+  marcado_em: string; latitude: number | null; longitude: number | null;
+  selfie_url: string | null; origem: "sistema" | "celular"; atraso_min: number;
+};
 type Funcionario = {
   id: string;
   nome_completo: string;
