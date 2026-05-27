@@ -330,6 +330,10 @@ export default function Relatorios() {
         </div>
       </div>
 
+      {/* Fluxo de Caixa Previsto */}
+      <FluxoCaixaDashboard />
+
+
       <div className="surface-card p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
