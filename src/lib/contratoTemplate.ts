@@ -1,6 +1,6 @@
 // Helpers para renderizar contratos a partir do template + dados do orçamento.
 import type { ClienteRow } from "@/components/clientes/ClienteFormDialog";
-import { buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
+
 
 export type ContratoTemplate = {
   id: string;
@@ -29,12 +29,18 @@ export type ContratoCtx = {
   loja_assinado_em?: string | null;
   loja_assinatura_nome?: string | null;
   loja_assinatura_email?: string | null;
+  loja_assinatura_cargo?: string | null;
   assinatura_cliente_url?: string | null;
   cliente_assinado_em?: string | null;
   cliente_ip?: string | null;
   vendedor?: { nome?: string | null; email?: string | null } | null;
   prazo_entrega?: string | null;
+  /** URL pública de validação (página /validar-contrato/:token) */
+  validation_url?: string | null;
+  /** Data URL (PNG) do QR Code apontando para validation_url */
+  qr_data_url?: string | null;
 };
+
 
 export const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
