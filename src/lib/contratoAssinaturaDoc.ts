@@ -35,29 +35,70 @@ function canvasIsMostlyBlank(canvas: HTMLCanvasElement): boolean {
 }
 
 async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
-  // Renderiza o MESMO HTML usado pelo botão Imprimir dentro de um iframe isolado.
-  // Evita conflitos com CSS da SPA (Tailwind, reset, variáveis) que estavam zerando o canvas.
+  // A4 com margens — mesma área útil do window.print()
+  const A4_W_MM = 210;
+  const A4_H_MM = 297;
+  const M_LEFT = 12, M_RIGHT = 12, M_TOP = 10, M_BOTTOM = 10;
+  const CONTENT_W_MM = A4_W_MM - M_LEFT - M_RIGHT;       // 186mm
+  const CONTENT_H_MM = A4_H_MM - M_TOP - M_BOTTOM;       // 277mm
+  // 96 DPI: 1mm ≈ 3.78px → 186mm ≈ 703px de largura útil
+  const CONTENT_W_PX = Math.round(CONTENT_W_MM * 3.7795);
+
+  // Injeta CSS de saneamento e wrapper de largura útil no MESMO HTML do Imprimir.
+  const safetyCss = `
+    <style>
+      *, *::before, *::after { box-sizing: border-box !important; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #111111 !important; }
+      body { width: ${CONTENT_W_PX}px !important; }
+      img, svg { max-width: 100% !important; height: auto !important; }
+      table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+      td, th { word-break: break-word !important; overflow-wrap: anywhere !important; }
+      pre, code { white-space: pre-wrap !important; word-break: break-word !important; }
+      .page, .a4, .contract-page, .contrato-page, .sheet { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+      .__pdf_wrapper {
+        width: ${CONTENT_W_PX}px;
+        max-width: ${CONTENT_W_PX}px;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #111111;
+        overflow-wrap: break-word;
+        word-break: normal;
+        white-space: normal;
+      }
+    </style>
+  `;
+  // Move o conteúdo do <body> original para dentro de um wrapper de largura útil
+  // preservando o restante (head, styles do template, etc.).
+  let htmlForPdf = html;
+  if (/<body[^>]*>/i.test(htmlForPdf)) {
+    htmlForPdf = htmlForPdf.replace(/<body([^>]*)>([\s\S]*?)<\/body>/i,
+      (_m, attrs, inner) => `<body${attrs}><div class="__pdf_wrapper">${inner}</div></body>`);
+    htmlForPdf = htmlForPdf.replace(/<\/head>/i, `${safetyCss}</head>`);
+  } else {
+    htmlForPdf = `<!doctype html><html><head><meta charset="utf-8">${safetyCss}</head><body><div class="__pdf_wrapper">${html}</div></body></html>`;
+  }
+
   const iframe = document.createElement("iframe");
   iframe.setAttribute("sandbox", "allow-same-origin");
   iframe.style.cssText = [
     "position:fixed",
     "left:0",
     "top:0",
-    "width:794px",       // ~A4 em px @ 96dpi
-    "height:1123px",     // inicial; será ajustado pelo scrollHeight
+    `width:${CONTENT_W_PX}px`,
+    "height:1200px",
     "border:0",
-    "opacity:0",         // invisível p/ o usuário mas renderizado pelo layout engine
+    "opacity:0",
     "pointer-events:none",
     "z-index:-1",
     "background:#ffffff",
   ].join(";");
-  iframe.srcdoc = html;
+  iframe.srcdoc = htmlForPdf;
   document.body.appendChild(iframe);
 
   const cleanup = () => { try { iframe.remove(); } catch { /* noop */ } };
 
   try {
-    // Espera o load do iframe
     await new Promise<void>((resolve, reject) => {
       const to = setTimeout(() => reject(new Error("Timeout ao carregar iframe do contrato")), 15000);
       iframe.onload = () => { clearTimeout(to); resolve(); };
@@ -65,42 +106,33 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     });
 
     const doc = iframe.contentDocument;
-    const win = iframe.contentWindow;
-    if (!doc || !win || !doc.body) throw new Error("iframe sem documento acessível");
+    if (!doc || !doc.body) throw new Error("iframe sem documento acessível");
 
-    // Garante fundo branco no documento interno
     doc.documentElement.style.background = "#ffffff";
     doc.body.style.background = "#ffffff";
 
-    // Aguarda fontes do iframe e da página
     try { await (doc as any).fonts?.ready; } catch { /* noop */ }
     try { await (document as any).fonts?.ready; } catch { /* noop */ }
-
-    // Aguarda imagens do iframe
     await waitForImages(doc.body);
-
-    // 2 RAFs + pequeno delay para garantir layout final
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await new Promise((r) => setTimeout(r, 250));
 
-    // Ajusta altura do iframe ao scrollHeight real
-    const realHeight = Math.max(
-      doc.body.scrollHeight,
-      doc.documentElement.scrollHeight,
-      1123,
-    );
+    const wrapper = (doc.querySelector(".__pdf_wrapper") as HTMLElement) || doc.body;
+    const realHeight = Math.max(wrapper.scrollHeight, doc.body.scrollHeight, doc.documentElement.scrollHeight, 200);
     iframe.style.height = `${realHeight}px`;
     await new Promise((r) => setTimeout(r, 100));
 
     // eslint-disable-next-line no-console
-    console.log("[contratoPDF] iframe body", {
-      offsetWidth: doc.body.offsetWidth,
-      scrollHeight: doc.body.scrollHeight,
-      textLen: (doc.body.innerText || "").length,
-      htmlSnippet: doc.body.innerHTML.slice(0, 300),
+    console.log("[contratoPDF] wrapper", {
+      clientWidth: wrapper.clientWidth,
+      scrollWidth: wrapper.scrollWidth,
+      clientHeight: wrapper.clientHeight,
+      scrollHeight: wrapper.scrollHeight,
+      textLen: (wrapper.innerText || "").length,
+      hOverflow: wrapper.scrollWidth > wrapper.clientWidth,
     });
 
-    if ((doc.body.innerText || "").trim().length < 20 || realHeight < 50) {
+    if ((wrapper.innerText || "").trim().length < 20 || realHeight < 50) {
       throw new Error("Conteúdo do contrato não foi renderizado dentro do iframe.");
     }
 
@@ -109,69 +141,59 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       import("jspdf"),
     ]);
 
-    const canvas = await html2canvas(doc.body, {
+    const canvas = await html2canvas(wrapper, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: "#ffffff",
       logging: false,
-      windowWidth: 794,
+      windowWidth: CONTENT_W_PX,
       windowHeight: realHeight,
-      width: 794,
+      width: CONTENT_W_PX,
       height: realHeight,
-      // @ts-ignore — html2canvas aceita foreignObjectRendering
+      // @ts-ignore
       foreignObjectRendering: false,
     });
 
     // eslint-disable-next-line no-console
-    console.log("[contratoPDF] canvas", {
-      w: canvas.width,
-      h: canvas.height,
-      dataPrefix: canvas.toDataURL("image/png").slice(0, 80),
-    });
+    console.log("[contratoPDF] canvas", { w: canvas.width, h: canvas.height });
 
-    if (!canvas.width || !canvas.height) {
-      throw new Error("Canvas do contrato com dimensão zero.");
-    }
-    if (canvasIsMostlyBlank(canvas)) {
-      throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
-    }
+    if (!canvas.width || !canvas.height) throw new Error("Canvas do contrato com dimensão zero.");
+    if (canvasIsMostlyBlank(canvas)) throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
 
-    // PDF A4 portrait em pt: 595.28 x 841.89
-    const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
+    // PDF A4 em mm com margens reais
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    // imagem ocupa CONTENT_W_MM; altura proporcional
+    const imgW_mm = CONTENT_W_MM;
+    const imgH_mm = (canvas.height * imgW_mm) / canvas.width;
 
-    if (imgH <= pageH) {
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, imgH);
+    if (imgH_mm <= CONTENT_H_MM) {
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", M_LEFT, M_TOP, imgW_mm, imgH_mm);
     } else {
-      const pageHeightInCanvasPx = Math.floor((pageH * canvas.width) / imgW);
+      // Paginação: fatia o canvas em alturas correspondentes a CONTENT_H_MM
+      const sliceHpx = Math.floor((CONTENT_H_MM * canvas.width) / imgW_mm);
       let renderedPx = 0;
       let first = true;
       while (renderedPx < canvas.height) {
-        const sliceH = Math.min(pageHeightInCanvasPx, canvas.height - renderedPx);
+        const h = Math.min(sliceHpx, canvas.height - renderedPx);
         const slice = document.createElement("canvas");
         slice.width = canvas.width;
-        slice.height = sliceH;
+        slice.height = h;
         const sctx = slice.getContext("2d")!;
         sctx.fillStyle = "#ffffff";
         sctx.fillRect(0, 0, slice.width, slice.height);
-        sctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        sctx.drawImage(canvas, 0, renderedPx, canvas.width, h, 0, 0, canvas.width, h);
         const data = slice.toDataURL("image/jpeg", 0.95);
-        const sliceImgH = (sliceH * imgW) / canvas.width;
+        const sliceH_mm = (h * imgW_mm) / canvas.width;
         if (!first) pdf.addPage();
-        pdf.addImage(data, "JPEG", 0, 0, imgW, sliceImgH);
-        renderedPx += sliceH;
+        pdf.addImage(data, "JPEG", M_LEFT, M_TOP, imgW_mm, sliceH_mm);
+        renderedPx += h;
         first = false;
       }
     }
 
     const blob = pdf.output("blob") as Blob;
-    if (!blob || blob.size < 5000) {
-      throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
-    }
+    if (!blob || blob.size < 5000) throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
     // eslint-disable-next-line no-console
     console.log("[contratoPDF] blob size", blob.size);
     return blob;
@@ -179,6 +201,7 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     cleanup();
   }
 }
+
 
 
 async function ensurePastaDocumentos(pedidoId: string) {
