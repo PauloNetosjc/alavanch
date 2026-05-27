@@ -294,8 +294,13 @@ export default function AssinaturaPublica() {
         user_agent: ua,
       });
 
+      await prepararContratoParaAssinatura(solic.id, null, {
+        url: assinaturaUrl,
+        assinadoEm: upd.cliente_assinado_em,
+        ip,
+      }).catch(() => null);
+
       if (novoStatus === "concluido") {
-        await prepararContratoParaAssinatura(solic.id).catch(() => null);
         await arquivarDocumentoAssinado(solic.id);
       }
 
