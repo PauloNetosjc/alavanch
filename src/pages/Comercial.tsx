@@ -263,7 +263,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search, lojasFilter]);
 
   const stats = useMemo(() => {
     const negociacao = rows
