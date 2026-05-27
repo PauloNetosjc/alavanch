@@ -96,7 +96,9 @@ export default function Relatorios() {
     const brutoPv = pvs.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const ticket = pvs.length ? brutoPv / pvs.length : 0;
 
-    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length };
+    const descontoTotal = pedidos.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
+
+    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length, descontoTotal };
   }, [orcs, pedidos]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
