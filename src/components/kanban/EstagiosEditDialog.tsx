@@ -245,6 +245,7 @@ export function EstagiosEditDialog({
           concluir_acao: row.concluir_acao ?? "proxima",
           concluir_pipeline_destino: row.concluir_acao === "outro_kanban" ? row.concluir_pipeline_destino : null,
           concluir_estagio_destino_id: row.concluir_acao === "outro_kanban" ? row.concluir_estagio_destino_id : null,
+          criar_card_em: row.criar_card_em ?? [],
         };
         if (row.id.startsWith("new-")) {
           const { data, error } = await (supabase as any).from("pipeline_estagios").insert({ pipeline, ...payload }).select("id").single();
