@@ -146,8 +146,10 @@ export default function AssinaturaPublica() {
       }
 
       if (s.status === "cancelado") setErro("Esta solicitação foi cancelada.");
+      else if (s.status === "assinado_manual") setErro("Este contrato foi assinado manualmente. A assinatura digital foi encerrada.");
       else if (s.status === "expirado" || new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
       else if (s.status === "recusado") setErro("Esta assinatura foi recusada.");
+      else if (participanteAtual?.status === "cancelado_manual") setErro("Este contrato foi assinado manualmente. A assinatura digital foi encerrada.");
 
       setSolic(s as Solicitacao);
       setParticipante(participanteAtual);
