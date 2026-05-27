@@ -563,12 +563,29 @@ export async function prepararContratoParaAssinatura(
     .eq("id", solicitacaoId)
     .maybeSingle();
   if (!solic?.pedido_id || !solic?.contrato_id) return;
+  // Fallback: lê o participante cliente atualizado para alimentar o carimbo do contrato
+  const { data: partsAtuais } = await supabase
+    .from("assinatura_participantes" as any)
+    .select("tipo,status,nome,documento,assinado_em,ip,email")
+    .eq("solicitacao_id", solicitacaoId);
+  const partCli = (partsAtuais as any[] | null)?.find((p) => p.tipo === "cliente" && p.status === "assinado") || null;
+  const partLoja = (partsAtuais as any[] | null)?.find((p) => p.tipo === "loja" && p.status === "assinado") || null;
+
   const solicCtx: any = {
     ...(solic as any),
     ...(assinaturaCliente?.url ? { assinatura_cliente_url: assinaturaCliente.url } : {}),
     ...(assinaturaCliente?.assinadoEm ? { cliente_assinado_em: assinaturaCliente.assinadoEm } : {}),
     ...(assinaturaCliente?.ip ? { cliente_ip: assinaturaCliente.ip } : {}),
   };
+  // Reforço: garantir que cliente_assinado_em do espelho seja preenchido mesmo sem param,
+  // se houver participante cliente já assinado.
+  if (!solicCtx.cliente_assinado_em && partCli?.assinado_em) solicCtx.cliente_assinado_em = partCli.assinado_em;
+  if (!solicCtx.cliente_nome && partCli?.nome) solicCtx.cliente_nome = partCli.nome;
+  if (!solicCtx.cliente_documento && partCli?.documento) solicCtx.cliente_documento = partCli.documento;
+  if (!solicCtx.cliente_ip && partCli?.ip) solicCtx.cliente_ip = partCli.ip;
+  if (!solicCtx.loja_assinado_em && partLoja?.assinado_em) solicCtx.loja_assinado_em = partLoja.assinado_em;
+  if (!solicCtx.loja_assinatura_nome && partLoja?.nome) solicCtx.loja_assinatura_nome = partLoja.nome;
+  if (!solicCtx.loja_assinatura_email && partLoja?.email) solicCtx.loja_assinatura_email = partLoja.email;
 
   const [{ data: contrato }, { data: pedido }] = await Promise.all([
     supabase.from("contratos").select("*").eq("id", solic.contrato_id).maybeSingle(),
