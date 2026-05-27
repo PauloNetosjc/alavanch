@@ -515,7 +515,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={recarregarAssinatura} setGerando={setGerandoContrato} setRecemGerado={setContratoRecemGerado} />
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
