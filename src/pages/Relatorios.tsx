@@ -72,11 +72,13 @@ export default function Relatorios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo, lojasFiltro]);
 
-  // ===== KPIs por pedido (com bruto e líquido) =====
+  // ===== KPIs gerais =====
   const kpi = useMemo(() => {
-    const fechados = orcs.filter((o) => ["aprovado", "fechado", "convertido", "confirmado"].includes(o.status));
+    // Conversão considera apenas PEDIDOS (sem adendo/complemento)
+    const orcsPedido = orcs.filter((o: any) => !o.is_adendo && !o.is_complemento);
+    const fechadosPed = orcsPedido.filter((o) => ["aprovado", "fechado", "convertido", "confirmado"].includes(o.status));
     const cancelados = orcs.filter((o) => o.status === "cancelado").length;
-    const conv = orcs.length ? (fechados.length / orcs.length) * 100 : 0;
+    const conv = orcsPedido.length ? (fechadosPed.length / orcsPedido.length) * 100 : 0;
 
     const bruto = pedidos.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const juros = pedidos.reduce((s, p) => s + Number(p.juros_total || 0), 0);
@@ -86,9 +88,15 @@ export default function Relatorios() {
     pedidos.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
       custoTotal += Number(a.custo_loja || a.custo_fabrica || a.custo_aquisicao || 0);
     }));
-    const margem = liquido > 0 ? ((liquido - custoTotal) / liquido) * 100 : 0;
-    const ticket = pedidos.length ? bruto / pedidos.length : 0;
-    return { bruto, liquido, juros, rt, custoTotal, margem, ticket, qtd: pedidos.length, conv, cancelados };
+    const margemValor = liquido - custoTotal;
+    const margemPerc = liquido > 0 ? (margemValor / liquido) * 100 : 0;
+
+    // Ticket médio: apenas contratos (PV)
+    const pvs = pedidos.filter((p) => !p.is_adendo && !p.is_complemento);
+    const brutoPv = pvs.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+    const ticket = pvs.length ? brutoPv / pvs.length : 0;
+
+    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length };
   }, [orcs, pedidos]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
@@ -110,7 +118,7 @@ export default function Relatorios() {
       }));
       const margem = liq > 0 ? ((liq - custo) / liq) * 100 : 0;
       const ticket = arr.length ? bruto / arr.length : 0;
-      return { ...b, qtd: arr.length, bruto, liquido: liq, margem, ticket };
+      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket };
     });
   }, [pedidos]);
 
