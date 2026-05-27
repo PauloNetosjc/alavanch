@@ -2125,10 +2125,25 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
   const [criando, setCriando] = useState(false);
+  const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
 
-  // SEMPRE usa o novo módulo público /assinatura/:token
-  const newSigningUrl = solic?.token ? getPublicSignatureUrl(solic.token) : null;
-  const signingUrl = newSigningUrl;
+  // Carrega tokens dos PARTICIPANTES (nunca solicitacao.token)
+  useEffect(() => {
+    (async () => {
+      if (!solic?.id) { setTokens({}); return; }
+      await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: solic.id });
+      const { data: parts } = await supabase
+        .from("assinatura_participantes" as any)
+        .select("tipo,token")
+        .eq("solicitacao_id", solic.id);
+      const map: any = {};
+      for (const p of (parts as any[]) || []) map[p.tipo] = p.token;
+      setTokens(map);
+    })();
+  }, [solic?.id]);
+
+  const linkCliente = tokens.cliente ? getPublicSignatureUrl(tokens.cliente) : null;
+  const linkLoja = tokens.loja ? getPublicSignatureUrl(tokens.loja) : null;
 
   const criarSolicitacao = async () => {
     setCriando(true);
@@ -2145,28 +2160,28 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
     } finally { setCriando(false); }
   };
 
-  const copiarLink = async () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
-    await navigator.clipboard.writeText(signingUrl);
-    toast.success("Link copiado");
+  const copiar = async (url: string | null, label: string) => {
+    if (!url) return toast.error("Link indisponível.");
+    await navigator.clipboard.writeText(url);
+    toast.success(`Link da ${label} copiado`);
   };
 
   const enviarEmail = () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
+    if (!linkCliente) return toast.error("Link do cliente indisponível.");
     if (!cliente?.email) return toast.error("Cliente sem e-mail cadastrado");
     const assunto = encodeURIComponent(`Contrato ${contrato.numero} - assinatura`);
     const corpo = encodeURIComponent(
-      `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${signingUrl}\n\nObrigado!`
+      `Olá ${cliente?.nome || ""},\n\nSegue o link para assinatura digital do seu contrato:\n${linkCliente}\n\nObrigado!`
     );
     window.open(`mailto:${cliente.email}?subject=${assunto}&body=${corpo}`, "_blank");
   };
 
   const enviarWhatsapp = () => {
-    if (!signingUrl) return toast.error("Crie a solicitação de assinatura primeiro.");
+    if (!linkCliente) return toast.error("Link do cliente indisponível.");
     if (!cliente?.telefone) return toast.error("Cliente sem telefone cadastrado");
     const fone = String(cliente.telefone).replace(/\D/g, "");
     const msg = encodeURIComponent(
-      `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${signingUrl}`
+      `Olá ${cliente?.nome || ""}, segue o link para assinatura do contrato ${contrato.numero}: ${linkCliente}`
     );
     window.open(`https://wa.me/55${fone}?text=${msg}`, "_blank");
   };
@@ -2200,8 +2215,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
       )}
       {solic && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={copiarLink}>
-            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link
+          {linkLoja && (
+            <Button size="sm" variant="outline" onClick={() => copiar(linkLoja, "loja")}>
+              <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link da loja
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => copiar(linkCliente, "cliente")}>
+            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar link do cliente
           </Button>
           <Button size="sm" variant="outline" onClick={enviarEmail}>
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por e-mail
@@ -2216,7 +2236,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
           Solicitação criada em {new Date(solic.created_at).toLocaleString("pt-BR")}.
         </div>
       )}
-
     </div>
   );
 }
