@@ -13,9 +13,14 @@ import { toast } from "sonner";
 type ParcelaConfig = {
   numero: number;
   juros_perc: number;
-  forma_pagamento: string;
+  /** Pode ser string única (legado) ou lista de formas aceitas */
+  forma_pagamento: string | string[];
   desconto_perc: number;
 };
+
+/** Normaliza para array de formas (suporta legado string) */
+const toFormas = (v: string | string[] | undefined | null): string[] =>
+  Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []);
 
 type Metodo = {
   id: string;
