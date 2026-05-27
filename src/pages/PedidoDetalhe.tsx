@@ -1648,6 +1648,54 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         onAssinarLoja={(id) => { setVerAssinaturasId(null); setAssinarLojaId(id); }}
         onChange={onChange}
       />
+
+      {/* Visualizador interno de arquivo */}
+      <Dialog open={!!viewDoc} onOpenChange={(v) => {
+        if (!v && viewDoc) { URL.revokeObjectURL(viewDoc.url); setViewDoc(null); }
+      }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm truncate pr-4">{viewDoc?.nome}</DialogTitle>
+            <div className="flex items-center gap-2">
+              {viewDoc && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => window.open(viewDoc.url, "_blank")}>
+                    <ExternalLink className="w-4 h-4 mr-1.5" /> Nova aba
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = viewDoc.url; a.download = viewDoc.nome;
+                    document.body.appendChild(a); a.click(); a.remove();
+                  }}>
+                    <Download className="w-4 h-4 mr-1.5" /> Baixar
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-muted/30 flex items-center justify-center">
+            {viewDoc && viewDoc.mime.startsWith("application/pdf") && (
+              <iframe src={viewDoc.url} title={viewDoc.nome} className="w-full h-full border-0" />
+            )}
+            {viewDoc && viewDoc.mime.startsWith("image/") && (
+              <img src={viewDoc.url} alt={viewDoc.nome} className="max-w-full max-h-[80vh] object-contain" />
+            )}
+            {viewDoc && !viewDoc.mime.startsWith("application/pdf") && !viewDoc.mime.startsWith("image/") && (
+              <div className="text-center p-8">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">Pré-visualização não disponível para este tipo de arquivo.</p>
+                <Button onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = viewDoc.url; a.download = viewDoc.nome;
+                  document.body.appendChild(a); a.click(); a.remove();
+                }}>
+                  <Download className="w-4 h-4 mr-1.5" /> Baixar arquivo
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
