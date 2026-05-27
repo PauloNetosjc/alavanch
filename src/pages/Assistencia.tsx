@@ -513,6 +513,10 @@ function NovaAssistenciaDialog({
       }
     }
     if (ins) {
+      try {
+        const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
+        if (pedidoId) await dispatchKanbanTrigger("assistencia_aberta", { pedidoId });
+      } catch {}
       await logAssistenciaEvent(ins.id, "criacao", `Chamado ${codigo} criado`, {
         prioridade,
         pedido_id: pedidoId,
