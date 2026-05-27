@@ -78,3 +78,22 @@ export async function buildLojaSignatureBlob(d: LojaSignatureData): Promise<Blob
   const svg = buildLojaSignatureSvg(d);
   return new Blob([svg], { type: "image/svg+xml" });
 }
+
+export async function buildLojaSignaturePngBlob(d: LojaSignatureData): Promise<Blob> {
+  const dataUrl = buildLojaSignatureDataUrl(d);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 620;
+      canvas.height = img.naturalHeight || 240;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Não foi possível gerar a assinatura da loja."));
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Não foi possível gerar a assinatura da loja.")), "image/png");
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
