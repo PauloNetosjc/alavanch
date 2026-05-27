@@ -1439,9 +1439,10 @@ export default function ComercialNovo() {
                 </div>
                 <div>
                   <h1 className="text-[26px] font-semibold leading-none">Adicione Ambientes</h1>
-                  <p className="text-[13px] text-muted-foreground mt-1.5">
-                    Importe XML do Promob ou adicione manualmente
+                <p className="text-[13px] text-muted-foreground mt-1.5">
+                    Importe um projeto, monte a partir do estoque ou adicione manualmente
                   </p>
+
                 </div>
               </div>
 
