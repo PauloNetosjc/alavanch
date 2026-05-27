@@ -43,7 +43,7 @@ export default function Relatorios() {
       setLoading(true);
       let qOrc = supabase.from("orcamentos").select("id, codigo, total, status, created_at, parceiro_id, cliente_id, loja_id, origem_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido)");
       let qPed = supabase.from("pedidos").select("id, codigo, valor_total, juros_total, rt_repassado, is_adendo, is_complemento, status, created_at, cliente_id, loja_id, orcamento_id, orcamentos(origem_id, desconto_valor, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido))");
-      let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, valor_calculado, loja_id, parceiros(nome)");
+      let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, pedido_id, valor_calculado, loja_id, parceiros(nome)");
       let qAge = supabase.from("agenda_eventos" as any).select("id, tipo, data, status, loja_id, orcamento_id, pedido_id");
 
       if (inicio && fim) {
