@@ -1411,6 +1411,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     toast.error("Erro ao baixar: " + (e?.message || "desconhecido"));
                   }
                 }}><FileText className="w-4 h-4" /></Button>
+                )}
                 {!d._readonly && (
                   <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
                     <Trash2 className="w-4 h-4 text-red-500" />
