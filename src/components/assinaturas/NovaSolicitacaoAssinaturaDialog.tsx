@@ -112,6 +112,81 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         descricao: "Solicitação de assinatura criada",
       });
 
+      // === Pré-assinatura automática da loja (carimbo + assinatura simulada) ===
+      try {
+        const { data: lojaInfo } = await supabase
+          .from("lojas")
+          .select("nome,cnpj,endereco,cidade,uf")
+          .eq("id", pedido.loja_id)
+          .maybeSingle();
+        const responsavel = (profile as any)?.nome_completo || user?.email || "Loja";
+        const sigData = {
+          nome: lojaInfo?.nome || "Loja",
+          cnpj: lojaInfo?.cnpj,
+          endereco: lojaInfo?.endereco,
+          cidade: lojaInfo?.cidade,
+          uf: lojaInfo?.uf,
+          responsavel,
+        };
+        const sigBlob = await buildLojaSignatureBlob(sigData);
+        const sigPath = `${data.id}/assinatura-loja-${Date.now()}.svg`;
+        let assinaturaLojaUrl = "";
+        const up = await supabase.storage
+          .from("assinaturas-evidencias")
+          .upload(sigPath, sigBlob, { upsert: true, contentType: "image/svg+xml" });
+        if (!up.error) {
+          assinaturaLojaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+        } else {
+          // fallback: data URL inline caso storage falhe
+          assinaturaLojaUrl = buildLojaSignatureDataUrl(sigData);
+        }
+
+        const { data: partLoja } = await supabase
+          .from("assinatura_participantes")
+          .insert({
+            solicitacao_id: data.id,
+            tipo: "loja",
+            nome: responsavel,
+            user_id: user?.id || null,
+            cargo: role || null,
+            status: "assinado",
+            assinado_em: new Date().toISOString(),
+            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+          })
+          .select()
+          .single();
+
+        await supabase.from("assinatura_evidencias").insert({
+          solicitacao_id: data.id,
+          participante_id: partLoja?.id,
+          assinatura_url: assinaturaLojaUrl,
+          aceite: true,
+          aceite_texto: "Pré-assinatura digital da loja (carimbo eletrônico)",
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        });
+
+        await supabase
+          .from("solicitacoes_assinatura")
+          .update({
+            loja_assinado_em: new Date().toISOString(),
+            assinatura_loja_url: assinaturaLojaUrl,
+          })
+          .eq("id", data.id);
+
+        await supabase.from("assinatura_eventos").insert({
+          solicitacao_id: data.id,
+          tipo_evento: "loja_assinou",
+          status_anterior: "aguardando_cliente",
+          status_novo: "aguardando_cliente",
+          descricao: `Loja pré-assinou automaticamente (${responsavel})`,
+          user_id: user?.id || null,
+        });
+      } catch (preErr) {
+        // Não bloqueia a criação se a pré-assinatura falhar
+        console.warn("Falha ao gerar pré-assinatura da loja:", preErr);
+      }
+
+
       const url = getPublicSignatureUrl(data.token);
       setLink(url);
       onCreated?.(data.id, url);
