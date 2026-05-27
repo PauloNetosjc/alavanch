@@ -22,35 +22,105 @@ export default function Ranking() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      let qOrc = supabase.from("orcamentos").select("consultor_id, total, status, created_at, loja_id");
+      let qOrc = supabase.from("orcamentos").select("id, consultor_id, total, status, created_at, loja_id");
       if (inicio && fim) qOrc = qOrc.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
       if (lojasFiltro.length > 0) qOrc = qOrc.in("loja_id", lojasFiltro);
+
+      let qPed = supabase
+        .from("pedidos")
+        .select("id, valor_total, juros_total, rt_repassado, status, created_at, loja_id, orcamento_id, is_adendo, is_complemento");
+      if (inicio && fim) qPed = qPed.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
+      if (lojasFiltro.length > 0) qPed = qPed.in("loja_id", lojasFiltro);
 
       const r = periodo.ref;
       let qMetas = supabase.from("metas_vendas" as any).select("vendedor_id, meta_valor, loja_id").eq("ano", r.getFullYear()).eq("mes", r.getMonth() + 1);
       if (lojasFiltro.length > 0) qMetas = qMetas.in("loja_id", lojasFiltro);
 
-      const [{ data: orcs }, { data: profs }, { data: metasData }] = await Promise.all([
-        qOrc, supabase.from("profiles").select("user_id, nome_completo"), qMetas,
+      const [{ data: orcs }, { data: peds }, { data: profs }, { data: metasData }] = await Promise.all([
+        qOrc, qPed, supabase.from("profiles").select("user_id, nome_completo"), qMetas,
       ]);
       const metas = (metasData as any[]) || [];
       setMetaGlobal(metas.filter((m) => !m.vendedor_id).reduce((s, m) => s + Number(m.meta_valor || 0), 0));
 
-      const map = new Map<string, Row>();
-      (orcs || []).forEach((o: any) => {
-        if (!o.consultor_id) return;
-        const cur = map.get(o.consultor_id) || {
-          user_id: o.consultor_id,
-          nome: profs?.find((p) => p.user_id === o.consultor_id)?.nome_completo || "—",
-          total: 0, qtd: 0, meta: 0, conv: 0, apresentados: 0, ticket: 0,
-        };
-        cur.apresentados += 1;
-        if (["aprovado", "fechado", "convertido", "confirmado"].includes(o.status)) {
-          cur.total += Number(o.total || 0);
-          cur.qtd += 1;
+      // Pedidos ativos (PV+CP, sem AD, não cancelados)
+      const pedsAtivos = ((peds as any[]) || []).filter(
+        (p) => !p.is_adendo && (p.status || "").toLowerCase() !== "cancelado"
+      );
+      const pedIds = pedsAtivos.map((p: any) => p.id);
+      const orcIdsP = Array.from(new Set(pedsAtivos.map((p: any) => p.orcamento_id).filter(Boolean)));
+
+      // Juros (a partir dos pagamentos do orçamento) e RT (parceiro_comissoes)
+      const [{ data: pags }, { data: mets }, { data: comissoes }] = await Promise.all([
+        orcIdsP.length
+          ? supabase.from("pagamentos_orcamento").select("orcamento_id, metodo, parcelas, valor").in("orcamento_id", orcIdsP)
+          : Promise.resolve({ data: [] as any[] } as any),
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela, parcelas_config"),
+        pedIds.length
+          ? supabase.from("parceiro_comissoes" as any).select("pedido_id, valor_calculado").in("pedido_id", pedIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+      ]);
+      const metodosMap = new Map<string, any>();
+      ((mets as any[]) || []).forEach((m: any) => metodosMap.set(m.nome, m));
+      const jurosPorOrc = new Map<string, number>();
+      ((pags as any[]) || []).forEach((pg: any) => {
+        const n = Number(pg.parcelas) || 1;
+        if (n <= 1) return;
+        const met = metodosMap.get(pg.metodo);
+        let juros = 0;
+        const cfg = Array.isArray(met?.parcelas_config) ? met.parcelas_config.find((c: any) => Number(c?.numero) === n) : null;
+        const jurosPerc = Number(cfg?.juros_perc) || 0;
+        if (jurosPerc > 0) {
+          juros = (Number(pg.valor || 0) * jurosPerc) / 100;
+        } else {
+          const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+          if (taxa) {
+            const principal = Number(pg.valor || 0) / n;
+            for (let i = 1; i < n; i++) juros += principal * taxa * i;
+          }
         }
-        map.set(o.consultor_id, cur);
+        jurosPorOrc.set(pg.orcamento_id, (jurosPorOrc.get(pg.orcamento_id) || 0) + juros);
       });
+      const rtPorPed = new Map<string, number>();
+      ((comissoes as any[]) || []).forEach((c: any) => {
+        rtPorPed.set(c.pedido_id, (rtPorPed.get(c.pedido_id) || 0) + Number(c.valor_calculado || 0));
+      });
+
+      // Mapa orcamento_id -> consultor_id
+      const consultorPorOrc = new Map<string, string>();
+      ((orcs as any[]) || []).forEach((o: any) => { if (o.consultor_id) consultorPorOrc.set(o.id, o.consultor_id); });
+
+      const map = new Map<string, Row>();
+      const ensure = (uid: string) => {
+        let cur = map.get(uid);
+        if (!cur) {
+          cur = {
+            user_id: uid,
+            nome: profs?.find((p) => p.user_id === uid)?.nome_completo || "—",
+            total: 0, qtd: 0, meta: 0, conv: 0, apresentados: 0, ticket: 0,
+          };
+          map.set(uid, cur);
+        }
+        return cur;
+      };
+
+      // Apresentados = orçamentos do consultor (todos do período)
+      ((orcs as any[]) || []).forEach((o: any) => {
+        if (!o.consultor_id) return;
+        const cur = ensure(o.consultor_id);
+        cur.apresentados += 1;
+      });
+
+      // Vendido líquido = pedidos PV+CP ativos vinculados ao consultor (via orçamento)
+      pedsAtivos.forEach((p: any) => {
+        const uid = consultorPorOrc.get(p.orcamento_id);
+        if (!uid) return;
+        const cur = ensure(uid);
+        const juros = Number(p.juros_total) || jurosPorOrc.get(p.orcamento_id) || 0;
+        const rt = Number(p.rt_repassado) > 0 ? Number(p.rt_repassado) : (rtPorPed.get(p.id) || 0);
+        cur.total += Number(p.valor_total || 0) - juros - rt;
+        cur.qtd += 1;
+      });
+
       const arr = Array.from(map.values()).map((x) => {
         const meta = Number(metas.find((m) => m.vendedor_id === x.user_id)?.meta_valor || 0);
         return { ...x, meta, conv: x.apresentados ? (x.qtd / x.apresentados) * 100 : 0, ticket: x.qtd ? x.total / x.qtd : 0 };
@@ -65,6 +135,7 @@ export default function Ranking() {
       }
     })();
   }, [periodo, lojasFiltro]);
+
 
   const totalRealizado = rows.reduce((s, r) => s + r.total, 0);
   const pctGlobal = metaGlobal > 0 ? (totalRealizado / metaGlobal) * 100 : 0;
