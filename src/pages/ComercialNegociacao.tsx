@@ -153,8 +153,10 @@ function ResumoFinanceiroDialog({
   const podeVerCusto = can("itens", "view_custo");
   const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
+  // Indicador incide sobre o Valor Total da Venda (recalcula a partir do %)
+  const parceiroValorReal = totalProposta * (parceiroPerc / 100);
   const valorSemJuros = totalProposta - jurosCliente;
-  const totalVPL = valorSemJuros - parceiroValor;
+  const totalVPL = valorSemJuros - parceiroValorReal;
 
   // Itens fixos da Formação de Preço (alinhado com Configurações)
   const FIXED_ITEMS = [
