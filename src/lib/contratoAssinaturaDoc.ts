@@ -740,6 +740,12 @@ export async function prepararContratoParaAssinatura(
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);
+  // Hash SHA-256 real do PDF final (hex)
+  const pdfBuffer = await blob.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+  const documentHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   // Caminho versionado por timestamp para evitar cache de CDN/navegador no PDF antigo em branco.
   const version = Date.now();
   const path = `${solic.pedido_id}/contrato-${safeName(contrato.numero || solic.id)}-${solic.id}-v${version}.pdf`;
@@ -749,6 +755,7 @@ export async function prepararContratoParaAssinatura(
     cacheControl: "0",
   });
   if (upErr) throw upErr;
+  await supabase.from("contratos").update({ document_hash: documentHash } as any).eq("id", contrato.id);
   const publicUrl = supabase.storage.from("contratos-assinatura").getPublicUrl(path).data.publicUrl;
   const docPayload = {
       pedido_id: solic.pedido_id,
