@@ -40,19 +40,20 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
   ]);
   if (!contrato || !pedido) return;
 
-  const [{ data: loja }, { data: cliente }, { data: tpl }, { data: auth }] = await Promise.all([
+  const [{ data: loja }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
     supabase.auth.getUser(),
   ]);
 
-  const { data: profile } = auth?.user?.id
-    ? await supabase.from("profiles").select("nome_completo,cargo").eq("user_id", auth.user.id).maybeSingle()
+  const currentUser = (auth as any)?.data?.user;
+  const { data: profile } = currentUser?.id
+    ? await supabase.from("profiles").select("nome_completo,cargo").eq("user_id", currentUser.id).maybeSingle()
     : ({ data: null } as any);
 
   const lojaNome = loja?.nome || (contrato.conteudo_snapshot as any)?.empresa?.nome || "Loja";
-  const responsavel = profile?.nome_completo || auth?.user?.email || lojaNome;
+  const responsavel = profile?.nome_completo || currentUser?.email || lojaNome;
   const assinaturaLojaUrl = solic.assinatura_loja_url || buildLojaSignatureDataUrl({
     nome: lojaNome,
     cnpj: loja?.cnpj || (contrato.conteudo_snapshot as any)?.empresa?.cnpj,
@@ -73,7 +74,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
           solicitacao_id: solicitacaoId,
           tipo: "loja",
           nome: responsavel,
-          user_id: auth?.user?.id || null,
+          user_id: currentUser?.id || null,
           cargo: profile?.cargo || null,
           status: "assinado",
           assinado_em: lojaAssinadoEm,
@@ -99,7 +100,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
       status_anterior: solic.status,
       status_novo: solic.status,
       descricao: `Loja pré-assinou automaticamente (${responsavel})`,
-      user_id: auth?.user?.id || null,
+      user_id: currentUser?.id || null,
     });
   }
 
