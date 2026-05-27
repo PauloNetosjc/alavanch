@@ -72,11 +72,13 @@ export default function Relatorios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo, lojasFiltro]);
 
-  // ===== KPIs por pedido (com bruto e líquido) =====
+  // ===== KPIs gerais =====
   const kpi = useMemo(() => {
-    const fechados = orcs.filter((o) => ["aprovado", "fechado", "convertido", "confirmado"].includes(o.status));
+    // Conversão considera apenas PEDIDOS (sem adendo/complemento)
+    const orcsPedido = orcs.filter((o: any) => !o.is_adendo && !o.is_complemento);
+    const fechadosPed = orcsPedido.filter((o) => ["aprovado", "fechado", "convertido", "confirmado"].includes(o.status));
     const cancelados = orcs.filter((o) => o.status === "cancelado").length;
-    const conv = orcs.length ? (fechados.length / orcs.length) * 100 : 0;
+    const conv = orcsPedido.length ? (fechadosPed.length / orcsPedido.length) * 100 : 0;
 
     const bruto = pedidos.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const juros = pedidos.reduce((s, p) => s + Number(p.juros_total || 0), 0);
@@ -86,9 +88,15 @@ export default function Relatorios() {
     pedidos.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
       custoTotal += Number(a.custo_loja || a.custo_fabrica || a.custo_aquisicao || 0);
     }));
-    const margem = liquido > 0 ? ((liquido - custoTotal) / liquido) * 100 : 0;
-    const ticket = pedidos.length ? bruto / pedidos.length : 0;
-    return { bruto, liquido, juros, rt, custoTotal, margem, ticket, qtd: pedidos.length, conv, cancelados };
+    const margemValor = liquido - custoTotal;
+    const margemPerc = liquido > 0 ? (margemValor / liquido) * 100 : 0;
+
+    // Ticket médio: apenas contratos (PV)
+    const pvs = pedidos.filter((p) => !p.is_adendo && !p.is_complemento);
+    const brutoPv = pvs.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+    const ticket = pvs.length ? brutoPv / pvs.length : 0;
+
+    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length };
   }, [orcs, pedidos]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
@@ -110,7 +118,7 @@ export default function Relatorios() {
       }));
       const margem = liq > 0 ? ((liq - custo) / liq) * 100 : 0;
       const ticket = arr.length ? bruto / arr.length : 0;
-      return { ...b, qtd: arr.length, bruto, liquido: liq, margem, ticket };
+      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket };
     });
   }, [pedidos]);
 
@@ -192,15 +200,37 @@ export default function Relatorios() {
         <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
       </div>
 
-      {/* KPIs */}
+      {/* KPIs gerais */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" />
-        <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" />
-        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={`${kpi.margem.toFixed(1)}%`} badge="Real" />
-        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtd} ped.`} />
-        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." />
+        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" hint={`Juros previstos: ${fmtBRL(kpi.juros)}`} />
+        <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" hint={`RT indicação: ${fmtBRL(kpi.rt)}`} />
+        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(kpi.margemValor)} badge={`${kpi.margemPerc.toFixed(1)}%`} hint={`Custo previsto: ${fmtBRL(kpi.custoTotal)}`} />
+        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtdPv} contratos`} hint="Somente PV (sem adendo/complemento)" />
+        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." hint={`${kpi.fechadosPed}/${kpi.totalOrcPed} orçamentos PV`} />
         <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" />
       </div>
+
+      {/* KPIs por tipo de pedido */}
+      <div className="space-y-3">
+        {porTipo.map((t) => (
+          <div key={t.code}>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+              <span className="font-medium text-foreground">{t.tipo}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary">{t.code}</span>
+              <span>· {t.qtd} {t.qtd === 1 ? "registro" : "registros"}</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(t.bruto)} badge="Bruto" hint={`Juros: ${fmtBRL(t.juros)}`} />
+              <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(t.liquido)} badge="− juros − RT" hint={`RT: ${fmtBRL(t.rt)}`} />
+              <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(t.margemValor)} badge={`${t.margem.toFixed(1)}%`} hint={`Custo: ${fmtBRL(t.custo)}`} />
+              <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(t.ticket)} badge={`${t.qtd}`} />
+              <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Part. Bruto" value={kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"} badge="Share" />
+              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto (Juros+RT)" value={fmtBRL(t.juros + t.rt)} badge="Deduções" />
+            </div>
+          </div>
+        ))}
+      </div>
+
 
       {/* Tabela por tipo (PV / AD / CP) */}
       <div className="surface-card p-5">
@@ -376,7 +406,7 @@ export default function Relatorios() {
   );
 }
 
-function KpiBig({ icon, color, label, value, badge }: { icon: React.ReactNode; color: "primary" | "emerald" | "rose"; label: string; value: string; badge: string }) {
+function KpiBig({ icon, color, label, value, badge, hint }: { icon: React.ReactNode; color: "primary" | "emerald" | "rose"; label: string; value: string; badge: string; hint?: string }) {
   const colors: Record<string, { bg: string; fg: string; badgeBg: string; badgeFg: string }> = {
     primary: { bg: "bg-primary/15", fg: "text-primary", badgeBg: "bg-primary/15", badgeFg: "text-primary" },
     emerald: { bg: "bg-emerald-500/15", fg: "text-emerald-500", badgeBg: "bg-emerald-500/15", badgeFg: "text-emerald-500" },
@@ -391,6 +421,7 @@ function KpiBig({ icon, color, label, value, badge }: { icon: React.ReactNode; c
       </div>
       <div className="text-[10px] uppercase text-muted-foreground tracking-wider mt-3">{label}</div>
       <div className="text-[18px] font-medium mt-1">{value}</div>
+      {hint && <div className="text-[10px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
