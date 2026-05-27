@@ -1401,6 +1401,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => abrirViewer(d)}>👁 Visualizar arquivo</DropdownMenuItem>
                           <DropdownMenuItem onClick={async () => {
                             try {
                               const bucket = d.bucket_name || "contratos-assinatura";
