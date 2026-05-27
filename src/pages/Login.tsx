@@ -53,7 +53,7 @@ export default function Login() {
         />
 
         <div className="relative z-10">
-          <img src={logo} alt="Alavanch" className="h-14 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
+          <img src={logo} alt="Alavanch" className="h-20 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
         </div>
 
         <div className="relative z-10 space-y-6 max-w-md">
@@ -83,7 +83,7 @@ export default function Login() {
 
         <div className="relative z-10 w-full max-w-md">
           <div className="lg:hidden mb-10 flex justify-center">
-            <img src={logo} alt="Alavanch" className="h-12 w-auto" />
+            <img src={logo} alt="Alavanch" className="h-18 w-auto" style={{ height: "4.5rem" }} />
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_0_60px_-15px_rgba(139,92,246,0.25)]">
