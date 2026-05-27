@@ -2649,10 +2649,18 @@ function PedidoAcoesMenu({
     }
     setCancelando(true);
     await salvarPedido({ status: "cancelado" });
+    // Reverte o orçamento associado para a fase de negociação
+    if (pedido?.orcamento_id) {
+      await supabase.from("orcamentos").update({
+        status: "negociacao",
+        confirmado_em: null,
+      }).eq("id", pedido.orcamento_id);
+    }
     setCancelando(false);
     setCancelOpen(false);
     setConfirmText("");
-    toast.success("Pedido cancelado");
+    toast.success("Pedido cancelado. Orçamento retornado para negociação.");
+    navigate(`/comercial/negociacao/${pedido.orcamento_id}`);
   };
 
   return (
