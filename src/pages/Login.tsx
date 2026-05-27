@@ -53,7 +53,7 @@ export default function Login() {
         />
 
         <div className="relative z-10">
-          <img src={logo} alt="Alavanch" className="h-14 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
+          <img src={logo} alt="Alavanch" className="h-20 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
         </div>
 
         <div className="relative z-10 space-y-6 max-w-md">
