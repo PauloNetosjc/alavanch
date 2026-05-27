@@ -113,7 +113,20 @@ export default function KanbanBoard({
         supabase.from("profiles").select("user_id,nome_completo"),
       ]);
       setEstagios((est ?? []) as Estagio[]);
-      setCards((rows ?? []) as CardRow[]);
+      const cardsBase = (rows ?? []) as CardRow[];
+      // Carrega etiquetas dos pedidos exibidos
+      const pedidoIds = Array.from(new Set(cardsBase.map((c) => c.pedido_id).filter(Boolean)));
+      let etMap: Record<string, { id: string; nome: string; cor: string }[]> = {};
+      if (pedidoIds.length) {
+        const { data: vinc } = await (supabase as any).from("pedido_etiquetas")
+          .select("pedido_id, etiqueta:etiquetas(id,nome,cor,ativo)")
+          .in("pedido_id", pedidoIds);
+        (vinc || []).forEach((v: any) => {
+          if (!v?.etiqueta || v.etiqueta.ativo === false) return;
+          (etMap[v.pedido_id] = etMap[v.pedido_id] || []).push(v.etiqueta);
+        });
+      }
+      setCards(cardsBase.map((c) => ({ ...c, etiquetas: etMap[c.pedido_id] || [] })));
       setProfiles((profs ?? []) as any);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao carregar Kanban");
