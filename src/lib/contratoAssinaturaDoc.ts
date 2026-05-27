@@ -221,9 +221,9 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     const PAGE_W_PX = CONTENT_W_PX;
     const PAGE_H_PX = Math.round(CONTENT_H_MM * 3.7795); // ~1047px para 277mm
 
-    const isAttachmentImage = (el: Element): el is HTMLElement =>
+    const isAttachmentImage = (el: Element): boolean =>
       el instanceof HTMLElement &&
-      (el.matches?.("img.pdf-page-image, img.anexo-imagem, img[data-pdf-page='true'], img[data-anexo='true'], .pdf-page-image, .anexo-imagem, [data-pdf-page='true'], [data-anexo='true']") ?? false);
+      !!el.matches?.("img.pdf-page-image, img.anexo-imagem, img[data-pdf-page='true'], img[data-anexo='true'], .pdf-page-image, .anexo-imagem, [data-pdf-page='true'], [data-anexo='true']");
 
     // Pega blocos de topo. Se houver só 1 filho que é container, desce um nível.
     let topNodes: HTMLElement[] = Array.from(wrapper.children) as HTMLElement[];
