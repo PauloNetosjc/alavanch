@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
+import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
 
 const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
@@ -1167,6 +1168,10 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                 )}
                 <Button size="sm" variant="ghost" title="Baixar PDF" onClick={async () => {
                   try {
+                    if (sol && ["concluido", "assinado_loja", "assinado_cliente", "aguardando_loja"].includes(sol.status)) {
+                      await baixarPdfFinalAssinatura(sol.id, d.nome);
+                      return;
+                    }
                     const bucket = d._bucket || d.bucket_name || "pedido-docs";
                     const path = d.storage_path;
                     const baseName = (d.nome || (path?.split("/").pop() ?? "arquivo")).replace(/\.(html?|txt|pdf)$/i, "");
