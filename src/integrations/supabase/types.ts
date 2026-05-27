@@ -3885,6 +3885,56 @@ export type Database = {
         }
         Relationships: []
       }
+      regras_comissao: {
+        Row: {
+          comissao_percentual: number
+          created_at: string
+          id: string
+          loja_id: string | null
+          meta_minima: number
+          modo: string
+          premiacao_step_a_partir_de: number
+          premiacao_step_tamanho: number
+          premiacao_step_valor: number
+          premiacao_tiers: Json
+          updated_at: string
+        }
+        Insert: {
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          meta_minima?: number
+          modo?: string
+          premiacao_step_a_partir_de?: number
+          premiacao_step_tamanho?: number
+          premiacao_step_valor?: number
+          premiacao_tiers?: Json
+          updated_at?: string
+        }
+        Update: {
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          meta_minima?: number
+          modo?: string
+          premiacao_step_a_partir_de?: number
+          premiacao_step_tamanho?: number
+          premiacao_step_valor?: number
+          premiacao_tiers?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_comissao_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: true
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_cargos: {
         Row: {
           created_at: string
