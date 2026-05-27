@@ -35,6 +35,8 @@ type Solicitacao = {
   cliente_id: string | null;
   loja_id: string | null;
   tipo_documento_id: string;
+  assinatura_loja_url?: string | null;
+  loja_assinado_em?: string | null;
 };
 
 async function fileToDataUrl(file: File): Promise<string> {
@@ -135,7 +137,12 @@ export default function AssinaturaPublica() {
           setTpl(tpls as any);
           if (tpls && ct.conteudo_snapshot) {
             try {
-              setDocHtml(renderContratoHtml(tpls as any, { ...(ct.conteudo_snapshot as any), signing_url: `${getPublicSignatureUrl(token)}?v=${cacheBust}` }));
+              setDocHtml(renderContratoHtml(tpls as any, {
+                ...(ct.conteudo_snapshot as any),
+                signing_url: `${getPublicSignatureUrl(token)}?v=${cacheBust}`,
+                assinatura_loja_url: (s as any).assinatura_loja_url,
+                loja_assinado_em: (s as any).loja_assinado_em,
+              }));
             } catch {/* noop */}
           }
         }
