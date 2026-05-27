@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature,
+  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LojasFilter } from "@/components/financeiro/LojasFilter";
@@ -533,10 +533,10 @@ export default function Comercial() {
                     </div>
                     <div className="mt-3 flex justify-end">
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
                       >
-                        <Calculator className="w-3.5 h-3.5" /> Negociar
+                        {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
                       </button>
                     </div>
                   </li>
@@ -609,12 +609,12 @@ export default function Comercial() {
                         </TableCell>
                         <TableCell className="text-right">
                           <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                            onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                            aria-label="Negociação"
-                            title="Abrir negociação"
+                            aria-label={isVenda ? "Visualizar pedido" : "Negociação"}
+                            title={isVenda ? "Visualizar pedido" : "Abrir negociação"}
                           >
-                            <Calculator className="w-3.5 h-3.5" /> Negociar
+                            {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
                           </button>
                         </TableCell>
                       </TableRow>
