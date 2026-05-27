@@ -94,14 +94,26 @@ export default function BaterPonto() {
   const turnoCurto = useMemo(() => {
     if (!hd) return false;
     const dur = hmToMin(hd.hora_saida) - hmToMin(hd.hora_entrada);
-    return dur > 0 && dur < 300; // < 5h: sem almoço
+    return dur > 0 && dur < 300; // < 5h: almoço opcional
   }, [hd]);
-  const ORDEM = useMemo<readonly Ponto["tipo"][]>(
-    () => (turnoCurto ? ["entrada", "saida"] : ["entrada", "saida_almoco", "volta_almoco", "saida"]),
-    [turnoCurto]
-  );
+  const ORDEM: readonly Ponto["tipo"][] = ["entrada", "saida_almoco", "volta_almoco", "saida"];
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
-  const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
+  const podeBater = (tipo: Ponto["tipo"]) => {
+    if (jaFez(tipo)) return false;
+    const idx = ORDEM.indexOf(tipo);
+    if (idx <= 0) return true;
+    const anterior = ORDEM[idx - 1];
+    if (jaFez(anterior)) return true;
+    if (turnoCurto && tipo === "saida" && jaFez("entrada")) return true;
+    return false;
+  };
+  const ehProximo = (tipo: Ponto["tipo"]) => {
+    if (!podeBater(tipo)) return false;
+    const idx = ORDEM.indexOf(tipo);
+    for (let i = 0; i < idx; i++) if (podeBater(ORDEM[i])) return false;
+    return true;
+  };
+  const bloqueado = (tipo: Ponto["tipo"]) => !podeBater(tipo);
   const horarioPrevisto = (tipo: Ponto["tipo"]): string | null => {
     if (!hd) return null;
     const map: Record<string, string | null> = {
