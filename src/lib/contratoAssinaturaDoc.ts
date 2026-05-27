@@ -219,12 +219,10 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     const wrapperScrollWidth = wrapper.scrollWidth;
     const wrapperClientWidth = wrapper.clientWidth;
     const worstScroll = Math.max(bodyScrollWidth, htmlScrollWidth, wrapperScrollWidth);
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] overflow check", {
       bodyScrollWidth, bodyClientWidth, htmlScrollWidth, htmlClientWidth,
       wrapperScrollWidth, wrapperClientWidth,
     });
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] scaleFixDisabledForText", true, { worstScroll, contentWidth: CONTENT_W_PX });
 
     iframe.style.height = `${Math.max(wrapper.scrollHeight, PAGE_H_PX, 1200)}px`;
@@ -392,7 +390,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       wrap.appendChild(clone);
       current.appendChild(wrap);
       incrementPageBlocks();
-      // eslint-disable-next-line no-console
       console.log("[contratoPDF] imagem anexa página exclusiva");
       flushNewPage();
     };
@@ -417,7 +414,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
       if (isolatedHeight <= PAGE_H_PX || depth >= 8) {
         if (isolatedHeight > PAGE_H_PX) {
           oversizedBlockCount++;
-          // eslint-disable-next-line no-console
           console.log("[contratoPDF] oversizedBlockDetected", { height: isolatedHeight, pageHeight: PAGE_H_PX, tag: node.tagName, className: node.className });
           if (node.querySelector("img") && (node.innerText || "").trim().length === 0) {
             appendAttachmentPage(node);
