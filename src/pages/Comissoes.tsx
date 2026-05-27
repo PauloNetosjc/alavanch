@@ -205,7 +205,7 @@ export default function Comissoes() {
       setPedidos(list);
       setLoading(false);
     })();
-  }, [periodo, lojasFiltro, reloadKey]);
+  }, [periodo, lojasFiltro, reloadKey, incluirAdendos, incluirComplementos]);
 
   // Agregação por pessoa
   const pessoas = useMemo<PessoaRow[]>(() => {
