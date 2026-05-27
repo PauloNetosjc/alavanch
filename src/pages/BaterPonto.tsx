@@ -233,7 +233,7 @@ export default function BaterPonto() {
                 <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                   <Clock className="w-3 h-3" />
                   {turno
-                    ? <>Turno <span className="font-medium">{turno.nome}</span> · {hd?.hora_entrada.slice(0,5)} → {hd?.hora_saida.slice(0,5)} · tol. {turno.tolerancia_min} min{turnoCurto && <Badge variant="outline" className="ml-2 text-[10px]">turno reduzido · sem almoço</Badge>}</>
+                    ? <>Turno <span className="font-medium">{turno.nome}</span> · {hd?.hora_entrada.slice(0,5)} → {hd?.hora_saida.slice(0,5)} · tol. {turno.tolerancia_min} min{turnoCurto && <Badge variant="outline" className="ml-2 text-[10px]">turno reduzido · almoço opcional</Badge>}</>
                     : <span className="text-amber-600">Sem turno atribuído</span>}
                 </div>
               </div>
