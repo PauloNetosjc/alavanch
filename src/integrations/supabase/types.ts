@@ -4871,6 +4871,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gerar_receber_de_pedido_assinado: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       has_permission: {
         Args: { _acao?: string; _modulo: string; _user_id: string }
         Returns: boolean
