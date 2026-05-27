@@ -217,9 +217,10 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
 
     // PDF A4 em mm com margens reais
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    // imagem ocupa CONTENT_W_MM; altura proporcional
     const imgW_mm = CONTENT_W_MM;
     const imgH_mm = (canvas.height * imgW_mm) / canvas.width;
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM, imgH_mm });
 
     if (imgH_mm <= CONTENT_H_MM) {
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", M_LEFT, M_TOP, imgW_mm, imgH_mm);
