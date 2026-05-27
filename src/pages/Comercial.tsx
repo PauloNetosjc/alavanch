@@ -659,7 +659,7 @@ export default function Comercial() {
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-amber-600"
                                   aria-label="Negociação"
                                   title="Abrir negociação"
                                 >
