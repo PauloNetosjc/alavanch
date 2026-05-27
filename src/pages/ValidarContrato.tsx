@@ -115,7 +115,11 @@ export default function ValidarContrato() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground uppercase">ID da solicitação</div>
-            <div className="font-mono text-xs">{solic?.id || "—"}</div>
+            <div className="font-mono text-xs break-all">{solic?.id || "—"}</div>
+          </div>
+          <div className="sm:col-span-2">
+            <div className="text-xs text-muted-foreground uppercase">SHA-256 do PDF</div>
+            <div className="font-mono text-[11px] break-all">{contrato.document_hash || "—"}</div>
           </div>
         </section>
 
