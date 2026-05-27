@@ -4964,6 +4964,10 @@ export type Database = {
       loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
+      pedido_doc_anon_writeable: {
+        Args: { _pedido_id: string; _solic_id: string }
+        Returns: boolean
+      }
       pipeline_avancar_card:
         | {
             Args: { _contexto?: Json; _evento: string; _pedido_id: string }
@@ -5011,6 +5015,7 @@ export type Database = {
         Args: { _pedido_id: string; _revisao_data: string }
         Returns: undefined
       }
+      solic_anon_writeable: { Args: { _solic_id: string }; Returns: boolean }
       solic_belongs_to_validated_contrato: {
         Args: { _solic_id: string }
         Returns: boolean
