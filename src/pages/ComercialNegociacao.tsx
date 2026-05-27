@@ -24,6 +24,7 @@ import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteForm
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
 import { dispatchKanbanTrigger } from "@/lib/kanbanTriggers";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
