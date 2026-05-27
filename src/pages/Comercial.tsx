@@ -636,14 +636,37 @@ export default function Comercial() {
                           {fmtBrl(Number(r.total) || 0)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                            aria-label={isVenda ? "Visualizar pedido" : "Negociação"}
-                            title={isVenda ? "Visualizar pedido" : "Abrir negociação"}
-                          >
-                            {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {isVenda ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${r.pedido_id}`); }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                aria-label="Visualizar pedido"
+                                title="Visualizar pedido"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Visualizar
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                  aria-label="Negociação"
+                                  title="Abrir negociação"
+                                >
+                                  <Calculator className="w-3.5 h-3.5" /> Negociar
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#C0392B]"
+                                  aria-label="Declinar orçamento"
+                                  title="Declinar orçamento"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" /> Declinar
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
