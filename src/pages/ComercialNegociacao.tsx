@@ -264,7 +264,7 @@ function ResumoFinanceiroDialog({
             <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
             {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
-                value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
+                value={<>-{fmtBrl(parceiroValorReal)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
             )}
             {podeVerCusto && <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />}
             {podeVerMarkup && (
