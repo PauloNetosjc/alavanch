@@ -208,17 +208,20 @@ export default function Comissoes() {
     const nomeOf = (uid: string) => pessoasCatalogo.find((p) => p.user_id === uid)?.nome || "—";
     pedidos.forEach((p) => {
       p.participantes.forEach((part) => {
-        const valor = (p.valor_total * (part.percentual || 0)) / 100;
+        const pct = part.percentual || 0;
+        const valor = (p.valor_liquido * pct) / 100;
+        const valorBruto = (p.valor_total * pct) / 100;
         if (!acc.has(part.user_id)) {
           acc.set(part.user_id, {
             user_id: part.user_id, nome: nomeOf(part.user_id),
-            papel: part.papel, vendido: 0, qtd: 0, pedidos: [],
+            papel: part.papel, vendido: 0, vendido_bruto: 0, qtd: 0, pedidos: [],
           });
         }
         const row = acc.get(part.user_id)!;
         row.vendido += valor;
+        row.vendido_bruto += valorBruto;
         row.qtd += 1;
-        row.pedidos.push({ pedido_id: p.id, valor_atribuido: valor, percentual: part.percentual });
+        row.pedidos.push({ pedido_id: p.id, valor_atribuido: valor, valor_bruto_atribuido: valorBruto, percentual: pct });
       });
     });
     return Array.from(acc.values()).sort((a, b) => b.vendido - a.vendido);
