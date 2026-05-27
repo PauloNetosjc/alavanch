@@ -190,7 +190,13 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         console.warn("Falha ao gerar pré-assinatura da loja:", preErr);
       }
 
-      if (defaults?.contrato_id) await prepararContratoParaAssinatura(data.id);
+      if (defaults?.contrato_id) {
+        try {
+          await prepararContratoParaAssinatura(data.id);
+        } catch (prepErr) {
+          console.warn("Falha ao preparar contrato com assinatura da loja:", prepErr);
+        }
+      }
 
 
       const url = getPublicSignatureUrl(data.token);
