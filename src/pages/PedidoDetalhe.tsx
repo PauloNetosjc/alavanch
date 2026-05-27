@@ -436,6 +436,18 @@ export default function PedidoDetalhe() {
 
   return (
     <div className="space-y-5">
+      {/* Banner de geração/assinatura automática do contrato */}
+      {gerandoContrato && (
+        <div className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-900 px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          <span className="inline-block w-3 h-3 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+          Gerando contrato e assinando pela loja…
+        </div>
+      )}
+      {!gerandoContrato && contratoRecemGerado && solicAssin?.status === "assinado_loja" && (
+        <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          ✅ Contrato gerado • Loja assinada automaticamente • Aguardando assinatura do cliente
+        </div>
+      )}
       {/* TARJA VERMELHA — adendos vinculados */}
       {(temAdendos || ehAdendo) && (
         <div className="rounded-md bg-red-600 text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
