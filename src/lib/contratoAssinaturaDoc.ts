@@ -588,16 +588,15 @@ export async function prepararContratoParaAssinatura(
   // --- Garante validation_token único no contrato (independente do token de assinatura)
   let validationToken: string | null = (contrato as any).validation_token || null;
   if (!validationToken) {
-    const { data: updated } = await supabase
-      .from("contratos")
-      .update({})
-      .eq("id", contrato.id)
-      .select("validation_token")
-      .maybeSingle();
-    validationToken = (updated as any)?.validation_token || null;
+    const newTok = (typeof crypto !== "undefined" && (crypto as any).randomUUID)
+      ? (crypto as any).randomUUID().replace(/-/g, "")
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    await supabase.from("contratos").update({ validation_token: newTok } as any).eq("id", contrato.id);
+    validationToken = newTok;
   }
   const validationUrl = validationToken ? getValidationUrl(validationToken) : "";
   const qrDataUrl = validationUrl ? await buildQrDataUrl(validationUrl) : "";
+
 
   // --- Assinatura automática da loja (se config ativa) ---
   const autoSign = !!(configEmpresa as any)?.assinar_loja_automaticamente;
