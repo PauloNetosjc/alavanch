@@ -417,6 +417,7 @@ export default function RH() {
       dias_semana: turnoForm.dias_semana || [1,2,3,4,5],
       tolerancia_min: turnoForm.tolerancia_min ?? 5,
       observacoes: turnoForm.observacoes || null,
+      horarios_por_dia: (turnoForm as any).horarios_por_dia || {},
     };
     const { error } = (turnoForm as any).id
       ? await supabase.from("rh_turnos" as any).update(payload).eq("id", (turnoForm as any).id)
