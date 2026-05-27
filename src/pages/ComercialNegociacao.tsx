@@ -269,6 +269,14 @@ function ResumoFinanceiroDialog({
             <Field label="Descontos" color="#B83232"
               value={<>-{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span></>}
             />
+            {(() => {
+              const descMetodo = Math.max(0, valorInicial - descValor - totalProposta);
+              const descMetodoPerc = valorInicial > 0 ? (descMetodo / valorInicial) * 100 : 0;
+              if (descMetodo <= 0.01) return null;
+              return (
+                <Field label="Desconto Forma Pagamento" color="#B83232" value={<>-{fmtBrl(descMetodo)} <span className="text-[12px] text-muted-foreground">({descMetodoPerc.toFixed(2)}%)</span></>} />
+              );
+            })()}
             <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
             <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
             <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
