@@ -15,6 +15,7 @@ export default function Ranking() {
   const [lojasFiltro, setLojasFiltro] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
   useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [rows, setRows] = useState<Row[]>([]);
+  const [totalRealizado, setTotalRealizado] = useState(0);
   const [metaGlobal, setMetaGlobal] = useState(0);
   const [loading, setLoading] = useState(true);
   const { inicio, fim } = useMemo(() => resolvePeriodo(periodo), [periodo]);
@@ -111,15 +112,20 @@ export default function Ranking() {
       });
 
       // Vendido líquido = pedidos PV+CP ativos vinculados ao consultor (via orçamento)
+      let totalLiquidoGlobal = 0;
       pedsAtivos.forEach((p: any) => {
+        const juros = Number(p.juros_total) || jurosPorOrc.get(p.orcamento_id) || 0;
+        const rt = Number(p.rt_repassado) > 0 ? Number(p.rt_repassado) : (rtPorPed.get(p.id) || 0);
+        const liquido = Number(p.valor_total || 0) - juros - rt;
+        totalLiquidoGlobal += liquido;
         const uid = consultorPorOrc.get(p.orcamento_id);
         if (!uid) return;
         const cur = ensure(uid);
-        const juros = Number(p.juros_total) || jurosPorOrc.get(p.orcamento_id) || 0;
-        const rt = Number(p.rt_repassado) > 0 ? Number(p.rt_repassado) : (rtPorPed.get(p.id) || 0);
-        cur.total += Number(p.valor_total || 0) - juros - rt;
+        cur.total += liquido;
         cur.qtd += 1;
       });
+      setTotalRealizado(totalLiquidoGlobal);
+
 
       const arr = Array.from(map.values()).map((x) => {
         const meta = Number(metas.find((m) => m.vendedor_id === x.user_id)?.meta_valor || 0);
@@ -137,7 +143,6 @@ export default function Ranking() {
   }, [periodo, lojasFiltro]);
 
 
-  const totalRealizado = rows.reduce((s, r) => s + r.total, 0);
   const pctGlobal = metaGlobal > 0 ? (totalRealizado / metaGlobal) * 100 : 0;
   const top3 = rows.slice(0, 3);
   // Pódio: 2-1-3
