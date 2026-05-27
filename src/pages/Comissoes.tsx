@@ -518,7 +518,7 @@ export default function Comissoes() {
                       </tr>
                       {isOpen && (
                         <tr className="bg-muted/20 print:hidden">
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <div className="p-3">
                               {pedidosDaPessoa.length === 0 ? (
                                 <div className="text-[11px] text-muted-foreground text-center py-3">Sem pedidos no período.</div>
@@ -529,9 +529,10 @@ export default function Comissoes() {
                                       <th className="py-1.5 px-2 font-normal">Pedido</th>
                                       <th className="py-1.5 px-2 font-normal">Cliente</th>
                                       <th className="py-1.5 px-2 font-normal">Data</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">Valor total</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">% atribuído</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">Atribuído</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">V. Bruta</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">V. Líquida</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">% atrib.</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">Líq. atrib.</th>
                                       <th className="py-1.5 px-2 font-normal text-center">Divisão</th>
                                       <th className="py-1.5 px-2"></th>
                                     </tr>
@@ -542,7 +543,8 @@ export default function Comissoes() {
                                         <td className="py-1.5 px-2 font-medium">{x.pedido.codigo}</td>
                                         <td className="py-1.5 px-2">{x.pedido.cliente_nome}</td>
                                         <td className="py-1.5 px-2">{fmtDate(x.pedido.data)}</td>
-                                        <td className="py-1.5 px-2 text-right">{fmtBRL(x.pedido.valor_total)}</td>
+                                        <td className="py-1.5 px-2 text-right text-muted-foreground">{fmtBRL(x.pedido.valor_total)}</td>
+                                        <td className="py-1.5 px-2 text-right">{fmtBRL(x.pedido.valor_liquido)}</td>
                                         <td className="py-1.5 px-2 text-right">{x.percentual.toFixed(0)}%</td>
                                         <td className="py-1.5 px-2 text-right font-medium">{fmtBRL(x.valor_atribuido)}</td>
                                         <td className="py-1.5 px-2 text-center text-muted-foreground">
