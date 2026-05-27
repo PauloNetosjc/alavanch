@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Copy, Loader2, MessageCircle, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
-import { useAuth } from "@/contexts/AuthContext";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 type Props = {
@@ -28,7 +27,6 @@ type Props = {
 };
 
 export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, defaults, onCreated }: Props) {
-  const { user, profile, role } = useAuth();
   const [tipos, setTipos] = useState<any[]>([]);
   const [tipoId, setTipoId] = useState<string>("");
   const [pedido, setPedido] = useState<any>(null);
@@ -76,6 +74,8 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
     try {
       const expira = new Date();
       expira.setDate(expira.getDate() + validade);
+      const tipoSelecionado = tipos.find((t) => t.id === tipoId);
+      const statusInicial = tipoSelecionado?.requer_assinatura_loja ? "aguardando_loja" : "aguardando_cliente";
       const { data, error } = await supabase
         .from("solicitacoes_assinatura")
         .insert({
@@ -90,7 +90,7 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
           storage_path: defaults?.storage_path || null,
           observacao: obs || null,
           expira_em: expira.toISOString(),
-          status: "aguardando_cliente",
+          status: statusInicial,
         })
         .select()
         .single();
@@ -108,7 +108,7 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: data.id,
         tipo_evento: "solicitacao_criada",
-        status_novo: "aguardando_cliente",
+        status_novo: statusInicial,
         descricao: "Solicitação de assinatura criada",
       });
 
