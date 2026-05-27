@@ -2665,7 +2665,7 @@ function PedidoAcoesMenu({
     setCancelOpen(false);
     setConfirmText("");
     toast.success("Pedido cancelado. Orçamento retornado para negociação.");
-    navigate(`/comercial/negociacao/${pedido.orcamento_id}`);
+    navigate(`/comercial/${pedido.orcamento_id}/negociacao`);
   };
 
   return (
