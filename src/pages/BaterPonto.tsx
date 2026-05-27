@@ -90,12 +90,20 @@ export default function BaterPonto() {
     const local = `${md.getFullYear()}-${String(md.getMonth() + 1).padStart(2, "0")}-${String(md.getDate()).padStart(2, "0")}`;
     return p.data === hoje || local === hoje;
   }), [pontos, hoje]);
-  const ORDEM = ["entrada", "saida_almoco", "volta_almoco", "saida"] as const;
+  const hd = useMemo(() => turno ? getHorarioDia(turno, new Date().getDay()) : null, [turno]);
+  const turnoCurto = useMemo(() => {
+    if (!hd) return false;
+    const dur = hmToMin(hd.hora_saida) - hmToMin(hd.hora_entrada);
+    return dur > 0 && dur < 300; // < 5h: sem almoço
+  }, [hd]);
+  const ORDEM = useMemo<readonly Ponto["tipo"][]>(
+    () => (turnoCurto ? ["entrada", "saida"] : ["entrada", "saida_almoco", "volta_almoco", "saida"]),
+    [turnoCurto]
+  );
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
   const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
-  const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
-    if (!turno) return null;
-    const hd = getHorarioDia(turno, new Date().getDay());
+  const horarioPrevisto = (tipo: Ponto["tipo"]): string | null => {
+    if (!hd) return null;
     const map: Record<string, string | null> = {
       entrada: hd.hora_entrada,
       saida_almoco: hd.hora_saida_almoco,
@@ -131,6 +139,10 @@ export default function BaterPonto() {
   async function baterPonto(tipo: Ponto["tipo"]) {
     if (!func) return;
     const idx = ORDEM.indexOf(tipo);
+    if (idx < 0) {
+      toast({ title: "Marcação não permitida hoje", description: "Turno reduzido: apenas Entrada e Saída final.", variant: "destructive" });
+      return;
+    }
     if (idx > 0 && !jaFez(ORDEM[idx - 1])) {
       toast({ title: "Sequência obrigatória", description: `Bata primeiro: ${TIPO_PONTO_LABEL[ORDEM[idx - 1]]}.`, variant: "destructive" });
       return;
@@ -215,7 +227,7 @@ export default function BaterPonto() {
                 <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                   <Clock className="w-3 h-3" />
                   {turno
-                    ? <>Turno <span className="font-medium">{turno.nome}</span> · {turno.hora_entrada.slice(0,5)} → {turno.hora_saida.slice(0,5)} · tol. {turno.tolerancia_min} min</>
+                    ? <>Turno <span className="font-medium">{turno.nome}</span> · {hd?.hora_entrada.slice(0,5)} → {hd?.hora_saida.slice(0,5)} · tol. {turno.tolerancia_min} min{turnoCurto && <Badge variant="outline" className="ml-2 text-[10px]">turno reduzido · sem almoço</Badge>}</>
                     : <span className="text-amber-600">Sem turno atribuído</span>}
                 </div>
               </div>
