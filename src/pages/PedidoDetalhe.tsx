@@ -1425,8 +1425,10 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
               </div>
             </div>
           );
-        })}
+        });
+        })()}
       </div>
+
 
       {pastas.find((p: any) => p.id === pastaAtiva)?._virtual ? (
         <div className="mt-4 text-center text-[11px] text-muted-foreground italic">
