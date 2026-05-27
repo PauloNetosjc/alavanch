@@ -438,7 +438,7 @@ export default function KanbanBoard({
                           draggable
                           onDragStart={(ev) => ev.dataTransfer.setData("text/card", c.id)}
                           onClick={() => onCardClick(c, e)}
-                          className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
+                          className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow overflow-hidden ${cardBg}`}
                           style={{ borderLeftColor: e.cor || "#6b7280" }}
                         >
                           <div className="flex items-start justify-between gap-2">
