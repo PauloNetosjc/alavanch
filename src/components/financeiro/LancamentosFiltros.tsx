@@ -73,7 +73,7 @@ export default function LancamentosFiltros(p: Props) {
           <div className="relative">
             <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar descrição..."
+              placeholder="Descrição, receita (#), PV ou cliente..."
               value={p.busca}
               onChange={(e) => p.setBusca(e.target.value)}
               className="pl-7 h-8 text-xs"
