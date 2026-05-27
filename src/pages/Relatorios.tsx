@@ -7,6 +7,7 @@ import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, 
 import { Link } from "react-router-dom";
 import { useLoja } from "@/contexts/LojaContext";
 import { PageFilters, defaultPeriodoAno, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
+import FluxoCaixaDashboard from "@/components/financeiro/FluxoCaixaDashboard";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
