@@ -1398,20 +1398,31 @@ export default function ComercialNegociacao() {
                                     />
                                   </TableCell>
                                   <TableCell className="px-2">
-                                    <Select
-                                      value={formas[i] || "Boleto"}
-                                      disabled={!!locked[i]}
-                                      onValueChange={(val) => editarParcelaForma(idx, i, val)}
-                                    >
-                                      <SelectTrigger className="h-8 text-[12px] px-2">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {FORMAS_PAGAMENTO.map((f) => (
-                                          <SelectItem key={f} value={f}>{f}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    {(() => {
+                                      const met = metodos.find((m) => m.nome === p.metodo);
+                                      const cfg = met?.parcelas_config?.find((c) => Number(c.numero) === Number(i + 1))?.forma_pagamento;
+                                      const permitidas = Array.isArray(cfg)
+                                        ? cfg.filter(Boolean)
+                                        : (cfg ? [cfg] : []);
+                                      const opcoes = permitidas.length ? permitidas : FORMAS_PAGAMENTO;
+                                      const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || "Boleto");
+                                      return (
+                                        <Select
+                                          value={atual}
+                                          disabled={!!locked[i]}
+                                          onValueChange={(val) => editarParcelaForma(idx, i, val)}
+                                        >
+                                          <SelectTrigger className="h-8 text-[12px] px-2">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {opcoes.map((f) => (
+                                              <SelectItem key={f} value={f}>{f}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      );
+                                    })()}
                                   </TableCell>
                                   <TableCell className="px-1 text-center">
                                     <Button
