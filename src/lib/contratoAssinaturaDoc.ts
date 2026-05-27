@@ -578,12 +578,89 @@ export async function prepararContratoParaAssinatura(
 
   const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tplLoja }, { data: tplContrato }, { data: orcamento }] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
-    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone,assinar_loja_automaticamente" as any).eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.loja_id ? supabase.from("contratos_template").select("*").eq("loja_id", pedido.loja_id).eq("ativo", true).order("updated_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
     (pedido as any).orcamento_id ? supabase.from("orcamentos").select("vendedor_id").eq("id", (pedido as any).orcamento_id).maybeSingle() : Promise.resolve({ data: null } as any),
   ]);
+
+  // --- Garante validation_token único no contrato (independente do token de assinatura)
+  let validationToken: string | null = (contrato as any).validation_token || null;
+  if (!validationToken) {
+    const { data: updated } = await supabase
+      .from("contratos")
+      .update({})
+      .eq("id", contrato.id)
+      .select("validation_token")
+      .maybeSingle();
+    validationToken = (updated as any)?.validation_token || null;
+  }
+  const validationUrl = validationToken ? getValidationUrl(validationToken) : "";
+  const qrDataUrl = validationUrl ? await buildQrDataUrl(validationUrl) : "";
+
+  // --- Assinatura automática da loja (se config ativa) ---
+  const autoSign = !!(configEmpresa as any)?.assinar_loja_automaticamente;
+  if (autoSign && !solicCtx.loja_assinado_em) {
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const u = sess?.session?.user;
+      if (u?.id) {
+        const [{ data: prof }, { data: roleRow }] = await Promise.all([
+          supabase.from("profiles").select("nome_completo,email").eq("user_id", u.id).maybeSingle(),
+          supabase.from("user_roles" as any).select("role").eq("user_id", u.id).limit(1).maybeSingle(),
+        ]);
+        const nomeRep = (prof as any)?.nome_completo || u.email || "Representante";
+        const emailRep = u.email || (prof as any)?.email || "";
+        const cargoRep = (roleRow as any)?.role || null;
+        const agora = new Date().toISOString();
+        let ip: string | null = null;
+        try { const r = await fetch("https://api.ipify.org?format=json"); ip = (await r.json())?.ip || null; } catch { /* noop */ }
+        const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+
+        const { data: ensured } = await supabase.rpc("garantir_participante" as any, { p_solic: solic.id, p_tipo: "loja" });
+        const partId = (ensured as any)?.id;
+        if (partId) {
+          await supabase.from("assinatura_participantes" as any).update({
+            nome: nomeRep, email: emailRep, user_id: u.id, cargo: cargoRep,
+            status: "assinado", assinado_em: agora, ip, user_agent: ua,
+          }).eq("id", partId);
+          await supabase.from("assinatura_evidencias").insert({
+            solicitacao_id: solic.id, participante_id: partId,
+            assinatura_url: null,
+            aceite: true,
+            aceite_texto: `Assinado eletronicamente pela loja por ${nomeRep}${emailRep ? ` <${emailRep}>` : ""}${cargoRep ? ` (${cargoRep})` : ""}`,
+            ip, user_agent: ua,
+          } as any);
+          await supabase.from("assinatura_eventos").insert({
+            solicitacao_id: solic.id, tipo_evento: "loja_assinou",
+            status_anterior: solic.status, status_novo: "assinado_loja",
+            descricao: `Loja assinou automaticamente (${nomeRep})`,
+            user_id: u.id, participante_id: partId,
+          } as any);
+        }
+        await supabase.from("solicitacoes_assinatura").update({
+          loja_assinado_em: agora,
+          loja_assinatura_nome: nomeRep,
+          loja_assinatura_email: emailRep,
+          loja_assinatura_cargo: cargoRep,
+          loja_ip: ip, loja_user_agent: ua,
+        } as any).eq("id", solic.id);
+
+        solicCtx.loja_assinado_em = agora;
+        solicCtx.loja_assinatura_nome = nomeRep;
+        solicCtx.loja_assinatura_email = emailRep;
+        solicCtx.loja_assinatura_cargo = cargoRep;
+        console.log("[contratoPDF] loja assinada automaticamente", { nomeRep, emailRep, cargoRep });
+      } else {
+        console.log("[contratoPDF] auto-sign loja: sem sessão de usuário, ignorando");
+      }
+    } catch (e) {
+      console.error("[contratoPDF] auto-sign loja falhou", e);
+    }
+  }
+
+
   const tpl = tplLoja || tplContrato;
   if (!tpl) {
     throw new Error("Nenhum template de contrato ativo encontrado para esta loja. Configure um template em Administração → Contratos antes de gerar o contrato.");
