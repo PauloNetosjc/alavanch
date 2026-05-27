@@ -111,7 +111,7 @@ export default function PedidoDetalhe() {
     ] = await Promise.all([
       orcId ? supabase.from("orcamentos").select("*").eq("id", orcId).maybeSingle() : Promise.resolve({ data: null } as any),
       ped.cliente_id ? supabase.from("clientes").select("*").eq("id", ped.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
-      orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).maybeSingle() : Promise.resolve({ data: null } as any),
+      orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
       supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem"),
       supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem"),
       supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
