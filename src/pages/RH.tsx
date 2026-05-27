@@ -590,7 +590,10 @@ export default function RH() {
           <TabsTrigger value="ferias">Férias</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
           <TabsTrigger value="cargos">Cargos & Setores</TabsTrigger>
+          <TabsTrigger value="turnos">Turnos</TabsTrigger>
+          <TabsTrigger value="ponto">Bater Ponto</TabsTrigger>
           <TabsTrigger value="desligados">Desligados</TabsTrigger>
+          <TabsTrigger value="banco">Banco de Horas</TabsTrigger>
         </TabsList>
 
         {/* DASHBOARD */}
