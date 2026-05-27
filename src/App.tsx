@@ -43,6 +43,7 @@ const Montagem = lazy(() => import("@/pages/Montagem"));
 const Ocorrencias = lazy(() => import("@/pages/Ocorrencias"));
 const Ranking = lazy(() => import("@/pages/Ranking"));
 const Relatorios = lazy(() => import("@/pages/Relatorios"));
+const Comissoes = lazy(() => import("@/pages/Comissoes"));
 const ContratoAssinar = lazy(() => import("@/pages/ContratoAssinar"));
 const ContratoVisualizar = lazy(() => import("@/pages/ContratoVisualizar"));
 const PedidoDetalhe = lazy(() => import("@/pages/PedidoDetalhe"));
@@ -124,6 +125,7 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/ranking" element={<Ranking />} />
                 <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/comissoes" element={<Comissoes />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="/aniversariantes" element={<Aniversariantes />} />
                 <Route path="/produtos" element={<Produtos />} />
