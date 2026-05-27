@@ -991,7 +991,6 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   };
 
   const enviarParaAssinatura = async (doc: any) => {
-    // Determina o tipo: contrato se for adendo/complemento, senão "projeto_inicial" como padrão
     const tipoSlug = (doc.tipo_documento_slug as string) || "projeto_inicial";
     const { data, error } = await supabase.rpc("criar_solic_assinatura_documento", {
       p_pedido_id: pedidoId,
@@ -1000,15 +999,19 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
       p_dias_validade: 30,
     });
     if (error) { toast.error(error.message); return; }
-    // Busca o token recém criado (ou existente)
-    const { data: solic } = await supabase
-      .from("solicitacoes_assinatura")
+    const solicId = data as string;
+    // Garante participantes (trigger já dispara, redundância segura) e busca token do cliente
+    await supabase.rpc("ensure_participants_for_solicitation" as any, { p_solic: solicId });
+    const { data: partCliente } = await supabase
+      .from("assinatura_participantes" as any)
       .select("token")
-      .eq("id", data as string)
+      .eq("solicitacao_id", solicId)
+      .eq("tipo", "cliente")
       .maybeSingle();
-    if (!solic?.token) { toast.error("Não foi possível obter o link de assinatura."); return; }
+    const tokenCliente = (partCliente as any)?.token as string | undefined;
+    if (!tokenCliente) { toast.error("Não foi possível obter o link de assinatura."); return; }
     await supabase.from("pedido_documentos").update({ enviado_para_assinatura: true }).eq("id", doc.id);
-    setAssinaturaOpen({ ...doc, signing_token: solic.token });
+    setAssinaturaOpen({ ...doc, signing_token: tokenCliente });
     toast.success("Solicitação de assinatura criada");
     onChange();
   };
