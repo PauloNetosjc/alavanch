@@ -63,26 +63,30 @@ export function AssinarPelaLojaDialog({
         assinaturaLojaUrl = padRef.current!.toDataURL();
       }
 
-      const { data: part } = await supabase.from("assinatura_participantes").insert({
-        solicitacao_id: solic.id, tipo: "loja",
+      // Garante participante 'loja' (cria se não existir) e assina nele
+      const { data: ensured } = await supabase.rpc("garantir_participante" as any, {
+        p_solic: solic.id, p_tipo: "loja",
+      });
+      const partId = (ensured as any)?.id;
+      await supabase.from("assinatura_participantes" as any).update({
         nome: (profile as any)?.nome_completo || user?.email,
         email: emailLogado,
-        user_id: user?.id, cargo: role,
-        status: "assinado", assinado_em: agora, ip, user_agent: ua,
-      }).select().single();
+        user_id: user?.id,
+        cargo: role,
+        status: "assinado",
+        assinado_em: agora,
+        ip, user_agent: ua,
+      }).eq("id", partId);
 
       await supabase.from("assinatura_evidencias").insert({
-        solicitacao_id: solic.id, participante_id: part?.id,
+        solicitacao_id: solic.id, participante_id: partId,
         assinatura_url: assinaturaLojaUrl,
         aceite: true, aceite_texto: obs || "Assinado pela loja",
         ip, user_agent: ua,
       });
 
-      // Conclui SOMENTE se cliente também já tiver assinado
-      const clienteJaAssinou = !!solic.cliente_assinado_em;
-      const novoStatus = clienteJaAssinou ? "concluido" : "assinado_loja";
-      const upd: any = {
-        status: novoStatus,
+      // Espelho legado em solicitacoes_assinatura — o trigger SQL recalcula o status geral
+      await supabase.from("solicitacoes_assinatura").update({
         loja_assinado_em: agora,
         assinatura_loja_url: assinaturaLojaUrl,
         loja_assinatura_nome: nomeLogado,
@@ -90,17 +94,18 @@ export function AssinarPelaLojaDialog({
         loja_assinatura_cargo: role,
         loja_ip: ip,
         loja_user_agent: ua,
-      };
-      if (clienteJaAssinou) upd.concluido_em = agora;
+      }).eq("id", solic.id);
 
-      await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
+      const clienteJaAssinou = !!solic.cliente_assinado_em;
 
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: solic.id, tipo_evento: "loja_assinou",
-        status_anterior: solic.status, status_novo: novoStatus,
+        status_anterior: solic.status,
+        status_novo: clienteJaAssinou ? "concluido" : "assinado_loja",
         descricao: `Loja assinou (${(profile as any)?.nome_completo || user?.email})`,
         user_id: user?.id,
-      });
+        participante_id: partId,
+      } as any);
 
       // Persiste assinante no snapshot do contrato e regenera o HTML do contrato
       // para que o nome + e-mail do responsável pela loja apareçam na assinatura visível.
