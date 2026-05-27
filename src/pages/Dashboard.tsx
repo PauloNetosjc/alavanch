@@ -40,6 +40,8 @@ export default function Dashboard() {
   useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [lancs, setLancs] = useState<Lanc[]>([]);
+  const [jurosMap, setJurosMap] = useState<Record<string, number>>({});
+  const [rtMap, setRtMap] = useState<Record<string, number>>({});
   const [vendedores, setVendedores] = useState<{ nome: string; valor: number }[]>([]);
   const [meta, setMeta] = useState(0);
 
@@ -50,7 +52,7 @@ export default function Dashboard() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id");
+        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id, orcamento_id");
       let qLan = supabase
         .from("lancamentos_financeiros")
         .select("tipo, valor, status, data_vencimento, data_pagamento, loja_id");
@@ -79,8 +81,74 @@ export default function Dashboard() {
       setMeta(metaTotal);
 
       const [{ data: peds }, { data: ls }, { data: orcs }] = await Promise.all([qPed, qLan, qOrc]);
-      setPedidos((peds as Pedido[]) || []);
+      const pedsArr = (peds as Pedido[] & { orcamento_id?: string }[]) || [];
+      setPedidos(pedsArr);
       setLancs((ls as Lanc[]) || []);
+
+      // Juros do cliente por orçamento (a partir dos pagamentos) + RT por pedido
+      const pedIds = pedsArr.map((p: any) => p.id);
+      const orcIds = Array.from(new Set(pedsArr.map((p: any) => p.orcamento_id).filter(Boolean)));
+      const [{ data: pags }, { data: mets }, { data: orcRT }, { data: comissoes }] = await Promise.all([
+        orcIds.length
+          ? supabase.from("pagamentos_orcamento").select("orcamento_id, metodo, parcelas, valor").in("orcamento_id", orcIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela, parcelas_config"),
+        orcIds.length
+          ? supabase.from("orcamentos").select("id, total, parceiro_perc, parceiro_id").in("id", orcIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        pedIds.length
+          ? supabase.from("parceiro_comissoes" as any).select("pedido_id, valor_calculado").in("pedido_id", pedIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+      ]);
+      const metodosMap = new Map<string, any>();
+      (mets || []).forEach((m: any) => metodosMap.set(m.nome, m));
+      const jPorOrc = new Map<string, number>();
+      (pags || []).forEach((pg: any) => {
+        const n = Number(pg.parcelas) || 1;
+        if (n <= 1) return;
+        const met = metodosMap.get(pg.metodo);
+        let juros = 0;
+        const cfg = Array.isArray(met?.parcelas_config)
+          ? met.parcelas_config.find((c: any) => Number(c?.numero) === n)
+          : null;
+        const jurosPerc = Number(cfg?.juros_perc) || 0;
+        if (jurosPerc > 0) {
+          juros = (Number(pg.valor || 0) * jurosPerc) / 100;
+        } else {
+          const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+          if (taxa) {
+            const principal = Number(pg.valor || 0) / n;
+            for (let i = 1; i < n; i++) juros += principal * taxa * i;
+          }
+        }
+        jPorOrc.set(pg.orcamento_id, (jPorOrc.get(pg.orcamento_id) || 0) + juros);
+      });
+      const jurosByPed: Record<string, number> = {};
+      pedsArr.forEach((pd: any) => {
+        jurosByPed[pd.id] = Number(pd.juros_total) || jPorOrc.get(pd.orcamento_id) || 0;
+      });
+      setJurosMap(jurosByPed);
+
+      const rtFromComissao = new Map<string, number>();
+      ((comissoes as any[]) || []).forEach((c: any) => {
+        rtFromComissao.set(c.pedido_id, (rtFromComissao.get(c.pedido_id) || 0) + Number(c.valor_calculado || 0));
+      });
+      const orcRTMap = new Map<string, any>();
+      ((orcRT as any[]) || []).forEach((o: any) => orcRTMap.set(o.id, o));
+      const rtByPed: Record<string, number> = {};
+      pedsArr.forEach((pd: any) => {
+        const direct = Number(pd.rt_repassado || 0);
+        if (direct > 0) { rtByPed[pd.id] = direct; return; }
+        const fromCom = rtFromComissao.get(pd.id) || 0;
+        if (fromCom > 0) { rtByPed[pd.id] = fromCom; return; }
+        const o = orcRTMap.get(pd.orcamento_id);
+        if (o && Number(o.parceiro_perc || 0) > 0) {
+          rtByPed[pd.id] = (Number(pd.valor_total || o.total || 0) * Number(o.parceiro_perc)) / 100;
+        } else {
+          rtByPed[pd.id] = 0;
+        }
+      });
+      setRtMap(rtByPed);
 
       // Receita por vendedor
       const ids = Array.from(new Set((orcs || []).map((o: any) => o.consultor_id).filter(Boolean)));
@@ -113,8 +181,8 @@ export default function Dashboard() {
   );
 
   const vendaBruta = pedidosPeriodo.reduce((s, p) => s + Number(p.valor_total || 0), 0);
-  const totalJuros = pedidosPeriodo.reduce((s, p) => s + Number(p.juros_total || 0), 0);
-  const totalRT = pedidosPeriodo.reduce((s, p) => s + Number(p.rt_repassado || 0), 0);
+  const totalJuros = pedidosPeriodo.reduce((s, p) => s + (jurosMap[p.id] ?? Number(p.juros_total || 0)), 0);
+  const totalRT = pedidosPeriodo.reduce((s, p) => s + (rtMap[p.id] ?? Number(p.rt_repassado || 0)), 0);
   const vendaLiquida = vendaBruta - totalJuros - totalRT;
   const pctMeta = meta ? (vendaBruta / meta) * 100 : 0;
 
