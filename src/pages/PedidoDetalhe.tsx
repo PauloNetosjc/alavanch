@@ -1307,7 +1307,28 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     </Button>
                   </>
                 )}
-                {sol && (
+                {sol && sol.status === "assinado_manual" && (
+                  <>
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={async () => {
+                      try {
+                        const bucket = d.bucket_name || "assinaturas-evidencias";
+                        const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+                        if (error || !blob) throw error || new Error("Falha ao baixar");
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url; a.download = sanitizeNome(d.nome || "contrato-assinado.pdf");
+                        document.body.appendChild(a); a.click(); a.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                      } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                    }}>
+                      <FileText className="w-3.5 h-3.5 mr-1" /> Baixar contrato
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
+                    </Button>
+                  </>
+                )}
+                {sol && sol.status !== "assinado_manual" && (
                   <>
                     {!assinaturaCompleta && requerLoja && (
                       <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
