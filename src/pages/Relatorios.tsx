@@ -220,62 +220,55 @@ export default function Relatorios() {
         </div>
       </div>
 
-      {/* KPIs por tipo de pedido (recolhíveis) */}
-      <div className="space-y-2">
-        {porTipo.map((t) => (
-          <CollapsibleTipo
-            key={t.code}
-            tipo={t.tipo}
-            code={t.code}
-            qtd={t.qtd}
-          >
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-2">
-              <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(t.bruto)} badge="Bruto" hint={`Juros: ${fmtBRL(t.juros)}`} />
-              <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(t.liquido)} badge="− juros − RT" hint={`RT: ${fmtBRL(t.rt)}`} />
-              <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(t.margemValor)} badge={`${t.margem.toFixed(1)}%`} hint={`Custo: ${fmtBRL(t.custo)}`} />
-              <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(t.ticket)} badge={`${t.qtd}`} />
-              <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Part. Bruto" value={kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"} badge="Share" />
-              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto Negociação" value={fmtBRL(t.desconto)} badge="Desc." hint={`${t.bruto > 0 ? ((t.desconto / t.bruto) * 100).toFixed(1) : 0}% do faturamento · Deduções: ${fmtBRL(t.juros + t.rt)}`} />
-            </div>
-          </CollapsibleTipo>
-        ))}
-      </div>
-
-
-
-      {/* Tabela por tipo (PV / AD / CP) */}
+      {/* Tabela por tipo (PV / AD / CP) - inclui todas as métricas */}
       <div className="surface-card p-5">
         <div className="text-[14px] font-medium mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary" />
           Faturamento por tipo de pedido
         </div>
-        <table className="w-full text-[12px]">
-          <thead>
-            <tr className="text-left text-muted-foreground border-b border-border">
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider">Tipo</th>
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Qtd</th>
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Faturamento Bruto</th>
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Faturamento Líquido</th>
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Margem</th>
-              <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Ticket Médio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {porTipo.map((t) => (
-              <tr key={t.code} className="border-b border-border/50">
-                <td className="py-2 px-2">
-                  <span className="font-medium">{t.tipo}</span>
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground uppercase tracking-wider">{t.code}</span>
-                </td>
-                <td className="py-2 px-2 text-right">{t.qtd}</td>
-                <td className="py-2 px-2 text-right">{fmtBRL(t.bruto)}</td>
-                <td className="py-2 px-2 text-right font-medium text-primary">{fmtBRL(t.liquido)}</td>
-                <td className="py-2 px-2 text-right">{t.margem.toFixed(1)}%</td>
-                <td className="py-2 px-2 text-right">{fmtBRL(t.ticket)}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border">
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider">Tipo</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Qtd</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Fat. Bruto</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Juros</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">RT</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Fat. Líquido</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Custo</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Margem Líq.</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Margem %</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Ticket Médio</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Part. Bruto</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Desconto</th>
+                <th className="py-2 px-2 font-normal uppercase text-[10px] tracking-wider text-right">Desc. %</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {porTipo.map((t) => (
+                <tr key={t.code} className="border-b border-border/50">
+                  <td className="py-2 px-2">
+                    <span className="font-medium">{t.tipo}</span>
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground uppercase tracking-wider">{t.code}</span>
+                  </td>
+                  <td className="py-2 px-2 text-right">{t.qtd}</td>
+                  <td className="py-2 px-2 text-right">{fmtBRL(t.bruto)}</td>
+                  <td className="py-2 px-2 text-right text-muted-foreground">{fmtBRL(t.juros)}</td>
+                  <td className="py-2 px-2 text-right text-muted-foreground">{fmtBRL(t.rt)}</td>
+                  <td className="py-2 px-2 text-right font-medium text-primary">{fmtBRL(t.liquido)}</td>
+                  <td className="py-2 px-2 text-right text-muted-foreground">{fmtBRL(t.custo)}</td>
+                  <td className="py-2 px-2 text-right font-medium text-emerald-600">{fmtBRL(t.margemValor)}</td>
+                  <td className="py-2 px-2 text-right">{t.margem.toFixed(1)}%</td>
+                  <td className="py-2 px-2 text-right">{fmtBRL(t.ticket)}</td>
+                  <td className="py-2 px-2 text-right">{kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"}</td>
+                  <td className="py-2 px-2 text-right text-rose-600">{fmtBRL(t.desconto)}</td>
+                  <td className="py-2 px-2 text-right text-rose-600">{t.bruto > 0 ? `${((t.desconto / t.bruto) * 100).toFixed(1)}%` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
