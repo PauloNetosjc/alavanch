@@ -3,6 +3,12 @@ import { NavLink, useLocation } from "react-router-dom";
 import alavanchLogo from "@/assets/alavanch-logo.png";
 import { UserThemePicker, useUserThemeBoot } from "@/components/UserThemePicker";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
   LayoutDashboard,
   Trophy,
   BarChart3,
@@ -39,6 +45,7 @@ import {
   Shield,
   Tags,
   Fingerprint,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -265,7 +272,7 @@ function GroupAccordion({ group, pathname, search, onNavigate }: { group: Group;
 
 export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname, search } = useLocation();
-  const { user, signOut, profile, role } = useAuth();
+  const { user, signOut, profile, role, updatePassword } = useAuth();
   useUserThemeBoot();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
@@ -279,6 +286,37 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
       try { localStorage.setItem("sidebar_collapsed", nv ? "1" : "0"); } catch {}
       return nv;
     });
+  };
+
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdLoading, setPwdLoading] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPwd !== confirmPwd) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    if (newPwd.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setPwdLoading(true);
+    try {
+      await updatePassword(newPwd);
+      toast.success("Senha alterada com sucesso!");
+      setPwdOpen(false);
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao alterar senha");
+    } finally {
+      setPwdLoading(false);
+    }
   };
 
   const filterItems = (items: Item[]) =>
@@ -391,6 +429,13 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
                 <div className="text-[11px] text-[#CCC] truncate">{profile?.nome_completo || user?.email}</div>
                 <div className="text-[10px] text-[#555] uppercase tracking-wider">{role || "—"}</div>
               </div>
+              <button
+                onClick={() => setPwdOpen(true)}
+                title="Alterar senha"
+                className="text-[#666] hover:text-white transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
               <UserThemePicker />
               <button onClick={() => signOut()} className="text-[10px] uppercase tracking-wider text-[#666] hover:text-white transition-colors">
                 Sair
@@ -423,6 +468,69 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
           </nav>
         </div>
       )}
+
+      {/* Alterar Senha Dialog */}
+      <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
+        <DialogContent className="sm:max-w-sm bg-[#0f0f17] border border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-medium tracking-tight">Alterar senha</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-3 mt-2">
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.14em] text-white/40 mb-1.5">Senha atual</label>
+              <Input
+                type="password"
+                value={currentPwd}
+                onChange={(e) => setCurrentPwd(e.target.value)}
+                required
+                className="h-10 bg-white/[0.04] border-white/10 text-white text-sm focus:border-purple-400/50 focus:ring-purple-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.14em] text-white/40 mb-1.5">Nova senha</label>
+              <Input
+                type="password"
+                value={newPwd}
+                onChange={(e) => setNewPwd(e.target.value)}
+                required
+                minLength={6}
+                className="h-10 bg-white/[0.04] border-white/10 text-white text-sm focus:border-purple-400/50 focus:ring-purple-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.14em] text-white/40 mb-1.5">Confirmar nova senha</label>
+              <Input
+                type="password"
+                value={confirmPwd}
+                onChange={(e) => setConfirmPwd(e.target.value)}
+                required
+                minLength={6}
+                className="h-10 bg-white/[0.04] border-white/10 text-white text-sm focus:border-purple-400/50 focus:ring-purple-500/20"
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setPwdOpen(false)}
+                className="text-white/60 hover:text-white hover:bg-white/5 text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={pwdLoading}
+                className="text-xs"
+                style={{
+                  background: "linear-gradient(135deg,#7c3aed 0%,#6366f1 100%)",
+                }}
+              >
+                {pwdLoading ? "Salvando…" : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

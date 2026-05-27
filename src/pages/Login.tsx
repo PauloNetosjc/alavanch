@@ -2,16 +2,14 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import logo from "@/assets/alavanch-logo.png";
 
 export default function Login() {
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nome, setNome] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -19,16 +17,10 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "login") {
-        await signIn(email, password);
-        navigate("/dashboard");
-      } else {
-        await signUp(email, password, nome);
-        toast.success("Cadastro realizado! Verifique seu e-mail.");
-        setMode("login");
-      }
+      await signIn(email, password);
+      navigate("/dashboard");
     } catch (err: any) {
-      toast.error(err.message || "Erro");
+      toast.error(err.message || "Erro ao entrar");
     } finally {
       setLoading(false);
     }
@@ -119,24 +111,14 @@ export default function Login() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_0_60px_-15px_rgba(139,92,246,0.25)]">
             <div className="mb-8">
               <h1 className="text-2xl font-light tracking-tight text-white">
-                {mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}
+                Bem-vindo de volta
               </h1>
               <p className="text-sm text-white/50 mt-1">
-                {mode === "login" ? "Entre para acessar seu painel" : "Comece a acelerar agora"}
+                Entre para acessar seu painel
               </p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">
-              {mode === "signup" && (
-                <Field
-                  icon={<User size={15} />}
-                  label="Nome"
-                  type="text"
-                  value={nome}
-                  onChange={setNome}
-                  required
-                />
-              )}
               <Field
                 icon={<Mail size={15} />}
                 label="E-mail"
@@ -152,7 +134,6 @@ export default function Login() {
                 value={password}
                 onChange={setPassword}
                 required
-                minLength={6}
                 rightSlot={
                   <button
                     type="button"
@@ -176,24 +157,11 @@ export default function Login() {
               >
                 <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                 <span className="relative flex items-center justify-center gap-2">
-                  {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
+                  {loading ? "Aguarde…" : "Entrar"}
                   {!loading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
                 </span>
               </button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-white/10 text-center">
-              <button
-                onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                className="text-[13px] text-white/50 hover:text-white transition-colors"
-              >
-                {mode === "login" ? (
-                  <>Não tem conta? <span className="text-purple-300 font-medium">Criar conta</span></>
-                ) : (
-                  <>Já tem conta? <span className="text-purple-300 font-medium">Entrar</span></>
-                )}
-              </button>
-            </div>
           </div>
 
           <p className="text-center text-[11px] text-white/30 mt-6 tracking-wider lg:hidden">
@@ -212,7 +180,6 @@ function Field({
   value,
   onChange,
   required,
-  minLength,
   rightSlot,
 }: {
   icon: React.ReactNode;
@@ -221,7 +188,6 @@ function Field({
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
-  minLength?: number;
   rightSlot?: React.ReactNode;
 }) {
   return (
@@ -236,7 +202,6 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
-          minLength={minLength}
           className="w-full h-11 pl-9 pr-10 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-purple-400/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-purple-500/20 transition-all"
         />
         {rightSlot && (
