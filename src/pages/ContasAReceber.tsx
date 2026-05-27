@@ -117,6 +117,27 @@ export default function ContasAReceber() {
   };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
 
+  // Mapa pedido -> família (raiz + adendos + complementos) para o "guarda-chuva" da receita
+  const pedidoFamilia = useMemo(() => {
+    const byId = new Map(pedidos.map((p) => [p.id, p]));
+    const map = new Map<string, { receitas: string[]; codigos: string[]; clienteNome: string }>();
+    for (const p of pedidos) {
+      const raizId = p.pedido_pai_id || p.pedido_origem_complemento_id || p.id;
+      const raiz = byId.get(raizId) || p;
+      // família = raiz + todos os pedidos cujo raiz seja o mesmo
+      const familia = pedidos.filter(
+        (x) => x.id === raizId
+          || x.pedido_pai_id === raizId
+          || x.pedido_origem_complemento_id === raizId,
+      );
+      const receitas = Array.from(new Set(familia.map((x) => x.receita_codigo).filter(Boolean) as string[]));
+      const codigos = Array.from(new Set(familia.map((x) => x.codigo).filter(Boolean)));
+      const cliente = clientes.find((c) => c.id === raiz.cliente_id)?.nome || "";
+      map.set(p.id, { receitas, codigos, clienteNome: cliente });
+    }
+    return map;
+  }, [pedidos, clientes]);
+
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
       if (lojasFiltro.length > 0 && !lojasFiltro.includes(l.loja_id || "")) return false;
@@ -138,15 +159,20 @@ export default function ContasAReceber() {
       }
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
-        const t = busca.toLowerCase();
+        const t = busca.toLowerCase().replace(/^#/, "");
+        const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
-          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t);
+          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
+          || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
+          || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
+          || (fam?.clienteNome || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
+
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
