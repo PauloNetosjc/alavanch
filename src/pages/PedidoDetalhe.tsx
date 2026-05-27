@@ -2687,6 +2687,8 @@ function PedidoAcoesMenu({
     }
     setCancelando(true);
     await salvarPedido({ status: "cancelado" });
+    // Remove o pedido de todos os kanbans operacionais
+    await supabase.from("kanban_cards").delete().eq("pedido_id", pedido.id);
     // Reverte o orçamento associado para a fase de negociação e zera descontos/pagamentos
     if (pedido?.orcamento_id) {
       await Promise.all([
@@ -2697,6 +2699,11 @@ function PedidoAcoesMenu({
           desconto_valor: 0,
         }).eq("id", pedido.orcamento_id),
         supabase.from("pagamentos_orcamento").delete().eq("orcamento_id", pedido.orcamento_id),
+        // Cancela contratos vinculados a este orçamento que ainda estavam ativos
+        supabase.from("contratos")
+          .update({ status: "cancelado" })
+          .eq("orcamento_id", pedido.orcamento_id)
+          .neq("status", "cancelado"),
       ]);
     }
     setCancelando(false);
