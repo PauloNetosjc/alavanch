@@ -607,7 +607,7 @@ export default function Comercial() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[12px] text-muted-foreground">{fmtDate(r.created_at)}</div>
+                          <div className="text-[12px] text-muted-foreground">{displayDate(r)}</div>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{r.cliente?.nome ?? "—"}</div>
