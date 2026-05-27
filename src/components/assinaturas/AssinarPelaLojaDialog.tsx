@@ -91,6 +91,24 @@ export function AssinarPelaLojaDialog({
         user_id: user?.id,
       });
 
+      // Persiste assinante no snapshot do contrato e regenera o HTML do contrato
+      // para que o nome + e-mail do responsável pela loja apareçam na assinatura visível.
+      try {
+        if ((solic as any)?.contratos?.id) {
+          const snap = (((solic as any).contratos.conteudo_snapshot as any) || {});
+          await supabase.from("contratos").update({
+            conteudo_snapshot: {
+              ...snap,
+              loja_assinatura_nome: nomeLogado,
+              loja_assinatura_email: emailLogado,
+            } as any,
+          }).eq("id", (solic as any).contratos.id);
+        }
+        await prepararContratoParaAssinatura(solic.id, { nome: nomeLogado, email: emailLogado });
+      } catch (e) {
+        console.error("[regenerar contrato pós assinatura loja]", e);
+      }
+
       if (clienteJaAssinou) {
         await arquivarDocumentoAssinado(solic.id);
         toast.success("Documento concluído!");
