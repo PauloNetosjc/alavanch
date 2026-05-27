@@ -542,13 +542,30 @@ export default function Comercial() {
                         </span>
                       </div>
                     </div>
-                    <div className="mt-3 flex justify-end">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                      >
-                        {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
-                      </button>
+                    <div className="mt-3 flex justify-end gap-2">
+                      {isVenda ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${r.pedido_id}`); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Visualizar
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                          >
+                            <Calculator className="w-3.5 h-3.5" /> Negociar
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#C0392B]"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Declinar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </li>
                 );
