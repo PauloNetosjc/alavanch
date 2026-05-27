@@ -1092,8 +1092,31 @@ export default function ComercialNegociacao() {
     // Atualiza o pedido (criado pelo trigger, ou já existente se foi cancelado antes)
     const { data: { user } } = await supabase.auth.getUser();
     setTimeout(async () => {
-      const { data: ped } = await supabase.from("pedidos").select("id,status").eq("orcamento_id", id).maybeSingle();
+      const { data: ped } = await supabase.from("pedidos").select("id,status,codigo").eq("orcamento_id", id).maybeSingle();
       if (ped?.id) {
+        // Alinha o número do contrato ao código do pedido
+        if (ped.codigo && ped.codigo !== created.numero) {
+          // Renomeia contratos antigos (cancelados) que já carregam esse código
+          const { data: antigos } = await supabase
+            .from("contratos")
+            .select("id,numero")
+            .eq("numero", ped.codigo)
+            .neq("id", created.id);
+          for (const a of antigos || []) {
+            await supabase.from("contratos").update({
+              numero: `${a.numero}-CANC-${a.id.slice(0, 6)}`,
+            }).eq("id", a.id);
+          }
+          const { data: snapAtual } = await supabase.from("contratos").select("conteudo_snapshot").eq("id", created.id).single();
+          const snap = (snapAtual?.conteudo_snapshot as any) || {};
+          await supabase.from("contratos").update({
+            numero: ped.codigo,
+            conteudo_snapshot: { ...snap, numero: ped.codigo } as any,
+          }).eq("id", created.id);
+          created.numero = ped.codigo;
+        }
+
+
         const patch: any = {
           observacoes_venda: observacoes || null,
           estagio_responsavel_id: user?.id || null,
