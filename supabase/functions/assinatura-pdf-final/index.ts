@@ -247,8 +247,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const nomeArquivo = `Assinatura final - ${(s as any).pedidos?.codigo ?? "pedido"} - ${s.file_name ?? (s as any).tipos_documento?.nome ?? "documento"}.pdf`;
-    await sb.from("pedido_documentos").insert({
+    const docPayload = {
       pedido_id: s.pedido_id,
+      solicitacao_id: s.id,
       pasta_id: pastaDocs?.id ?? null,
       nome: nomeArquivo,
       storage_path: path,
@@ -258,7 +259,51 @@ Deno.serve(async (req) => {
       assinado_em: s.cliente_assinado_em ?? s.concluido_em ?? new Date().toISOString(),
       assinatura_nome: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.nome ?? null,
       assinatura_cpf: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.documento ?? null,
-    });
+    };
+
+    // Idempotência: procurar registro existente por (pedido_id, solicitacao_id) no bucket de assinaturas finais,
+    // com fallback por storage_path para registros legados sem solicitacao_id.
+    const { data: existentes } = await sb
+      .from("pedido_documentos")
+      .select("id")
+      .eq("pedido_id", s.pedido_id)
+      .eq("bucket_name", "assinaturas-finais")
+      .or(`solicitacao_id.eq.${s.id},storage_path.eq.${path}`)
+      .order("created_at", { ascending: false });
+
+    if (existentes && existentes.length > 0) {
+      const [keep, ...extras] = existentes;
+      const { error: errUpd } = await sb
+        .from("pedido_documentos")
+        .update(docPayload)
+        .eq("id", keep.id);
+      if (errUpd) {
+        console.error("[assinatura-pdf-final] update pedido_documentos falhou", errUpd);
+      }
+      if (extras.length > 0) {
+        await sb
+          .from("pedido_documentos")
+          .delete()
+          .in("id", extras.map((e: any) => e.id));
+      }
+    } else {
+      const { error: errIns } = await sb.from("pedido_documentos").insert(docPayload);
+      if (errIns) {
+        // Conflito por índice único parcial uq_pedido_doc_assinatura_final → atualizar o existente.
+        const { data: dup } = await sb
+          .from("pedido_documentos")
+          .select("id")
+          .eq("pedido_id", s.pedido_id)
+          .eq("solicitacao_id", s.id)
+          .eq("bucket_name", "assinaturas-finais")
+          .maybeSingle();
+        if (dup?.id) {
+          await sb.from("pedido_documentos").update(docPayload).eq("id", dup.id);
+        } else {
+          console.error("[assinatura-pdf-final] insert pedido_documentos falhou", errIns);
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ url, path }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
