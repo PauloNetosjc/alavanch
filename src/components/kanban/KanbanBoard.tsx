@@ -46,6 +46,7 @@ type CardRow = {
     loja_id: string | null;
     urgencia: UrgenciaNivel | null;
     arquivado: boolean | null;
+    created_at: string | null;
     cliente: { nome: string } | null;
   } | null;
   etiquetas?: { id: string; nome: string; cor: string }[];
@@ -107,7 +108,7 @@ export default function KanbanBoard({
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
           .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
-                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,cliente:clientes(nome))`)
+                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,created_at,cliente:clientes(nome))`)
           .eq("pipeline", pipeline)
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("user_id,nome_completo"),
@@ -173,16 +174,16 @@ export default function KanbanBoard({
       const matchTxt = !t || ped.codigo.toLowerCase().includes(t) || (ped.cliente?.nome || "").toLowerCase().includes(t);
       if (!matchTxt) return false;
 
-      if (!filtros.arquivados && ped.arquivado) return false;
+      if (ped.arquivado) return false;
       if (filtros.unidadeId && ped.loja_id !== filtros.unidadeId) return false;
       if (filtros.responsavelId && c.responsavel_id !== filtros.responsavelId) return false;
 
       const d = diffDays(c.prazo);
       if (filtros.somenteAtrasados && (d == null || d >= 0)) return false;
-      if (filtros.dataFim) {
-        const lim = new Date(filtros.dataFim + "T23:59:59").getTime();
-        const prazo = c.prazo ? new Date(c.prazo).getTime() : Infinity;
-        if (prazo > lim) return false;
+      if (filtros.dataVenda) {
+        const lim = new Date(filtros.dataVenda + "T23:59:59").getTime();
+        const venda = ped.created_at ? new Date(ped.created_at).getTime() : Infinity;
+        if (venda > lim) return false;
       }
       if (filtros.urgencia && ped.urgencia !== filtros.urgencia) return false;
       return true;
@@ -195,21 +196,8 @@ export default function KanbanBoard({
     filtered.forEach((c) => {
       if (map.has(c.estagio_id)) map.get(c.estagio_id)!.push(c);
     });
-    map.forEach((list) => {
-      list.sort((a, b) => {
-        if (filtros.ordenarPor === "urgencia") {
-          return (URGENCIA_RANK[b.pedido?.urgencia as UrgenciaNivel] || 0) - (URGENCIA_RANK[a.pedido?.urgencia as UrgenciaNivel] || 0);
-        }
-        if (filtros.ordenarPor === "entrega") {
-          const da = a.prazo ? new Date(a.prazo).getTime() : Infinity;
-          const db = b.prazo ? new Date(b.prazo).getTime() : Infinity;
-          return da - db;
-        }
-        return 0;
-      });
-    });
     return map;
-  }, [filtered, estagios, filtros.ordenarPor]);
+  }, [filtered, estagios]);
 
   const totaisPorEstagio = useMemo(() => {
     const t = new Map<string, number>();
@@ -312,7 +300,7 @@ export default function KanbanBoard({
   };
 
   const chips: { label: string; onClear: () => void }[] = [];
-  chips.push({ label: `Arquivados: ${filtros.arquivados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, arquivados: false })) });
+  
   chips.push({ label: `Atrasados: ${filtros.somenteAtrasados ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, somenteAtrasados: false })) });
   chips.push({ label: `Mostrar valores: ${filtros.mostrarValores ? "Sim" : "Não"}`, onClear: () => setFiltros((f) => ({ ...f, mostrarValores: !f.mostrarValores })) });
   if (filtros.urgencia) chips.push({ label: `Urgência: ${URGENCIA_META[filtros.urgencia].label}`, onClear: () => setFiltros((f) => ({ ...f, urgencia: undefined })) });

@@ -11,26 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 export type UrgenciaNivel = "baixa" | "media" | "alta";
 
 export type KanbanFiltros = {
-  dataFim?: string;
+  dataVenda?: string;
   unidadeId?: string;
   responsavelId?: string;
-  tipoOcorrencia?: string;
-  equipe?: string;
-  grupoLinhasGrade?: string;
   urgencia?: UrgenciaNivel;
   somenteAtrasados: boolean;
   mostrarValores: boolean;
-  mostrarTarefas: boolean;
-  arquivados: boolean;
-  ordenarPor: "indices" | "urgencia" | "entrega";
 };
 
 export const FILTROS_DEFAULT: KanbanFiltros = {
   somenteAtrasados: false,
   mostrarValores: true,
-  mostrarTarefas: false,
-  arquivados: false,
-  ordenarPor: "indices",
 };
 
 export const URGENCIA_META: Record<UrgenciaNivel, { label: string; color: string; bg: string }> = {
@@ -82,8 +73,8 @@ export function KanbanFiltrosDialog({
 
         <div className="space-y-3">
           <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Data fim</Label>
-            <Input type="date" value={draft.dataFim || ""} onChange={(e) => set("dataFim", e.target.value || undefined)} />
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Data da venda</Label>
+            <Input type="date" value={draft.dataVenda || ""} onChange={(e) => set("dataVenda", e.target.value || undefined)} />
           </div>
 
           <div>
@@ -111,21 +102,6 @@ export function KanbanFiltrosDialog({
                 <Button variant="ghost" size="icon" onClick={() => set("responsavelId", undefined)}><X className="w-4 h-4" /></Button>
               )}
             </div>
-          </div>
-
-          <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Tipo de ocorrência</Label>
-            <Input placeholder="Texto livre" value={draft.tipoOcorrencia || ""} onChange={(e) => set("tipoOcorrencia", e.target.value || undefined)} />
-          </div>
-
-          <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Equipe</Label>
-            <Input placeholder="Texto livre" value={draft.equipe || ""} onChange={(e) => set("equipe", e.target.value || undefined)} />
-          </div>
-
-          <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Grupo de linhas de grade</Label>
-            <Input placeholder="Texto livre" value={draft.grupoLinhasGrade || ""} onChange={(e) => set("grupoLinhasGrade", e.target.value || undefined)} />
           </div>
 
           <div>
@@ -160,37 +136,9 @@ export function KanbanFiltrosDialog({
               <Checkbox checked={draft.mostrarValores} onCheckedChange={(v) => set("mostrarValores", !!v)} />
               Mostrar valores (mais lento)
             </label>
-            <label className="flex items-center gap-2 text-[13px]">
-              <Checkbox checked={draft.mostrarTarefas} onCheckedChange={(v) => set("mostrarTarefas", !!v)} />
-              Mostrar tarefas (mais lento)
-            </label>
-            <label className="flex items-center gap-2 text-[13px]">
-              <Checkbox checked={draft.arquivados} onCheckedChange={(v) => set("arquivados", !!v)} />
-              Arquivados
-            </label>
-          </div>
-
-          <div className="pt-2 border-t">
-            <Label className="text-[13px] font-semibold block mb-2">Ordenar por</Label>
-            <div className="space-y-1.5">
-              {([
-                ["indices", "Ordenar pelos índices"],
-                ["urgencia", "Ordenar pela urgência"],
-                ["entrega", "Ordenar pelas datas de entrega"],
-              ] as const).map(([v, l]) => (
-                <label key={v} className="flex items-center gap-2 text-[13px] cursor-pointer">
-                  <input
-                    type="radio"
-                    name="ord"
-                    checked={draft.ordenarPor === v}
-                    onChange={() => set("ordenarPor", v)}
-                  />
-                  {l}
-                </label>
-              ))}
-            </div>
           </div>
         </div>
+
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button className="w-full" onClick={() => { onChange(draft); onOpenChange(false); }}>
