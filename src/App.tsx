@@ -66,6 +66,7 @@ const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
 const Aniversariantes = lazy(() => import("@/pages/Aniversariantes"));
 const Produtos = lazy(() => import("@/pages/Produtos"));
 const RH = lazy(() => import("@/pages/RH"));
+const BaterPonto = lazy(() => import("@/pages/BaterPonto"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -170,6 +171,7 @@ const App = () => (
                 <Route path="/financeiro/aprovador" element={<RequirePermission modulo="lancamentos"><AprovadorFinanceiro /></RequirePermission>} />
                 <Route path="/notas-fiscais" element={<RequirePermission modulo="lancamentos"><NotasFiscais /></RequirePermission>} />
                 <Route path="/rh" element={<RequirePermission modulo="rh"><RH /></RequirePermission>} />
+                <Route path="/bater-ponto" element={<BaterPonto />} />
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
                 <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />

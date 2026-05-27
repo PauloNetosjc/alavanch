@@ -37,6 +37,7 @@ import {
   Package,
   Shield,
   Tags,
+  Fingerprint,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -80,6 +81,7 @@ const sections: Section[] = [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
       { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh" },
+      { label: "Bater Ponto", path: "/bater-ponto", icon: Fingerprint },
     ],
   },
 ];
