@@ -28,6 +28,7 @@ export type ContratoCtx = {
   assinatura_loja_url?: string | null;
   loja_assinado_em?: string | null;
   loja_assinatura_nome?: string | null;
+  loja_assinatura_email?: string | null;
 };
 
 export const fmtBrl = (n: number) =>
@@ -113,6 +114,8 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   const assinaturaLojaHtml = `<div class="loja-signature"><img src="${escapeHtml(assinaturaLojaUrl)}" alt="Assinatura digital e carimbo da loja com CNPJ e razão social" /></div>`;
   const dataAssinaturaLoja = ctx.loja_assinado_em || ctx.emitido_em || new Date().toISOString();
   const assinaturaLojaMeta = `<div class="lb">Assinatura / Responsável</div>
+       ${ctx.loja_assinatura_nome ? `<div class="lb" style="margin-top:2px;font-size:11px;color:#1A1A1A"><b>${escapeHtml(ctx.loja_assinatura_nome)}</b></div>` : ""}
+       ${ctx.loja_assinatura_email ? `<div class="lb" style="font-size:10px">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
        <div class="lb" style="margin-top:2px;font-size:10px">Pré-assinado digitalmente em ${fmtDate(dataAssinaturaLoja)}</div>`;
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>

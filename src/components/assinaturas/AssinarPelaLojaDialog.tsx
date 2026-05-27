@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
 import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 export function AssinarPelaLojaDialog({
   open, onOpenChange, solicitacaoId, onDone,
@@ -15,17 +16,22 @@ export function AssinarPelaLojaDialog({
   solicitacaoId: string | null; onDone?: () => void;
 }) {
   const { user, profile, role } = useAuth();
-  const [obs, setObs] = useState("");
+  const nomeLogado = (profile as any)?.nome_completo || user?.email || "";
+  const emailLogado = user?.email || "";
+  const obsPadrao = nomeLogado && emailLogado && nomeLogado !== emailLogado
+    ? `${nomeLogado} — ${emailLogado}`
+    : (nomeLogado || emailLogado);
+  const [obs, setObs] = useState(obsPadrao);
   const [busy, setBusy] = useState(false);
   const padRef = useRef<SignaturePadHandle>(null);
   const [solic, setSolic] = useState<any>(null);
 
   useEffect(() => {
     if (!open || !solicitacaoId) return;
-    setObs("");
-    supabase.from("solicitacoes_assinatura").select("*").eq("id", solicitacaoId).maybeSingle()
+    setObs(obsPadrao);
+    supabase.from("solicitacoes_assinatura").select("*, contratos(id,conteudo_snapshot)").eq("id", solicitacaoId).maybeSingle()
       .then(({ data }) => setSolic(data));
-  }, [open, solicitacaoId]);
+  }, [open, solicitacaoId, obsPadrao]);
 
   async function assinar() {
     if (!solic) return;
@@ -84,6 +90,24 @@ export function AssinarPelaLojaDialog({
         descricao: `Loja assinou (${(profile as any)?.nome_completo || user?.email})`,
         user_id: user?.id,
       });
+
+      // Persiste assinante no snapshot do contrato e regenera o HTML do contrato
+      // para que o nome + e-mail do responsável pela loja apareçam na assinatura visível.
+      try {
+        if ((solic as any)?.contratos?.id) {
+          const snap = (((solic as any).contratos.conteudo_snapshot as any) || {});
+          await supabase.from("contratos").update({
+            conteudo_snapshot: {
+              ...snap,
+              loja_assinatura_nome: nomeLogado,
+              loja_assinatura_email: emailLogado,
+            } as any,
+          }).eq("id", (solic as any).contratos.id);
+        }
+        await prepararContratoParaAssinatura(solic.id, { nome: nomeLogado, email: emailLogado });
+      } catch (e) {
+        console.error("[regenerar contrato pós assinatura loja]", e);
+      }
 
       if (clienteJaAssinou) {
         await arquivarDocumentoAssinado(solic.id);
