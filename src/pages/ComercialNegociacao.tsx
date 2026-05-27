@@ -286,11 +286,9 @@ function ResumoFinanceiroDialog({
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
             <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
-            <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" percValue={fretePerc} onPercChange={setFretePerc} />
-            <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" percValue={comissaoLojaPerc} onPercChange={setComissaoLojaPerc} />
-            <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" percValue={montagemPerc} onPercChange={setMontagemPerc} />
-            <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" percValue={impostosPerc} onPercChange={setImpostosPerc} />
-            <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" percValue={outrosPerc} onPercChange={setOutrosPerc} />
+            {itensCusto.map((i) => (
+              <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
+            ))}
             <div className="border-t border-border pt-2 flex items-center justify-between text-[14px] font-semibold">
               <span>Total</span>
               <span className="text-mono">{fmtBrl(totalCustos)}</span>
