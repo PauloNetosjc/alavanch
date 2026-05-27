@@ -52,6 +52,36 @@ export default function Login() {
           }}
         />
 
+        {/* Rising arrow behind the text */}
+        <svg
+          className="absolute left-0 right-0 bottom-20 w-full h-[70%] pointer-events-none z-0"
+          viewBox="0 0 600 400"
+          fill="none"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="arrowGrad" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.0" />
+              <stop offset="40%" stopColor="#8b5cf6" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0.95" />
+            </linearGradient>
+            <filter id="arrowGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g filter="url(#arrowGlow)" stroke="url(#arrowGrad)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none">
+            <polyline points="40,340 130,260 200,310 290,200 360,250 450,120 540,170" />
+            {/* arrow head */}
+            <polyline points="510,110 555,95 555,150" />
+          </g>
+        </svg>
+
+
         <div className="relative z-10">
           <img src={logo} alt="Alavanch" className="h-20 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
         </div>
