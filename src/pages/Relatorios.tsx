@@ -120,7 +120,8 @@ export default function Relatorios() {
       }));
       const margem = liq > 0 ? ((liq - custo) / liq) * 100 : 0;
       const ticket = arr.length ? bruto / arr.length : 0;
-      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket };
+      const desconto = arr.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
+      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket, desconto };
     });
   }, [pedidos]);
 
