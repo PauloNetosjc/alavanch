@@ -449,7 +449,7 @@ export default function PedidoDetalhe() {
           </Link>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <h1 className="font-playfair text-[42px] leading-tight font-semibold">{pedido.codigo}</h1>
-            <PedidoEtiquetas pedidoId={pedido.id} compact />
+            <PedidoEtiquetas pedidoId={pedido.id} />
           </div>
           <div className="flex items-center gap-3 mt-1 text-[13px] text-muted-foreground">
             <span className="font-medium text-foreground">{cliente?.nome || "—"}</span>

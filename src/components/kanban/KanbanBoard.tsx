@@ -48,6 +48,7 @@ type CardRow = {
     arquivado: boolean | null;
     cliente: { nome: string } | null;
   } | null;
+  etiquetas?: { id: string; nome: string; cor: string }[];
 };
 type Profile = { user_id: string; nome_completo: string | null };
 
@@ -112,7 +113,20 @@ export default function KanbanBoard({
         supabase.from("profiles").select("user_id,nome_completo"),
       ]);
       setEstagios((est ?? []) as Estagio[]);
-      setCards((rows ?? []) as CardRow[]);
+      const cardsBase = (rows ?? []) as CardRow[];
+      // Carrega etiquetas dos pedidos exibidos
+      const pedidoIds = Array.from(new Set(cardsBase.map((c) => c.pedido_id).filter(Boolean)));
+      let etMap: Record<string, { id: string; nome: string; cor: string }[]> = {};
+      if (pedidoIds.length) {
+        const { data: vinc } = await (supabase as any).from("pedido_etiquetas")
+          .select("pedido_id, etiqueta:etiquetas(id,nome,cor,ativo)")
+          .in("pedido_id", pedidoIds);
+        (vinc || []).forEach((v: any) => {
+          if (!v?.etiqueta || v.etiqueta.ativo === false) return;
+          (etMap[v.pedido_id] = etMap[v.pedido_id] || []).push(v.etiqueta);
+        });
+      }
+      setCards(cardsBase.map((c) => ({ ...c, etiquetas: etMap[c.pedido_id] || [] })));
       setProfiles((profs ?? []) as any);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao carregar Kanban");
@@ -424,7 +438,7 @@ export default function KanbanBoard({
                           draggable
                           onDragStart={(ev) => ev.dataTransfer.setData("text/card", c.id)}
                           onClick={() => onCardClick(c, e)}
-                          className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
+                          className={`border-l-4 border rounded p-2.5 cursor-pointer hover:shadow-md transition-shadow overflow-hidden ${cardBg}`}
                           style={{ borderLeftColor: e.cor || "#6b7280" }}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -474,6 +488,20 @@ export default function KanbanBoard({
                           {ped.critico && (
                             <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-medium">
                               <AlertTriangle className="w-3 h-3" /> Crítico
+                            </div>
+                          )}
+                          {c.etiquetas && c.etiquetas.length > 0 && (
+                            <div className="-mx-2.5 -mb-2.5 mt-2 flex flex-col overflow-hidden rounded-b">
+                              {c.etiquetas.map((et) => (
+                                <div
+                                  key={et.id}
+                                  className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white text-center leading-tight"
+                                  style={{ background: et.cor }}
+                                  title={et.nome}
+                                >
+                                  {et.nome}
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
