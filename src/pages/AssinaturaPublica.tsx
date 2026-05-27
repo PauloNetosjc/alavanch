@@ -256,7 +256,7 @@ export default function AssinaturaPublica() {
         ip,
         localizacao,
         user_agent: ua,
-      });
+      } as any);
       if (errE) throw errE;
 
       // Atualiza status + snapshot. Só conclui quando as duas assinaturas exigidas existirem.
