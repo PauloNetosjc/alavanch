@@ -295,6 +295,7 @@ export default function RH() {
       endereco: funcForm.endereco || null,
       cargo_id: funcForm.cargo_id || null,
       setor_id: funcForm.setor_id || null,
+      turno_id: (funcForm as any).turno_id || null,
       salario: funcForm.salario || null,
       data_admissao: funcForm.data_admissao || null,
       tipo_contrato: funcForm.tipo_contrato || "clt",
