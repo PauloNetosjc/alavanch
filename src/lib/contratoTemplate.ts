@@ -28,6 +28,7 @@ export type ContratoCtx = {
   assinatura_loja_url?: string | null;
   loja_assinado_em?: string | null;
   loja_assinatura_nome?: string | null;
+  loja_assinatura_email?: string | null;
 };
 
 export const fmtBrl = (n: number) =>
