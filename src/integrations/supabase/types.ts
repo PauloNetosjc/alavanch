@@ -512,6 +512,7 @@ export type Database = {
           created_at: string
           documento: string | null
           email: string | null
+          enviado_em: string | null
           id: string
           ip: string | null
           nome: string | null
@@ -519,9 +520,11 @@ export type Database = {
           status: string
           telefone: string | null
           tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          token: string
           updated_at: string
           user_agent: string | null
           user_id: string | null
+          visualizado_em: string | null
         }
         Insert: {
           assinado_em?: string | null
@@ -529,6 +532,7 @@ export type Database = {
           created_at?: string
           documento?: string | null
           email?: string | null
+          enviado_em?: string | null
           id?: string
           ip?: string | null
           nome?: string | null
@@ -536,9 +540,11 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          token?: string
           updated_at?: string
           user_agent?: string | null
           user_id?: string | null
+          visualizado_em?: string | null
         }
         Update: {
           assinado_em?: string | null
@@ -546,6 +552,7 @@ export type Database = {
           created_at?: string
           documento?: string | null
           email?: string | null
+          enviado_em?: string | null
           id?: string
           ip?: string | null
           nome?: string | null
@@ -553,9 +560,11 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          token?: string
           updated_at?: string
           user_agent?: string | null
           user_id?: string | null
+          visualizado_em?: string | null
         }
         Relationships: [
           {
@@ -4871,6 +4880,38 @@ export type Database = {
         }
         Returns: Json
       }
+      garantir_participante: {
+        Args: {
+          p_solic: string
+          p_tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+        }
+        Returns: {
+          assinado_em: string | null
+          cargo: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          enviado_em: string | null
+          id: string
+          ip: string | null
+          nome: string | null
+          solicitacao_id: string
+          status: string
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["assinatura_participante_tipo"]
+          token: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+          visualizado_em: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "assinatura_participantes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gerar_receber_de_pedido_assinado: {
         Args: { p_pedido_id: string }
         Returns: undefined
@@ -4924,6 +4965,10 @@ export type Database = {
       pode_autorizar_excecao_agenda: {
         Args: { _loja: string; _user_id: string }
         Returns: boolean
+      }
+      recalcular_status_solicitacao: {
+        Args: { p_solic: string }
+        Returns: undefined
       }
       revisao_avancar_preparo_pj_final: {
         Args: { _pedido_id: string; _revisao_data: string }
