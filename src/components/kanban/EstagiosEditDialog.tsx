@@ -162,7 +162,7 @@ export function EstagiosEditDialog({
   const addNew = () => {
     setRows((r) => [
       ...r,
-      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null, concluir_acao: "proxima", concluir_pipeline_destino: null, concluir_estagio_destino_id: null },
+      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null, concluir_acao: "proxima", concluir_pipeline_destino: null, concluir_estagio_destino_id: null, criar_card_em: [] },
     ]);
   };
 
