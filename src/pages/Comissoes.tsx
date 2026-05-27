@@ -454,7 +454,7 @@ export default function Comissoes() {
                     .filter((x) => x.pedido)
                     .sort((a, b) => +new Date(b.pedido.data) - +new Date(a.pedido.data));
                   return (
-                    <FragmentRow key={r.user_id}>
+                    <Fragment key={r.user_id}>
                       <tr
                         className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
                         onClick={() => setExpandido(isOpen ? null : r.user_id)}>
