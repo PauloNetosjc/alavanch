@@ -2304,6 +2304,18 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
           <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
           </Button>
+          <Button size="sm" variant="outline" onClick={async () => {
+            try {
+              toast.loading("Regenerando PDF do contrato…", { id: "regen-ct" });
+              await prepararContratoParaAssinatura(solic.id);
+              toast.success("PDF do contrato regenerado", { id: "regen-ct" });
+              onChange();
+            } catch (e: any) {
+              toast.error(e?.message || "Erro ao regenerar contrato", { id: "regen-ct" });
+            }
+          }}>
+            🔄 Regenerar PDF
+          </Button>
         </div>
       )}
       {solic?.created_at && (
