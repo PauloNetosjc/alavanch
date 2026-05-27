@@ -518,7 +518,7 @@ export default function Comissoes() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
