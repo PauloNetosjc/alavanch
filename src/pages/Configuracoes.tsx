@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save, ShieldCheck, Plus, Trash2 } from "lucide-react";
+import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save, ShieldCheck, Plus, Trash2, PenLine } from "lucide-react";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -363,6 +364,26 @@ function EmpresaTab() {
           </div>
         </div>
       </div>
+
+      <div className="surface-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded bg-amber-500/15 flex items-center justify-center"><PenLine className="w-4 h-4 text-amber-500" /></div>
+          <div className="text-[15px] font-medium">Assinatura Digital</div>
+        </div>
+        <label className="flex items-start justify-between gap-4 p-3 rounded bg-secondary cursor-pointer">
+          <div className="flex-1">
+            <div className="text-[13px] font-medium">Assinar automaticamente pela loja ao gerar contrato</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              Quando ativo, ao gerar o contrato o representante logado (nome, e-mail e cargo) é registrado automaticamente como assinatura da loja. O cliente continua precisando assinar separadamente.
+            </div>
+          </div>
+          <Switch
+            checked={!!c.assinar_loja_automaticamente}
+            onCheckedChange={(v) => { set("assinar_loja_automaticamente", v); save({ ...c, assinar_loja_automaticamente: v }); }}
+          />
+        </label>
+      </div>
+
       <div className="flex justify-end">
         <Button onClick={() => save(c)} className="gap-2"><Save className="w-3.5 h-3.5" />Salvar</Button>
       </div>
