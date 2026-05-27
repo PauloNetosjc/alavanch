@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3, CalendarDays, Wallet } from "lucide-react";
+import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3, CalendarDays, Wallet, ChevronDown } from "lucide-react";
 import { useLoja } from "@/contexts/LojaContext";
 import { PageFilters, defaultPeriodoAno, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 
@@ -40,7 +40,7 @@ export default function Relatorios() {
     (async () => {
       setLoading(true);
       let qOrc = supabase.from("orcamentos").select("id, codigo, total, status, created_at, parceiro_id, cliente_id, loja_id, origem_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido)");
-      let qPed = supabase.from("pedidos").select("id, codigo, valor_total, juros_total, rt_repassado, is_adendo, is_complemento, status, created_at, cliente_id, loja_id, orcamento_id, orcamentos(origem_id, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido))");
+      let qPed = supabase.from("pedidos").select("id, codigo, valor_total, juros_total, rt_repassado, is_adendo, is_complemento, status, created_at, cliente_id, loja_id, orcamento_id, orcamentos(origem_id, desconto_valor, ambientes(custo_loja,custo_fabrica,custo_aquisicao,preco_sugerido))");
       let qPar = supabase.from("parceiro_comissoes" as any).select("parceiro_id, valor_calculado, loja_id, parceiros(nome)");
       let qAge = supabase.from("agenda_eventos" as any).select("id, tipo, data, status, loja_id, orcamento_id, pedido_id");
 
@@ -96,7 +96,9 @@ export default function Relatorios() {
     const brutoPv = pvs.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const ticket = pvs.length ? brutoPv / pvs.length : 0;
 
-    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length };
+    const descontoTotal = pedidos.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
+
+    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length, descontoTotal };
   }, [orcs, pedidos]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
@@ -118,7 +120,8 @@ export default function Relatorios() {
       }));
       const margem = liq > 0 ? ((liq - custo) / liq) * 100 : 0;
       const ticket = arr.length ? bruto / arr.length : 0;
-      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket };
+      const desconto = arr.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
+      return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket, desconto };
     });
   }, [pedidos]);
 
@@ -201,35 +204,43 @@ export default function Relatorios() {
       </div>
 
       {/* KPIs gerais */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" hint={`Juros previstos: ${fmtBRL(kpi.juros)}`} />
-        <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" hint={`RT indicação: ${fmtBRL(kpi.rt)}`} />
-        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(kpi.margemValor)} badge={`${kpi.margemPerc.toFixed(1)}%`} hint={`Custo previsto: ${fmtBRL(kpi.custoTotal)}`} />
-        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtdPv} contratos`} hint="Somente PV (sem adendo/complemento)" />
-        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." hint={`${kpi.fechadosPed}/${kpi.totalOrcPed} orçamentos PV`} />
-        <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" />
+      <div>
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span className="font-medium text-foreground">Resumo Geral</span>
+          <span>· todos os pedidos do período</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" hint={`Juros previstos: ${fmtBRL(kpi.juros)}`} />
+          <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" hint={`RT indicação: ${fmtBRL(kpi.rt)}`} />
+          <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(kpi.margemValor)} badge={`${kpi.margemPerc.toFixed(1)}%`} hint={`Custo previsto: ${fmtBRL(kpi.custoTotal)}`} />
+          <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtdPv} contratos`} hint="Somente PV (sem adendo/complemento)" />
+          <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." hint={`${kpi.fechadosPed}/${kpi.totalOrcPed} orçamentos PV`} />
+          <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" hint={`Desconto aplicado: ${fmtBRL(kpi.descontoTotal)}`} />
+        </div>
       </div>
 
-      {/* KPIs por tipo de pedido */}
-      <div className="space-y-3">
+      {/* KPIs por tipo de pedido (recolhíveis) */}
+      <div className="space-y-2">
         {porTipo.map((t) => (
-          <div key={t.code}>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-              <span className="font-medium text-foreground">{t.tipo}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary">{t.code}</span>
-              <span>· {t.qtd} {t.qtd === 1 ? "registro" : "registros"}</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <CollapsibleTipo
+            key={t.code}
+            tipo={t.tipo}
+            code={t.code}
+            qtd={t.qtd}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-2">
               <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(t.bruto)} badge="Bruto" hint={`Juros: ${fmtBRL(t.juros)}`} />
               <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(t.liquido)} badge="− juros − RT" hint={`RT: ${fmtBRL(t.rt)}`} />
               <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(t.margemValor)} badge={`${t.margem.toFixed(1)}%`} hint={`Custo: ${fmtBRL(t.custo)}`} />
               <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(t.ticket)} badge={`${t.qtd}`} />
               <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Part. Bruto" value={kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"} badge="Share" />
-              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto (Juros+RT)" value={fmtBRL(t.juros + t.rt)} badge="Deduções" />
+              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto Negociação" value={fmtBRL(t.desconto)} badge="Desc." hint={`Deduções: ${fmtBRL(t.juros + t.rt)}`} />
             </div>
-          </div>
+          </CollapsibleTipo>
         ))}
       </div>
+
 
 
       {/* Tabela por tipo (PV / AD / CP) */}
@@ -422,6 +433,27 @@ function KpiBig({ icon, color, label, value, badge, hint }: { icon: React.ReactN
       <div className="text-[10px] uppercase text-muted-foreground tracking-wider mt-3">{label}</div>
       <div className="text-[18px] font-medium mt-1">{value}</div>
       {hint && <div className="text-[10px] text-muted-foreground mt-1">{hint}</div>}
+    </div>
+  );
+}
+
+function CollapsibleTipo({ tipo, code, qtd, children }: { tipo: string; code: string; qtd: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="surface-card p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 text-left"
+      >
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-medium text-foreground">{tipo}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary">{code}</span>
+          <span>· {qtd} {qtd === 1 ? "registro" : "registros"}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && children}
     </div>
   );
 }
