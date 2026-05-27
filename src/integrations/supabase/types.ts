@@ -2600,6 +2600,8 @@ export type Database = {
           orcamento_id: string
           parcelas: number | null
           parcelas_detalhe: Json | null
+          parcelas_formas: Json | null
+          parcelas_vencimentos: Json | null
           valor: number
         }
         Insert: {
@@ -2610,6 +2612,8 @@ export type Database = {
           orcamento_id: string
           parcelas?: number | null
           parcelas_detalhe?: Json | null
+          parcelas_formas?: Json | null
+          parcelas_vencimentos?: Json | null
           valor: number
         }
         Update: {
@@ -2620,6 +2624,8 @@ export type Database = {
           orcamento_id?: string
           parcelas?: number | null
           parcelas_detalhe?: Json | null
+          parcelas_formas?: Json | null
+          parcelas_vencimentos?: Json | null
           valor?: number
         }
         Relationships: [
