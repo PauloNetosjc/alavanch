@@ -130,6 +130,9 @@ export default function PedidoDetalhe() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
+        await prepararContratoParaAssinatura(sa.id);
+      }
       setSolicAssin(sa);
     } else {
       setSolicAssin(null);
