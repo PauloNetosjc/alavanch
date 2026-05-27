@@ -27,16 +27,19 @@ const fmt = (d?: string | null) =>
   d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 export function VisualizarAssinaturasDialog({
-  open, onOpenChange, solicitacaoId, onAssinarLoja,
+  open, onOpenChange, solicitacaoId, pedidoId, onAssinarLoja, onChange,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   solicitacaoId: string | null;
+  pedidoId?: string | null;
   onAssinarLoja?: (solicId: string) => void;
+  onChange?: () => void;
 }) {
   const [parts, setParts] = useState<Part[]>([]);
   const [solic, setSolic] = useState<any>(null);
   const [evidOpen, setEvidOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     if (!open || !solicitacaoId) return;
