@@ -1474,12 +1474,16 @@ export default function ComercialNegociacao() {
                                   </TableCell>
                                   <TableCell className="px-2">
                                     {(() => {
+                                      const isEntrada = i === 0;
                                       const met = metodos.find((m) => m.nome === p.metodo);
                                       const cfg = met?.parcelas_config?.find((c) => Number(c.numero) === Number(i + 1))?.forma_pagamento;
                                       const permitidas = Array.isArray(cfg)
                                         ? cfg.filter(Boolean)
                                         : (cfg ? [cfg] : []);
-                                      const opcoes = permitidas.length ? permitidas : FORMAS_PAGAMENTO;
+                                      // Entrada (1ª parcela) sempre aceita qualquer forma cadastrada
+                                      const opcoes = isEntrada
+                                        ? FORMAS_PAGAMENTO
+                                        : (permitidas.length ? permitidas : FORMAS_PAGAMENTO);
                                       const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || "Boleto");
                                       return (
                                         <Select
