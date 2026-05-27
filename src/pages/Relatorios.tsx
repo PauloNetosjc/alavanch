@@ -62,8 +62,47 @@ export default function Relatorios() {
         qOrc, qPed, qPar, qAge,
         supabase.from("origens_lead" as any).select("id, nome").order("nome"),
       ]);
+      const pedsRaw = p || [];
+
+      // Calcula juros do cliente por pedido a partir dos pagamentos do orçamento
+      // (replica a fórmula usada em PedidoDetalhe/ComercialNegociacao)
+      const orcIds = Array.from(new Set(pedsRaw.map((x: any) => x.orcamento_id).filter(Boolean)));
+      const [{ data: pags }, { data: mets }] = await Promise.all([
+        orcIds.length
+          ? supabase.from("pagamentos_orcamento").select("orcamento_id, metodo, parcelas, valor").in("orcamento_id", orcIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela, parcelas_config"),
+      ]);
+      const metodosMap = new Map<string, any>();
+      (mets || []).forEach((m: any) => metodosMap.set(m.nome, m));
+      const jurosPorOrc = new Map<string, number>();
+      (pags || []).forEach((pg: any) => {
+        const n = Number(pg.parcelas) || 1;
+        if (n <= 1) return;
+        const met = metodosMap.get(pg.metodo);
+        let juros = 0;
+        const cfg = Array.isArray(met?.parcelas_config)
+          ? met.parcelas_config.find((c: any) => Number(c?.numero) === n)
+          : null;
+        const jurosPerc = Number(cfg?.juros_perc) || 0;
+        if (jurosPerc > 0) {
+          juros = (Number(pg.valor || 0) * jurosPerc) / 100;
+        } else {
+          const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+          if (taxa) {
+            const principal = Number(pg.valor || 0) / n;
+            for (let i = 1; i < n; i++) juros += principal * taxa * i;
+          }
+        }
+        jurosPorOrc.set(pg.orcamento_id, (jurosPorOrc.get(pg.orcamento_id) || 0) + juros);
+      });
+      const pedsComJuros = pedsRaw.map((pd: any) => ({
+        ...pd,
+        juros_total: Number(pd.juros_total) || jurosPorOrc.get(pd.orcamento_id) || 0,
+      }));
+
       setOrcs(o || []);
-      setPedidos(p || []);
+      setPedidos(pedsComJuros);
       setParceiros((pc as any[]) || []);
       setAgendas((ag as any[]) || []);
       const orig = (ors as any[]) || [];
