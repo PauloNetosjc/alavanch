@@ -181,8 +181,8 @@ export default function Dashboard() {
   );
 
   const vendaBruta = pedidosPeriodo.reduce((s, p) => s + Number(p.valor_total || 0), 0);
-  const totalJuros = pedidosPeriodo.reduce((s, p) => s + Number(p.juros_total || 0), 0);
-  const totalRT = pedidosPeriodo.reduce((s, p) => s + Number(p.rt_repassado || 0), 0);
+  const totalJuros = pedidosPeriodo.reduce((s, p) => s + (jurosMap[p.id] ?? Number(p.juros_total || 0)), 0);
+  const totalRT = pedidosPeriodo.reduce((s, p) => s + (rtMap[p.id] ?? Number(p.rt_repassado || 0)), 0);
   const vendaLiquida = vendaBruta - totalJuros - totalRT;
   const pctMeta = meta ? (vendaBruta / meta) * 100 : 0;
 
