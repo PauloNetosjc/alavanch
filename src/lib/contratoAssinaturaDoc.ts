@@ -14,22 +14,51 @@ async function waitForImages(root: HTMLElement) {
 
 async function htmlToPdfBlob(html: string, filename: string) {
   const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;background:#fff;color:#111;z-index:-1;";
+  // Container visível fora da tela (não display:none) para garantir layout/render.
+  container.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
+    "width:794px",
+    "min-height:1123px",
+    "background:#ffffff",
+    "color:#111111",
+    "padding:24px",
+    "font-family: 'DM Sans', Arial, sans-serif",
+    "z-index:-1",
+    "overflow:visible",
+  ].join(";");
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
   const styles = Array.from(html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)).map((s) => s[1]).join("\n");
-  container.innerHTML = `${styles ? `<style>${styles}</style>` : ""}${body}`;
+  container.innerHTML = `${styles ? `<style>${styles}</style>` : ""}<div style="background:#fff;color:#111;width:100%;">${body}</div>`;
   document.body.appendChild(container);
+
+  // Aguarda fontes + imagens + um frame de layout
+  try { await (document as any).fonts?.ready; } catch { /* noop */ }
   await waitForImages(container);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await new Promise((r) => setTimeout(r, 150));
+
+  // Sanidade: container precisa ter altura renderizada
+  if (container.offsetHeight < 50) {
+    container.remove();
+    throw new Error("Conteúdo do contrato não foi renderizado.");
+  }
+
   const html2pdf = (await import("html2pdf.js")).default;
   const blob = await html2pdf().set({
-    margin: 0,
+    margin: 10,
     filename,
     image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff" },
+    html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false, windowWidth: 794 },
     jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["css", "legacy"] },
   } as any).from(container).outputPdf("blob");
   container.remove();
+
+  if (!blob || blob.size < 2000) {
+    throw new Error("Falha ao gerar PDF do contrato. Tente novamente ou use a impressão manual.");
+  }
   return blob as Blob;
 }
 

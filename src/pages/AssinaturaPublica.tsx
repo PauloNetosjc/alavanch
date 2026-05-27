@@ -526,9 +526,25 @@ export default function AssinaturaPublica() {
 
         {solic?.file_url && (solic.file_url.toLowerCase().includes(".pdf") || solic.file_name?.toLowerCase().endsWith(".pdf")) ? (
           <Card>
-            <CardHeader><CardTitle className="text-sm">Contrato em PDF</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Contrato em PDF</CardTitle>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <a href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={solic.file_url} download={solic.file_name || "contrato.pdf"}>Baixar PDF</a>
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
-              <iframe title="Contrato para assinatura" src={solic.file_url} className="w-full h-[70vh] rounded border bg-background" />
+              <object data={solic.file_url} type="application/pdf" className="w-full h-[70vh] rounded border bg-background">
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  Não foi possível exibir o PDF aqui.{" "}
+                  <a className="text-primary underline" href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a> ou{" "}
+                  <a className="text-primary underline" href={solic.file_url} download>baixar o arquivo</a>.
+                </div>
+              </object>
             </CardContent>
           </Card>
         ) : docHtml && (
