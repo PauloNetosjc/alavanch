@@ -1206,9 +1206,23 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
 
       {/* Lista de docs */}
       <div className="space-y-2">
-        {docsDaPasta.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
-        ) : docsDaPasta.map((d: any) => {
+        {(() => {
+          // Quando há assinatura manual registrada, oculta o contrato digital original
+          // (mantém o card "Contrato assinado manualmente - ..." como principal)
+          const solicsManual = new Set(
+            (solicitacoes || [])
+              .filter((s: any) => s?.status === "assinado_manual")
+              .map((s: any) => s.id),
+          );
+          const docsFiltrados = docsDaPasta.filter((d: any) => {
+            if (!d.solicitacao_id || !solicsManual.has(d.solicitacao_id)) return true;
+            const ehManual = d.bucket_name === "assinaturas-evidencias"
+              || /assinado manualmente|documento do cliente/i.test(d.nome || "");
+            return ehManual; // esconde o original digital
+          });
+          return docsFiltrados.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-[12px]">Nenhum documento nesta categoria</div>
+          ) : docsFiltrados.map((d: any) => {
           const sol = solicByDoc[d.id];
           const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
             rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
@@ -1217,11 +1231,13 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
             aguardando_loja: { label: "Aguardando loja", tone: "bg-indigo-100 text-indigo-800" },
             assinado_loja: { label: "Loja assinou", tone: "bg-blue-100 text-blue-800" },
             concluido: { label: "Concluído", tone: "bg-emerald-100 text-emerald-800" },
+            assinado_manual: { label: "Assinado manualmente", tone: "bg-emerald-100 text-emerald-800" },
             recusado: { label: "Recusado", tone: "bg-red-100 text-red-800" },
             cancelado: { label: "Cancelado", tone: "bg-muted text-muted-foreground" },
             expirado: { label: "Expirado", tone: "bg-muted text-muted-foreground" },
           };
           const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
+
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
           const assinaturaCompleta = !!sol?.cliente_assinado_em && (!requerLoja || !!sol?.loja_assinado_em) && sol?.status === "concluido";
           const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
