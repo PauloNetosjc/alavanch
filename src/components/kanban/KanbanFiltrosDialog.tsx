@@ -134,7 +134,7 @@ export function KanbanFiltrosDialog({
             </label>
             <label className="flex items-center gap-2 text-[13px]">
               <Checkbox checked={draft.mostrarValores} onCheckedChange={(v) => set("mostrarValores", !!v)} />
-              Mostrar valores (mais lento)
+              Mostrar valores
             </label>
           </div>
         </div>
