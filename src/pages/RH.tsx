@@ -1329,6 +1329,68 @@ export default function RH() {
           <DialogFooter><Button onClick={salvarDocumento} disabled={!docFile}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Turno */}
+      <Dialog open={turnoDialog} onOpenChange={setTurnoDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>{(turnoForm as any).id ? "Editar" : "Novo"} turno</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Label>Nome *</Label><Input value={turnoForm.nome || ""} onChange={e => setTurnoForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div><Label>Entrada *</Label><Input type="time" value={turnoForm.hora_entrada || ""} onChange={e => setTurnoForm(p => ({...p, hora_entrada: e.target.value}))} /></div>
+            <div><Label>Saída final *</Label><Input type="time" value={turnoForm.hora_saida || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida: e.target.value}))} /></div>
+            <div><Label>Saída almoço</Label><Input type="time" value={turnoForm.hora_saida_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida_almoco: e.target.value}))} /></div>
+            <div><Label>Volta almoço</Label><Input type="time" value={turnoForm.hora_volta_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_volta_almoco: e.target.value}))} /></div>
+            <div className="col-span-2">
+              <Label>Dias da semana</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {DIAS_SEMANA.map((d, i) => {
+                  const ativo = (turnoForm.dias_semana || []).includes(i);
+                  return (
+                    <Button key={i} type="button" size="sm" variant={ativo ? "default" : "outline"}
+                      onClick={() => setTurnoForm(p => ({
+                        ...p,
+                        dias_semana: ativo
+                          ? (p.dias_semana || []).filter(x => x !== i)
+                          : [...(p.dias_semana || []), i].sort()
+                      }))}
+                    >{d}</Button>
+                  );
+                })}
+              </div>
+            </div>
+            <div><Label>Tolerância (min)</Label><Input type="number" value={turnoForm.tolerancia_min ?? 5} onChange={e => setTurnoForm(p => ({...p, tolerancia_min: Number(e.target.value)}))} /></div>
+            <div className="col-span-2"><Label>Observações</Label><Textarea value={turnoForm.observacoes || ""} onChange={e => setTurnoForm(p => ({...p, observacoes: e.target.value}))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTurnoDialog(false)}>Cancelar</Button>
+            <Button onClick={salvarTurno}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Zona */}
+      <Dialog open={zonaDialog} onOpenChange={setZonaDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova zona autorizada</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label>Nome *</Label><Input value={zonaForm.nome || ""} onChange={e => setZonaForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div>
+              <Label>Setor (opcional — em branco vale para todos)</Label>
+              <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
+                <SelectTrigger><SelectValue placeholder="Todos os setores" /></SelectTrigger>
+                <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Latitude</Label><Input type="number" step="0.000001" value={zonaForm.latitude ?? ""} onChange={e => setZonaForm(p => ({...p, latitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
+              <div><Label>Longitude</Label><Input type="number" step="0.000001" value={zonaForm.longitude ?? ""} onChange={e => setZonaForm(p => ({...p, longitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
+            </div>
+            <Button variant="outline" size="sm" onClick={usarMinhaLocalizacao}><MapPin className="w-3.5 h-3.5 mr-1" /> Usar minha localização</Button>
+            <div><Label>Raio (metros)</Label><Input type="number" value={zonaForm.raio_metros ?? 150} onChange={e => setZonaForm(p => ({...p, raio_metros: Number(e.target.value)}))} /></div>
+          </div>
+          <DialogFooter><Button onClick={salvarZona}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
