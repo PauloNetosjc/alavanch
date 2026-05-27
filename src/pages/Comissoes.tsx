@@ -256,15 +256,43 @@ export default function Comissoes() {
   const updateTier = (i: number, patch: Partial<Tier>) => setRegras((r) => ({ ...r, premiacao_tiers: r.premiacao_tiers.map((t, k) => (k === i ? { ...t, ...patch } : t)) }));
 
   // Exports
-  const exportRows = () => pessoas.map((r) => ({
-    Pessoa: r.nome, Papel: r.papel, Qtd: r.qtd,
-    Vendido: r.vendido, "% Meta": regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0,
-    Premio: calcularPremio(r.vendido, regras),
-  }));
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(exportRows());
+    const resumo = pessoas.map((r) => ({
+      Pessoa: r.nome,
+      Papel: r.papel,
+      Qtd: r.qtd,
+      "Venda Bruta": r.vendido_bruto,
+      "Venda Liquida": r.vendido,
+      "% Meta": regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0,
+      Premio: calcularPremio(r.vendido, regras),
+    }));
+    const detalhes: any[] = [];
+    pessoas.forEach((r) => {
+      const ordenados = r.pedidos
+        .map((rp) => ({ rp, ped: pedidos.find((p) => p.id === rp.pedido_id)! }))
+        .filter((x) => x.ped)
+        .sort((a, b) => +new Date(b.ped.data) - +new Date(a.ped.data));
+      ordenados.forEach(({ rp, ped }) => {
+        detalhes.push({
+          Pessoa: r.nome,
+          Papel: r.papel,
+          Pedido: ped.codigo,
+          Cliente: ped.cliente_nome,
+          Data: ped.data ? new Date(ped.data).toLocaleDateString("pt-BR") : "",
+          "Valor Bruto": ped.valor_total,
+          RT: ped.rt,
+          Juros: ped.juros,
+          "Valor Liquido": ped.valor_liquido,
+          "% Atribuido": rp.percentual,
+          "Bruto Atribuido": rp.valor_bruto_atribuido,
+          "Liquido Atribuido": rp.valor_atribuido,
+          Divisao: ped.override ? "personalizada" : "padrao",
+        });
+      });
+    });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Comissoes");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), "Vendas");
     XLSX.writeFile(wb, `comissoes_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
   const exportPDF = () => {
@@ -275,9 +303,9 @@ export default function Comissoes() {
     doc.text(`Período: ${inicio?.toLocaleDateString("pt-BR") || "—"} a ${fim?.toLocaleDateString("pt-BR") || "—"}`, 14, 22);
     autoTable(doc, {
       startY: 28,
-      head: [["Pessoa", "Papel", "Qtd", "Vendido", "% Meta", "Prêmio"]],
+      head: [["Pessoa", "Papel", "Qtd", "V. Bruta", "V. Líquida", "% Meta", "Prêmio"]],
       body: pessoas.map((r) => [
-        r.nome, r.papel, r.qtd, fmtBRL(r.vendido),
+        r.nome, r.papel, r.qtd, fmtBRL(r.vendido_bruto), fmtBRL(r.vendido),
         `${regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0}%`,
         fmtBRL(calcularPremio(r.vendido, regras)),
       ]),
