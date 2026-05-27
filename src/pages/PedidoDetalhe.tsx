@@ -2691,31 +2691,41 @@ function PedidoAcoesMenu({
       return;
     }
     setCancelando(true);
-    await salvarPedido({ status: "cancelado" });
-    // Remove o pedido de todos os kanbans operacionais
-    await supabase.from("kanban_cards").delete().eq("pedido_id", pedido.id);
-    // Reverte o orçamento associado para a fase de negociação e zera descontos/pagamentos
-    if (pedido?.orcamento_id) {
-      await Promise.all([
-        supabase.from("orcamentos").update({
-          status: "negociacao",
-          confirmado_em: null,
-          desconto_perc: 0,
-          desconto_valor: 0,
-        }).eq("id", pedido.orcamento_id),
-        supabase.from("pagamentos_orcamento").delete().eq("orcamento_id", pedido.orcamento_id),
-        // Cancela contratos vinculados a este orçamento que ainda estavam ativos
-        supabase.from("contratos")
-          .update({ status: "cancelado" })
-          .eq("orcamento_id", pedido.orcamento_id)
-          .neq("status", "cancelado"),
-      ]);
+    try {
+      // 1) Reverte o orçamento INTEGRALMENTE para a fase de negociação
+      //    (status, datas de confirmação, descontos e pagamentos)
+      if (pedido?.orcamento_id) {
+        const [orcRes, pagRes, contratoRes] = await Promise.all([
+          supabase.from("orcamentos").update({
+            status: "negociacao",
+            confirmado_em: null,
+            desconto_perc: 0,
+            desconto_valor: 0,
+          }).eq("id", pedido.orcamento_id),
+          supabase.from("pagamentos_orcamento").delete().eq("orcamento_id", pedido.orcamento_id),
+          supabase.from("contratos")
+            .update({ status: "cancelado" })
+            .eq("orcamento_id", pedido.orcamento_id)
+            .neq("status", "cancelado"),
+        ]);
+        if (orcRes.error) throw orcRes.error;
+        if (pagRes.error) throw pagRes.error;
+        if (contratoRes.error) throw contratoRes.error;
+      }
+      // 2) Cancela o pedido e remove de todos os kanbans operacionais
+      await salvarPedido({ status: "cancelado" });
+      await supabase.from("kanban_cards").delete().eq("pedido_id", pedido.id);
+
+      setCancelOpen(false);
+      setConfirmText("");
+      toast.success("Pedido cancelado. Orçamento retornado para negociação.");
+      // Redireciona para a tela de negociação (menu lateral volta ao contexto comercial)
+      navigate(`/comercial/${pedido.orcamento_id}/negociacao`);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao cancelar pedido");
+    } finally {
+      setCancelando(false);
     }
-    setCancelando(false);
-    setCancelOpen(false);
-    setConfirmText("");
-    toast.success("Pedido cancelado. Orçamento retornado para negociação.");
-    navigate(`/comercial/${pedido.orcamento_id}/negociacao`);
   };
 
   return (
