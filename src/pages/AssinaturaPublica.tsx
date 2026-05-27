@@ -301,6 +301,7 @@ export default function AssinaturaPublica() {
       }).catch(() => null);
 
       if (novoStatus === "concluido") {
+        await supabase.functions.invoke("assinatura-pdf-final", { body: { solicitacao_id: solic.id } }).catch(() => null);
         await arquivarDocumentoAssinado(solic.id);
       }
 
