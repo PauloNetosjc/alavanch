@@ -1388,7 +1388,9 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         open={!!verAssinaturasId}
         onOpenChange={(v) => !v && setVerAssinaturasId(null)}
         solicitacaoId={verAssinaturasId}
+        pedidoId={pedidoId}
         onAssinarLoja={(id) => { setVerAssinaturasId(null); setAssinarLojaId(id); }}
+        onChange={onChange}
       />
     </section>
   );

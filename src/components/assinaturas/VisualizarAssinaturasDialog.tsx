@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Store, User, CheckCircle2, Clock, FileText, Eye, PenLine } from "lucide-react";
+import { Copy, ExternalLink, Store, User, CheckCircle2, Clock, FileText, Eye, PenLine, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
+import { UploadContratoManualDialog } from "@/components/assinaturas/UploadContratoManualDialog";
 
 type Part = {
   id: string;
@@ -26,16 +27,19 @@ const fmt = (d?: string | null) =>
   d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 export function VisualizarAssinaturasDialog({
-  open, onOpenChange, solicitacaoId, onAssinarLoja,
+  open, onOpenChange, solicitacaoId, pedidoId, onAssinarLoja, onChange,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   solicitacaoId: string | null;
+  pedidoId?: string | null;
   onAssinarLoja?: (solicId: string) => void;
+  onChange?: () => void;
 }) {
   const [parts, setParts] = useState<Part[]>([]);
   const [solic, setSolic] = useState<any>(null);
   const [evidOpen, setEvidOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     if (!open || !solicitacaoId) return;
@@ -137,15 +141,27 @@ export function VisualizarAssinaturasDialog({
               );
             })}
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
               <div className="text-[11px] text-muted-foreground">
                 {solic?.file_name ? (
                   <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {solic.file_name}</span>
                 ) : "Solicitação de assinatura"}
               </div>
-              <Button size="sm" variant="outline" onClick={() => setEvidOpen(true)}>
-                <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
-              </Button>
+              <div className="flex flex-wrap gap-1.5">
+                {solic && solic.status !== "concluido" && solic.status !== "assinado_manual" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    onClick={() => setManualOpen(true)}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" /> Assinatura manual
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setEvidOpen(true)}>
+                  <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -155,6 +171,14 @@ export function VisualizarAssinaturasDialog({
         open={evidOpen}
         onOpenChange={setEvidOpen}
         solicitacaoId={solicitacaoId}
+      />
+
+      <UploadContratoManualDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        solicitacaoId={solicitacaoId}
+        pedidoId={pedidoId}
+        onDone={() => { onOpenChange(false); onChange?.(); }}
       />
     </>
   );
