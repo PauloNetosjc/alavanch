@@ -19,6 +19,8 @@ type Pedido = {
   workflow_estagio: string | null;
   data_limite_finalizacao: string | null;
   loja_id: string | null;
+  is_adendo?: boolean | null;
+  is_complemento?: boolean | null;
 };
 type Lanc = { tipo: string; valor: number; status: string | null; data_vencimento: string | null; data_pagamento: string | null; loja_id: string | null };
 
