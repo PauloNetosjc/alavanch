@@ -2341,7 +2341,7 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
         <Field label="Responsável">
           {salvarPedido ? (
             <select
-              value={pedido.projetista_id || ""}
+              value={pedido.projetista_id || pedido.estagio_responsavel_id || ""}
               onChange={(e) => trocarResponsavel(e.target.value)}
               className="w-full text-[13px] border border-border rounded px-1 py-0.5 bg-background"
             >
@@ -2352,7 +2352,7 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
             </select>
           ) : responsavelNome}
         </Field>
-        <Field label="Atendimento">{orcamento?.codigo?.replace(/^OR-/, "AT-") || "—"}</Field>
+
         <Field label="Orçamento">
           {orcamento?.id ? (
             <Link to={`/comercial/${orcamento.id}`} className="text-primary hover:underline">{orcamento.codigo}</Link>
