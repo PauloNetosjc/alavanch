@@ -1,0 +1,1 @@
+ALTER TABLE public.rh_turnos ADD COLUMN IF NOT EXISTS horarios_por_dia JSONB NOT NULL DEFAULT '{}'::jsonb;

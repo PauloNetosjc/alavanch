@@ -21,11 +21,23 @@ import {
 
 type Setor = { id: string; nome: string };
 type Cargo = { id: string; nome: string; setor_id: string | null };
+type HorarioDia = { hora_entrada?: string | null; hora_saida_almoco?: string | null; hora_volta_almoco?: string | null; hora_saida?: string | null };
 type Turno = {
   id: string; nome: string;
   hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
   dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
+  horarios_por_dia?: Record<string, HorarioDia> | null;
 };
+
+export function getHorarioDia(turno: Turno, dow: number) {
+  const ov = (turno.horarios_por_dia || {})[String(dow)] || {};
+  return {
+    hora_entrada: ov.hora_entrada || turno.hora_entrada,
+    hora_saida_almoco: ov.hora_saida_almoco ?? turno.hora_saida_almoco,
+    hora_volta_almoco: ov.hora_volta_almoco ?? turno.hora_volta_almoco,
+    hora_saida: ov.hora_saida || turno.hora_saida,
+  };
+}
 type Zona = { id: string; setor_id: string | null; cargo_id: string | null; funcionario_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
 type Ponto = {
   id: string; funcionario_id: string; data: string;
@@ -405,6 +417,7 @@ export default function RH() {
       dias_semana: turnoForm.dias_semana || [1,2,3,4,5],
       tolerancia_min: turnoForm.tolerancia_min ?? 5,
       observacoes: turnoForm.observacoes || null,
+      horarios_por_dia: (turnoForm as any).horarios_por_dia || {},
     };
     const { error } = (turnoForm as any).id
       ? await supabase.from("rh_turnos" as any).update(payload).eq("id", (turnoForm as any).id)
@@ -532,11 +545,12 @@ export default function RH() {
       const { error: eU } = await supabase.storage.from("rh").upload(path, selfie, { contentType: "image/jpeg" });
       if (!eU) selfie_url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
     }
-    // atraso (apenas para entrada / volta_almoco)
+    // atraso (apenas para entrada / volta_almoco) — respeita horários por dia
     let atraso = 0;
     if (turno) {
-      const ref = tipo === "entrada" ? turno.hora_entrada
-        : tipo === "volta_almoco" ? turno.hora_volta_almoco
+      const hd = getHorarioDia(turno, new Date().getDay());
+      const ref = tipo === "entrada" ? hd.hora_entrada
+        : tipo === "volta_almoco" ? hd.hora_volta_almoco
         : null;
       if (ref) {
         const diff = hmToMin(nowHM()) - hmToMin(ref);
@@ -570,11 +584,12 @@ export default function RH() {
         const t = turnos.find(x => x.id === f.turno_id); if (!t) return;
         if (!t.dias_semana.includes(dow)) return;
         const pHoje = pontos.filter(p => p.funcionario_id === f.id && p.data === hoje);
+        const hd = getHorarioDia(t, dow);
         const checks: { tipo: Ponto["tipo"]; ref: string | null }[] = [
-          { tipo: "entrada", ref: t.hora_entrada },
-          { tipo: "saida_almoco", ref: t.hora_saida_almoco },
-          { tipo: "volta_almoco", ref: t.hora_volta_almoco },
-          { tipo: "saida", ref: t.hora_saida },
+          { tipo: "entrada", ref: hd.hora_entrada },
+          { tipo: "saida_almoco", ref: hd.hora_saida_almoco },
+          { tipo: "volta_almoco", ref: hd.hora_volta_almoco },
+          { tipo: "saida", ref: hd.hora_saida },
         ];
         for (const c of checks) {
           if (!c.ref) continue;
@@ -1377,10 +1392,11 @@ export default function RH() {
 
       {/* Dialog Turno */}
       <Dialog open={turnoDialog} onOpenChange={setTurnoDialog}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{(turnoForm as any).id ? "Editar" : "Novo"} turno</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2"><Label>Nome *</Label><Input value={turnoForm.nome || ""} onChange={e => setTurnoForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div className="col-span-2 text-xs text-muted-foreground -mb-1">Horários padrão (aplicados a todos os dias selecionados, salvo override abaixo)</div>
             <div><Label>Entrada *</Label><Input type="time" value={turnoForm.hora_entrada || ""} onChange={e => setTurnoForm(p => ({...p, hora_entrada: e.target.value}))} /></div>
             <div><Label>Saída final *</Label><Input type="time" value={turnoForm.hora_saida || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida: e.target.value}))} /></div>
             <div><Label>Saída almoço</Label><Input type="time" value={turnoForm.hora_saida_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida_almoco: e.target.value}))} /></div>
@@ -1405,6 +1421,34 @@ export default function RH() {
             </div>
             <div><Label>Tolerância (min)</Label><Input type="number" value={turnoForm.tolerancia_min ?? 5} onChange={e => setTurnoForm(p => ({...p, tolerancia_min: Number(e.target.value)}))} /></div>
             <div className="col-span-2"><Label>Observações</Label><Textarea value={turnoForm.observacoes || ""} onChange={e => setTurnoForm(p => ({...p, observacoes: e.target.value}))} /></div>
+
+            <div className="col-span-2 border-t pt-3 mt-1">
+              <Label>Horários específicos por dia (opcional)</Label>
+              <p className="text-xs text-muted-foreground mb-2">Preencha apenas para os dias com horário diferente (ex.: sábado). Campos em branco usam o padrão acima.</p>
+              <div className="space-y-2">
+                {(turnoForm.dias_semana || []).map(i => {
+                  const hp = ((turnoForm as any).horarios_por_dia || {}) as Record<string, HorarioDia>;
+                  const cur = hp[String(i)] || {};
+                  const setField = (k: keyof HorarioDia, v: string) => setTurnoForm(p => {
+                    const prev = ((p as any).horarios_por_dia || {}) as Record<string, HorarioDia>;
+                    const novo = { ...(prev[String(i)] || {}), [k]: v || null };
+                    return { ...p, horarios_por_dia: { ...prev, [String(i)]: novo } } as any;
+                  });
+                  return (
+                    <div key={i} className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-2 items-center">
+                      <Badge variant="outline" className="justify-center">{DIAS_SEMANA[i]}</Badge>
+                      <Input type="time" placeholder="Entrada" value={cur.hora_entrada || ""} onChange={e => setField("hora_entrada", e.target.value)} />
+                      <Input type="time" placeholder="Saída almoço" value={cur.hora_saida_almoco || ""} onChange={e => setField("hora_saida_almoco", e.target.value)} />
+                      <Input type="time" placeholder="Volta almoço" value={cur.hora_volta_almoco || ""} onChange={e => setField("hora_volta_almoco", e.target.value)} />
+                      <Input type="time" placeholder="Saída final" value={cur.hora_saida || ""} onChange={e => setField("hora_saida", e.target.value)} />
+                    </div>
+                  );
+                })}
+                {(turnoForm.dias_semana || []).length === 0 && (
+                  <p className="text-xs text-muted-foreground">Selecione ao menos um dia da semana para configurar horários específicos.</p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTurnoDialog(false)}>Cancelar</Button>

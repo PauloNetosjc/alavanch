@@ -8,11 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
 
+type HorarioDia = { hora_entrada?: string | null; hora_saida_almoco?: string | null; hora_volta_almoco?: string | null; hora_saida?: string | null };
 type Turno = {
   id: string; nome: string;
   hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
   dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
+  horarios_por_dia?: Record<string, HorarioDia> | null;
 };
+function getHorarioDia(turno: Turno, dow: number) {
+  const ov = (turno.horarios_por_dia || {})[String(dow)] || {};
+  return {
+    hora_entrada: ov.hora_entrada || turno.hora_entrada,
+    hora_saida_almoco: ov.hora_saida_almoco ?? turno.hora_saida_almoco,
+    hora_volta_almoco: ov.hora_volta_almoco ?? turno.hora_volta_almoco,
+    hora_saida: ov.hora_saida || turno.hora_saida,
+  };
+}
 type Zona = { id: string; setor_id: string | null; cargo_id: string | null; funcionario_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
 type Ponto = {
   id: string; funcionario_id: string; data: string;
@@ -77,11 +88,12 @@ export default function BaterPonto() {
   const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
   const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
     if (!turno) return null;
+    const hd = getHorarioDia(turno, new Date().getDay());
     const map: Record<string, string | null> = {
-      entrada: turno.hora_entrada,
-      saida_almoco: turno.hora_saida_almoco,
-      volta_almoco: turno.hora_volta_almoco,
-      saida: turno.hora_saida,
+      entrada: hd.hora_entrada,
+      saida_almoco: hd.hora_saida_almoco,
+      volta_almoco: hd.hora_volta_almoco,
+      saida: hd.hora_saida,
     };
     return map[tipo]?.slice(0, 5) ?? null;
   };
@@ -145,8 +157,9 @@ export default function BaterPonto() {
       }
       let atraso = 0;
       if (turno) {
-        const ref = tipo === "entrada" ? turno.hora_entrada
-          : tipo === "volta_almoco" ? turno.hora_volta_almoco
+        const hd = getHorarioDia(turno, new Date().getDay());
+        const ref = tipo === "entrada" ? hd.hora_entrada
+          : tipo === "volta_almoco" ? hd.hora_volta_almoco
           : null;
         if (ref) {
           const diff = hmToMin(nowHM()) - hmToMin(ref);
