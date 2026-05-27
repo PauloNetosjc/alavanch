@@ -170,6 +170,12 @@ export default function Comercial() {
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
   const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
+  const { selectedLojaId } = useLoja();
+  const [lojasFilter, setLojasFilter] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
+  useEffect(() => {
+    if (selectedLojaId && lojasFilter.length === 0) setLojasFilter([selectedLojaId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLojaId]);
 
   const today = new Date();
   const [refDate, setRefDate] = useState(today);
