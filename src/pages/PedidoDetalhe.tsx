@@ -1070,7 +1070,36 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     prevContratoRef.current = temContrato;
   }, [temContrato, pastaDocumentosId]);
 
-  const docsDaPasta = docs.filter((d: any) => d.pasta_id === pastaAtiva);
+  // Mapa: solicitacao_id -> doc final (bucket assinaturas-finais)
+  const finalDocBySol = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const d of docs) {
+      if (d.bucket_name === "assinaturas-finais" && d.solicitacao_id) {
+        if (!m[d.solicitacao_id] || new Date(d.created_at) > new Date(m[d.solicitacao_id].created_at)) {
+          m[d.solicitacao_id] = d;
+        }
+      }
+    }
+    return m;
+  }, [docs]);
+
+  // Sanitiza .pdf.pdf duplicado em qualquer nome exibido
+  const sanitizeNome = (nome: string) => (nome || "").replace(/\.pdf\.pdf$/i, ".pdf");
+
+  // Esconde da listagem o doc final quando existir o original na mesma solicitação
+  const docsDaPasta = docs.filter((d: any) => {
+    if (d.pasta_id !== pastaAtiva) return false;
+    if (d.bucket_name === "assinaturas-finais" && d.solicitacao_id) {
+      const temOriginal = docs.some(
+        (o: any) =>
+          o.id !== d.id &&
+          o.solicitacao_id === d.solicitacao_id &&
+          o.bucket_name !== "assinaturas-finais",
+      );
+      if (temOriginal) return false;
+    }
+    return true;
+  });
 
   const criarPasta = async () => {
     if (!novaPastaNome.trim()) return;
