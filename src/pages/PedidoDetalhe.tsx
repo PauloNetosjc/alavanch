@@ -196,7 +196,15 @@ export default function PedidoDetalhe() {
     // Solicitação de assinatura mais recente — prepara contrato se necessário (não bloqueia render)
     const sa = saRes.data;
     if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
-      prepararContratoParaAssinatura(sa.id).catch(() => {});
+      setGerandoContrato(true);
+      prepararContratoParaAssinatura(sa.id)
+        .then(() => { setContratoRecemGerado(true); })
+        .catch((e) => { console.warn("[contrato] auto-preparar falhou:", e?.message || e); })
+        .finally(async () => {
+          // Revalida solicitação, documentos, contrato e pedido SEM depender de realtime
+          await recarregarAssinatura();
+          setGerandoContrato(false);
+        });
     }
     setSolicAssin(sa);
 
