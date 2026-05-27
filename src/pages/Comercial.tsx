@@ -203,7 +203,7 @@ export default function Comercial() {
     const ids = orcs.map((o) => o.id);
     if (ids.length > 0) {
       const [{ data: peds }, { data: cts }] = await Promise.all([
-        supabase.from("pedidos").select("id, orcamento_id, cliente_final").in("orcamento_id", ids),
+        supabase.from("pedidos").select("id, orcamento_id, cliente_final, status").in("orcamento_id", ids).neq("status", "cancelado"),
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
@@ -564,7 +564,7 @@ export default function Comercial() {
                             onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#C0392B]"
                           >
-                            <XCircle className="w-3.5 h-3.5" /> Declinar
+                            <XCircle className="w-3.5 h-3.5" /> Cancelar
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
@@ -666,10 +666,10 @@ export default function Comercial() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#C0392B]"
-                                  aria-label="Declinar orçamento"
-                                  title="Declinar orçamento"
+                                  aria-label="Cancelar orçamento"
+                                  title="Cancelar orçamento"
                                 >
-                                  <XCircle className="w-3.5 h-3.5" /> Declinar
+                                  <XCircle className="w-3.5 h-3.5" /> Cancelar
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
