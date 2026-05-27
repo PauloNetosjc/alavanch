@@ -21,6 +21,21 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { Package } from "lucide-react";
+
+type ProdutoEstoque = {
+  id: string;
+  descricao: string;
+  codigo_barra: string | null;
+  codigo_interno: string | null;
+  unidade_medida: string;
+  quantidade: number;
+  preco_custo: number;
+  preco_venda: number;
+};
 
 type Cliente = { id: string; nome: string };
 type Parceiro = { id: string; nome: string; percentual_padrao: number };
@@ -261,6 +276,20 @@ function DetalhamentoDialog({
   const [novoQtd, setNovoQtd] = useState<number>(1);
   const [novoCusto, setNovoCusto] = useState<number>(0);
   const [novoVenda, setNovoVenda] = useState<number>(0);
+  const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,descricao,codigo_barra,codigo_interno,unidade_medida,quantidade,preco_custo,preco_venda")
+        .eq("ativo", true)
+        .order("descricao");
+      setProdutos((data as ProdutoEstoque[]) || []);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (ambiente) setItens(ambiente.itens.map((i) => ({ ...i })));
@@ -375,8 +404,70 @@ function DetalhamentoDialog({
 
           {/* Adicionar novo item */}
           <div className="mt-4 pt-3 border-t border-border">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-              Adicionar item
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Adicionar item
+              </div>
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-[12px] gap-1.5">
+                    <Package className="w-3.5 h-3.5" />
+                    Selecionar do estoque
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[480px] p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Buscar produto, código de barras ou interno..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {produtos.map((p) => {
+                          const semEstoque = Number(p.quantidade) <= 0;
+                          return (
+                            <CommandItem
+                              key={p.id}
+                              value={`${p.descricao} ${p.codigo_barra ?? ""} ${p.codigo_interno ?? ""}`}
+                              onSelect={() => {
+                                setItens((prev) => [
+                                  ...prev,
+                                  {
+                                    descricao: p.descricao,
+                                    quantidade: 1,
+                                    largura: null,
+                                    altura: null,
+                                    profundidade: null,
+                                    custo_cliente: Number(p.preco_venda) || 0,
+                                    custo_loja: Number(p.preco_custo) || 0,
+                                    custo_fabrica: Number(p.preco_custo) || 0,
+                                    cor: null,
+                                    categoria: null,
+                                    codigo: p.codigo_interno || p.codigo_barra || null,
+                                  },
+                                ]);
+                                setPickerOpen(false);
+                              }}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[13px] font-medium">{p.descricao}</div>
+                                <div className="text-[11px] text-muted-foreground truncate">
+                                  {p.codigo_barra || p.codigo_interno || "—"} · {fmtBrl(Number(p.preco_venda))}
+                                </div>
+                              </div>
+                              <Badge
+                                variant={semEstoque ? "destructive" : "secondary"}
+                                className="shrink-0 text-[10px]"
+                              >
+                                Estoque: {Number(p.quantidade)}
+                              </Badge>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid grid-cols-12 gap-1 items-center">
               <Input
