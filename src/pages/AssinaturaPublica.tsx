@@ -90,6 +90,10 @@ export default function AssinaturaPublica() {
     (async () => {
       if (!token) return;
       setLoading(true);
+      setErro("");
+      setDone(false);
+      setAguardandoLoja(false);
+      setRecusado(false);
       const cacheBust = Date.now().toString();
       const { data: s, error: solicError } = await supabase
         .from("solicitacoes_assinatura")
