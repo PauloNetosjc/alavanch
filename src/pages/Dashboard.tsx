@@ -220,8 +220,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Fluxo de Caixa Previsto */}
-      <FluxoCaixaDashboard />
 
 
 
