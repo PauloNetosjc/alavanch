@@ -21,6 +21,8 @@ type OrcRow = {
   id: string;
   codigo: string;
   nome_projeto: string | null;
+  cliente_final: string | null;
+  cliente_final_pedido?: string | null;
   status: string;
   total: number | null;
   created_at: string;
@@ -193,7 +195,7 @@ export default function Comercial() {
     setLoading(true);
     const { data, error } = await supabase
       .from("orcamentos")
-      .select("id, codigo, nome_projeto, status, total, created_at, confirmado_em, cliente_id, loja_id, cliente:clientes(nome)")
+      .select("id, codigo, nome_projeto, cliente_final, status, total, created_at, confirmado_em, cliente_id, loja_id, cliente:clientes(nome)")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     const orcs = (data ?? []) as any[];
@@ -201,10 +203,11 @@ export default function Comercial() {
     const ids = orcs.map((o) => o.id);
     if (ids.length > 0) {
       const [{ data: peds }, { data: cts }] = await Promise.all([
-        supabase.from("pedidos").select("id, orcamento_id").in("orcamento_id", ids),
+        supabase.from("pedidos").select("id, orcamento_id, cliente_final").in("orcamento_id", ids),
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
+      const pedClienteFinalMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.cliente_final]));
       const pedIds = (peds || []).map((p: any) => p.id);
       const ctMap = new Map((cts || []).map((c: any) => [c.orcamento_id, c.status]));
 
@@ -236,6 +239,7 @@ export default function Comercial() {
 
       for (const o of orcs) {
         o.pedido_id = pedMap.get(o.id) || null;
+        o.cliente_final_pedido = pedClienteFinalMap.get(o.id) || null;
         o.contrato_status = ctMap.get(o.id) || null;
         o.revisado = o.pedido_id ? revisadoSet.has(o.pedido_id) : false;
         o.etiquetas = o.pedido_id ? (etiquetasPorPedido.get(o.pedido_id) || []) : [];
@@ -584,8 +588,9 @@ export default function Comercial() {
                   <TableRow>
                     <TableHead className="text-[11px] tracking-wider">CONTRATO / DATA</TableHead>
                     <TableHead className="text-[11px] tracking-wider">CLIENTE</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">CLIENTE FINAL</TableHead>
                     <TableHead className="text-[11px] tracking-wider">ETIQUETAS</TableHead>
-                    <TableHead className="text-[11px] tracking-wider">STATUS &amp; WORKFLOW</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">STATUS</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">VALOR</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">AÇÕES</TableHead>
                   </TableRow>
@@ -614,6 +619,11 @@ export default function Comercial() {
                           {r.nome_projeto && (
                             <div className="text-[12px] text-muted-foreground">{r.nome_projeto}</div>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-[13px]">
+                            {r.cliente_final_pedido || r.cliente_final || <span className="text-muted-foreground">—</span>}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
