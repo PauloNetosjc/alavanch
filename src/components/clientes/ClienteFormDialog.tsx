@@ -42,13 +42,39 @@ const empty = {
   email: "",
   telefone: "",
   telefone_secundario: "",
+  cep_cobranca: "",
   endereco_cobranca: "",
+  cep_entrega: "",
   endereco_entrega: "",
   data_nascimento: "",
   observacoes: "",
   vendedor_id: "",
   origem_id: "",
   parceiro_id: "",
+};
+
+const maskCep = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+};
+
+const buscarCep = async (cep: string): Promise<string | null> => {
+  const d = cep.replace(/\D/g, "");
+  if (d.length !== 8) return null;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+    const j = await r.json();
+    if (j.erro) return null;
+    const partes = [
+      j.logradouro,
+      j.bairro,
+      j.localidade && j.uf ? `${j.localidade}/${j.uf}` : j.localidade || j.uf,
+      `CEP ${maskCep(d)}`,
+    ].filter(Boolean);
+    return partes.join(", ");
+  } catch {
+    return null;
+  }
 };
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
