@@ -137,7 +137,7 @@ export function UserThemePicker({ collapsed = false }: { collapsed?: boolean }) 
 
       {open && pos && (
         <div
-          className="fixed z-[100] w-[260px] rounded-md p-3 shadow-xl"
+          className="fixed z-[9999] w-[260px] rounded-md p-3 shadow-xl"
           style={{
             background: "#1A1A1A",
             border: "0.5px solid #2A2A2A",
