@@ -2416,7 +2416,7 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
         : supabase.from("configuracoes_empresa" as any).select("*").limit(1).maybeSingle();
       const [{ data: cfg }, { data: mts }] = await Promise.all([
         cfgQ,
-        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela"),
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela, juros_modo, parcelas_config"),
       ]);
       setConfig(cfg || null);
       setUsarMarkup(!!(cfg as any)?.usar_markup);
