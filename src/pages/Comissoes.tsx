@@ -71,7 +71,10 @@ type PedidoRow = {
   codigo: string;
   cliente_nome: string;
   data: string;
-  valor_total: number;
+  valor_total: number;     // bruto (com RT e juros)
+  valor_liquido: number;   // base p/ comissão (sem RT e juros)
+  rt: number;
+  juros: number;
   consultor_id: string | null;
   projetista_id: string | null;
   participantes: Participante[]; // efetivos (override ou padrão)
@@ -81,9 +84,10 @@ type PessoaRow = {
   user_id: string;
   nome: string;
   papel: string;
-  vendido: number;
+  vendido: number;          // líquido (base comissão)
+  vendido_bruto: number;
   qtd: number;
-  pedidos: { pedido_id: string; valor_atribuido: number; percentual: number }[];
+  pedidos: { pedido_id: string; valor_atribuido: number; valor_bruto_atribuido: number; percentual: number }[];
 };
 
 export default function Comissoes() {
@@ -133,7 +137,7 @@ export default function Comissoes() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, codigo, valor_total, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
+        .select("id, codigo, valor_total, valor_liquido, rt_repassado, juros_total, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
       if (inicio && fim) qPed = qPed.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
       if (lojasFiltro.length > 0) qPed = qPed.in("loja_id", lojasFiltro);
 
@@ -173,12 +177,19 @@ export default function Comissoes() {
         } else if (projetista) {
           participantes = [{ user_id: projetista, percentual: 100, papel: "Projetista" }];
         } else participantes = [];
+        const valor_total = Number(p.valor_total || 0);
+        const rt = Number(p.rt_repassado || 0);
+        const juros = Number(p.juros_total || 0);
+        const valor_liquido = p.valor_liquido != null ? Number(p.valor_liquido) : Math.max(0, valor_total - rt - juros);
         return {
           id: p.id,
           codigo: p.codigo,
           cliente_nome: p.clientes?.nome || "—",
           data: p.created_at,
-          valor_total: Number(p.valor_total || 0),
+          valor_total,
+          valor_liquido,
+          rt,
+          juros,
           consultor_id: consultor,
           projetista_id: projetista,
           participantes,
@@ -197,17 +208,20 @@ export default function Comissoes() {
     const nomeOf = (uid: string) => pessoasCatalogo.find((p) => p.user_id === uid)?.nome || "—";
     pedidos.forEach((p) => {
       p.participantes.forEach((part) => {
-        const valor = (p.valor_total * (part.percentual || 0)) / 100;
+        const pct = part.percentual || 0;
+        const valor = (p.valor_liquido * pct) / 100;
+        const valorBruto = (p.valor_total * pct) / 100;
         if (!acc.has(part.user_id)) {
           acc.set(part.user_id, {
             user_id: part.user_id, nome: nomeOf(part.user_id),
-            papel: part.papel, vendido: 0, qtd: 0, pedidos: [],
+            papel: part.papel, vendido: 0, vendido_bruto: 0, qtd: 0, pedidos: [],
           });
         }
         const row = acc.get(part.user_id)!;
         row.vendido += valor;
+        row.vendido_bruto += valorBruto;
         row.qtd += 1;
-        row.pedidos.push({ pedido_id: p.id, valor_atribuido: valor, percentual: part.percentual });
+        row.pedidos.push({ pedido_id: p.id, valor_atribuido: valor, valor_bruto_atribuido: valorBruto, percentual: pct });
       });
     });
     return Array.from(acc.values()).sort((a, b) => b.vendido - a.vendido);
@@ -242,15 +256,43 @@ export default function Comissoes() {
   const updateTier = (i: number, patch: Partial<Tier>) => setRegras((r) => ({ ...r, premiacao_tiers: r.premiacao_tiers.map((t, k) => (k === i ? { ...t, ...patch } : t)) }));
 
   // Exports
-  const exportRows = () => pessoas.map((r) => ({
-    Pessoa: r.nome, Papel: r.papel, Qtd: r.qtd,
-    Vendido: r.vendido, "% Meta": regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0,
-    Premio: calcularPremio(r.vendido, regras),
-  }));
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(exportRows());
+    const resumo = pessoas.map((r) => ({
+      Pessoa: r.nome,
+      Papel: r.papel,
+      Qtd: r.qtd,
+      "Venda Bruta": r.vendido_bruto,
+      "Venda Liquida": r.vendido,
+      "% Meta": regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0,
+      Premio: calcularPremio(r.vendido, regras),
+    }));
+    const detalhes: any[] = [];
+    pessoas.forEach((r) => {
+      const ordenados = r.pedidos
+        .map((rp) => ({ rp, ped: pedidos.find((p) => p.id === rp.pedido_id)! }))
+        .filter((x) => x.ped)
+        .sort((a, b) => +new Date(b.ped.data) - +new Date(a.ped.data));
+      ordenados.forEach(({ rp, ped }) => {
+        detalhes.push({
+          Pessoa: r.nome,
+          Papel: r.papel,
+          Pedido: ped.codigo,
+          Cliente: ped.cliente_nome,
+          Data: ped.data ? new Date(ped.data).toLocaleDateString("pt-BR") : "",
+          "Valor Bruto": ped.valor_total,
+          RT: ped.rt,
+          Juros: ped.juros,
+          "Valor Liquido": ped.valor_liquido,
+          "% Atribuido": rp.percentual,
+          "Bruto Atribuido": rp.valor_bruto_atribuido,
+          "Liquido Atribuido": rp.valor_atribuido,
+          Divisao: ped.override ? "personalizada" : "padrao",
+        });
+      });
+    });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Comissoes");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), "Vendas");
     XLSX.writeFile(wb, `comissoes_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
   const exportPDF = () => {
@@ -261,9 +303,9 @@ export default function Comissoes() {
     doc.text(`Período: ${inicio?.toLocaleDateString("pt-BR") || "—"} a ${fim?.toLocaleDateString("pt-BR") || "—"}`, 14, 22);
     autoTable(doc, {
       startY: 28,
-      head: [["Pessoa", "Papel", "Qtd", "Vendido", "% Meta", "Prêmio"]],
+      head: [["Pessoa", "Papel", "Qtd", "V. Bruta", "V. Líquida", "% Meta", "Prêmio"]],
       body: pessoas.map((r) => [
-        r.nome, r.papel, r.qtd, fmtBRL(r.vendido),
+        r.nome, r.papel, r.qtd, fmtBRL(r.vendido_bruto), fmtBRL(r.vendido),
         `${regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0}%`,
         fmtBRL(calcularPremio(r.vendido, regras)),
       ]),
@@ -394,7 +436,7 @@ export default function Comissoes() {
       {/* Totais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="surface-card p-4">
-          <div className="text-[11px] uppercase text-muted-foreground tracking-wider">Total vendido</div>
+          <div className="text-[11px] uppercase text-muted-foreground tracking-wider">Total vendido (líquido)</div>
           <div className="text-[22px] font-medium mt-1">{fmtBRL(totais.vendido)}</div>
         </div>
         <div className="surface-card p-4">
@@ -438,7 +480,8 @@ export default function Comissoes() {
                   <th className="py-2 px-2 font-normal">Pessoa</th>
                   <th className="py-2 px-2 font-normal">Papel</th>
                   <th className="py-2 px-2 font-normal text-right">Qtd</th>
-                  <th className="py-2 px-2 font-normal text-right">Vendido</th>
+                  <th className="py-2 px-2 font-normal text-right">Venda Bruta</th>
+                  <th className="py-2 px-2 font-normal text-right">Venda Líquida</th>
                   <th className="py-2 px-2 font-normal text-right">% Meta</th>
                   <th className="py-2 px-2 font-normal text-right">Prêmio</th>
                 </tr>
@@ -464,6 +507,7 @@ export default function Comissoes() {
                         <td className="py-2 px-2 font-medium">{r.nome}</td>
                         <td className="py-2 px-2 text-muted-foreground">{r.papel}</td>
                         <td className="py-2 px-2 text-right">{r.qtd}</td>
+                        <td className="py-2 px-2 text-right text-muted-foreground">{fmtBRL(r.vendido_bruto)}</td>
                         <td className="py-2 px-2 text-right">{fmtBRL(r.vendido)}</td>
                         <td className={`py-2 px-2 text-right ${elegivel ? "text-emerald-600" : "text-muted-foreground"}`}>
                           {pct.toFixed(0)}%
@@ -474,7 +518,7 @@ export default function Comissoes() {
                       </tr>
                       {isOpen && (
                         <tr className="bg-muted/20 print:hidden">
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <div className="p-3">
                               {pedidosDaPessoa.length === 0 ? (
                                 <div className="text-[11px] text-muted-foreground text-center py-3">Sem pedidos no período.</div>
@@ -485,9 +529,10 @@ export default function Comissoes() {
                                       <th className="py-1.5 px-2 font-normal">Pedido</th>
                                       <th className="py-1.5 px-2 font-normal">Cliente</th>
                                       <th className="py-1.5 px-2 font-normal">Data</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">Valor total</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">% atribuído</th>
-                                      <th className="py-1.5 px-2 font-normal text-right">Atribuído</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">V. Bruta</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">V. Líquida</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">% atrib.</th>
+                                      <th className="py-1.5 px-2 font-normal text-right">Líq. atrib.</th>
                                       <th className="py-1.5 px-2 font-normal text-center">Divisão</th>
                                       <th className="py-1.5 px-2"></th>
                                     </tr>
@@ -498,7 +543,8 @@ export default function Comissoes() {
                                         <td className="py-1.5 px-2 font-medium">{x.pedido.codigo}</td>
                                         <td className="py-1.5 px-2">{x.pedido.cliente_nome}</td>
                                         <td className="py-1.5 px-2">{fmtDate(x.pedido.data)}</td>
-                                        <td className="py-1.5 px-2 text-right">{fmtBRL(x.pedido.valor_total)}</td>
+                                        <td className="py-1.5 px-2 text-right text-muted-foreground">{fmtBRL(x.pedido.valor_total)}</td>
+                                        <td className="py-1.5 px-2 text-right">{fmtBRL(x.pedido.valor_liquido)}</td>
                                         <td className="py-1.5 px-2 text-right">{x.percentual.toFixed(0)}%</td>
                                         <td className="py-1.5 px-2 text-right font-medium">{fmtBRL(x.valor_atribuido)}</td>
                                         <td className="py-1.5 px-2 text-center text-muted-foreground">
