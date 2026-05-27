@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature, Eye,
+  Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature, Eye, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LojasFilter } from "@/components/financeiro/LojasFilter";
@@ -242,6 +242,17 @@ export default function Comercial() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDeclinar = async (orcId: string) => {
+    if (!confirm("Deseja realmente declinar (perder) este orçamento?")) return;
+    const { error } = await supabase.from("orcamentos").update({ status: "perdido" }).eq("id", orcId);
+    if (error) {
+      toast.error("Erro ao declinar orçamento: " + error.message);
+    } else {
+      toast.success("Orçamento declinado com sucesso");
+      load();
+    }
+  };
 
   const visibleRows = useMemo(() => {
     return rows.filter((r) => {
@@ -531,13 +542,30 @@ export default function Comercial() {
                         </span>
                       </div>
                     </div>
-                    <div className="mt-3 flex justify-end">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                      >
-                        {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
-                      </button>
+                    <div className="mt-3 flex justify-end gap-2">
+                      {isVenda ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${r.pedido_id}`); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Visualizar
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                          >
+                            <Calculator className="w-3.5 h-3.5" /> Negociar
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#C0392B]"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Declinar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </li>
                 );
@@ -608,14 +636,37 @@ export default function Comercial() {
                           {fmtBrl(Number(r.total) || 0)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                            aria-label={isVenda ? "Visualizar pedido" : "Negociação"}
-                            title={isVenda ? "Visualizar pedido" : "Abrir negociação"}
-                          >
-                            {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {isVenda ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${r.pedido_id}`); }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                aria-label="Visualizar pedido"
+                                title="Visualizar pedido"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Visualizar
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                  aria-label="Negociação"
+                                  title="Abrir negociação"
+                                >
+                                  <Calculator className="w-3.5 h-3.5" /> Negociar
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#C0392B]"
+                                  aria-label="Declinar orçamento"
+                                  title="Declinar orçamento"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" /> Declinar
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
