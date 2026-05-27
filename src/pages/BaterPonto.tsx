@@ -203,19 +203,57 @@ export default function BaterPonto() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(["entrada","saida_almoco","volta_almoco","saida"] as const).map(t => (
-                <Button
-                  key={t}
-                  variant={jaFez(t) ? "secondary" : "outline"}
-                  disabled={marcando !== null || jaFez(t)}
-                  onClick={() => baterPonto(t)}
-                  className="h-auto py-3 flex-col"
-                >
-                  <Camera className="w-4 h-4 mb-1" />
-                  <span className="text-xs">{TIPO_PONTO_LABEL[t]}</span>
-                  {jaFez(t) && <span className="text-[10px] text-muted-foreground mt-1">registrado</span>}
-                </Button>
-              ))}
+              {ORDEM.map((t, i) => {
+                const feito = jaFez(t);
+                const ehProximo = !feito && i === proximoIdx;
+                const bloqueado = !feito && !ehProximo;
+                const previsto = horarioPrevisto(t);
+                const pontoFeito = pontosHoje.find(p => p.tipo === t);
+                const horaReal = pontoFeito ? new Date(pontoFeito.marcado_em).toTimeString().slice(0, 5) : null;
+                return (
+                  <Button
+                    key={t}
+                    variant={feito ? "secondary" : ehProximo ? "default" : "outline"}
+                    disabled={marcando !== null || feito || bloqueado}
+                    onClick={() => baterPonto(t)}
+                    className={`h-auto py-3 flex-col relative ${feito ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15" : ""} ${ehProximo ? "ring-2 ring-primary/60" : ""} ${bloqueado ? "opacity-60" : ""}`}
+                  >
+                    <div className="absolute top-1.5 right-1.5">
+                      {feito
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        : bloqueado
+                          ? <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                          : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">PRÓXIMO</span>}
+                    </div>
+                    <Camera className="w-4 h-4 mb-1" />
+                    <span className="text-xs font-medium">{TIPO_PONTO_LABEL[t]}</span>
+                    {previsto && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> previsto {previsto}
+                      </span>
+                    )}
+                    {feito && horaReal && (
+                      <span className="text-[10px] text-emerald-700 font-semibold mt-0.5">batido {horaReal}</span>
+                    )}
+                    {bloqueado && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5">aguardando anterior</span>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-1 mt-3">
+              {ORDEM.map((t, i) => {
+                const feito = jaFez(t);
+                const ehProximo = !feito && i === proximoIdx;
+                return (
+                  <div key={t} className="flex items-center gap-1 flex-1">
+                    <div className={`flex-1 h-1.5 rounded-full ${feito ? "bg-emerald-500" : ehProximo ? "bg-primary/60" : "bg-muted"}`} />
+                    {i < ORDEM.length - 1 && <span className="text-muted-foreground text-xs">›</span>}
+                  </div>
+                );
+              })}
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-3">
               <MapPin className="w-3 h-3" /> Requer localização e selfie. Disponível no computador e no celular.
