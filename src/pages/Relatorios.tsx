@@ -235,7 +235,7 @@ export default function Relatorios() {
               <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(t.margemValor)} badge={`${t.margem.toFixed(1)}%`} hint={`Custo: ${fmtBRL(t.custo)}`} />
               <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(t.ticket)} badge={`${t.qtd}`} />
               <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Part. Bruto" value={kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"} badge="Share" />
-              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto Negociação" value={fmtBRL(t.desconto)} badge="Desc." hint={`Deduções: ${fmtBRL(t.juros + t.rt)}`} />
+              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto Negociação" value={fmtBRL(t.desconto)} badge="Desc." hint={`${t.bruto > 0 ? ((t.desconto / t.bruto) * 100).toFixed(1) : 0}% do faturamento · Deduções: ${fmtBRL(t.juros + t.rt)}`} />
             </div>
           </CollapsibleTipo>
         ))}
