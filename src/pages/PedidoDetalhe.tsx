@@ -60,6 +60,8 @@ export default function PedidoDetalhe() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
+  const [gerandoContrato, setGerandoContrato] = useState(false);
+  const [contratoRecemGerado, setContratoRecemGerado] = useState(false);
   const [orcamento, setOrcamento] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
   const [ambientes, setAmbientes] = useState<any[]>([]);
@@ -194,7 +196,15 @@ export default function PedidoDetalhe() {
     // Solicitação de assinatura mais recente — prepara contrato se necessário (não bloqueia render)
     const sa = saRes.data;
     if (sa && (!sa.pedido_documento_id || !sa.loja_assinado_em)) {
-      prepararContratoParaAssinatura(sa.id).catch(() => {});
+      setGerandoContrato(true);
+      prepararContratoParaAssinatura(sa.id)
+        .then(() => { setContratoRecemGerado(true); })
+        .catch((e) => { console.warn("[contrato] auto-preparar falhou:", e?.message || e); })
+        .finally(async () => {
+          // Revalida solicitação, documentos, contrato e pedido SEM depender de realtime
+          await recarregarAssinatura();
+          setGerandoContrato(false);
+        });
     }
     setSolicAssin(sa);
 
@@ -213,6 +223,30 @@ export default function PedidoDetalhe() {
 
     setLoading(false);
   };
+
+  // Reload focado em assinatura/documentos — usado após prepararContratoParaAssinatura,
+  // sem depender de realtime que pode atrasar ou falhar.
+  const recarregarAssinatura = async () => {
+    if (!id) return;
+    const { data: ped } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
+    if (ped) setPedido((prev: any) => ({ ...(prev || {}), ...ped }));
+    const orcId = ped?.orcamento_id;
+    const [ctRes, dcsRes, solsRes, saRes] = await Promise.all([
+      orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
+      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("solicitacoes_assinatura").select("*, tipos_documento(nome,slug,requer_assinatura_loja)").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("solicitacoes_assinatura").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    setContrato(ctRes.data);
+    // Preserva docs virtuais (orçamento) e substitui docs do pedido
+    setDocs((prev) => {
+      const virtuais = (prev || []).filter((d: any) => d._readonly);
+      return [...virtuais, ...((dcsRes.data as any[]) || [])];
+    });
+    setSolicitacoes(solsRes.data || []);
+    setSolicAssin(saRes.data || null);
+  };
+
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
 
   // Realtime subscriptions
@@ -402,6 +436,18 @@ export default function PedidoDetalhe() {
 
   return (
     <div className="space-y-5">
+      {/* Banner de geração/assinatura automática do contrato */}
+      {gerandoContrato && (
+        <div className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-900 px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          <span className="inline-block w-3 h-3 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+          Gerando contrato e assinando pela loja…
+        </div>
+      )}
+      {!gerandoContrato && contratoRecemGerado && solicAssin?.status === "assinado_loja" && (
+        <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
+          ✅ Contrato gerado • Loja assinada automaticamente • Aguardando assinatura do cliente
+        </div>
+      )}
       {/* TARJA VERMELHA — adendos vinculados */}
       {(temAdendos || ehAdendo) && (
         <div className="rounded-md bg-red-600 text-white px-4 py-2.5 flex items-center gap-2 text-[13px] font-medium shadow-sm">
@@ -469,7 +515,7 @@ export default function PedidoDetalhe() {
             )}
           </div>
           {assinaturaPendente && contrato && (
-            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={carregar} />
+            <ContratoEnvioBar contrato={contrato} cliente={cliente} pedido={pedido} solic={solicAssin} pastas={pastas} onChange={recarregarAssinatura} setGerando={setGerandoContrato} setRecemGerado={setContratoRecemGerado} />
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -2198,7 +2244,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
-function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
+function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, setGerando, setRecemGerado }: any) {
   const [criando, setCriando] = useState(false);
   const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
 
@@ -2222,6 +2268,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
 
   const criarSolicitacao = async () => {
     setCriando(true);
+    setGerando?.(true);
     try {
       const { data, error } = await supabase.rpc("auto_criar_solic_contrato", {
         p_pedido_id: pedido.id, p_contrato_id: contrato.id,
@@ -2229,10 +2276,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
       if (error) throw error;
       if (data) toast.success("Solicitação de assinatura criada");
       if (data) await prepararContratoParaAssinatura(data as string);
-      onChange();
+      setRecemGerado?.(true);
+      await onChange();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar solicitação");
-    } finally { setCriando(false); }
+    } finally {
+      setCriando(false);
+      setGerando?.(false);
+    }
   };
 
   const copiar = async (url: string | null, label: string) => {
@@ -2305,13 +2356,17 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
           </Button>
           <Button size="sm" variant="outline" onClick={async () => {
+            setGerando?.(true);
             try {
               toast.loading("Regenerando PDF do contrato…", { id: "regen-ct" });
               await prepararContratoParaAssinatura(solic.id);
               toast.success("PDF do contrato regenerado", { id: "regen-ct" });
-              onChange();
+              setRecemGerado?.(true);
+              await onChange();
             } catch (e: any) {
               toast.error(e?.message || "Erro ao regenerar contrato", { id: "regen-ct" });
+            } finally {
+              setGerando?.(false);
             }
           }}>
             🔄 Regenerar PDF
