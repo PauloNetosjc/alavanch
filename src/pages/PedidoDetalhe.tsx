@@ -2316,6 +2316,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, setGerando, setRecemGerado }: any) {
   const [criando, setCriando] = useState(false);
   const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
+  const [manualOpen, setManualOpen] = useState(false);
 
   // Carrega tokens dos PARTICIPANTES (nunca solicitacao.token)
   useEffect(() => {
