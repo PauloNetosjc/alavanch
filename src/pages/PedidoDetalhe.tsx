@@ -1287,17 +1287,21 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                 )}
                 {sol && (
                   <>
-                    {requerLoja && (
+                    {!assinaturaCompleta && requerLoja && (
                       <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
                         <Copy className="w-3.5 h-3.5 mr-1" /> Link loja
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
-                      <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
-                    </Button>
+                    {!assinaturaCompleta && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
+                          <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
+                          <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
+                        </Button>
+                      </>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => setVerAssinaturasId(sol.id)} title="Ver assinaturas e links">
                       <Eye className="w-3.5 h-3.5 mr-1" /> Ver assinaturas
                     </Button>
@@ -1307,9 +1311,44 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                       </Button>
                     )}
                     {assinaturaCompleta && (
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, d.nome)}>
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, nomeExibido)}>
                         <FileText className="w-3.5 h-3.5 mr-1" /> Baixar completo
                       </Button>
+                    )}
+                    {assinaturaCompleta && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" title="Mais opções">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={async () => {
+                            try {
+                              const bucket = d.bucket_name || "contratos-assinatura";
+                              const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+                              if (error || !blob) throw error || new Error("Falha ao baixar");
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url; a.download = sanitizeNome(d.nome || "contrato-original.pdf");
+                              document.body.appendChild(a); a.click(); a.remove();
+                              setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                          }}>📥 Baixar contrato original</DropdownMenuItem>
+                          <DropdownMenuItem onClick={async () => {
+                            try {
+                              const bucket = d.bucket_name || "contratos-assinatura";
+                              const { data } = await supabase.storage.from(bucket).createSignedUrl(d.storage_path, 60);
+                              if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                            } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                          }}>👁 Ver contrato original</DropdownMenuItem>
+                          {requerLoja && (
+                            <DropdownMenuItem onClick={() => copiarLinkPart("loja")}>🔗 Copiar link da loja</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => copiarLinkPart("cliente")}>🔗 Copiar link do cliente</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEvidId(sol.id)}>🧾 Ver evidências</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </>
                 )}
