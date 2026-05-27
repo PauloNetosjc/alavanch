@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: s, error: errS } = await sb
       .from("solicitacoes_assinatura")
-      .select("*, tipos_documento(nome), pedidos(codigo), pedido_documentos(nome,storage_path,bucket_name,mime_type)")
+      .select("*, tipos_documento(nome,requer_assinatura_loja), pedidos(codigo), pedido_documentos(nome,storage_path,bucket_name,mime_type)")
       .eq("id", solicitacao_id)
       .single();
     if (errS || !s) throw new Error("Solicitação não encontrada");
