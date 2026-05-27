@@ -5,15 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CreditCard, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CreditCard, Plus, Pencil, Trash2, X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 type ParcelaConfig = {
   numero: number;
   juros_perc: number;
-  forma_pagamento: string;
+  /** Pode ser string única (legado) ou lista de formas aceitas */
+  forma_pagamento: string | string[];
   desconto_perc: number;
 };
+
+/** Normaliza para array de formas (suporta legado string) */
+const toFormas = (v: string | string[] | undefined | null): string[] =>
+  Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []);
 
 type Metodo = {
   id: string;
@@ -29,7 +36,7 @@ type Metodo = {
 const FORMAS_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
 
 function blankParcela(numero: number): ParcelaConfig {
-  return { numero, juros_perc: 0, forma_pagamento: "Boleto", desconto_perc: 0 };
+  return { numero, juros_perc: 0, forma_pagamento: ["Boleto"], desconto_perc: 0 };
 }
 
 export function MetodosPagamentoAdmin() {
@@ -74,13 +81,13 @@ export function MetodosPagamentoAdmin() {
       ? m.parcelas_config.map((p) => ({
           numero: p.numero,
           juros_perc: p.juros_perc ?? 0,
-          forma_pagamento: p.forma_pagamento ?? "Boleto",
+          forma_pagamento: toFormas(p.forma_pagamento).length ? toFormas(p.forma_pagamento) : ["Boleto"],
           desconto_perc: p.desconto_perc ?? 0,
         }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
           numero: i + 1,
           juros_perc: m.taxa_perc_parcela || 0,
-          forma_pagamento: "Boleto",
+          forma_pagamento: ["Boleto"] as string[],
           desconto_perc: 0,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
@@ -255,13 +262,47 @@ export function MetodosPagamentoAdmin() {
                         <tr key={i} className="border-t border-border/60">
                           <td className="py-1.5 px-2 font-medium">{p.numero}x</td>
                           <td className="py-1.5 px-2">
-                            <select
-                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
-                              value={p.forma_pagamento}
-                              onChange={(e) => updateParcela(i, { forma_pagamento: e.target.value })}
-                            >
-                              {FORMAS.map((f) => <option key={f} value={f}>{f}</option>)}
-                            </select>
+                            {(() => {
+                              const sel = toFormas(p.forma_pagamento);
+                              const label = sel.length ? sel.join(", ") : "Selecione...";
+                              return (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px] flex items-center justify-between gap-2 text-left"
+                                    >
+                                      <span className="truncate">{label}</span>
+                                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-56 p-2" align="start">
+                                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pb-1.5">
+                                      Formas aceitas
+                                    </div>
+                                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                                      {FORMAS.map((f) => {
+                                        const checked = sel.includes(f);
+                                        return (
+                                          <label key={f} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-[13px]">
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={(v) => {
+                                                const next = v
+                                                  ? Array.from(new Set([...sel, f]))
+                                                  : sel.filter((x) => x !== f);
+                                                updateParcela(i, { forma_pagamento: next });
+                                              }}
+                                            />
+                                            <span>{f}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              );
+                            })()}
                           </td>
                           <td className="py-1.5 px-2">
                             <Input
