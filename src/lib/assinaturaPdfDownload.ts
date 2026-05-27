@@ -79,6 +79,10 @@ export async function baixarPdfFinalAssinatura(solicitacaoId: string, nomeArquiv
       .eq("id", solicitacaoId)
       .maybeSingle();
     if (solicError || !solic) throw solicError || new Error("Solicitação não encontrada.");
+    const assinaturaCompleta = (solic as any).status === "concluido"
+      && !!(solic as any).cliente_assinado_em
+      && (!(solic as any).tipos_documento?.requer_assinatura_loja || !!(solic as any).loja_assinado_em);
+    if (!assinaturaCompleta) throw new Error("O PDF assinado só fica disponível depois que cliente e loja assinarem.");
 
     const [{ data: doc }, { data: evidencias }, { data: participantes }, { data: eventos }] = await Promise.all([
       (solic as any).pedido_documento_id
