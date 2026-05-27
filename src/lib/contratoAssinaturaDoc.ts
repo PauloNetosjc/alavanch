@@ -44,17 +44,36 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
   // 96 DPI: 1mm ≈ 3.78px → 186mm ≈ 703px de largura útil
   const CONTENT_W_PX = Math.round(CONTENT_W_MM * 3.7795);
 
-  // Injeta CSS de saneamento e wrapper de largura útil no MESMO HTML do Imprimir.
+  // CSS agressivo de quebra/wrap injetado no <head> do iframe — força tudo a caber em CONTENT_W_PX.
   const safetyCss = `
-    <style>
-      *, *::before, *::after { box-sizing: border-box !important; }
-      html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #111111 !important; }
-      body { width: ${CONTENT_W_PX}px !important; }
-      img, svg { max-width: 100% !important; height: auto !important; }
+    <style id="pdf-overflow-fix">
+      *, *::before, *::after { box-sizing: border-box !important; max-width: 100% !important; }
+      html, body {
+        width: ${CONTENT_W_PX}px !important;
+        max-width: ${CONTENT_W_PX}px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #111111 !important;
+        overflow-x: hidden !important;
+      }
+      p, div, span, section, article, li, td, th, h1, h2, h3, h4, h5, h6, label, dd, dt, blockquote {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-wrap: break-word !important;
+        word-break: normal !important;
+        hyphens: auto !important;
+        max-width: 100% !important;
+      }
       table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
-      td, th { word-break: break-word !important; overflow-wrap: anywhere !important; }
-      pre, code { white-space: pre-wrap !important; word-break: break-word !important; }
-      .page, .a4, .contract-page, .contrato-page, .sheet { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+      td, th { max-width: 100% !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+      img, svg, canvas, video { max-width: 100% !important; height: auto !important; }
+      pre, code { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+      .page, .a4, .contract-page, .contrato-page, .sheet, .contract-container, .contrato-container {
+        width: 100% !important; max-width: ${CONTENT_W_PX}px !important;
+        margin: 0 auto !important; padding: 0 !important;
+        box-shadow: none !important; overflow-x: hidden !important;
+      }
       .__pdf_wrapper {
         width: ${CONTENT_W_PX}px;
         max-width: ${CONTENT_W_PX}px;
@@ -62,9 +81,11 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         padding: 0;
         background: #ffffff;
         color: #111111;
-        overflow-wrap: break-word;
+        overflow-x: hidden;
+        overflow-wrap: anywhere;
         word-break: normal;
         white-space: normal;
+        transform-origin: top left;
       }
     </style>
   `;
@@ -118,7 +139,39 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     await new Promise((r) => setTimeout(r, 250));
 
     const wrapper = (doc.querySelector(".__pdf_wrapper") as HTMLElement) || doc.body;
-    const realHeight = Math.max(wrapper.scrollHeight, doc.body.scrollHeight, doc.documentElement.scrollHeight, 200);
+
+    // Mede overflow horizontal ANTES do html2canvas
+    const bodyScrollWidth = doc.body.scrollWidth;
+    const bodyClientWidth = doc.body.clientWidth;
+    const htmlScrollWidth = doc.documentElement.scrollWidth;
+    const htmlClientWidth = doc.documentElement.clientWidth;
+    const wrapperScrollWidth = wrapper.scrollWidth;
+    const wrapperClientWidth = wrapper.clientWidth;
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] overflow check", {
+      bodyScrollWidth, bodyClientWidth, htmlScrollWidth, htmlClientWidth,
+      wrapperScrollWidth, wrapperClientWidth,
+    });
+
+    // Se algum elemento ainda estoura, aplica scale para encolher o conteúdo até caber.
+    const worstScroll = Math.max(bodyScrollWidth, htmlScrollWidth, wrapperScrollWidth);
+    let scaleFix = 1;
+    if (worstScroll > CONTENT_W_PX + 1) {
+      scaleFix = CONTENT_W_PX / worstScroll;
+      wrapper.style.transform = `scale(${scaleFix})`;
+      wrapper.style.transformOrigin = "top left";
+      wrapper.style.width = `${Math.ceil(worstScroll)}px`;
+      // eslint-disable-next-line no-console
+      console.log("[contratoPDF] scaleFix", scaleFix);
+      await new Promise((r) => setTimeout(r, 80));
+    }
+
+    const realHeight = Math.max(
+      Math.ceil((wrapper.scrollHeight || 0) * scaleFix),
+      doc.body.scrollHeight,
+      doc.documentElement.scrollHeight,
+      200,
+    );
     iframe.style.height = `${realHeight}px`;
     await new Promise((r) => setTimeout(r, 100));
 
@@ -126,10 +179,11 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     console.log("[contratoPDF] wrapper", {
       clientWidth: wrapper.clientWidth,
       scrollWidth: wrapper.scrollWidth,
-      clientHeight: wrapper.clientHeight,
       scrollHeight: wrapper.scrollHeight,
+      realHeight,
       textLen: (wrapper.innerText || "").length,
       hOverflow: wrapper.scrollWidth > wrapper.clientWidth,
+      scaleFix,
     });
 
     if ((wrapper.innerText || "").trim().length < 20 || realHeight < 50) {
@@ -163,9 +217,10 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
 
     // PDF A4 em mm com margens reais
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    // imagem ocupa CONTENT_W_MM; altura proporcional
     const imgW_mm = CONTENT_W_MM;
     const imgH_mm = (canvas.height * imgW_mm) / canvas.width;
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM, imgH_mm });
 
     if (imgH_mm <= CONTENT_H_MM) {
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", M_LEFT, M_TOP, imgW_mm, imgH_mm);
