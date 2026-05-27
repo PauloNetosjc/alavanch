@@ -257,42 +257,45 @@ export default function Comissoes() {
 
   // Exports
   const exportExcel = () => {
-    const resumo = pessoas.map((r) => ({
-      Pessoa: r.nome,
-      Papel: r.papel,
-      Qtd: r.qtd,
-      "Venda Bruta": r.vendido_bruto,
-      "Venda Liquida": r.vendido,
-      "% Meta": regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0,
-      Premio: calcularPremio(r.vendido, regras),
-    }));
-    const detalhes: any[] = [];
+    const header = [
+      "Pessoa", "Papel", "Pedido", "Cliente", "Data",
+      "Qtd", "Venda Bruta", "Venda Líquida", "% Meta", "Prêmio",
+      "V. Bruta (pedido)", "V. Líquida (pedido)", "% atrib.", "Líq. atrib.", "Divisão",
+    ];
+    const rows: any[][] = [];
     pessoas.forEach((r) => {
+      const premio = calcularPremio(r.vendido, regras);
+      const pctMeta = regras.meta_minima > 0 ? Math.round((r.vendido / regras.meta_minima) * 100) : 0;
+      // linha da pessoa (resumo)
+      rows.push([
+        r.nome, r.papel, "", "", "",
+        r.qtd, r.vendido_bruto, r.vendido, `${pctMeta}%`, premio,
+        "", "", "", "", "",
+      ]);
+      // linhas dos pedidos expandidos
       const ordenados = r.pedidos
         .map((rp) => ({ rp, ped: pedidos.find((p) => p.id === rp.pedido_id)! }))
         .filter((x) => x.ped)
         .sort((a, b) => +new Date(b.ped.data) - +new Date(a.ped.data));
       ordenados.forEach(({ rp, ped }) => {
-        detalhes.push({
-          Pessoa: r.nome,
-          Papel: r.papel,
-          Pedido: ped.codigo,
-          Cliente: ped.cliente_nome,
-          Data: ped.data ? new Date(ped.data).toLocaleDateString("pt-BR") : "",
-          "Valor Bruto": ped.valor_total,
-          RT: ped.rt,
-          Juros: ped.juros,
-          "Valor Liquido": ped.valor_liquido,
-          "% Atribuido": rp.percentual,
-          "Bruto Atribuido": rp.valor_bruto_atribuido,
-          "Liquido Atribuido": rp.valor_atribuido,
-          Divisao: ped.override ? "personalizada" : "padrao",
-        });
+        rows.push([
+          "", "", ped.codigo, ped.cliente_nome,
+          ped.data ? new Date(ped.data).toLocaleDateString("pt-BR") : "",
+          "", "", "", "", "",
+          ped.valor_total, ped.valor_liquido,
+          `${Math.round(rp.percentual)}%`, rp.valor_atribuido,
+          ped.override ? "personalizada" : "padrão",
+        ]);
       });
     });
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [
+      { wch: 28 }, { wch: 20 }, { wch: 14 }, { wch: 22 }, { wch: 12 },
+      { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 },
+      { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 14 },
+    ];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), "Resumo");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), "Vendas");
+    XLSX.utils.book_append_sheet(wb, ws, "Cálculo individual");
     XLSX.writeFile(wb, `comissoes_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
   const exportPDF = () => {
