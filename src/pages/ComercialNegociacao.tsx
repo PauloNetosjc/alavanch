@@ -725,7 +725,8 @@ export default function ComercialNegociacao() {
       ? [...p.parcelas_vencimentos]
       : Array.from({ length: n }, (_, i) => addDays(p.data_vencimento || new Date().toISOString().slice(0, 10), i * 30));
     const met = metodos.find((m) => m.nome === p.metodo);
-    const formaCfg = met?.parcelas_config?.find((c) => Number(c.numero) === Number(n))?.forma_pagamento;
+    const formaCfgRaw = met?.parcelas_config?.find((c) => Number(c.numero) === Number(n))?.forma_pagamento;
+    const formaCfg = Array.isArray(formaCfgRaw) ? formaCfgRaw[0] : formaCfgRaw;
     const formaDefault = formaCfg || "Boleto";
     const formas: string[] = (p.parcelas_formas && p.parcelas_formas.length === n)
       ? [...p.parcelas_formas]
