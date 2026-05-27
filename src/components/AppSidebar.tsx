@@ -309,30 +309,18 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
         style={{ width: collapsed ? 56 : 220, background: "#0F0F0F", borderRight: collapsed ? "0.5px solid #222" : "none" }}
       >
         {/* Top: brand */}
-        <div className={collapsed ? "px-2 pt-5 pb-4 flex justify-center" : "px-5 pt-5 pb-4"}>
+        <div className={collapsed ? "px-2 pt-5 pb-4 flex flex-col items-center" : "px-4 pt-5 pb-4"}>
           {collapsed ? (
-            <div className="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden shrink-0" style={{ background: "#1A1A1A", border: "0.5px solid #333" }}>
-              {logoUrl ? (
-                <img src={logoUrl} alt={brandNome} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[11px] font-medium text-white">{(brandNome || "P").trim().charAt(0).toUpperCase()}</span>
-              )}
+            <div className="w-10 h-10 flex items-center justify-center overflow-hidden shrink-0">
+              <img src={alavanchLogo} alt={brandNome || "Alavanch"} className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden shrink-0" style={{ background: "#1A1A1A", border: "0.5px solid #333" }}>
-                {logoUrl ? (
-                  <img src={logoUrl} alt={brandNome} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-[11px] font-medium text-white">{(brandNome || "P").trim().charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <div className="leading-tight min-w-0 flex-1">
-                <div className="text-[13px] font-medium text-white tracking-[0.02em] truncate" title={brandNome}>{brandNome}</div>
-                <div className="text-[9px] uppercase text-[#555] tracking-[0.12em] mt-0.5">Sistema</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0 flex items-center justify-center">
+                <img src={alavanchLogo} alt={brandNome || "Alavanch"} className="h-14 w-auto max-w-full object-contain" />
               </div>
               {!moreOpen && (
-                <button onClick={toggleCollapse} title="Recolher menu" className="text-[#666] hover:text-white transition-colors">
+                <button onClick={toggleCollapse} title="Recolher menu" className="text-[#666] hover:text-white transition-colors shrink-0">
                   <ChevronsLeft className="w-4 h-4" />
                 </button>
               )}
@@ -344,6 +332,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
             </button>
           )}
         </div>
+
 
         {/* Sections */}
         <nav className={`flex-1 overflow-y-auto pb-4 ${noScrollbar}`}>
