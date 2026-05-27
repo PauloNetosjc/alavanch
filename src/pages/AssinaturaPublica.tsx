@@ -100,7 +100,7 @@ export default function AssinaturaPublica() {
       }
       if (new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
       else if (["cancelado", "expirado", "recusado"].includes(s.status)) setErro("Esta solicitação foi cancelada.");
-      else if (["concluido", "assinado_cliente", "aguardando_loja"].includes(s.status))
+      else if (s.status === "concluido" || !!s.cliente_assinado_em)
         setDone(true);
 
       setSolic(s as Solicitacao);
@@ -244,8 +244,7 @@ export default function AssinaturaPublica() {
       });
       if (errE) throw errE;
 
-      // Atualiza status + snapshot
-      // Se a loja já pré-assinou, conclui direto; caso contrário, segue o fluxo configurado
+      // Atualiza status + snapshot. Só conclui quando as duas assinaturas exigidas existirem.
       const { data: sCheck } = await supabase
         .from("solicitacoes_assinatura")
         .select("loja_assinado_em")

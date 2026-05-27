@@ -178,7 +178,7 @@ export default function Assinaturas() {
                         <PenLine className="w-4 h-4 text-emerald-600" />
                       </Button>
                     )}
-                    {["concluido", "assinado_loja"].includes(i.status) && (
+                    {i.status === "concluido" && !!i.cliente_assinado_em && (!i.tipo?.requer_assinatura_loja || !!i.loja_assinado_em) && (
                       <Button
                         size="icon"
                         variant="ghost"
