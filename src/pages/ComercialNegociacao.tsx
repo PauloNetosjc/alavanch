@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
+import { dispatchKanbanTrigger } from "@/lib/kanbanTriggers";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 const fmtBrl = (n: number) =>
@@ -1082,19 +1083,21 @@ export default function ComercialNegociacao() {
 
     setOpenConfirmar(false);
     toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
-    // Atualiza o pedido (criado pelo trigger) com notas, previsão de medição e responsável
+    // Atualiza o pedido (criado pelo trigger, ou já existente se foi cancelado antes)
     const { data: { user } } = await supabase.auth.getUser();
     setTimeout(async () => {
-      const { data: ped } = await supabase.from("pedidos").select("id").eq("orcamento_id", id).maybeSingle();
+      const { data: ped } = await supabase.from("pedidos").select("id,status").eq("orcamento_id", id).maybeSingle();
       if (ped?.id) {
         const patch: any = {
           observacoes_venda: observacoes || null,
           estagio_responsavel_id: user?.id || null,
         };
-        // Previsão informada na venda NÃO preenche data_medicao_tecnica.
-        // Esse campo só é preenchido ao agendar a medição (pelo Cronograma ou pela Agenda).
+        // Se o pedido estava cancelado (re-negociação), reativa
+        if (ped.status === "cancelado") patch.status = "em_producao";
         if (previsaoMedicao) patch.observacoes_venda = `${observacoes ? observacoes + "\n\n" : ""}Previsão de medição informada na venda: ${new Date(previsaoMedicao).toLocaleDateString("pt-BR")}`;
         await supabase.from("pedidos").update(patch).eq("id", ped.id);
+        // Dispara gatilhos de criação automática de cards nos kanbans operacionais
+        await dispatchKanbanTrigger("contrato_criado", { pedidoId: ped.id, orcamentoId: id, responsavelId: user?.id ?? null });
         navigate(`/pedidos/${ped.id}`);
       } else {
         navigate(`/contratos/${created.id}`);
