@@ -434,7 +434,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
           return;
         }
         oversizedBlockCount++;
-        // eslint-disable-next-line no-console
         console.log("[contratoPDF] oversizedBlockDetected", { height: isolatedHeight, pageHeight: PAGE_H_PX, tag: node.tagName, className: node.className });
         const finalClone = node.cloneNode(true) as HTMLElement;
         current.appendChild(finalClone);
@@ -469,15 +468,10 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
 
     const pageBlockCounts = pages.map((p) => Number(p.dataset.blockCount || "0"));
     const pageHeights = pages.map((p) => Math.min(p.scrollHeight, PAGE_H_PX));
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] totalPages", pages.length);
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] blocksCount", blocksCount);
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] pageBlockCounts", pageBlockCounts);
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] pageHeights", pageHeights);
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] oversizedBlockDetected", oversizedBlockCount);
 
     await waitForImages(pagesHost);
@@ -485,7 +479,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     await new Promise((r) => setTimeout(r, 100));
 
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] pdf image placement", { marginX: M_LEFT, marginY: M_TOP, contentWidth: CONTENT_W_MM, contentHeight: CONTENT_H_MM });
 
     for (let i = 0; i < pages.length; i++) {
@@ -511,7 +504,6 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
 
     const blob = pdf.output("blob") as Blob;
     if (!blob || blob.size < 5000) throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
-    // eslint-disable-next-line no-console
     console.log("[contratoPDF] blob size", blob.size);
     return blob;
   } finally {
