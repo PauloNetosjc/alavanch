@@ -437,10 +437,41 @@ export default function RH() {
   async function usarMinhaLocalizacao() {
     if (!navigator.geolocation) { toast({ title: "Geolocalização indisponível", variant: "destructive" }); return; }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude })),
+      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude, _endereco: "Localização atual capturada" } as any)),
       (err) => toast({ title: "Erro localização", description: err.message, variant: "destructive" }),
       { enableHighAccuracy: true }
     );
+  }
+  async function buscarPorCep(cepRaw: string) {
+    const cep = (cepRaw || "").replace(/\D/g, "");
+    if (cep.length !== 8) { toast({ title: "CEP inválido", description: "Digite 8 dígitos.", variant: "destructive" }); return; }
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const via = await r.json();
+      if (via.erro) { toast({ title: "CEP não encontrado", variant: "destructive" }); return; }
+      const enderecoTxt = `${via.logradouro || ""}${via.bairro ? ", " + via.bairro : ""}, ${via.localidade}-${via.uf}`;
+      const numero = (zonaForm as any)._numero || "";
+      const q = encodeURIComponent(`${via.logradouro || ""} ${numero}, ${via.localidade}, ${via.uf}, Brasil`);
+      const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`, {
+        headers: { "Accept-Language": "pt-BR" },
+      });
+      const geo = await g.json();
+      if (!geo?.[0]) {
+        toast({ title: "Endereço localizado, mas sem coordenadas", description: "Use 'Minha localização' no local.", variant: "destructive" });
+        setZonaForm(p => ({ ...p, _endereco: enderecoTxt, _cep: cep } as any));
+        return;
+      }
+      setZonaForm(p => ({
+        ...p,
+        latitude: Number(geo[0].lat),
+        longitude: Number(geo[0].lon),
+        _endereco: enderecoTxt,
+        _cep: cep,
+      } as any));
+      toast({ title: "Endereço localizado", description: enderecoTxt });
+    } catch (e: any) {
+      toast({ title: "Erro ao buscar CEP", description: e.message, variant: "destructive" });
+    }
   }
 
   // ===== Ponto =====
