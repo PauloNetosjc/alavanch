@@ -30,7 +30,10 @@ async function ensurePastaDocumentos(pedidoId: string) {
  * NÃO assina automaticamente pela loja — a assinatura da loja é feita manualmente
  * pelo usuário logado via "Assinar pela loja" na Central de Documentos.
  */
-export async function prepararContratoParaAssinatura(solicitacaoId: string) {
+export async function prepararContratoParaAssinatura(
+  solicitacaoId: string,
+  assinanteLoja?: { nome?: string | null; email?: string | null } | null,
+) {
   const { data: solic } = await supabase
     .from("solicitacoes_assinatura")
     .select("*")
