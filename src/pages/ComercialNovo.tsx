@@ -21,6 +21,21 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoja } from "@/contexts/LojaContext";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { Package } from "lucide-react";
+
+type ProdutoEstoque = {
+  id: string;
+  descricao: string;
+  codigo_barra: string | null;
+  codigo_interno: string | null;
+  unidade_medida: string;
+  quantidade: number;
+  preco_custo: number;
+  preco_venda: number;
+};
 
 type Cliente = { id: string; nome: string };
 type Parceiro = { id: string; nome: string; percentual_padrao: number };
