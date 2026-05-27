@@ -72,7 +72,19 @@ export default function BaterPonto() {
 
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const pontosHoje = useMemo(() => pontos.filter(p => p.data === hoje), [pontos, hoje]);
+  const ORDEM = ["entrada", "saida_almoco", "volta_almoco", "saida"] as const;
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
+  const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
+  const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
+    if (!turno) return null;
+    const map: Record<string, string | null> = {
+      entrada: turno.hora_entrada,
+      saida_almoco: turno.hora_saida_almoco,
+      volta_almoco: turno.hora_volta_almoco,
+      saida: turno.hora_saida,
+    };
+    return map[tipo]?.slice(0, 5) ?? null;
+  };
 
   function getLocation(): Promise<GeolocationPosition> {
     return new Promise((res, rej) => {
