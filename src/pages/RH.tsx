@@ -420,10 +420,14 @@ export default function RH() {
   // ===== Zonas =====
   async function salvarZona() {
     if (!zonaForm.nome?.trim() || zonaForm.latitude == null || zonaForm.longitude == null) {
-      toast({ title: "Preencha nome, latitude e longitude", variant: "destructive" }); return;
+      toast({ title: "Preencha nome e localização (CEP)", variant: "destructive" }); return;
     }
+    const escopo = (zonaForm as any)._escopo || "todos";
     const { error } = await supabase.from("rh_zonas_ponto" as any).insert({
-      nome: zonaForm.nome, setor_id: zonaForm.setor_id || null,
+      nome: zonaForm.nome,
+      setor_id: escopo === "setor" ? (zonaForm.setor_id || null) : null,
+      cargo_id: escopo === "cargo" ? (zonaForm.cargo_id || null) : null,
+      funcionario_id: escopo === "funcionario" ? (zonaForm.funcionario_id || null) : null,
       latitude: zonaForm.latitude, longitude: zonaForm.longitude,
       raio_metros: zonaForm.raio_metros ?? 150,
     });
