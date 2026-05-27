@@ -40,6 +40,8 @@ export default function Dashboard() {
   useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [lancs, setLancs] = useState<Lanc[]>([]);
+  const [jurosMap, setJurosMap] = useState<Record<string, number>>({});
+  const [rtMap, setRtMap] = useState<Record<string, number>>({});
   const [vendedores, setVendedores] = useState<{ nome: string; valor: number }[]>([]);
   const [meta, setMeta] = useState(0);
 
