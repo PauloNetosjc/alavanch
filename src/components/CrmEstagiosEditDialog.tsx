@@ -27,6 +27,7 @@ type Estagio = {
   concluir_acao: string | null;
   concluir_pipeline_destino: string | null;
   concluir_estagio_destino_id: string | null;
+  criar_card_em: string[];
 };
 type Template = { id: string; nome: string; tipo_servico: string };
 
