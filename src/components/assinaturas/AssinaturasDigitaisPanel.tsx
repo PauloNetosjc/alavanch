@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, ExternalLink, Eye, RefreshCcw, Send, FileText, ShieldCheck, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
