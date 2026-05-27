@@ -1164,6 +1164,11 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                         <PenLine className="w-3.5 h-3.5 mr-1" /> Assinar pela loja
                       </Button>
                     )}
+                    {sol.status === "concluido" && (
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, d.nome)}>
+                        <FileText className="w-3.5 h-3.5 mr-1" /> Baixar completo
+                      </Button>
+                    )}
                   </>
                 )}
                 <Button size="sm" variant="ghost" title="Baixar PDF" onClick={async () => {
