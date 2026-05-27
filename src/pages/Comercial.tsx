@@ -244,6 +244,7 @@ export default function Comercial() {
   const visibleRows = useMemo(() => {
     return rows.filter((r) => {
       if (!showCancelled && r.status === "perdido") return false;
+      if (lojasFilter.length > 0 && (!r.loja_id || !lojasFilter.includes(r.loja_id))) return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
       if (revisaoFilter === "revisado" && !r.revisado) return false;
