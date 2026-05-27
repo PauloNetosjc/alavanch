@@ -66,6 +66,7 @@ const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
 const Aniversariantes = lazy(() => import("@/pages/Aniversariantes"));
 const Produtos = lazy(() => import("@/pages/Produtos"));
 const RH = lazy(() => import("@/pages/RH"));
+const BaterPonto = lazy(() => import("@/pages/BaterPonto"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
