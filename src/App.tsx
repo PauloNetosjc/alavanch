@@ -43,6 +43,7 @@ const Montagem = lazy(() => import("@/pages/Montagem"));
 const Ocorrencias = lazy(() => import("@/pages/Ocorrencias"));
 const Ranking = lazy(() => import("@/pages/Ranking"));
 const Relatorios = lazy(() => import("@/pages/Relatorios"));
+const Comissoes = lazy(() => import("@/pages/Comissoes"));
 const ContratoAssinar = lazy(() => import("@/pages/ContratoAssinar"));
 const ContratoVisualizar = lazy(() => import("@/pages/ContratoVisualizar"));
 const PedidoDetalhe = lazy(() => import("@/pages/PedidoDetalhe"));
