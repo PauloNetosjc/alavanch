@@ -25,13 +25,14 @@ export default function ValidarContrato() {
     let alive = true;
     (async () => {
       if (!token) { setS({ loading: false, found: false }); return; }
-      const { data: contrato } = await supabase
+      const { data: contrato } = await (supabase as any)
         .from("contratos")
         .select("*")
-        .eq("validation_token" as any, token)
+        .eq("validation_token", token)
         .maybeSingle();
       if (!alive) return;
       if (!contrato) { setS({ loading: false, found: false }); return; }
+
 
       const [{ data: solic }, { data: cliente }, { data: loja }] = await Promise.all([
         supabase.from("solicitacoes_assinatura").select("*").eq("contrato_id", contrato.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
