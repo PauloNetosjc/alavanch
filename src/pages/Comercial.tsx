@@ -239,6 +239,7 @@ export default function Comercial() {
 
       for (const o of orcs) {
         o.pedido_id = pedMap.get(o.id) || null;
+        o.cliente_final_pedido = pedClienteFinalMap.get(o.id) || null;
         o.contrato_status = ctMap.get(o.id) || null;
         o.revisado = o.pedido_id ? revisadoSet.has(o.pedido_id) : false;
         o.etiquetas = o.pedido_id ? (etiquetasPorPedido.get(o.pedido_id) || []) : [];
