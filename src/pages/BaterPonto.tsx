@@ -81,8 +81,15 @@ export default function BaterPonto() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
-  const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const pontosHoje = useMemo(() => pontos.filter(p => p.data === hoje), [pontos, hoje]);
+  const hoje = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const pontosHoje = useMemo(() => pontos.filter(p => {
+    const md = new Date(p.marcado_em);
+    const local = `${md.getFullYear()}-${String(md.getMonth() + 1).padStart(2, "0")}-${String(md.getDate()).padStart(2, "0")}`;
+    return p.data === hoje || local === hoje;
+  }), [pontos, hoje]);
   const ORDEM = ["entrada", "saida_almoco", "volta_almoco", "saida"] as const;
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
   const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
