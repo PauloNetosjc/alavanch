@@ -26,6 +26,16 @@ async function fetchBytes(url: string): Promise<Uint8Array | null> {
   }
 }
 
+async function fetchStorageBytes(sb: any, bucket: string, path: string): Promise<Uint8Array | null> {
+  try {
+    const { data, error } = await sb.storage.from(bucket).download(path);
+    if (error || !data) return null;
+    return new Uint8Array(await data.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
 async function embedImage(pdf: PDFDocument, src: string) {
   let bytes: Uint8Array | null = null;
   let mime = "";
@@ -68,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: s, error: errS } = await sb
       .from("solicitacoes_assinatura")
-      .select("*, tipos_documento(nome), pedidos(codigo)")
+      .select("*, tipos_documento(nome), pedidos(codigo), pedido_documentos(nome,storage_path,bucket_name,mime_type)")
       .eq("id", solicitacao_id)
       .single();
     if (errS || !s) throw new Error("Solicitação não encontrada");
@@ -89,18 +99,37 @@ Deno.serve(async (req) => {
 
     // PDF base
     let pdf: PDFDocument;
-    if (s.file_url) {
-      const orig = await fetchBytes(s.file_url);
+    const doc = (s as any).pedido_documentos;
+    const originalBucket = doc?.bucket_name || (s.contrato_id ? "contratos-assinatura" : "pedido-docs");
+    const originalPath = doc?.storage_path || s.storage_path;
+    const originalMime = String(doc?.mime_type || "").toLowerCase();
+    const originalLooksPdf = originalMime.includes("pdf") || String(originalPath || s.file_url || "").toLowerCase().endsWith(".pdf");
+    const orig = originalPath
+      ? await fetchStorageBytes(sb, originalBucket, originalPath)
+      : (s.file_url ? await fetchBytes(s.file_url) : null);
+
+    if (orig && originalLooksPdf) {
+      try {
+        pdf = await PDFDocument.load(orig, { ignoreEncryption: true });
+      } catch {
+        pdf = await PDFDocument.create();
+      }
+    } else if (orig && !originalLooksPdf) {
+      pdf = await PDFDocument.create();
+      const p = pdf.addPage([595, 842]);
+      const f = await pdf.embedFont(StandardFonts.Helvetica);
+      const fB = await pdf.embedFont(StandardFonts.HelveticaBold);
+      p.drawText("Documento original enviado", { x: 40, y: 800, size: 14, font: fB });
+      p.drawText(`Arquivo: ${doc?.nome ?? s.file_name ?? originalPath ?? "documento"}`, { x: 40, y: 774, size: 10, font: f });
+      p.drawText("O conteúdo original em formato não-PDF é incluído no download gerado pela tela do pedido.", { x: 40, y: 756, size: 10, font: f });
+    } else if (s.file_url) {
+      const origUrl = await fetchBytes(s.file_url);
+      if (origUrl && originalLooksPdf) {
       if (orig) {
         try {
-          pdf = await PDFDocument.load(orig, { ignoreEncryption: true });
+            pdf = await PDFDocument.load(origUrl, { ignoreEncryption: true });
         } catch {
           pdf = await PDFDocument.create();
-          const p = pdf.addPage();
-          const f = await pdf.embedFont(StandardFonts.Helvetica);
-          p.drawText("Documento original não pôde ser embutido (não-PDF).", {
-            x: 40, y: p.getHeight() - 60, size: 12, font: f,
-          });
         }
       } else {
         pdf = await PDFDocument.create();
