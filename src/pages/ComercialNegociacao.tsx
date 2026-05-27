@@ -255,7 +255,17 @@ function ResumoFinanceiroDialog({
           {/* VALORES PRINCIPAIS */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valores Principais</div>
-            <Field label="Valor Inicial" value={fmtBrl(valorInicial)} />
+            {(() => {
+              const fator = 1 + (parceiroPerc / 100);
+              const valorInicialSemInd = fator > 0 ? valorInicial / fator : valorInicial;
+              const valorInicialComInd = valorInicial;
+              return (
+                <>
+                  <Field label="Valor Inicial" value={fmtBrl(valorInicialSemInd)} />
+                  {parceiroPerc > 0 && <Field label="Valor Inicial + Ind." value={fmtBrl(valorInicialComInd)} />}
+                </>
+              );
+            })()}
             <Field label="Descontos" color="#B83232"
               value={<>-{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span></>}
             />
