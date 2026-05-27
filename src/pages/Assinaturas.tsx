@@ -14,6 +14,7 @@ import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
+import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
@@ -48,13 +49,8 @@ export default function Assinaturas() {
   const baixarPdf = async (id: string) => {
     setPdfBusy(id);
     try {
-      const { data, error } = await supabase.functions.invoke("assinatura-pdf-final", {
-        body: { solicitacao_id: id },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error("Falha ao gerar PDF");
-      window.open(data.url, "_blank");
-      toast.success("PDF gerado");
+      const item = items.find((i) => i.id === id);
+      await baixarPdfFinalAssinatura(id, item?.file_name || item?.tipo?.nome || "documento-assinado");
     } catch (e: any) {
       toast.error(e.message || "Erro ao gerar PDF");
     } finally {
