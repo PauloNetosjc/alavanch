@@ -203,7 +203,7 @@ export default function Comercial() {
     const ids = orcs.map((o) => o.id);
     if (ids.length > 0) {
       const [{ data: peds }, { data: cts }] = await Promise.all([
-        supabase.from("pedidos").select("id, orcamento_id, cliente_final").in("orcamento_id", ids),
+        supabase.from("pedidos").select("id, orcamento_id, cliente_final, status").in("orcamento_id", ids).neq("status", "cancelado"),
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
