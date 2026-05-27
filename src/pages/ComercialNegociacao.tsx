@@ -610,13 +610,21 @@ export default function ComercialNegociacao() {
   // Juros do cliente embutidos: usa taxa configurada do método (ao mês), simples por parcela
   const jurosCliente = useMemo(() => {
     return pagamentos.reduce((s, p) => {
-      if (!p.parcelas || p.parcelas <= 1) return s;
+      const n = Number(p.parcelas) || 1;
+      if (n <= 1) return s;
       const met = metodos.find((m) => m.nome === p.metodo);
-      const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+      const cfg = Array.isArray((met as any)?.parcelas_config)
+        ? (met as any).parcelas_config.find((c: any) => Number(c?.numero) === n)
+        : null;
+      const jurosPerc = Number(cfg?.juros_perc) || 0;
+      if (jurosPerc > 0) {
+        return s + (Number(p.valor || 0) * jurosPerc) / 100;
+      }
+      const taxa = (Number((met as any)?.taxa_perc_parcela) || 0) / 100;
       if (!taxa) return s;
-      const principal = p.valor / p.parcelas;
+      const principal = p.valor / n;
       let total = 0;
-      for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
+      for (let i = 1; i < n; i++) total += principal * taxa * i;
       return s + total;
     }, 0);
   }, [pagamentos, metodos]);
