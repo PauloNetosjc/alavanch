@@ -490,33 +490,20 @@ export default function PedidoDetalhe() {
               <option value="alta">Alta</option>
             </select>
           </div>
-          <ResumoFinanceiroPedidoButton orcamento={orcamento} ambientes={ambientes} pagamentos={pagamentos} pedido={pedido} />
-          <Button variant="outline" className="text-red-600 border-red-300"
-            onClick={async () => {
-              if (!confirm("Cancelar este pedido?")) return;
-              await salvarPedido({ status: "cancelado" });
-              toast.success("Pedido cancelado");
-            }}>
-            <X className="w-4 h-4 mr-1.5" /> Cancelar
-          </Button>
-          {contrato ? (
-            <Button className="bg-[#0F172A] hover:bg-[#0F172A]/90 text-white"
-              onClick={() => navigate(`/contratos/${contrato.id}`)}>
-              <Printer className="w-4 h-4 mr-1.5" /> Contrato
-            </Button>
-          ) : null}
-          <Button variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
-            disabled={criandoAdendo}
-            onClick={criarAdendo}>
-            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
-          </Button>
-          {!ehAdendo && (
-            <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
-              disabled={criandoComplemento}
-              onClick={criarComplemento}>
-              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
-            </Button>
-          )}
+          <PedidoAcoesMenu
+            pedido={pedido}
+            orcamento={orcamento}
+            ambientes={ambientes}
+            pagamentos={pagamentos}
+            contrato={contrato}
+            ehAdendo={ehAdendo}
+            criandoAdendo={criandoAdendo}
+            criandoComplemento={criandoComplemento}
+            criarAdendo={criarAdendo}
+            criarComplemento={criarComplemento}
+            salvarPedido={salvarPedido}
+            navigate={navigate}
+          />
         </div>
       </div>
 
