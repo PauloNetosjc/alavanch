@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
-import { buildLojaSignatureDataUrl, buildLojaSignaturePngBlob } from "@/lib/lojaSignature";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
