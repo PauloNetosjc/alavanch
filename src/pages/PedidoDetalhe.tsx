@@ -986,7 +986,43 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   }, [solicitacoes]);
 
 
-  useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
+  // Contagem por pasta
+  const countByPasta = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const d of docs) if (d.pasta_id) m[d.pasta_id] = (m[d.pasta_id] || 0) + 1;
+    return m;
+  }, [docs]);
+
+  // Pasta "Documentos" (onde o contrato é salvo)
+  const pastaDocumentosId = useMemo(
+    () => pastas.find((p: any) => !p._virtual && /^documentos$/i.test(p.nome))?.id || null,
+    [pastas]
+  );
+
+  // Existe contrato salvo?
+  const temContrato = useMemo(
+    () => docs.some((d: any) =>
+      (pastaDocumentosId && d.pasta_id === pastaDocumentosId) &&
+      (d.solicitacao_id || /contrato/i.test(d.nome || ""))
+    ),
+    [docs, pastaDocumentosId]
+  );
+
+  // Regra de pasta ativa: se há contrato, abre em Documentos; senão, primeira pasta
+  useEffect(() => {
+    if (pastaAtiva) return;
+    if (temContrato && pastaDocumentosId) setPastaAtiva(pastaDocumentosId);
+    else if (pastas[0]) setPastaAtiva(pastas[0].id);
+  }, [pastas, pastaAtiva, temContrato, pastaDocumentosId]);
+
+  // Quando um contrato chega via realtime, alterna para Documentos
+  const prevContratoRef = useRef(false);
+  useEffect(() => {
+    if (temContrato && !prevContratoRef.current && pastaDocumentosId) {
+      setPastaAtiva(pastaDocumentosId);
+    }
+    prevContratoRef.current = temContrato;
+  }, [temContrato, pastaDocumentosId]);
 
   const docsDaPasta = docs.filter((d: any) => d.pasta_id === pastaAtiva);
 
