@@ -384,6 +384,197 @@ export default function RH() {
     await supabase.from("rh_documentos").delete().eq("id", id); load();
   }
 
+  // ===== Turnos =====
+  function abrirNovoTurno() {
+    setTurnoForm({
+      dias_semana: [1, 2, 3, 4, 5], tolerancia_min: 5,
+      hora_entrada: "08:00", hora_saida_almoco: "12:00", hora_volta_almoco: "13:00", hora_saida: "17:00",
+    });
+    setTurnoDialog(true);
+  }
+  function abrirEditarTurno(t: Turno) { setTurnoForm(t); setTurnoDialog(true); }
+  async function salvarTurno() {
+    if (!turnoForm.nome?.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
+    const payload: any = {
+      nome: turnoForm.nome,
+      hora_entrada: turnoForm.hora_entrada || "08:00",
+      hora_saida_almoco: turnoForm.hora_saida_almoco || null,
+      hora_volta_almoco: turnoForm.hora_volta_almoco || null,
+      hora_saida: turnoForm.hora_saida || "17:00",
+      dias_semana: turnoForm.dias_semana || [1,2,3,4,5],
+      tolerancia_min: turnoForm.tolerancia_min ?? 5,
+      observacoes: turnoForm.observacoes || null,
+    };
+    const { error } = (turnoForm as any).id
+      ? await supabase.from("rh_turnos" as any).update(payload).eq("id", (turnoForm as any).id)
+      : await supabase.from("rh_turnos" as any).insert(payload);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setTurnoDialog(false); load();
+  }
+  async function removerTurno(id: string) {
+    if (!confirm("Remover turno?")) return;
+    await supabase.from("rh_turnos" as any).delete().eq("id", id); load();
+  }
+
+  // ===== Zonas =====
+  async function salvarZona() {
+    if (!zonaForm.nome?.trim() || zonaForm.latitude == null || zonaForm.longitude == null) {
+      toast({ title: "Preencha nome, latitude e longitude", variant: "destructive" }); return;
+    }
+    const { error } = await supabase.from("rh_zonas_ponto" as any).insert({
+      nome: zonaForm.nome, setor_id: zonaForm.setor_id || null,
+      latitude: zonaForm.latitude, longitude: zonaForm.longitude,
+      raio_metros: zonaForm.raio_metros ?? 150,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setZonaForm({ raio_metros: 150 }); setZonaDialog(false); load();
+  }
+  async function removerZona(id: string) {
+    if (!confirm("Remover zona?")) return;
+    await supabase.from("rh_zonas_ponto" as any).delete().eq("id", id); load();
+  }
+  async function usarMinhaLocalizacao() {
+    if (!navigator.geolocation) { toast({ title: "Geolocalização indisponível", variant: "destructive" }); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude })),
+      (err) => toast({ title: "Erro localização", description: err.message, variant: "destructive" }),
+      { enableHighAccuracy: true }
+    );
+  }
+
+  // ===== Ponto =====
+  function getLocation(): Promise<GeolocationPosition> {
+    return new Promise((res, rej) => {
+      if (!navigator.geolocation) return rej(new Error("Geolocalização indisponível"));
+      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 15000 });
+    });
+  }
+  async function tirarSelfie(): Promise<Blob | null> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      const video = document.createElement("video");
+      video.srcObject = stream; await video.play();
+      await new Promise(r => setTimeout(r, 600));
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext("2d")!.drawImage(video, 0, 0);
+      stream.getTracks().forEach(t => t.stop());
+      return await new Promise(res => canvas.toBlob(b => res(b), "image/jpeg", 0.8));
+    } catch (e: any) {
+      toast({ title: "Não foi possível acessar a câmera", description: e.message, variant: "destructive" });
+      return null;
+    }
+  }
+  async function baterPonto(funcionarioId: string, tipo: Ponto["tipo"]) {
+    const func = funcs.find(f => f.id === funcionarioId);
+    if (!func) return;
+    const turno = turnos.find(t => t.id === func.turno_id);
+    // localização
+    let lat: number | null = null, lng: number | null = null;
+    try {
+      const pos = await getLocation();
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } catch (e: any) {
+      toast({ title: "Localização necessária", description: e.message, variant: "destructive" }); return;
+    }
+    // valida zona
+    const zonasAplic = zonas.filter(z => !z.setor_id || z.setor_id === func.setor_id);
+    if (zonasAplic.length > 0) {
+      const ok = zonasAplic.some(z => haversineM(lat!, lng!, z.latitude, z.longitude) <= z.raio_metros);
+      if (!ok) { toast({ title: "Fora da zona autorizada", description: "Aproxime-se do local de trabalho.", variant: "destructive" }); return; }
+    }
+    // selfie
+    const selfie = await tirarSelfie();
+    let selfie_url: string | null = null;
+    if (selfie) {
+      const path = `pontos/${funcionarioId}/${Date.now()}.jpg`;
+      const { error: eU } = await supabase.storage.from("rh").upload(path, selfie, { contentType: "image/jpeg" });
+      if (!eU) selfie_url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
+    }
+    // atraso (apenas para entrada / volta_almoco)
+    let atraso = 0;
+    if (turno) {
+      const ref = tipo === "entrada" ? turno.hora_entrada
+        : tipo === "volta_almoco" ? turno.hora_volta_almoco
+        : null;
+      if (ref) {
+        const diff = hmToMin(nowHM()) - hmToMin(ref);
+        atraso = Math.max(0, diff);
+      }
+    }
+    const origem = /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "celular" : "sistema";
+    const { error } = await supabase.from("rh_pontos" as any).insert({
+      funcionario_id: funcionarioId, tipo, latitude: lat, longitude: lng,
+      selfie_url, origem, atraso_min: atraso,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `${TIPO_PONTO_LABEL[tipo]} registrada`, description: atraso > 0 ? `Atraso de ${atraso} min` : "No horário" });
+    load();
+  }
+
+  // ===== Notificações de atraso =====
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+  useEffect(() => {
+    if (funcs.length === 0 || turnos.length === 0) return;
+    const interval = setInterval(() => {
+      const agora = new Date();
+      const dow = agora.getDay();
+      const nowMin = agora.getHours() * 60 + agora.getMinutes();
+      const hoje = hojeISO();
+      funcs.filter(f => f.status === "ativo" && f.turno_id).forEach(f => {
+        const t = turnos.find(x => x.id === f.turno_id); if (!t) return;
+        if (!t.dias_semana.includes(dow)) return;
+        const pHoje = pontos.filter(p => p.funcionario_id === f.id && p.data === hoje);
+        const checks: { tipo: Ponto["tipo"]; ref: string | null }[] = [
+          { tipo: "entrada", ref: t.hora_entrada },
+          { tipo: "saida_almoco", ref: t.hora_saida_almoco },
+          { tipo: "volta_almoco", ref: t.hora_volta_almoco },
+          { tipo: "saida", ref: t.hora_saida },
+        ];
+        for (const c of checks) {
+          if (!c.ref) continue;
+          if (pHoje.some(p => p.tipo === c.tipo)) continue;
+          const limite = hmToMin(c.ref) + (t.tolerancia_min || 0) + 5;
+          if (nowMin >= limite) {
+            const key = `rh_aviso_${f.id}_${hoje}_${c.tipo}`;
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, "1");
+            const msg = `${f.nome_completo} — ${TIPO_PONTO_LABEL[c.tipo]} pendente (previsto ${c.ref})`;
+            try {
+              if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("RH — Atraso de ponto", { body: msg });
+              }
+            } catch {}
+            toast({ title: "Atraso de ponto", description: msg, variant: "destructive" });
+          }
+        }
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [funcs, turnos, pontos]);
+
+  // ===== Banco de horas =====
+  const bancoLinhas = useMemo(() => {
+    const fLista = bancoFiltroFunc === "todos" ? ativos : ativos.filter(f => f.id === bancoFiltroFunc);
+    const out: { funcionario: Funcionario; data: string; trabalhado: number; previsto: number; saldo: number }[] = [];
+    fLista.forEach(f => {
+      const turno = turnos.find(t => t.id === f.turno_id);
+      const datas = new Set(pontos.filter(p => p.funcionario_id === f.id && p.data >= bancoDe && p.data <= bancoAte).map(p => p.data));
+      datas.forEach(d => {
+        const ps = pontos.filter(p => p.funcionario_id === f.id && p.data === d);
+        const { trabalhado, previsto, saldo } = calcSaldoDia(ps, turno);
+        out.push({ funcionario: f, data: d, trabalhado, previsto, saldo });
+      });
+    });
+    return out.sort((a, b) => b.data.localeCompare(a.data));
+  }, [pontos, turnos, ativos, bancoFiltroFunc, bancoDe, bancoAte]);
+
+  const bancoTotal = useMemo(() => bancoLinhas.reduce((s, l) => s + l.saldo, 0), [bancoLinhas]);
+
   const docsFunc = detalheFunc ? documentos.filter(d => d.funcionario_id === detalheFunc.id) : [];
   const feriasFunc = detalheFunc ? ferias.filter(d => d.funcionario_id === detalheFunc.id) : [];
   const ocoFunc = detalheFunc ? ocorrencias.filter(d => d.funcionario_id === detalheFunc.id) : [];
