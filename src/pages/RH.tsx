@@ -1114,6 +1114,13 @@ export default function RH() {
                 <SelectContent>{cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Turno</Label>
+              <Select value={(funcForm as any).turno_id || ""} onValueChange={v => setFuncForm(p => ({...p, turno_id: v} as any))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{turnos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome} ({t.hora_entrada.slice(0,5)}–{t.hora_saida.slice(0,5)})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label>Salário</Label><Input type="number" step="0.01" value={funcForm.salario || ""} onChange={e => setFuncForm(p => ({...p, salario: e.target.value ? Number(e.target.value) : null}))} /></div>
             <div><Label>Data de admissão</Label><Input type="date" value={funcForm.data_admissao || ""} onChange={e => setFuncForm(p => ({...p, data_admissao: e.target.value}))} /></div>
             <div>
