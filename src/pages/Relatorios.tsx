@@ -128,6 +128,12 @@ export default function Relatorios() {
     return rtByPedido.get(p.id) || 0;
   };
 
+  // Considera apenas pedidos ATIVOS (não cancelados) — alinha com o Dashboard
+  const pedidosAtivos = useMemo(
+    () => pedidos.filter((p: any) => (p.status || "").toLowerCase() !== "cancelado"),
+    [pedidos]
+  );
+
   // ===== KPIs gerais =====
   const kpi = useMemo(() => {
     // Conversão considera apenas PEDIDOS (sem adendo/complemento)
@@ -136,26 +142,26 @@ export default function Relatorios() {
     const cancelados = orcs.filter((o) => o.status === "cancelado").length;
     const conv = orcsPedido.length ? (fechadosPed.length / orcsPedido.length) * 100 : 0;
 
-    const bruto = pedidos.reduce((s, p) => s + Number(p.valor_total || 0), 0);
-    const juros = pedidos.reduce((s, p) => s + Number(p.juros_total || 0), 0);
-    const rt = pedidos.reduce((s, p) => s + rtDe(p), 0);
+    const bruto = pedidosAtivos.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+    const juros = pedidosAtivos.reduce((s, p) => s + Number(p.juros_total || 0), 0);
+    const rt = pedidosAtivos.reduce((s, p) => s + rtDe(p), 0);
     const liquido = bruto - juros - rt;
     let custoTotal = 0;
-    pedidos.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
+    pedidosAtivos.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
       custoTotal += Number(a.custo_loja || a.custo_fabrica || a.custo_aquisicao || 0);
     }));
     const margemValor = liquido - custoTotal;
     const margemPerc = liquido > 0 ? (margemValor / liquido) * 100 : 0;
 
     // Ticket médio: apenas contratos (PV)
-    const pvs = pedidos.filter((p) => !p.is_adendo && !p.is_complemento);
+    const pvs = pedidosAtivos.filter((p) => !p.is_adendo && !p.is_complemento);
     const brutoPv = pvs.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const ticket = pvs.length ? brutoPv / pvs.length : 0;
 
-    const descontoTotal = pedidos.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
+    const descontoTotal = pedidosAtivos.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
 
-    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length, descontoTotal };
-  }, [orcs, pedidos, rtByPedido]);
+    return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidosAtivos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length, descontoTotal };
+  }, [orcs, pedidosAtivos, rtByPedido]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
   const porTipo = useMemo(() => {
@@ -165,7 +171,7 @@ export default function Relatorios() {
       { tipo: "Complemento", code: "CP", match: (p: any) => !!p.is_complemento },
     ];
     return buckets.map((b) => {
-      const arr = pedidos.filter(b.match);
+      const arr = pedidosAtivos.filter(b.match);
       const bruto = arr.reduce((s, p) => s + Number(p.valor_total || 0), 0);
       const juros = arr.reduce((s, p) => s + Number(p.juros_total || 0), 0);
       const rt = arr.reduce((s, p) => s + rtDe(p), 0);
@@ -179,7 +185,8 @@ export default function Relatorios() {
       const desconto = arr.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
       return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket, desconto };
     });
-  }, [pedidos, rtByPedido]);
+  }, [pedidosAtivos, rtByPedido]);
+
 
   const evolucao = useMemo(() => {
     const map = new Map<number, number>();
