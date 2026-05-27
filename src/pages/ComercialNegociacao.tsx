@@ -1217,10 +1217,13 @@ export default function ComercialNegociacao() {
             {ambientes.map((a) => {
               const incluido = a.negociavel !== false;
               const recebeDesconto = a.aplicar_desconto !== false;
-              const precoBase = Number(a.preco_sugerido) || 0;
-              // Desconto rateado apenas entre os ambientes "aplicar desconto"
-              const fator = recebeDesconto && subtotalComDesconto > 0
-                ? precoBase / subtotalComDesconto
+              const fatorIndicador = 1 + (parceiroPerc / 100);
+              // Preço exibido já com o percentual do indicador acrescido
+              const precoBase = (Number(a.preco_sugerido) || 0) * fatorIndicador;
+              // Base descontável também com indicador, mantendo o rateio proporcional
+              const baseRateioDesc = subtotalComDesconto * fatorIndicador;
+              const fator = recebeDesconto && baseRateioDesc > 0
+                ? precoBase / baseRateioDesc
                 : 0;
               const descontoAplicadoNoAmb = recebeDesconto ? descValorEfetivo * fator : 0;
               const precoFinal = incluido ? Math.max(0, precoBase - descontoAplicadoNoAmb) : 0;
