@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
+import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
 
 export function AssinarPelaLojaDialog({
   open, onOpenChange, solicitacaoId, onDone,
@@ -54,6 +55,7 @@ export function AssinarPelaLojaDialog({
         descricao: `Loja assinou (${(profile as any)?.nome_completo || user?.email})`,
         user_id: user?.id,
       });
+      await arquivarDocumentoAssinado(solic.id);
       toast.success("Documento concluído!");
       onOpenChange(false); onDone?.();
     } catch (e: any) {
