@@ -1473,8 +1473,33 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                   }
                 }}><FileText className="w-4 h-4" /></Button>
                 )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" title="Mais ações">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => abrirViewer(d, sol && sol.status === "assinado_manual" ? (d.bucket_name || "assinaturas-evidencias") : undefined)}>
+                      <Eye className="w-4 h-4 mr-2" /> Visualizar arquivo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => baixarDoc(d, sol && sol.status === "assinado_manual" ? (d.bucket_name || "assinaturas-evidencias") : undefined)}>
+                      <Download className="w-4 h-4 mr-2" /> Baixar arquivo
+                    </DropdownMenuItem>
+                    {sol && (
+                      <DropdownMenuItem onClick={() => setEvidId(sol.id)}>
+                        <FileText className="w-4 h-4 mr-2" /> Ver evidências
+                      </DropdownMenuItem>
+                    )}
+                    {!d._readonly && (
+                      <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => removerDoc(d.id)}>
+                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {!d._readonly && (
-                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)} title="Excluir">
                     <Trash2 className="w-4 h-4 text-red-500" />
                   </Button>
                 )}
