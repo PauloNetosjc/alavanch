@@ -456,6 +456,8 @@ function MetasTab() {
   const [lojaId, setLojaId] = useState<string>(lojas[0]?.id || "");
   const [vendedores, setVendedores] = useState<any[]>([]);
   const [metas, setMetas] = useState<Map<string | "global", number>>(new Map());
+  const [metaGlobal2, setMetaGlobal2] = useState<number>(0);
+  const [metaGlobal3, setMetaGlobal3] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -468,12 +470,19 @@ function MetasTab() {
       setLoading(true);
       const [{ data: profs }, { data: metasData }] = await Promise.all([
         supabase.from("profiles").select("user_id, nome_completo, loja_id").eq("loja_id", lojaId),
-        supabase.from("metas_vendas" as any).select("vendedor_id, meta_valor").eq("loja_id", lojaId).eq("ano", ano).eq("mes", mes),
+        supabase.from("metas_vendas" as any).select("vendedor_id, meta_valor, meta_valor_2, meta_valor_3").eq("loja_id", lojaId).eq("ano", ano).eq("mes", mes),
       ]);
       setVendedores(profs || []);
       const m = new Map<string | "global", number>();
-      ((metasData as any[]) || []).forEach((x) => m.set(x.vendedor_id || "global", Number(x.meta_valor)));
+      let g2 = 0, g3 = 0;
+      ((metasData as any[]) || []).forEach((x) => {
+        const key = x.vendedor_id || "global";
+        m.set(key, Number(x.meta_valor));
+        if (key === "global") { g2 = Number(x.meta_valor_2 || 0); g3 = Number(x.meta_valor_3 || 0); }
+      });
       setMetas(m);
+      setMetaGlobal2(g2);
+      setMetaGlobal3(g3);
       setLoading(false);
     })();
   }, [lojaId, ano, mes]);
@@ -487,12 +496,13 @@ function MetasTab() {
   const salvar = async () => {
     if (!lojaId) return;
     const rows = Array.from(metas.entries())
-      .filter(([, v]) => v > 0)
+      .filter(([k, v]) => v > 0 || k === "global")
       .map(([k, v]) => ({
         loja_id: lojaId,
         vendedor_id: k === "global" ? null : (k as string),
         ano, mes,
-        meta_valor: v,
+        meta_valor: v || 0,
+        ...(k === "global" ? { meta_valor_2: metaGlobal2 || 0, meta_valor_3: metaGlobal3 || 0 } : {}),
       }));
     // Apaga e reinserir para essa janela (admin only)
     await supabase.from("metas_vendas" as any).delete().eq("loja_id", lojaId).eq("ano", ano).eq("mes", mes);
@@ -507,6 +517,7 @@ function MetasTab() {
     () => Array.from(metas.entries()).filter(([k]) => k !== "global").reduce((s, [, v]) => s + (v || 0), 0),
     [metas]
   );
+
 
   return (
     <div className="space-y-4">
@@ -549,14 +560,34 @@ function MetasTab() {
           </div>
           <div className="text-[11px] text-muted-foreground">Soma das metas individuais: <span className="text-foreground font-medium">{fmtBRL(totalIndiv)}</span></div>
         </div>
-        <div className="max-w-md">
-          <Label>Meta mensal (R$)</Label>
-          <Input
-            type="number"
-            value={metas.get("global") ?? ""}
-            onChange={(e) => setMeta("global", parseFloat(e.target.value) || 0)}
-            placeholder="0,00"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <Label>Meta 1 (R$)</Label>
+            <Input
+              type="number"
+              value={metas.get("global") ?? ""}
+              onChange={(e) => setMeta("global", parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label>Meta 2 (R$)</Label>
+            <Input
+              type="number"
+              value={metaGlobal2 || ""}
+              onChange={(e) => setMetaGlobal2(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label>Meta 3 (R$)</Label>
+            <Input
+              type="number"
+              value={metaGlobal3 || ""}
+              onChange={(e) => setMetaGlobal3(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
         </div>
       </div>
 
