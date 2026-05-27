@@ -728,10 +728,14 @@ export async function prepararContratoParaAssinatura(
     loja_assinado_em: solicCtx.loja_assinado_em || "",
     loja_assinatura_nome: assinanteLoja?.nome || solicCtx.loja_assinatura_nome || (snapshot as any)?.loja_assinatura_nome || null,
     loja_assinatura_email: assinanteLoja?.email || solicCtx.loja_assinatura_email || (snapshot as any)?.loja_assinatura_email || null,
+    loja_assinatura_cargo: solicCtx.loja_assinatura_cargo || (snapshot as any)?.loja_assinatura_cargo || null,
     assinatura_cliente_url: solicCtx.assinatura_cliente_url || "",
     cliente_assinado_em: solicCtx.cliente_assinado_em || "",
     cliente_ip: solicCtx.cliente_ip || "",
+    validation_url: validationUrl,
+    qr_data_url: qrDataUrl,
   };
+
   const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
