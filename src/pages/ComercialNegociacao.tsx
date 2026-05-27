@@ -1153,7 +1153,7 @@ export default function ComercialNegociacao() {
                 contrato_id: created.id,
                 observacao: `Contrato ${created.numero} gerado automaticamente`,
                 expira_em: expira.toISOString(),
-                status: "aguardando_cliente",
+                status: "aguardando_loja",
               } as any)
               .select("id")
               .single();
@@ -1169,10 +1169,10 @@ export default function ComercialNegociacao() {
               await supabase.from("assinatura_eventos").insert({
                 solicitacao_id: novaSolic.id,
                 tipo_evento: "solicitacao_criada",
-                status_novo: "aguardando_cliente",
+                status_novo: "aguardando_loja",
                 descricao: `Solicitação criada automaticamente para o contrato ${created.numero}`,
               } as any);
-              // Gera o documento HTML + pré-assinatura da loja
+              // Gera o documento HTML sem marcar a loja como assinada automaticamente.
               await prepararContratoParaAssinatura(novaSolic.id).catch(() => null);
             }
           }
