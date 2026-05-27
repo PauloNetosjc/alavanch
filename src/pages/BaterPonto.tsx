@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle } from "lucide-react";
+import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
 
 type Turno = {
   id: string; nome: string;
@@ -72,7 +72,19 @@ export default function BaterPonto() {
 
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const pontosHoje = useMemo(() => pontos.filter(p => p.data === hoje), [pontos, hoje]);
+  const ORDEM = ["entrada", "saida_almoco", "volta_almoco", "saida"] as const;
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
+  const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
+  const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
+    if (!turno) return null;
+    const map: Record<string, string | null> = {
+      entrada: turno.hora_entrada,
+      saida_almoco: turno.hora_saida_almoco,
+      volta_almoco: turno.hora_volta_almoco,
+      saida: turno.hora_saida,
+    };
+    return map[tipo]?.slice(0, 5) ?? null;
+  };
 
   function getLocation(): Promise<GeolocationPosition> {
     return new Promise((res, rej) => {
@@ -99,6 +111,12 @@ export default function BaterPonto() {
 
   async function baterPonto(tipo: Ponto["tipo"]) {
     if (!func) return;
+    const idx = ORDEM.indexOf(tipo);
+    if (idx > 0 && !jaFez(ORDEM[idx - 1])) {
+      toast({ title: "Sequência obrigatória", description: `Bata primeiro: ${TIPO_PONTO_LABEL[ORDEM[idx - 1]]}.`, variant: "destructive" });
+      return;
+    }
+    if (jaFez(tipo)) return;
     setMarcando(tipo);
     try {
       let lat: number | null = null, lng: number | null = null;
@@ -185,19 +203,57 @@ export default function BaterPonto() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(["entrada","saida_almoco","volta_almoco","saida"] as const).map(t => (
-                <Button
-                  key={t}
-                  variant={jaFez(t) ? "secondary" : "outline"}
-                  disabled={marcando !== null || jaFez(t)}
-                  onClick={() => baterPonto(t)}
-                  className="h-auto py-3 flex-col"
-                >
-                  <Camera className="w-4 h-4 mb-1" />
-                  <span className="text-xs">{TIPO_PONTO_LABEL[t]}</span>
-                  {jaFez(t) && <span className="text-[10px] text-muted-foreground mt-1">registrado</span>}
-                </Button>
-              ))}
+              {ORDEM.map((t, i) => {
+                const feito = jaFez(t);
+                const ehProximo = !feito && i === proximoIdx;
+                const bloqueado = !feito && !ehProximo;
+                const previsto = horarioPrevisto(t);
+                const pontoFeito = pontosHoje.find(p => p.tipo === t);
+                const horaReal = pontoFeito ? new Date(pontoFeito.marcado_em).toTimeString().slice(0, 5) : null;
+                return (
+                  <Button
+                    key={t}
+                    variant={feito ? "secondary" : ehProximo ? "default" : "outline"}
+                    disabled={marcando !== null || feito || bloqueado}
+                    onClick={() => baterPonto(t)}
+                    className={`h-auto py-3 flex-col relative ${feito ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15" : ""} ${ehProximo ? "ring-2 ring-primary/60" : ""} ${bloqueado ? "opacity-60" : ""}`}
+                  >
+                    <div className="absolute top-1.5 right-1.5">
+                      {feito
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        : bloqueado
+                          ? <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                          : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">PRÓXIMO</span>}
+                    </div>
+                    <Camera className="w-4 h-4 mb-1" />
+                    <span className="text-xs font-medium">{TIPO_PONTO_LABEL[t]}</span>
+                    {previsto && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> previsto {previsto}
+                      </span>
+                    )}
+                    {feito && horaReal && (
+                      <span className="text-[10px] text-emerald-700 font-semibold mt-0.5">batido {horaReal}</span>
+                    )}
+                    {bloqueado && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5">aguardando anterior</span>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-1 mt-3">
+              {ORDEM.map((t, i) => {
+                const feito = jaFez(t);
+                const ehProximo = !feito && i === proximoIdx;
+                return (
+                  <div key={t} className="flex items-center gap-1 flex-1">
+                    <div className={`flex-1 h-1.5 rounded-full ${feito ? "bg-emerald-500" : ehProximo ? "bg-primary/60" : "bg-muted"}`} />
+                    {i < ORDEM.length - 1 && <span className="text-muted-foreground text-xs">›</span>}
+                  </div>
+                );
+              })}
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-3">
               <MapPin className="w-3 h-3" /> Requer localização e selfie. Disponível no computador e no celular.
