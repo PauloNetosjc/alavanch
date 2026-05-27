@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3, CalendarDays, Wallet } from "lucide-react";
+import { DollarSign, Calculator, TrendingUp, PieChart as PieIcon, TrendingDown, Users, BarChart3, CalendarDays, Wallet, ChevronDown } from "lucide-react";
 import { useLoja } from "@/contexts/LojaContext";
 import { PageFilters, defaultPeriodoAno, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 
