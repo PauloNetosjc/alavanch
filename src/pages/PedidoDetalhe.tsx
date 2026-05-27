@@ -1096,7 +1096,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
             <button
               onClick={() => setPastaAtiva(p.id)}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold uppercase tracking-wider ${pastaAtiva === p.id ? "bg-purple-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
-              {p.nome}
+              {p.nome} <span className="opacity-70 ml-1">({p._virtual ? (docs.filter((d:any)=>d.pasta_id===p.id).length) : (countByPasta[p.id] || 0)})</span>
             </button>
             {!p._virtual && (
               <DropdownMenu>
