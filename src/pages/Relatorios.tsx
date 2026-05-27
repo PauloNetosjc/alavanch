@@ -200,15 +200,37 @@ export default function Relatorios() {
         <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
       </div>
 
-      {/* KPIs */}
+      {/* KPIs gerais */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" />
-        <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" />
-        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={`${kpi.margem.toFixed(1)}%`} badge="Real" />
-        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtd} ped.`} />
-        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." />
+        <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(kpi.bruto)} badge="Bruto" hint={`Juros previstos: ${fmtBRL(kpi.juros)}`} />
+        <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(kpi.liquido)} badge="− juros − RT" hint={`RT indicação: ${fmtBRL(kpi.rt)}`} />
+        <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(kpi.margemValor)} badge={`${kpi.margemPerc.toFixed(1)}%`} hint={`Custo previsto: ${fmtBRL(kpi.custoTotal)}`} />
+        <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(kpi.ticket)} badge={`${kpi.qtdPv} contratos`} hint="Somente PV (sem adendo/complemento)" />
+        <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Conversão" value={`${kpi.conv.toFixed(0)}%`} badge="Conv." hint={`${kpi.fechadosPed}/${kpi.totalOrcPed} orçamentos PV`} />
         <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Cancelados" value={String(kpi.cancelados)} badge="Perdidos" />
       </div>
+
+      {/* KPIs por tipo de pedido */}
+      <div className="space-y-3">
+        {porTipo.map((t) => (
+          <div key={t.code}>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+              <span className="font-medium text-foreground">{t.tipo}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary">{t.code}</span>
+              <span>· {t.qtd} {t.qtd === 1 ? "registro" : "registros"}</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              <KpiBig icon={<DollarSign className="w-4 h-4" />} color="primary" label="Faturamento Bruto" value={fmtBRL(t.bruto)} badge="Bruto" hint={`Juros: ${fmtBRL(t.juros)}`} />
+              <KpiBig icon={<Wallet className="w-4 h-4" />} color="emerald" label="Faturamento Líquido" value={fmtBRL(t.liquido)} badge="− juros − RT" hint={`RT: ${fmtBRL(t.rt)}`} />
+              <KpiBig icon={<Calculator className="w-4 h-4" />} color="emerald" label="Margem Líquida" value={fmtBRL(t.margemValor)} badge={`${t.margem.toFixed(1)}%`} hint={`Custo: ${fmtBRL(t.custo)}`} />
+              <KpiBig icon={<TrendingUp className="w-4 h-4" />} color="primary" label="Ticket Médio" value={fmtBRL(t.ticket)} badge={`${t.qtd}`} />
+              <KpiBig icon={<PieIcon className="w-4 h-4" />} color="primary" label="Part. Bruto" value={kpi.bruto > 0 ? `${((t.bruto / kpi.bruto) * 100).toFixed(0)}%` : "—"} badge="Share" />
+              <KpiBig icon={<TrendingDown className="w-4 h-4" />} color="rose" label="Desconto (Juros+RT)" value={fmtBRL(t.juros + t.rt)} badge="Deduções" />
+            </div>
+          </div>
+        ))}
+      </div>
+
 
       {/* Tabela por tipo (PV / AD / CP) */}
       <div className="surface-card p-5">
