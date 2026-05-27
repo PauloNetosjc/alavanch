@@ -61,6 +61,7 @@ async function ensurePastaDocumentos(pedidoId: string) {
 export async function prepararContratoParaAssinatura(
   solicitacaoId: string,
   assinanteLoja?: { nome?: string | null; email?: string | null } | null,
+  assinaturaCliente?: { url?: string | null; assinadoEm?: string | null; ip?: string | null } | null,
 ) {
   const { data: solic } = await supabase
     .from("solicitacoes_assinatura")
@@ -68,6 +69,12 @@ export async function prepararContratoParaAssinatura(
     .eq("id", solicitacaoId)
     .maybeSingle();
   if (!solic?.pedido_id || !solic?.contrato_id) return;
+  const solicCtx: any = {
+    ...(solic as any),
+    ...(assinaturaCliente?.url ? { assinatura_cliente_url: assinaturaCliente.url } : {}),
+    ...(assinaturaCliente?.assinadoEm ? { cliente_assinado_em: assinaturaCliente.assinadoEm } : {}),
+    ...(assinaturaCliente?.ip ? { cliente_ip: assinaturaCliente.ip } : {}),
+  };
 
   const [{ data: contrato }, { data: pedido }] = await Promise.all([
     supabase.from("contratos").select("*").eq("id", solic.contrato_id).maybeSingle(),
@@ -116,13 +123,13 @@ export async function prepararContratoParaAssinatura(
       },
       cliente: (snapshot?.cliente || cliente || null),
       signing_url: getPublicSignatureUrl(solic.token),
-      assinatura_loja_url: solic.assinatura_loja_url || "",
-      loja_assinado_em: solic.loja_assinado_em || "",
-      loja_assinatura_nome: assinanteLoja?.nome || (solic as any).loja_assinatura_nome || (snapshot as any)?.loja_assinatura_nome || null,
-      loja_assinatura_email: assinanteLoja?.email || (solic as any).loja_assinatura_email || (snapshot as any)?.loja_assinatura_email || null,
-      assinatura_cliente_url: (solic as any).assinatura_cliente_url || "",
-      cliente_assinado_em: solic.cliente_assinado_em || "",
-      cliente_ip: (solic as any).cliente_ip || "",
+      assinatura_loja_url: solicCtx.assinatura_loja_url || "",
+      loja_assinado_em: solicCtx.loja_assinado_em || "",
+      loja_assinatura_nome: assinanteLoja?.nome || solicCtx.loja_assinatura_nome || (snapshot as any)?.loja_assinatura_nome || null,
+      loja_assinatura_email: assinanteLoja?.email || solicCtx.loja_assinatura_email || (snapshot as any)?.loja_assinatura_email || null,
+      assinatura_cliente_url: solicCtx.assinatura_cliente_url || "",
+      cliente_assinado_em: solicCtx.cliente_assinado_em || "",
+      cliente_ip: solicCtx.cliente_ip || "",
     };
     const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
     const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
