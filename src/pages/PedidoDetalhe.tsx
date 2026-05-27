@@ -490,6 +490,7 @@ export default function PedidoDetalhe() {
               <option value="alta">Alta</option>
             </select>
           </div>
+          <ResumoFinanceiroPedidoButton orcamento={orcamento} ambientes={ambientes} pagamentos={pagamentos} pedido={pedido} />
           <Button variant="outline" className="text-red-600 border-red-300"
             onClick={async () => {
               if (!confirm("Cancelar este pedido?")) return;
