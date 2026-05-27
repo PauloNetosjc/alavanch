@@ -24,6 +24,7 @@ import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteForm
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
 import { dispatchKanbanTrigger } from "@/lib/kanbanTriggers";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -1103,6 +1104,59 @@ export default function ComercialNegociacao() {
         await supabase.from("pedidos").update(patch).eq("id", ped.id);
         // Dispara gatilhos de criação automática de cards nos kanbans operacionais
         await dispatchKanbanTrigger("contrato_criado", { pedidoId: ped.id, orcamentoId: id, responsavelId: user?.id ?? null });
+
+        // === Gera nova solicitação de assinatura para o contrato recém-criado ===
+        try {
+          // Cancela solicitações antigas vinculadas a contratos cancelados/anteriores
+          await supabase
+            .from("solicitacoes_assinatura")
+            .update({ status: "cancelado" })
+            .eq("pedido_id", ped.id)
+            .neq("contrato_id", created.id)
+            .in("status", ["aguardando_cliente", "aguardando_loja", "rascunho"]);
+
+          const { data: tipoContrato } = await supabase
+            .from("tipos_documento").select("id").eq("slug", "contrato").maybeSingle();
+          if (tipoContrato?.id) {
+            const expira = new Date();
+            expira.setDate(expira.getDate() + 30);
+            const { data: novaSolic } = await supabase
+              .from("solicitacoes_assinatura")
+              .insert({
+                pedido_id: ped.id,
+                tipo_documento_id: tipoContrato.id,
+                cliente_id: orc.cliente_id,
+                loja_id: orc.loja_id,
+                contrato_id: created.id,
+                observacao: `Contrato ${created.numero} gerado automaticamente`,
+                expira_em: expira.toISOString(),
+                status: "aguardando_cliente",
+              } as any)
+              .select("id")
+              .single();
+            if (novaSolic?.id) {
+              await supabase.from("assinatura_participantes").insert({
+                solicitacao_id: novaSolic.id,
+                tipo: "cliente",
+                nome: cliente?.nome || null,
+                email: cliente?.email || null,
+                telefone: cliente?.telefone || null,
+                status: "pendente",
+              } as any);
+              await supabase.from("assinatura_eventos").insert({
+                solicitacao_id: novaSolic.id,
+                tipo_evento: "solicitacao_criada",
+                status_novo: "aguardando_cliente",
+                descricao: `Solicitação criada automaticamente para o contrato ${created.numero}`,
+              } as any);
+              // Gera o documento HTML + pré-assinatura da loja
+              await prepararContratoParaAssinatura(novaSolic.id).catch(() => null);
+            }
+          }
+        } catch (sErr) {
+          console.warn("Falha ao criar solicitação de assinatura automática:", sErr);
+        }
+
         navigate(`/pedidos/${ped.id}`);
       } else {
         navigate(`/contratos/${created.id}`);
