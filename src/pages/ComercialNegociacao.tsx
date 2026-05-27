@@ -1093,7 +1093,6 @@ export default function ComercialNegociacao() {
     }).eq("id", id);
 
     setOpenConfirmar(false);
-    toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
     // Atualiza o pedido (criado pelo trigger, ou já existente se foi cancelado antes)
     const { data: { user } } = await supabase.auth.getUser();
     setTimeout(async () => {
@@ -1120,6 +1119,11 @@ export default function ComercialNegociacao() {
           }).eq("id", created.id);
           created.numero = ped.codigo;
         }
+        toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
+      } else {
+        toast.success(`Contrato ${created.numero} gerado! Venda criada automaticamente.`);
+      }
+      if (ped?.id) {
 
 
         const patch: any = {
