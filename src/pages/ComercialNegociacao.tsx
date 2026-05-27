@@ -153,36 +153,62 @@ function ResumoFinanceiroDialog({
   const podeVerCusto = can("itens", "view_custo");
   const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
-  const fretePerc = Number(config?.frete_venda_perc) || 0;
-  const comissaoLojaPerc = Number(config?.comissao_loja_perc) || 0;
-  const montagemPerc = Number(config?.montagem_perc) || 0;
-  const impostosPerc = Number(config?.imp_saida_perc) || 0;
-  const outrosPerc = Number(config?.outros_perc) || 0;
-  const frete = totalProposta * (fretePerc / 100);
-  const comissaoLoja = totalProposta * (comissaoLojaPerc / 100);
-  const montagem = totalProposta * (montagemPerc / 100);
-  const impostos = totalProposta * (impostosPerc / 100);
-  const outros = totalProposta * (outrosPerc / 100);
-  const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
   const valorSemJuros = totalProposta - jurosCliente;
   const totalVPL = valorSemJuros - parceiroValor;
+
+  // Percentuais editáveis (pré-carregados da configuração da loja)
+  const [fretePerc, setFretePerc] = useState<number>(Number(config?.frete_venda_perc) || 0);
+  const [comissaoLojaPerc, setComissaoLojaPerc] = useState<number>(Number(config?.comissao_loja_perc) || 0);
+  const [montagemPerc, setMontagemPerc] = useState<number>(Number(config?.montagem_perc) || 0);
+  const [impostosPerc, setImpostosPerc] = useState<number>(Number(config?.imp_saida_perc) || 0);
+  const [outrosPerc, setOutrosPerc] = useState<number>(Number(config?.outros_perc) || 0);
+  useEffect(() => {
+    if (!config) return;
+    setFretePerc(Number(config?.frete_venda_perc) || 0);
+    setComissaoLojaPerc(Number(config?.comissao_loja_perc) || 0);
+    setMontagemPerc(Number(config?.montagem_perc) || 0);
+    setImpostosPerc(Number(config?.imp_saida_perc) || 0);
+    setOutrosPerc(Number(config?.outros_perc) || 0);
+  }, [config]);
+
+  // Base: VPL para todos, exceto Impostos (sobre Valor Total da Venda)
+  const frete = totalVPL * (fretePerc / 100);
+  const comissaoLoja = totalVPL * (comissaoLojaPerc / 100);
+  const montagem = totalVPL * (montagemPerc / 100);
+  const impostos = totalProposta * (impostosPerc / 100);
+  const outros = totalVPL * (outrosPerc / 100);
+  const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
   const lucro = totalVPL - totalCustos;
   const margem = totalProposta > 0 ? (lucro / totalProposta) * 100 : 0;
   const markup = custoFabrica > 0 ? totalVPL / custoFabrica : 0;
 
-  const Row = ({ label, valor, perc, color }: { label: string; valor: number; perc: number; color: string }) => (
+  const Row = ({ label, valor, perc, color, percValue, onPercChange, editable = true }: { label: string; valor: number; perc: number; color: string; percValue?: number; onPercChange?: (v: number) => void; editable?: boolean }) => (
     <div>
-      <div className="flex items-center justify-between text-[13px]">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-          {label}
+      <div className="flex items-center justify-between text-[13px] gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+          <span className="truncate">{label}</span>
         </div>
-        <span className="text-mono font-semibold">{fmtBrl(valor)}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          {editable && onPercChange && (
+            <div className="flex items-center gap-0.5">
+              <input
+                type="number"
+                step="0.01"
+                value={percValue ?? 0}
+                onChange={(e) => onPercChange(Number(e.target.value) || 0)}
+                className="w-14 h-6 text-[12px] text-right bg-background border border-input rounded px-1"
+              />
+              <span className="text-[11px] text-muted-foreground">%</span>
+            </div>
+          )}
+          <span className="text-mono font-semibold tabular-nums w-24 text-right">{fmtBrl(valor)}</span>
+        </div>
       </div>
       <div className="mt-1 h-1 rounded-full bg-muted overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${Math.min(100, perc)}%`, background: color }} />
       </div>
-      <div className="text-right text-[11px] text-muted-foreground mt-0.5">{perc.toFixed(2)}%</div>
+      <div className="text-right text-[11px] text-muted-foreground mt-0.5">{perc.toFixed(2)}% do custo</div>
     </div>
   );
 
@@ -240,12 +266,13 @@ function ResumoFinanceiroDialog({
           {podeVerCusto && (
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
-            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
-            <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" />
-            <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" />
-            <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" />
-            <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" />
-            <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" />
+            <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
+            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" percValue={fretePerc} onPercChange={setFretePerc} />
+            <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" percValue={comissaoLojaPerc} onPercChange={setComissaoLojaPerc} />
+            <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" percValue={montagemPerc} onPercChange={setMontagemPerc} />
+            <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" percValue={impostosPerc} onPercChange={setImpostosPerc} />
+            <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" percValue={outrosPerc} onPercChange={setOutrosPerc} />
             <div className="border-t border-border pt-2 flex items-center justify-between text-[14px] font-semibold">
               <span>Total</span>
               <span className="text-mono">{fmtBrl(totalCustos)}</span>
