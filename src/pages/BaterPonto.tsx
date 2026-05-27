@@ -8,11 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
 
+type HorarioDia = { hora_entrada?: string | null; hora_saida_almoco?: string | null; hora_volta_almoco?: string | null; hora_saida?: string | null };
 type Turno = {
   id: string; nome: string;
   hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
   dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
+  horarios_por_dia?: Record<string, HorarioDia> | null;
 };
+function getHorarioDia(turno: Turno, dow: number) {
+  const ov = (turno.horarios_por_dia || {})[String(dow)] || {};
+  return {
+    hora_entrada: ov.hora_entrada || turno.hora_entrada,
+    hora_saida_almoco: ov.hora_saida_almoco ?? turno.hora_saida_almoco,
+    hora_volta_almoco: ov.hora_volta_almoco ?? turno.hora_volta_almoco,
+    hora_saida: ov.hora_saida || turno.hora_saida,
+  };
+}
 type Zona = { id: string; setor_id: string | null; cargo_id: string | null; funcionario_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
 type Ponto = {
   id: string; funcionario_id: string; data: string;
