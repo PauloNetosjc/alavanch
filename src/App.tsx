@@ -12,7 +12,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
-import Dashboard from "@/pages/Dashboard";
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
 import { RequirePermission } from "@/components/RequirePermission";
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
