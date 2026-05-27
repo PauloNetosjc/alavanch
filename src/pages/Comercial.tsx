@@ -666,10 +666,10 @@ export default function Comercial() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#C0392B]"
-                                  aria-label="Declinar orçamento"
-                                  title="Declinar orçamento"
+                                  aria-label="Cancelar orçamento"
+                                  title="Cancelar orçamento"
                                 >
-                                  <XCircle className="w-3.5 h-3.5" /> Declinar
+                                  <XCircle className="w-3.5 h-3.5" /> Cancelar
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
