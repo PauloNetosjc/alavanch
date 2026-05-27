@@ -557,42 +557,6 @@ export default function PedidoDetalhe() {
       {/* CRONOGRAMA E DATAS */}
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
 
-      {/* WORKFLOW DE PRODUÇÃO */}
-      <section className="surface-card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-11 h-11 rounded-full bg-purple-600 text-white flex items-center justify-center"><Clock className="w-5 h-5" /></div>
-          <div>
-            <h2 className="font-playfair text-[22px] font-semibold">Workflow de Produção</h2>
-            <p className="text-[12px] text-muted-foreground">Avança automaticamente conforme o Cronograma</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between px-4">
-          {WF_STAGES.map((s, i) => {
-            const Icon = s.icon;
-            const active = stageIndex >= 0 && i <= stageIndex;
-            return (
-              <div key={s.key} className="flex-1 flex items-center">
-                <div className="flex flex-col items-center gap-2 z-10">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition ${active ? "bg-purple-600 border-purple-600 text-white" : "bg-muted border-muted-foreground/20 text-muted-foreground/50"}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className={`text-[10px] uppercase tracking-wider font-semibold ${active ? "text-foreground" : "text-muted-foreground/50"}`}>{s.label}</div>
-                </div>
-                {i < WF_STAGES.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-1 ${stageIndex > i ? "bg-purple-600" : "bg-muted-foreground/20"}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {!pedido.workflow_estagio || pedido.workflow_estagio === "aguardando" ? (
-          <div className="mt-5 text-center">
-            <Button onClick={() => iniciarWorkflow("medicao")} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              ▶ Iniciar Workflow de Produção: Medição
-            </Button>
-          </div>
-        ) : null}
-      </section>
 
       {/* TAREFAS ASSOCIADAS AO PEDIDO */}
       <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas do Pedido" />
