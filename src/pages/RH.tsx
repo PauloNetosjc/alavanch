@@ -16,6 +16,7 @@ import { maskCpf, maskPhone } from "@/lib/masks";
 import {
   Users, UserPlus, Plane, AlertTriangle, Briefcase, UserX, Search,
   FileText, Upload, Trash2, Pencil, Calendar, AlertCircle,
+  Clock, MapPin, Camera, History, Fingerprint,
 } from "lucide-react";
 
 type Setor = { id: string; nome: string };
