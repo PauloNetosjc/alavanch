@@ -88,11 +88,12 @@ export default function BaterPonto() {
   const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
   const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
     if (!turno) return null;
+    const hd = getHorarioDia(turno, new Date().getDay());
     const map: Record<string, string | null> = {
-      entrada: turno.hora_entrada,
-      saida_almoco: turno.hora_saida_almoco,
-      volta_almoco: turno.hora_volta_almoco,
-      saida: turno.hora_saida,
+      entrada: hd.hora_entrada,
+      saida_almoco: hd.hora_saida_almoco,
+      volta_almoco: hd.hora_volta_almoco,
+      saida: hd.hora_saida,
     };
     return map[tipo]?.slice(0, 5) ?? null;
   };
