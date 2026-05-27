@@ -533,10 +533,10 @@ export default function Comercial() {
                     </div>
                     <div className="mt-3 flex justify-end">
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(isVenda ? `/pedidos/${r.pedido_id}` : `/comercial/${r.id}/negociacao`); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
                       >
-                        <Calculator className="w-3.5 h-3.5" /> Negociar
+                        {isVenda ? <><Eye className="w-3.5 h-3.5" /> Visualizar</> : <><Calculator className="w-3.5 h-3.5" /> Negociar</>}
                       </button>
                     </div>
                   </li>
