@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 type Estado = {
@@ -18,7 +18,9 @@ function fmt(d?: string | null) {
 }
 
 export default function ValidarContrato() {
-  const { token } = useParams();
+  const params = useParams();
+  const [search] = useSearchParams();
+  const token = params.token || search.get("token") || "";
   const [s, setS] = useState<Estado>({ loading: true, found: false });
 
   useEffect(() => {
@@ -113,7 +115,11 @@ export default function ValidarContrato() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground uppercase">ID da solicitação</div>
-            <div className="font-mono text-xs">{solic?.id || "—"}</div>
+            <div className="font-mono text-xs break-all">{solic?.id || "—"}</div>
+          </div>
+          <div className="sm:col-span-2">
+            <div className="text-xs text-muted-foreground uppercase">SHA-256 do PDF</div>
+            <div className="font-mono text-[11px] break-all">{contrato.document_hash || "—"}</div>
           </div>
         </section>
 

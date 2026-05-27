@@ -6,7 +6,8 @@ import { getPublicSignatureUrl, getPublicAppOrigin } from "@/lib/publicLinks";
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
 function getValidationUrl(token: string) {
-  return `${getPublicAppOrigin()}/validar-contrato/${token}`;
+  // Usa query param para evitar 404 em deep links de SPA no host publicado.
+  return `${getPublicAppOrigin()}/validar-contrato?token=${encodeURIComponent(token)}`;
 }
 
 async function buildQrDataUrl(url: string): Promise<string> {
