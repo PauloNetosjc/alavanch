@@ -436,3 +436,24 @@ function KpiBig({ icon, color, label, value, badge, hint }: { icon: React.ReactN
     </div>
   );
 }
+
+function CollapsibleTipo({ tipo, code, qtd, children }: { tipo: string; code: string; qtd: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="surface-card p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 text-left"
+      >
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-medium text-foreground">{tipo}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary">{code}</span>
+          <span>· {qtd} {qtd === 1 ? "registro" : "registros"}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && children}
+    </div>
+  );
+}
