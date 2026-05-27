@@ -588,8 +588,9 @@ export default function Comercial() {
                   <TableRow>
                     <TableHead className="text-[11px] tracking-wider">CONTRATO / DATA</TableHead>
                     <TableHead className="text-[11px] tracking-wider">CLIENTE</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">CLIENTE FINAL</TableHead>
                     <TableHead className="text-[11px] tracking-wider">ETIQUETAS</TableHead>
-                    <TableHead className="text-[11px] tracking-wider">STATUS &amp; WORKFLOW</TableHead>
+                    <TableHead className="text-[11px] tracking-wider">STATUS</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">VALOR</TableHead>
                     <TableHead className="text-[11px] tracking-wider text-right">AÇÕES</TableHead>
                   </TableRow>
