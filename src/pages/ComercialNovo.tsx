@@ -1446,7 +1446,7 @@ export default function ComercialNovo() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                 {/* Importar */}
                 <div className="rounded-lg border border-border p-5">
                   <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
