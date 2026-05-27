@@ -1144,6 +1144,7 @@ export type Database = {
           desconto_maximo: number | null
           email: string | null
           endereco: string | null
+          formacao_preco_extras: Json
           frete_compra_perc: number | null
           frete_venda_perc: number | null
           icms_compra_perc: number | null
@@ -1179,6 +1180,7 @@ export type Database = {
           desconto_maximo?: number | null
           email?: string | null
           endereco?: string | null
+          formacao_preco_extras?: Json
           frete_compra_perc?: number | null
           frete_venda_perc?: number | null
           icms_compra_perc?: number | null
@@ -1214,6 +1216,7 @@ export type Database = {
           desconto_maximo?: number | null
           email?: string | null
           endereco?: string | null
+          formacao_preco_extras?: Json
           frete_compra_perc?: number | null
           frete_venda_perc?: number | null
           icms_compra_perc?: number | null
