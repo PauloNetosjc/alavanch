@@ -62,6 +62,7 @@ export default function AssinaturaPublica() {
   const [docHtml, setDocHtml] = useState<string>("");
   const [erro, setErro] = useState<string>("");
   const [done, setDone] = useState(false);
+  const [aguardandoLoja, setAguardandoLoja] = useState(false);
   const [requerLoja, setRequerLoja] = useState(false);
 
   const [nome, setNome] = useState("");
@@ -123,6 +124,7 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
+      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && !s.cliente_assinado_em && s.status !== "concluido");
 
       // Carrega contrato + template e renderiza HTML inline (somente leitura)
       if (s.contrato_id) {
@@ -352,6 +354,22 @@ export default function AssinaturaPublica() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             Sua recusa foi registrada e a equipe da loja foi notificada. Em caso de dúvidas, entre em contato.
+          </CardContent>
+        </Card>
+      </div>
+    );
+
+  if (aguardandoLoja)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="w-5 h-5" /> Aguardando assinatura da loja
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Este contrato exige assinatura da loja antes da assinatura do cliente. Assim que a loja assinar, este mesmo link ficará liberado para você concluir a assinatura.
           </CardContent>
         </Card>
       </div>
