@@ -13,7 +13,7 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1012,6 +1012,41 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
   const [verAssinaturasId, setVerAssinaturasId] = useState<string | null>(null);
   const [partsBySol, setPartsBySol] = useState<Record<string, any[]>>({});
+  const [viewDoc, setViewDoc] = useState<{ url: string; mime: string; nome: string; bucket: string; path: string } | null>(null);
+
+  const abrirViewer = async (d: any, bucketOverride?: string) => {
+    try {
+      const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
+      const path = d.storage_path;
+      if (!path) throw new Error("Arquivo sem caminho");
+      const { data: blob, error } = await supabase.storage.from(bucket).download(path);
+      if (error || !blob) throw error || new Error("Falha ao baixar arquivo");
+      const ext = (path.split(".").pop() || "").toLowerCase();
+      let mime = blob.type || "";
+      if (!mime) {
+        if (ext === "pdf") mime = "application/pdf";
+        else if (["png","jpg","jpeg","gif","webp","svg"].includes(ext)) mime = `image/${ext === "jpg" ? "jpeg" : ext}`;
+      }
+      const typed = mime ? new Blob([blob], { type: mime }) : blob;
+      const url = URL.createObjectURL(typed);
+      setViewDoc({ url, mime, nome: sanitizeNome(d.nome || path.split("/").pop() || "arquivo"), bucket, path });
+    } catch (e: any) {
+      toast.error("Erro ao abrir visualizador: " + (e?.message || "desconhecido"));
+    }
+  };
+
+  const baixarDoc = async (d: any, bucketOverride?: string) => {
+    try {
+      const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
+      const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+      if (error || !blob) throw error || new Error("Falha ao baixar");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = sanitizeNome(d.nome || "arquivo");
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e: any) { toast.error("Erro ao baixar: " + (e?.message || "desconhecido")); }
+  };
 
   // Mapa: pedido_documento_id -> última solicitação
   const solicByDoc = useMemo(() => {
@@ -1366,6 +1401,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => abrirViewer(d)}>👁 Visualizar arquivo</DropdownMenuItem>
                           <DropdownMenuItem onClick={async () => {
                             try {
                               const bucket = d.bucket_name || "contratos-assinatura";
@@ -1438,11 +1474,31 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                   }
                 }}><FileText className="w-4 h-4" /></Button>
                 )}
-                {!d._readonly && (
-                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Button>
-                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" title="Mais ações">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => abrirViewer(d, sol && sol.status === "assinado_manual" ? (d.bucket_name || "assinaturas-evidencias") : undefined)}>
+                      <Eye className="w-4 h-4 mr-2" /> Visualizar arquivo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => baixarDoc(d, sol && sol.status === "assinado_manual" ? (d.bucket_name || "assinaturas-evidencias") : undefined)}>
+                      <Download className="w-4 h-4 mr-2" /> Baixar arquivo
+                    </DropdownMenuItem>
+                    {sol && (
+                      <DropdownMenuItem onClick={() => setEvidId(sol.id)}>
+                        <FileText className="w-4 h-4 mr-2" /> Ver evidências
+                      </DropdownMenuItem>
+                    )}
+                    {!d._readonly && (
+                      <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => removerDoc(d.id)}>
+                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           );
@@ -1587,6 +1643,54 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         onAssinarLoja={(id) => { setVerAssinaturasId(null); setAssinarLojaId(id); }}
         onChange={onChange}
       />
+
+      {/* Visualizador interno de arquivo */}
+      <Dialog open={!!viewDoc} onOpenChange={(v) => {
+        if (!v && viewDoc) { URL.revokeObjectURL(viewDoc.url); setViewDoc(null); }
+      }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm truncate pr-4">{viewDoc?.nome}</DialogTitle>
+            <div className="flex items-center gap-2">
+              {viewDoc && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => window.open(viewDoc.url, "_blank")}>
+                    <ExternalLink className="w-4 h-4 mr-1.5" /> Nova aba
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = viewDoc.url; a.download = viewDoc.nome;
+                    document.body.appendChild(a); a.click(); a.remove();
+                  }}>
+                    <Download className="w-4 h-4 mr-1.5" /> Baixar
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-muted/30 flex items-center justify-center">
+            {viewDoc && viewDoc.mime.startsWith("application/pdf") && (
+              <iframe src={viewDoc.url} title={viewDoc.nome} className="w-full h-full border-0" />
+            )}
+            {viewDoc && viewDoc.mime.startsWith("image/") && (
+              <img src={viewDoc.url} alt={viewDoc.nome} className="max-w-full max-h-[80vh] object-contain" />
+            )}
+            {viewDoc && !viewDoc.mime.startsWith("application/pdf") && !viewDoc.mime.startsWith("image/") && (
+              <div className="text-center p-8">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">Pré-visualização não disponível para este tipo de arquivo.</p>
+                <Button onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = viewDoc.url; a.download = viewDoc.nome;
+                  document.body.appendChild(a); a.click(); a.remove();
+                }}>
+                  <Download className="w-4 h-4 mr-1.5" /> Baixar arquivo
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
