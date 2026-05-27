@@ -81,13 +81,13 @@ export function MetodosPagamentoAdmin() {
       ? m.parcelas_config.map((p) => ({
           numero: p.numero,
           juros_perc: p.juros_perc ?? 0,
-          forma_pagamento: p.forma_pagamento ?? "Boleto",
+          forma_pagamento: toFormas(p.forma_pagamento).length ? toFormas(p.forma_pagamento) : ["Boleto"],
           desconto_perc: p.desconto_perc ?? 0,
         }))
       : Array.from({ length: Math.max(m.max_parcelas, 1) }, (_, i) => ({
           numero: i + 1,
           juros_perc: m.taxa_perc_parcela || 0,
-          forma_pagamento: "Boleto",
+          forma_pagamento: ["Boleto"] as string[],
           desconto_perc: 0,
         }));
     setEditing({ ...m, parcelas_config: parcelas });
