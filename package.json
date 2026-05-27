@@ -53,6 +53,7 @@
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^5.7.2",
     "framer-motion": "^11.0.0",
+    "html2pdf.js": "^0.14.0",
     "input-otp": "^1.4.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
