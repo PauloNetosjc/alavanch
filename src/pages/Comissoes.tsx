@@ -436,7 +436,7 @@ export default function Comissoes() {
       {/* Totais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="surface-card p-4">
-          <div className="text-[11px] uppercase text-muted-foreground tracking-wider">Total vendido</div>
+          <div className="text-[11px] uppercase text-muted-foreground tracking-wider">Total vendido (líquido)</div>
           <div className="text-[22px] font-medium mt-1">{fmtBRL(totais.vendido)}</div>
         </div>
         <div className="surface-card p-4">
