@@ -1,8 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
+import QRCode from "qrcode";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
-import { getPublicSignatureUrl } from "@/lib/publicLinks";
+import { getPublicSignatureUrl, getPublicAppOrigin } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+
+function getValidationUrl(token: string) {
+  return `${getPublicAppOrigin()}/validar-contrato/${token}`;
+}
+
+async function buildQrDataUrl(url: string): Promise<string> {
+  try {
+    return await QRCode.toDataURL(url, { errorCorrectionLevel: "M", margin: 1, width: 320 });
+  } catch (e) {
+    console.error("[contratoPDF] QR generation failed", e);
+    return "";
+  }
+}
+
 
 const formatDateBr = (value?: string | Date | null) => {
   const fallback = new Date();
