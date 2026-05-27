@@ -1151,6 +1151,7 @@ export type Database = {
       }
       configuracoes_empresa: {
         Row: {
+          assinar_loja_automaticamente: boolean
           cnpj: string | null
           comissao_bronze_ate: number | null
           comissao_bronze_perc: number | null
@@ -1188,6 +1189,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          assinar_loja_automaticamente?: boolean
           cnpj?: string | null
           comissao_bronze_ate?: number | null
           comissao_bronze_perc?: number | null
@@ -1225,6 +1227,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          assinar_loja_automaticamente?: boolean
           cnpj?: string | null
           comissao_bronze_ate?: number | null
           comissao_bronze_perc?: number | null
@@ -1332,6 +1335,7 @@ export type Database = {
           status: string
           template_id: string | null
           updated_at: string
+          validation_token: string | null
           valor_total: number
         }
         Insert: {
@@ -1360,6 +1364,7 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          validation_token?: string | null
           valor_total?: number
         }
         Update: {
@@ -1388,6 +1393,7 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          validation_token?: string | null
           valor_total?: number
         }
         Relationships: [

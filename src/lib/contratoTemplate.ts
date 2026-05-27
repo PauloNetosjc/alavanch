@@ -1,6 +1,6 @@
 // Helpers para renderizar contratos a partir do template + dados do orçamento.
 import type { ClienteRow } from "@/components/clientes/ClienteFormDialog";
-import { buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
+
 
 export type ContratoTemplate = {
   id: string;
@@ -29,12 +29,18 @@ export type ContratoCtx = {
   loja_assinado_em?: string | null;
   loja_assinatura_nome?: string | null;
   loja_assinatura_email?: string | null;
+  loja_assinatura_cargo?: string | null;
   assinatura_cliente_url?: string | null;
   cliente_assinado_em?: string | null;
   cliente_ip?: string | null;
   vendedor?: { nome?: string | null; email?: string | null } | null;
   prazo_entrega?: string | null;
+  /** URL pública de validação (página /validar-contrato/:token) */
+  validation_url?: string | null;
+  /** Data URL (PNG) do QR Code apontando para validation_url */
+  qr_data_url?: string | null;
 };
+
 
 export const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -123,33 +129,45 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        <div style="white-space:pre-wrap;border:1px solid #E5E5E5;border-radius:6px;padding:12px;background:#FAFAFA;font-size:12px;line-height:1.5">${ctx.observacoes_adicionais}</div>`
     : "";
 
-  const responsavelLoja = ctx.loja_assinatura_nome || ctx.empresa.nome || "Loja";
-  const assinaturaLojaUrl = ctx.loja_assinado_em
-    ? (ctx.assinatura_loja_url || buildLojaSignatureDataUrl({
-        nome: ctx.empresa.nome || "Loja",
-        razao_social: ctx.empresa.razao_social || ctx.empresa.nome || "Loja",
-        nome_fantasia: ctx.empresa.nome_fantasia || ctx.empresa.nome || null,
-        cnpj: ctx.empresa.cnpj || null,
-        endereco: ctx.empresa.endereco || null,
-        responsavel: responsavelLoja,
-      }))
-    : "";
-  const assinaturaLojaHtml = assinaturaLojaUrl
-    ? `<div class="loja-signature"><img src="${escapeHtml(assinaturaLojaUrl)}" alt="Assinatura digital da loja com CNPJ e razão social" /></div>`
-    : `<div class="loja-signature"></div>`;
-  const assinaturaLojaMeta = ctx.loja_assinado_em
-    ? `<div class="lb">Assinatura / Responsável</div>
-       ${ctx.loja_assinatura_nome ? `<div class="lb" style="margin-top:2px;font-size:11px;color:#1A1A1A"><b>${escapeHtml(ctx.loja_assinatura_nome)}</b></div>` : ""}
-       ${ctx.loja_assinatura_email ? `<div class="lb" style="font-size:10px">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
-       <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.loja_assinado_em)}</div>`
-    : `<div class="lb">Assinatura da loja pendente</div>`;
-  const assinaturaClienteHtml = ctx.cliente_assinado_em && ctx.assinatura_cliente_url
-    ? `<div class="loja-signature"><img src="${escapeHtml(ctx.assinatura_cliente_url)}" alt="Assinatura digital do cliente" /></div>`
-    : `<div class="loja-signature"></div>`;
-  const assinaturaClienteMeta = ctx.cliente_assinado_em
-    ? `<div class="lb">Assinatura / CPF ou CNPJ</div>
-       <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.cliente_assinado_em)}${ctx.cliente_ip ? ` · IP ${escapeHtml(ctx.cliente_ip)}` : ""}</div>`
-    : `<div class="lb">Assinatura / CPF ou CNPJ</div>`;
+  const fmtDateTime = (d: string | Date) =>
+    new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  // ---- Carimbo eletrônico da loja (sem assinatura desenhada) ----
+  const lojaStamp = ctx.loja_assinado_em
+    ? `<div class="estamp estamp-loja">
+         <div class="estamp-title">✓ Assinado eletronicamente por</div>
+         <div class="estamp-name">${escapeHtml(ctx.loja_assinatura_nome || ctx.empresa.nome || "Representante da loja")}</div>
+         ${ctx.loja_assinatura_email ? `<div class="estamp-row">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
+         ${ctx.loja_assinatura_cargo ? `<div class="estamp-row">${escapeHtml(ctx.loja_assinatura_cargo)}</div>` : ""}
+         <div class="estamp-row estamp-when">${fmtDateTime(ctx.loja_assinado_em)}</div>
+         <div class="estamp-role">Representante da loja</div>
+       </div>`
+    : `<div class="estamp estamp-pending"><div class="estamp-title">Assinatura da loja pendente</div></div>`;
+
+  // ---- Carimbo eletrônico do cliente ----
+  const clienteStamp = ctx.cliente_assinado_em
+    ? `<div class="estamp estamp-cliente">
+         <div class="estamp-title">✓ Assinado eletronicamente por</div>
+         <div class="estamp-name">${escapeHtml(ctx.cliente?.nome || "Cliente")}</div>
+         ${ctx.cliente?.cpf_cnpj ? `<div class="estamp-row">${escapeHtml(ctx.cliente.cpf_cnpj)}</div>` : ""}
+         <div class="estamp-row estamp-when">${fmtDateTime(ctx.cliente_assinado_em)}${ctx.cliente_ip ? ` · IP ${escapeHtml(ctx.cliente_ip)}` : ""}</div>
+         <div class="estamp-role">Cliente</div>
+       </div>`
+    : `<div class="estamp estamp-pending"><div class="estamp-title">Assinatura do cliente pendente</div></div>`;
+
+  const assinaturaLojaHtml = `<div class="loja-signature">${lojaStamp}</div>`;
+  const assinaturaLojaMeta = `<div class="lb">Representante da loja</div>`;
+  const assinaturaClienteHtml = `<div class="loja-signature">${clienteStamp}</div>`;
+  const assinaturaClienteMeta = `<div class="lb">CPF ou CNPJ</div>`;
+
+  const validationUrl = ctx.validation_url || "";
+  const qrImgHtml = ctx.qr_data_url
+    ? `<img src="${ctx.qr_data_url}" alt="QR Code de validação do contrato" style="width:80px;height:80px;display:block" />`
+    : `<div class="qr">QR</div>`;
+  const qrImgHtmlLarge = ctx.qr_data_url
+    ? `<img src="${ctx.qr_data_url}" alt="QR Code de validação do contrato" style="width:96px;height:96px;display:block" />`
+    : `<div class="qr">QR</div>`;
+
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
@@ -181,13 +199,22 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   .data-loc { text-align:center; margin-top:30px; font-style:italic; font-size:13px; }
   .sigs { display:flex; justify-content:space-between; gap:60px; margin-top:48px; }
   .sigs .col { flex:1; text-align:center; }
-  .loja-signature { height:128px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
+  .loja-signature { min-height:128px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
   .loja-signature img { width:320px; max-width:100%; max-height:128px; object-fit:contain; }
+  .estamp { width:100%; max-width:320px; margin:0 auto; padding:10px 12px; border:1.5px solid #1B2240; border-radius:6px; background:#F5F8FF; text-align:left; font-size:11px; line-height:1.4; color:#1A1A1A; }
+  .estamp-pending { border-style:dashed; background:#FAFAFA; color:#6B6760; text-align:center; }
+  .estamp-title { font-size:10px; font-weight:700; color:#1B2240; text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .estamp-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+  .estamp-row { font-size:11px; color:#1A1A1A; }
+  .estamp-when { color:#6B6760; margin-top:2px; }
+  .estamp-role { margin-top:6px; padding-top:4px; border-top:1px dashed #C2CCE6; font-size:10px; font-weight:700; color:#1B2240; text-transform:uppercase; letter-spacing:.4px; }
   .sigs .line { border-top:1px solid #1A1A1A; padding-top:6px; }
   .sigs .nm { font-weight:700; font-size:13px; }
   .sigs .lb { color:#6B6760; font-size:11px; }
   .footer { margin-top:30px; font-size:10px; color:#6B6760; text-align:center; border-top:1px solid #EEE; padding-top:8px; }
   .auth-block { margin-top:20px; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px; background:#FAFAFA; border:1px solid #EEE; border-radius:6px; font-size:11px; color:#6B6760;}
+  .auth-block img { width:96px; height:96px; }
+
 </style></head><body>
 <div class="page">
 
@@ -201,9 +228,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
     </div>
     <div style="text-align:right">
       <div style="font-size:9px;color:#6B6760;letter-spacing:1px;margin-bottom:2px">AUTENTICIDADE</div>
-      <div class="qr">QR</div>
+      ${qrImgHtml}
     </div>
   </div>
+
 
   <div class="num-bar">
     <div class="lbl">CONTRATO Nº</div>
@@ -287,11 +315,13 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   <div class="auth-block">
     <div>
       <div style="font-weight:700;color:#1B2240;margin-bottom:2px">AUTENTICIDADE DIGITAL</div>
-      <div>Para assinar e validar este contrato acesse:</div>
-      <div style="color:#2D6BE5;word-break:break-all">${ctx.signing_url}</div>
+      <div>Valide este contrato em:</div>
+      <div style="color:#2D6BE5;word-break:break-all">${validationUrl || ctx.signing_url}</div>
+      <div style="margin-top:4px;color:#6B6760">ID da solicitação: ${escapeHtml(ctx.numero)}</div>
     </div>
-    <div class="qr">QR</div>
+    ${qrImgHtmlLarge}
   </div>
+
 
   ${tpl.rodape ? `<div class="footer">${tpl.rodape}</div>` : ""}
 </div>
