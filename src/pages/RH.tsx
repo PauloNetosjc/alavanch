@@ -79,6 +79,44 @@ function daysUntil(date: string | null) {
   return Math.round((d - now.getTime()) / 86400000);
 }
 
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
+function nowHM() { const d = new Date(); return d.toTimeString().slice(0, 5); }
+function hmToMin(hm: string) { const [h, m] = hm.split(":").map(Number); return h * 60 + m; }
+function minToHM(min: number) {
+  const sign = min < 0 ? "-" : "";
+  const a = Math.abs(min);
+  return `${sign}${String(Math.floor(a / 60)).padStart(2, "0")}:${String(a % 60).padStart(2, "0")}`;
+}
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000;
+  const toR = (x: number) => (x * Math.PI) / 180;
+  const dLat = toR(lat2 - lat1); const dLon = toR(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+const TIPO_PONTO_LABEL: Record<string, string> = {
+  entrada: "Entrada", saida_almoco: "Saída almoço", volta_almoco: "Volta almoço", saida: "Saída final",
+};
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function calcSaldoDia(pontos: Ponto[], turno: Turno | undefined): { trabalhado: number; previsto: number; saldo: number } {
+  if (!turno) return { trabalhado: 0, previsto: 0, saldo: 0 };
+  const previsto =
+    (hmToMin(turno.hora_saida) - hmToMin(turno.hora_entrada)) -
+    (turno.hora_saida_almoco && turno.hora_volta_almoco
+      ? hmToMin(turno.hora_volta_almoco) - hmToMin(turno.hora_saida_almoco)
+      : 0);
+  const get = (t: string) => pontos.find(p => p.tipo === t);
+  const e = get("entrada"); const sa = get("saida_almoco"); const va = get("volta_almoco"); const s = get("saida");
+  let trabalhado = 0;
+  if (e && s) {
+    const min = (a: string) => { const d = new Date(a); return d.getHours() * 60 + d.getMinutes(); };
+    trabalhado = min(s.marcado_em) - min(e.marcado_em);
+    if (sa && va) trabalhado -= (min(va.marcado_em) - min(sa.marcado_em));
+  }
+  return { trabalhado, previsto, saldo: trabalhado - previsto };
+}
+
 export default function RH() {
   const [tab, setTab] = useState("dashboard");
   const [setores, setSetores] = useState<Setor[]>([]);
