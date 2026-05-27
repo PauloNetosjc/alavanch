@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save, ShieldCheck } from "lucide-react";
+import { Settings, FileText, CreditCard, Target, Building2, Calendar, DollarSign, TrendingUp, Save, ShieldCheck, Plus, Trash2 } from "lucide-react";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -137,9 +137,22 @@ function PoliticasTab() {
       </div>
 
       <div className="surface-card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          <div className="text-[14px] font-medium uppercase tracking-wide">Formação de Preço e Alíquotas Operacionais</div>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <div className="text-[14px] font-medium uppercase tracking-wide">Formação de Preço e Alíquotas Operacionais</div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => {
+              const extras = Array.isArray(c.formacao_preco_extras) ? c.formacao_preco_extras : [];
+              set("formacao_preco_extras", [...extras, { id: crypto.randomUUID(), label: "Novo Item (%)", value: 0 }]);
+            }}
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar item
+          </Button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
@@ -162,19 +175,46 @@ function PoliticasTab() {
               />
             </div>
           ))}
+          {(Array.isArray(c.formacao_preco_extras) ? c.formacao_preco_extras : []).map((item: any, idx: number) => (
+            <div key={item.id ?? idx} className="surface-card p-3 relative group">
+              <button
+                type="button"
+                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500 transition"
+                onClick={() => {
+                  const extras = [...(c.formacao_preco_extras || [])];
+                  extras.splice(idx, 1);
+                  set("formacao_preco_extras", extras);
+                }}
+                aria-label="Remover item"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+              <Input
+                className="text-[10px] uppercase text-muted-foreground tracking-wider h-5 border-0 bg-transparent p-0 pr-5"
+                value={item.label ?? ""}
+                onChange={(e) => {
+                  const extras = [...(c.formacao_preco_extras || [])];
+                  extras[idx] = { ...extras[idx], label: e.target.value };
+                  set("formacao_preco_extras", extras);
+                }}
+              />
+              <Input
+                type="number"
+                step="0.1"
+                className="mt-1 h-8 border-0 bg-transparent text-[18px] font-medium text-primary p-0"
+                value={item.value ?? ""}
+                onChange={(e) => {
+                  const extras = [...(c.formacao_preco_extras || [])];
+                  extras[idx] = { ...extras[idx], value: parseFloat(e.target.value) };
+                  set("formacao_preco_extras", extras);
+                }}
+              />
+            </div>
+          ))}
         </div>
         <p className="text-[11px] text-muted-foreground mt-3">Esses percentuais alimentam a Composição de Custos exibida no Resumo Financeiro dos orçamentos.</p>
       </div>
 
-      <div className="surface-card p-5">
-        <div className="text-[14px] font-medium uppercase tracking-wide text-primary mb-1">% Tabela de Comissões Consultores (Loja)</div>
-        <p className="text-[11px] uppercase text-muted-foreground tracking-wider mb-4">Esta tabela define a alíquota de comissão da loja aplicada automaticamente sobre o VPL.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <FaixaComissao titulo="BRONZE (ATÉ)" valorKey="comissao_bronze_ate" percKey="comissao_bronze_perc" config={c} setConfig={setConfig} />
-          <FaixaComissao titulo="PRATA (ATÉ)" valorKey="comissao_prata_ate" percKey="comissao_prata_perc" config={c} setConfig={setConfig} />
-          <FaixaComissao titulo="OURO (ACIMA)" valorKey="comissao_prata_ate" percKey="comissao_ouro_perc" config={c} setConfig={setConfig} acima />
-        </div>
-      </div>
 
       <div className="flex justify-end">
         <Button onClick={() => save(c)} className="gap-2"><Save className="w-3.5 h-3.5" />Salvar</Button>
