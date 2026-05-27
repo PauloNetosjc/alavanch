@@ -490,33 +490,20 @@ export default function PedidoDetalhe() {
               <option value="alta">Alta</option>
             </select>
           </div>
-          <ResumoFinanceiroPedidoButton orcamento={orcamento} ambientes={ambientes} pagamentos={pagamentos} pedido={pedido} />
-          <Button variant="outline" className="text-red-600 border-red-300"
-            onClick={async () => {
-              if (!confirm("Cancelar este pedido?")) return;
-              await salvarPedido({ status: "cancelado" });
-              toast.success("Pedido cancelado");
-            }}>
-            <X className="w-4 h-4 mr-1.5" /> Cancelar
-          </Button>
-          {contrato ? (
-            <Button className="bg-[#0F172A] hover:bg-[#0F172A]/90 text-white"
-              onClick={() => navigate(`/contratos/${contrato.id}`)}>
-              <Printer className="w-4 h-4 mr-1.5" /> Contrato
-            </Button>
-          ) : null}
-          <Button variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
-            disabled={criandoAdendo}
-            onClick={criarAdendo}>
-            <Sparkles className="w-4 h-4 mr-1.5" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
-          </Button>
-          {!ehAdendo && (
-            <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
-              disabled={criandoComplemento}
-              onClick={criarComplemento}>
-              <FileText className="w-4 h-4 mr-1.5" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
-            </Button>
-          )}
+          <PedidoAcoesMenu
+            pedido={pedido}
+            orcamento={orcamento}
+            ambientes={ambientes}
+            pagamentos={pagamentos}
+            contrato={contrato}
+            ehAdendo={ehAdendo}
+            criandoAdendo={criandoAdendo}
+            criandoComplemento={criandoComplemento}
+            criarAdendo={criarAdendo}
+            criarComplemento={criarComplemento}
+            salvarPedido={salvarPedido}
+            navigate={navigate}
+          />
         </div>
       </div>
 
@@ -2411,8 +2398,10 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
 /* ============================================================== */
 /*               RESUMO FINANCEIRO DO PEDIDO (real)               */
 /* ============================================================== */
-function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido }: any) {
-  const [open, setOpen] = useState(false);
+function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido, open: openProp, onOpenChange, hideTrigger }: any) {
+  const [openInner, setOpenInner] = useState(false);
+  const open = openProp !== undefined ? openProp : openInner;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setOpenInner(v); };
   const [config, setConfig] = useState<any>(null);
   const [metodos, setMetodos] = useState<any[]>([]);
   const [parceiroNome, setParceiroNome] = useState<string>("");
@@ -2501,9 +2490,11 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
 
   return (
     <>
-      <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" onClick={() => setOpen(true)}>
-        <PieChart className="w-4 h-4 mr-1.5" /> Resumo Financeiro
-      </Button>
+      {!hideTrigger && (
+        <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" onClick={() => setOpen(true)}>
+          <PieChart className="w-4 h-4 mr-1.5" /> Resumo Financeiro
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Resumo Financeiro</DialogTitle></DialogHeader>
@@ -2563,6 +2554,111 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
             </div>
           </div>
           <DialogFooter><Button onClick={() => setOpen(false)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ============================================================== */
+/*                  MENU DE AÇÕES DO PEDIDO                       */
+/* ============================================================== */
+function PedidoAcoesMenu({
+  pedido, orcamento, ambientes, pagamentos, contrato, ehAdendo,
+  criandoAdendo, criandoComplemento, criarAdendo, criarComplemento,
+  salvarPedido, navigate,
+}: any) {
+  const [resumoOpen, setResumoOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [cancelando, setCancelando] = useState(false);
+
+  const fazerCancelamento = async () => {
+    if (confirmText.trim().toUpperCase() !== "CANCELAR") {
+      toast.error('Digite "CANCELAR" para confirmar');
+      return;
+    }
+    setCancelando(true);
+    await salvarPedido({ status: "cancelado" });
+    setCancelando(false);
+    setCancelOpen(false);
+    setConfirmText("");
+    toast.success("Pedido cancelado");
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon" aria-label="Ações do pedido">
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onClick={() => setResumoOpen(true)}>
+            <PieChart className="w-4 h-4 mr-2 text-emerald-700" /> Resumo Financeiro
+          </DropdownMenuItem>
+          {contrato && (
+            <DropdownMenuItem onClick={() => navigate(`/contratos/${contrato.id}`)}>
+              <Printer className="w-4 h-4 mr-2" /> Contrato
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem disabled={criandoAdendo} onClick={criarAdendo}>
+            <Sparkles className="w-4 h-4 mr-2 text-purple-700" /> {criandoAdendo ? "Criando…" : "Criar Adendo"}
+          </DropdownMenuItem>
+          {!ehAdendo && (
+            <DropdownMenuItem disabled={criandoComplemento} onClick={criarComplemento}>
+              <FileText className="w-4 h-4 mr-2 text-emerald-700" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            className="text-red-600 focus:text-red-700"
+            onClick={() => { setConfirmText(""); setCancelOpen(true); }}
+          >
+            <X className="w-4 h-4 mr-2" /> Cancelar Pedido
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ResumoFinanceiroPedidoButton
+        orcamento={orcamento}
+        ambientes={ambientes}
+        pagamentos={pagamentos}
+        pedido={pedido}
+        open={resumoOpen}
+        onOpenChange={setResumoOpen}
+        hideTrigger
+      />
+
+      <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) setConfirmText(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> Cancelar pedido
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-[13px] text-muted-foreground">
+              Esta ação cancela o pedido <b>{pedido?.codigo}</b>. Para confirmar, digite a palavra
+              <b className="text-foreground"> CANCELAR </b> abaixo e clique em OK.
+            </p>
+            <Input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Digite CANCELAR"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>Voltar</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={cancelando || confirmText.trim().toUpperCase() !== "CANCELAR"}
+              onClick={fazerCancelamento}
+            >
+              {cancelando ? "Cancelando…" : "OK"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
