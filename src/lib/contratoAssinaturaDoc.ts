@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
-import { buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
+import { buildLojaSignatureDataUrl, buildLojaSignaturePngBlob } from "@/lib/lojaSignature";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -40,8 +40,9 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
   ]);
   if (!contrato || !pedido) return;
 
-  const [{ data: loja }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
+  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
     supabase.auth.getUser(),
@@ -52,16 +53,35 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     ? await supabase.from("profiles").select("nome_completo,cargo").eq("user_id", currentUser.id).maybeSingle()
     : ({ data: null } as any);
 
-  const lojaNome = loja?.nome || (contrato.conteudo_snapshot as any)?.empresa?.nome || "Loja";
+  const snapshot = ((contrato.conteudo_snapshot as any) || {});
+  const empresaSnapshot = snapshot.empresa || {};
+  const razaoSocial = configEmpresa?.nome_empresa || loja?.nome || empresaSnapshot.razao_social || empresaSnapshot.nome || "Loja";
+  const nomeFantasia = configEmpresa?.nome_fantasia || loja?.nome || empresaSnapshot.nome_fantasia || empresaSnapshot.nome || razaoSocial;
+  const lojaNome = nomeFantasia || razaoSocial;
   const responsavel = profile?.nome_completo || currentUser?.email || lojaNome;
-  const assinaturaLojaUrl = solic.assinatura_loja_url || buildLojaSignatureDataUrl({
+  const sigData = {
     nome: lojaNome,
-    cnpj: loja?.cnpj || (contrato.conteudo_snapshot as any)?.empresa?.cnpj,
-    endereco: loja?.endereco || (contrato.conteudo_snapshot as any)?.empresa?.endereco,
+    razao_social: razaoSocial,
+    nome_fantasia: nomeFantasia,
+    cnpj: loja?.cnpj || configEmpresa?.cnpj || empresaSnapshot.cnpj,
+    endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco,
     cidade: loja?.cidade,
     uf: loja?.uf,
     responsavel,
-  });
+  };
+  let assinaturaLojaUrl = solic.assinatura_loja_url || "";
+  if (!assinaturaLojaUrl) {
+    try {
+      const sigBlob = await buildLojaSignaturePngBlob(sigData);
+      const sigPath = `${solicitacaoId}/assinatura-loja-${Date.now()}.png`;
+      const up = await supabase.storage.from("assinaturas-evidencias").upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" });
+      assinaturaLojaUrl = up.error
+        ? buildLojaSignatureDataUrl(sigData)
+        : supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+    } catch {
+      assinaturaLojaUrl = buildLojaSignatureDataUrl(sigData);
+    }
+  }
   const lojaAssinadoEm = solic.loja_assinado_em || new Date().toISOString();
 
   if (!solic.loja_assinado_em) {
@@ -111,10 +131,21 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
       .from("pedido_documentos")
       .update({ pasta_id: pastaId, enviado_para_assinatura: true } as any)
       .eq("id", solic.pedido_documento_id);
-  } else if (tpl) {
+  }
+
+  if (tpl) {
     const ctx = {
-      ...((contrato.conteudo_snapshot as any) || {}),
-      cliente: ((contrato.conteudo_snapshot as any)?.cliente || cliente || null),
+      ...snapshot,
+      empresa: {
+        ...(empresaSnapshot || {}),
+        nome: lojaNome,
+        razao_social: razaoSocial,
+        nome_fantasia: nomeFantasia,
+        cnpj: loja?.cnpj || configEmpresa?.cnpj || empresaSnapshot.cnpj || "",
+        endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco || "",
+        telefone: configEmpresa?.telefone || empresaSnapshot.telefone || "",
+      },
+      cliente: (snapshot?.cliente || cliente || null),
       signing_url: getPublicSignatureUrl(solic.token),
       assinatura_loja_url: assinaturaLojaUrl,
       loja_assinado_em: lojaAssinadoEm,
@@ -129,9 +160,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     });
     if (upErr) throw upErr;
     const publicUrl = supabase.storage.from("contratos-assinatura").getPublicUrl(path).data.publicUrl;
-    const { data: doc } = await supabase
-      .from("pedido_documentos")
-      .insert({
+    const docPayload = {
         pedido_id: solic.pedido_id,
         pasta_id: pastaId,
         nome: `Contrato ${contrato.numero} - pré-assinado pela loja`,
@@ -140,14 +169,19 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
         tamanho: blob.size,
         mime_type: "text/html",
         enviado_para_assinatura: true,
-      } as any)
-      .select("id")
-      .single();
+      } as any;
+    let docId = solic.pedido_documento_id || null;
+    if (docId) {
+      await supabase.from("pedido_documentos").update(docPayload).eq("id", docId);
+    } else {
+      const { data: doc } = await supabase.from("pedido_documentos").insert(docPayload).select("id").single();
+      docId = doc?.id || null;
+    }
 
     await supabase
       .from("solicitacoes_assinatura")
       .update({
-        pedido_documento_id: doc?.id || null,
+        pedido_documento_id: docId,
         file_name: `Contrato ${contrato.numero}`,
         file_url: publicUrl,
         storage_path: path,

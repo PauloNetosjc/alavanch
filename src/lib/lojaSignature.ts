@@ -3,6 +3,8 @@
 
 export type LojaSignatureData = {
   nome: string;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
   cnpj?: string | null;
   endereco?: string | null;
   cidade?: string | null;
@@ -16,8 +18,10 @@ function escapeXml(s: string) {
 
 export function buildLojaSignatureSvg(d: LojaSignatureData): string {
   const dataHora = new Date().toLocaleString("pt-BR");
-  const nomeAssin = d.responsavel || d.nome;
-  const W = 520, H = 220;
+  const razaoSocial = d.razao_social || d.nome;
+  const nomeFantasia = d.nome_fantasia && d.nome_fantasia !== razaoSocial ? d.nome_fantasia : null;
+  const nomeAssin = d.responsavel || razaoSocial;
+  const W = 620, H = 240;
   const cidadeUf = [d.cidade, d.uf].filter(Boolean).join("/");
   const linha2 = [d.cnpj ? `CNPJ: ${d.cnpj}` : null, cidadeUf].filter(Boolean).join(" · ");
   const linha3 = d.endereco || "";
@@ -31,28 +35,30 @@ export function buildLojaSignatureSvg(d: LojaSignatureData): string {
     </style>
   </defs>
   <!-- assinatura caligráfica -->
-  <text x="20" y="80" class="sig" font-size="46" font-style="italic">${escapeXml(nomeAssin)}</text>
-  <line x1="20" y1="100" x2="380" y2="100" stroke="#1e3a5f" stroke-width="1.2"/>
-  <text x="20" y="118" class="stamp" font-size="11">Assinado pela loja · ${escapeXml(dataHora)}</text>
+  <text x="22" y="78" class="sig" font-size="46" font-style="italic">${escapeXml(nomeAssin).slice(0, 38)}</text>
+  <line x1="22" y1="101" x2="405" y2="101" stroke="#1e3a5f" stroke-width="1.4"/>
+  <text x="22" y="120" class="stamp" font-size="12" font-weight="bold">ASSINATURA DIGITAL DA LOJA</text>
+  <text x="22" y="138" class="stamp" font-size="11">${escapeXml(dataHora)}</text>
 
   <!-- carimbo -->
-  <g transform="translate(${W - 200}, 30) rotate(-6)">
-    <rect x="0" y="0" width="190" height="160" rx="8" ry="8"
+  <g transform="translate(${W - 245}, 24) rotate(-5)">
+    <rect x="0" y="0" width="230" height="178" rx="8" ry="8"
       fill="none" stroke="#1e3a5f" stroke-width="3" stroke-dasharray="0"/>
-    <rect x="6" y="6" width="178" height="148" rx="6" ry="6"
+    <rect x="7" y="7" width="216" height="164" rx="6" ry="6"
       fill="none" stroke="#1e3a5f" stroke-width="1"/>
-    <text x="95" y="30" text-anchor="middle" class="stamp" font-size="11" font-weight="bold">CONTRATANTE</text>
-    <text x="95" y="58" text-anchor="middle" class="stamp" font-size="13" font-weight="bold">${escapeXml(d.nome).slice(0, 28)}</text>
-    ${d.cnpj ? `<text x="95" y="78" text-anchor="middle" class="stamp" font-size="10">CNPJ: ${escapeXml(d.cnpj)}</text>` : ""}
-    ${cidadeUf ? `<text x="95" y="94" text-anchor="middle" class="stamp" font-size="10">${escapeXml(cidadeUf)}</text>` : ""}
-    ${linha3 ? `<text x="95" y="110" text-anchor="middle" class="stamp" font-size="9">${escapeXml(linha3).slice(0, 36)}</text>` : ""}
-    <line x1="20" y1="122" x2="170" y2="122" stroke="#1e3a5f" stroke-width="0.8"/>
-    <text x="95" y="138" text-anchor="middle" class="stamp" font-size="10" font-weight="bold">ASSINADO DIGITALMENTE</text>
-    <text x="95" y="152" text-anchor="middle" class="stamp" font-size="9">${escapeXml(dataHora)}</text>
+    <text x="115" y="28" text-anchor="middle" class="stamp" font-size="11" font-weight="bold">CARIMBO DA LOJA</text>
+    <text x="115" y="52" text-anchor="middle" class="stamp" font-size="9" font-weight="bold">RAZÃO SOCIAL</text>
+    <text x="115" y="68" text-anchor="middle" class="stamp" font-size="12" font-weight="bold">${escapeXml(razaoSocial).slice(0, 32)}</text>
+    ${nomeFantasia ? `<text x="115" y="84" text-anchor="middle" class="stamp" font-size="9">Fantasia: ${escapeXml(nomeFantasia).slice(0, 28)}</text>` : ""}
+    ${d.cnpj ? `<text x="115" y="102" text-anchor="middle" class="stamp" font-size="11" font-weight="bold">CNPJ: ${escapeXml(d.cnpj)}</text>` : ""}
+    ${cidadeUf ? `<text x="115" y="119" text-anchor="middle" class="stamp" font-size="10">${escapeXml(cidadeUf)}</text>` : ""}
+    ${linha3 ? `<text x="115" y="135" text-anchor="middle" class="stamp" font-size="9">${escapeXml(linha3).slice(0, 42)}</text>` : ""}
+    <line x1="24" y1="147" x2="206" y2="147" stroke="#1e3a5f" stroke-width="0.8"/>
+    <text x="115" y="163" text-anchor="middle" class="stamp" font-size="10" font-weight="bold">ASSINADO DIGITALMENTE</text>
   </g>
 
   <!-- rodapé -->
-  <text x="20" y="${H - 40}" class="stamp" font-size="10" font-weight="bold">${escapeXml(d.nome)}</text>
+  <text x="22" y="${H - 44}" class="stamp" font-size="10" font-weight="bold">RAZÃO SOCIAL: ${escapeXml(razaoSocial)}</text>
   ${linha2 ? `<text x="20" y="${H - 26}" class="stamp" font-size="9">${escapeXml(linha2)}</text>` : ""}
   ${linha3 ? `<text x="20" y="${H - 12}" class="stamp" font-size="9">${escapeXml(linha3)}</text>` : ""}
 </svg>`;
@@ -71,4 +77,23 @@ export function buildLojaSignatureDataUrl(d: LojaSignatureData): string {
 export async function buildLojaSignatureBlob(d: LojaSignatureData): Promise<Blob> {
   const svg = buildLojaSignatureSvg(d);
   return new Blob([svg], { type: "image/svg+xml" });
+}
+
+export async function buildLojaSignaturePngBlob(d: LojaSignatureData): Promise<Blob> {
+  const dataUrl = buildLojaSignatureDataUrl(d);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 620;
+      canvas.height = img.naturalHeight || 240;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Não foi possível gerar a assinatura da loja."));
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Não foi possível gerar a assinatura da loja.")), "image/png");
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }

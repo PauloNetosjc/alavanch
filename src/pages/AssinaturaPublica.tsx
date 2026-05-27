@@ -15,6 +15,7 @@ import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplat
 import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 function maskDocAuto(v: string) {
   const d = unmask(v);
@@ -111,9 +112,12 @@ export default function AssinaturaPublica() {
           ? supabase.from("clientes").select("nome,email,cpf_cnpj,telefone").eq("id", s.cliente_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
         s.loja_id
-          ? supabase.from("lojas").select("nome").eq("id", s.loja_id).maybeSingle()
+          ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", s.loja_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
       ]);
+      const { data: cfg } = p?.loja_id
+        ? await supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", p.loja_id).maybeSingle()
+        : ({ data: null } as any);
       setTipo(t);
       setPedido(p);
       setCliente(c);
@@ -122,6 +126,14 @@ export default function AssinaturaPublica() {
 
       // Carrega contrato + template e renderiza HTML inline (somente leitura)
       if (s.contrato_id) {
+        if (!(s as any).assinatura_loja_url || !(s as any).loja_assinado_em || !(s as any).file_url) {
+          await prepararContratoParaAssinatura(s.id).catch(() => null);
+        }
+        const { data: sAtualizada } = await supabase
+          .from("solicitacoes_assinatura")
+          .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id")
+          .eq("id", s.id)
+          .maybeSingle();
         const { data: ct } = await supabase
           .from("contratos")
           .select("*")
@@ -137,11 +149,22 @@ export default function AssinaturaPublica() {
           setTpl(tpls as any);
           if (tpls && ct.conteudo_snapshot) {
             try {
+              const snap = (ct.conteudo_snapshot as any) || {};
+              const empresaSnap = snap.empresa || {};
               setDocHtml(renderContratoHtml(tpls as any, {
-                ...(ct.conteudo_snapshot as any),
+                ...snap,
+                empresa: {
+                  ...empresaSnap,
+                  nome: cfg?.nome_fantasia || l?.nome || empresaSnap.nome || "Loja",
+                  razao_social: cfg?.nome_empresa || l?.nome || empresaSnap.razao_social || empresaSnap.nome || "Loja",
+                  nome_fantasia: cfg?.nome_fantasia || l?.nome || empresaSnap.nome_fantasia || empresaSnap.nome || null,
+                  cnpj: l?.cnpj || cfg?.cnpj || empresaSnap.cnpj || "",
+                  endereco: l?.endereco || cfg?.endereco || empresaSnap.endereco || "",
+                  telefone: cfg?.telefone || empresaSnap.telefone || "",
+                },
                 signing_url: `${getPublicSignatureUrl(token)}?v=${cacheBust}`,
-                assinatura_loja_url: (s as any).assinatura_loja_url,
-                loja_assinado_em: (s as any).loja_assinado_em,
+                assinatura_loja_url: (sAtualizada as any)?.assinatura_loja_url || (s as any).assinatura_loja_url,
+                loja_assinado_em: (sAtualizada as any)?.loja_assinado_em || (s as any).loja_assinado_em,
               }));
             } catch {/* noop */}
           }
