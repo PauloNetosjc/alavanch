@@ -85,6 +85,8 @@ export async function prepararContratoParaAssinatura(
       signing_url: getPublicSignatureUrl(solic.token),
       assinatura_loja_url: solic.assinatura_loja_url || "",
       loja_assinado_em: solic.loja_assinado_em || "",
+      loja_assinatura_nome: assinanteLoja?.nome || (snapshot as any)?.loja_assinatura_nome || null,
+      loja_assinatura_email: assinanteLoja?.email || (snapshot as any)?.loja_assinatura_email || null,
     };
     const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
