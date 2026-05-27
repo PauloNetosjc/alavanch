@@ -480,7 +480,8 @@ export default function Comissoes() {
                   <th className="py-2 px-2 font-normal">Pessoa</th>
                   <th className="py-2 px-2 font-normal">Papel</th>
                   <th className="py-2 px-2 font-normal text-right">Qtd</th>
-                  <th className="py-2 px-2 font-normal text-right">Vendido</th>
+                  <th className="py-2 px-2 font-normal text-right">Venda Bruta</th>
+                  <th className="py-2 px-2 font-normal text-right">Venda Líquida</th>
                   <th className="py-2 px-2 font-normal text-right">% Meta</th>
                   <th className="py-2 px-2 font-normal text-right">Prêmio</th>
                 </tr>
@@ -506,6 +507,7 @@ export default function Comissoes() {
                         <td className="py-2 px-2 font-medium">{r.nome}</td>
                         <td className="py-2 px-2 text-muted-foreground">{r.papel}</td>
                         <td className="py-2 px-2 text-right">{r.qtd}</td>
+                        <td className="py-2 px-2 text-right text-muted-foreground">{fmtBRL(r.vendido_bruto)}</td>
                         <td className="py-2 px-2 text-right">{fmtBRL(r.vendido)}</td>
                         <td className={`py-2 px-2 text-right ${elegivel ? "text-emerald-600" : "text-muted-foreground"}`}>
                           {pct.toFixed(0)}%
