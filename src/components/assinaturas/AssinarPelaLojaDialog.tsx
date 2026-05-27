@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
+import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
 
 export function AssinarPelaLojaDialog({
   open, onOpenChange, solicitacaoId, onDone,
