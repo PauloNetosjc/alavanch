@@ -528,7 +528,7 @@ export default function Comercial() {
                         <div className="flex items-center gap-1.5 text-mono text-[11px]">
                           {r.codigo}
                           {assinaturaPendente && <Clock className="w-3 h-3 text-amber-600" />}
-                          <span className="text-muted-foreground">· {fmtDate(r.created_at)}</span>
+                          <span className="text-muted-foreground">· {displayDate(r)}</span>
                         </div>
                         <div className="font-medium text-[14px] mt-1 truncate">{r.cliente?.nome ?? "—"}</div>
                         {r.nome_projeto && (
