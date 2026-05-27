@@ -14,6 +14,8 @@ import {
   Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
 type OrcRow = {
   id: string;
