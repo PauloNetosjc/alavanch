@@ -419,6 +419,30 @@ export function EstagiosEditDialog({
                         </div>
                       </div>
 
+                      <div className="space-y-2 pt-2 border-t">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Criar card neste estágio quando:
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                          {KANBAN_TRIGGERS.map((t) => {
+                            const checked = (r.criar_card_em ?? []).includes(t.value);
+                            return (
+                              <label key={t.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const cur = new Set(r.criar_card_em ?? []);
+                                    if (v) cur.add(t.value); else cur.delete(t.value);
+                                    update(i, { criar_card_em: Array.from(cur) });
+                                  }}
+                                />
+                                <span>{t.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <div className="text-xs font-medium text-muted-foreground pt-2 border-t">
                         Automações — quando o card está em "{r.nome}":
                       </div>
