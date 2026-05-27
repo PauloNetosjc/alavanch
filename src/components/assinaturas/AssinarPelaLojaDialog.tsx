@@ -40,6 +40,11 @@ export function AssinarPelaLojaDialog({
     try {
       const ua = navigator.userAgent;
       const agora = new Date().toISOString();
+      let ip: string | null = null;
+      try {
+        const r = await fetch("https://api.ipify.org?format=json");
+        ip = (await r.json())?.ip || null;
+      } catch { /* ignore */ }
 
       // Upload da assinatura da loja para o storage (para embed no contrato)
       let assinaturaLojaUrl: string | null = null;
@@ -61,15 +66,16 @@ export function AssinarPelaLojaDialog({
       const { data: part } = await supabase.from("assinatura_participantes").insert({
         solicitacao_id: solic.id, tipo: "loja",
         nome: (profile as any)?.nome_completo || user?.email,
+        email: emailLogado,
         user_id: user?.id, cargo: role,
-        status: "assinado", assinado_em: agora, user_agent: ua,
+        status: "assinado", assinado_em: agora, ip, user_agent: ua,
       }).select().single();
 
       await supabase.from("assinatura_evidencias").insert({
         solicitacao_id: solic.id, participante_id: part?.id,
         assinatura_url: assinaturaLojaUrl,
         aceite: true, aceite_texto: obs || "Assinado pela loja",
-        user_agent: ua,
+        ip, user_agent: ua,
       });
 
       // Conclui SOMENTE se cliente também já tiver assinado
@@ -79,6 +85,11 @@ export function AssinarPelaLojaDialog({
         status: novoStatus,
         loja_assinado_em: agora,
         assinatura_loja_url: assinaturaLojaUrl,
+        loja_assinatura_nome: nomeLogado,
+        loja_assinatura_email: emailLogado,
+        loja_assinatura_cargo: role,
+        loja_ip: ip,
+        loja_user_agent: ua,
       };
       if (clienteJaAssinou) upd.concluido_em = agora;
 
@@ -110,6 +121,7 @@ export function AssinarPelaLojaDialog({
       }
 
       if (clienteJaAssinou) {
+        await supabase.functions.invoke("assinatura-pdf-final", { body: { solicitacao_id: solic.id } }).catch(() => null);
         await arquivarDocumentoAssinado(solic.id);
         toast.success("Documento concluído!");
       } else {
