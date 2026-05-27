@@ -851,6 +851,10 @@ export default function ComercialNovo() {
         return toast.error(error?.message ?? "Erro ao salvar");
       }
       orcId = orc.id;
+      try {
+        const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
+        await dispatchKanbanTrigger("orcamento_criado", { orcamentoId: orcId });
+      } catch {}
     }
 
     if (!isAdendo) {
