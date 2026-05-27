@@ -249,6 +249,10 @@ export default function AssinaturaPublica() {
         user_agent: ua,
       });
 
+      if (novoStatus === "concluido") {
+        await arquivarDocumentoAssinado(solic.id);
+      }
+
       setDone(true);
       toast.success("Assinatura registrada!");
     } catch (e: any) {
