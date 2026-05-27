@@ -584,11 +584,12 @@ export default function RH() {
         const t = turnos.find(x => x.id === f.turno_id); if (!t) return;
         if (!t.dias_semana.includes(dow)) return;
         const pHoje = pontos.filter(p => p.funcionario_id === f.id && p.data === hoje);
+        const hd = getHorarioDia(t, dow);
         const checks: { tipo: Ponto["tipo"]; ref: string | null }[] = [
-          { tipo: "entrada", ref: t.hora_entrada },
-          { tipo: "saida_almoco", ref: t.hora_saida_almoco },
-          { tipo: "volta_almoco", ref: t.hora_volta_almoco },
-          { tipo: "saida", ref: t.hora_saida },
+          { tipo: "entrada", ref: hd.hora_entrada },
+          { tipo: "saida_almoco", ref: hd.hora_saida_almoco },
+          { tipo: "volta_almoco", ref: hd.hora_volta_almoco },
+          { tipo: "saida", ref: hd.hora_saida },
         ];
         for (const c of checks) {
           if (!c.ref) continue;
