@@ -77,6 +77,8 @@ export function AssinaturasDigitaisPanel({ pedidoId }: { pedidoId: string }) {
   };
 
   const baixarAssinado = async (s: Solic) => {
+    const completo = s.status === "concluido" && !!s.cliente_assinado_em && (!s.tipos_documento?.requer_assinatura_loja || !!s.loja_assinado_em);
+    if (!completo) return toast.error("O PDF assinado só pode ser baixado após cliente e loja assinarem.");
     await baixarPdfFinalAssinatura(s.id, s.file_name || "documento-assinado");
   };
 
@@ -144,7 +146,7 @@ export function AssinaturasDigitaisPanel({ pedidoId }: { pedidoId: string }) {
                     <Button size="sm" variant="outline" onClick={() => setEvid(s.id)}>
                       <Eye className="w-3.5 h-3.5 mr-1" /> Evidências
                     </Button>
-                    {(s.status === "concluido" || s.status === "assinado_loja") && (
+                    {s.status === "concluido" && !!s.cliente_assinado_em && (!s.tipos_documento?.requer_assinatura_loja || !!s.loja_assinado_em) && (
                       <Button size="sm" variant="outline" onClick={() => baixarAssinado(s)}>
                         <FileText className="w-3.5 h-3.5 mr-1" /> Baixar
                       </Button>
