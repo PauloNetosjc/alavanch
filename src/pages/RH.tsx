@@ -437,10 +437,41 @@ export default function RH() {
   async function usarMinhaLocalizacao() {
     if (!navigator.geolocation) { toast({ title: "Geolocalização indisponível", variant: "destructive" }); return; }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude })),
+      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude, _endereco: "Localização atual capturada" } as any)),
       (err) => toast({ title: "Erro localização", description: err.message, variant: "destructive" }),
       { enableHighAccuracy: true }
     );
+  }
+  async function buscarPorCep(cepRaw: string) {
+    const cep = (cepRaw || "").replace(/\D/g, "");
+    if (cep.length !== 8) { toast({ title: "CEP inválido", description: "Digite 8 dígitos.", variant: "destructive" }); return; }
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const via = await r.json();
+      if (via.erro) { toast({ title: "CEP não encontrado", variant: "destructive" }); return; }
+      const enderecoTxt = `${via.logradouro || ""}${via.bairro ? ", " + via.bairro : ""}, ${via.localidade}-${via.uf}`;
+      const numero = (zonaForm as any)._numero || "";
+      const q = encodeURIComponent(`${via.logradouro || ""} ${numero}, ${via.localidade}, ${via.uf}, Brasil`);
+      const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`, {
+        headers: { "Accept-Language": "pt-BR" },
+      });
+      const geo = await g.json();
+      if (!geo?.[0]) {
+        toast({ title: "Endereço localizado, mas sem coordenadas", description: "Use 'Minha localização' no local.", variant: "destructive" });
+        setZonaForm(p => ({ ...p, _endereco: enderecoTxt, _cep: cep } as any));
+        return;
+      }
+      setZonaForm(p => ({
+        ...p,
+        latitude: Number(geo[0].lat),
+        longitude: Number(geo[0].lon),
+        _endereco: enderecoTxt,
+        _cep: cep,
+      } as any));
+      toast({ title: "Endereço localizado", description: enderecoTxt });
+    } catch (e: any) {
+      toast({ title: "Erro ao buscar CEP", description: e.message, variant: "destructive" });
+    }
   }
 
   // ===== Ponto =====
@@ -1381,11 +1412,37 @@ export default function RH() {
                 <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Latitude</Label><Input type="number" step="0.000001" value={zonaForm.latitude ?? ""} onChange={e => setZonaForm(p => ({...p, latitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
-              <div><Label>Longitude</Label><Input type="number" step="0.000001" value={zonaForm.longitude ?? ""} onChange={e => setZonaForm(p => ({...p, longitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2">
+                <Label>CEP *</Label>
+                <Input
+                  placeholder="00000-000"
+                  value={(zonaForm as any)._cep || ""}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    const masked = v.length > 5 ? `${v.slice(0,5)}-${v.slice(5)}` : v;
+                    setZonaForm(p => ({ ...p, _cep: masked } as any));
+                  }}
+                  onBlur={e => { if (e.target.value.replace(/\D/g,"").length === 8) buscarPorCep(e.target.value); }}
+                />
+              </div>
+              <div>
+                <Label>Número</Label>
+                <Input value={(zonaForm as any)._numero || ""} onChange={e => setZonaForm(p => ({ ...p, _numero: e.target.value } as any))} />
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={usarMinhaLocalizacao}><MapPin className="w-3.5 h-3.5 mr-1" /> Usar minha localização</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => buscarPorCep((zonaForm as any)._cep || "")}><Search className="w-3.5 h-3.5 mr-1" /> Buscar CEP</Button>
+              <Button variant="outline" size="sm" onClick={usarMinhaLocalizacao}><MapPin className="w-3.5 h-3.5 mr-1" /> Usar minha localização</Button>
+            </div>
+            {((zonaForm as any)._endereco || zonaForm.latitude != null) && (
+              <div className="text-xs bg-muted/50 rounded p-2">
+                {(zonaForm as any)._endereco && <div>{(zonaForm as any)._endereco}</div>}
+                {zonaForm.latitude != null && (
+                  <div className="text-muted-foreground">Coordenadas: {zonaForm.latitude.toFixed(5)}, {zonaForm.longitude!.toFixed(5)}</div>
+                )}
+              </div>
+            )}
             <div><Label>Raio (metros)</Label><Input type="number" value={zonaForm.raio_metros ?? 150} onChange={e => setZonaForm(p => ({...p, raio_metros: Number(e.target.value)}))} /></div>
           </div>
           <DialogFooter><Button onClick={salvarZona}>Salvar</Button></DialogFooter>
