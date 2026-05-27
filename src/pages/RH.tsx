@@ -148,6 +148,22 @@ export default function RH() {
   const [docForm, setDocForm] = useState<{ tipo: string; observacoes: string }>({ tipo: "RG", observacoes: "" });
   const [docFile, setDocFile] = useState<File | null>(null);
 
+  // Turnos / Ponto / Banco de horas
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [zonas, setZonas] = useState<Zona[]>([]);
+  const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [turnoDialog, setTurnoDialog] = useState(false);
+  const [turnoForm, setTurnoForm] = useState<Partial<Turno>>({
+    dias_semana: [1, 2, 3, 4, 5], tolerancia_min: 5,
+    hora_entrada: "08:00", hora_saida_almoco: "12:00", hora_volta_almoco: "13:00", hora_saida: "17:00",
+  });
+  const [zonaDialog, setZonaDialog] = useState(false);
+  const [zonaForm, setZonaForm] = useState<Partial<Zona>>({ raio_metros: 150 });
+  const [pontoFuncId, setPontoFuncId] = useState<string>("");
+  const [bancoFiltroFunc, setBancoFiltroFunc] = useState<string>("todos");
+  const [bancoDe, setBancoDe] = useState<string>(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0,10); });
+  const [bancoAte, setBancoAte] = useState<string>(hojeISO());
+
   async function load() {
     setLoading(true);
     const [s, c, f, fe, oc, dc] = await Promise.all([
