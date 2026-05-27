@@ -11,8 +11,20 @@ const formatDateBr = (value?: string | Date | null) => {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
-const getContratoDate = (contrato: any, solicitacao: any) =>
-  contrato?.emitido_em || contrato?.gerado_em || contrato?.created_at || contrato?.criado_em || solicitacao?.created_at || new Date();
+type DateSource = Record<string, unknown> | null | undefined;
+
+const pickDateValue = (source: DateSource, keys: string[]) => {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (typeof value === "string" || value instanceof Date) return value;
+  }
+  return null;
+};
+
+const getContratoDate = (contrato: DateSource, solicitacao: DateSource) =>
+  pickDateValue(contrato, ["emitido_em", "gerado_em", "created_at", "criado_em"]) ||
+  pickDateValue(solicitacao, ["created_at"]) ||
+  new Date();
 
 const templateHasDateVariable = (tpl: Partial<ContratoTemplate> | null | undefined) =>
   /\{\{\s*data(?:_contrato)?\s*\}\}/i.test([
