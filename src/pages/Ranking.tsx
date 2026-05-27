@@ -138,7 +138,6 @@ export default function Ranking() {
   }, [periodo, lojasFiltro]);
 
 
-  const totalRealizado = rows.reduce((s, r) => s + r.total, 0);
   const pctGlobal = metaGlobal > 0 ? (totalRealizado / metaGlobal) * 100 : 0;
   const top3 = rows.slice(0, 3);
   // Pódio: 2-1-3
