@@ -204,11 +204,31 @@ export default function AssinaturaPublica() {
         }
       }
 
-      // 7) Prefill com dados do participante / cliente
-      const nomeInicial = participanteAtual?.nome || c?.nome || "";
-      const docInicial = participanteAtual?.documento || c?.cpf_cnpj || "";
-      if (nomeInicial) setNome(nomeInicial);
-      if (docInicial) setDoc(maskDocAuto(docInicial));
+      // 7) Prefill — REGRA: nunca usar dados do cliente para o participante 'loja'.
+      if (participanteAtual?.tipo === "loja") {
+        // Tenta carregar dados do usuário logado (se houver sessão na aba)
+        let nomeLoja = participanteAtual?.nome || (s as any)?.loja_assinatura_nome || "";
+        try {
+          const { data: sess } = await supabase.auth.getSession();
+          const uid = sess?.session?.user?.id;
+          if (uid && !nomeLoja) {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("nome_completo")
+              .eq("user_id", uid)
+              .maybeSingle();
+            nomeLoja = prof?.nome_completo || sess?.session?.user?.email || "";
+          }
+        } catch { /* sem sessão — usuário preenche manualmente */ }
+        if (nomeLoja) setNome(nomeLoja);
+        // NUNCA preencher CPF/documento para loja
+      } else {
+        // Cliente: pode usar dados do próprio cliente
+        const nomeInicial = participanteAtual?.nome || c?.nome || "";
+        const docInicial = participanteAtual?.documento || c?.cpf_cnpj || "";
+        if (nomeInicial) setNome(nomeInicial);
+        if (docInicial) setDoc(maskDocAuto(docInicial));
+      }
 
       setLoading(false);
     })();
@@ -488,8 +508,17 @@ export default function AssinaturaPublica() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-1">
-            <div><span className="text-muted-foreground">Assinando como:</span> {participante?.tipo === "loja" ? "Loja" : "Cliente"}</div>
-            <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
+            <div><span className="text-muted-foreground">Assinando como:</span> <strong>{participante?.tipo === "loja" ? "Loja (representante)" : "Cliente"}</strong></div>
+            {participante?.tipo === "loja" && (
+              <>
+                <div><span className="text-muted-foreground">Loja:</span> {loja?.nome || "—"}</div>
+                <div><span className="text-muted-foreground">Representante:</span> {nome || "(preencha abaixo)"}</div>
+                <div><span className="text-muted-foreground">Cliente (referência):</span> {cliente?.nome || "—"}</div>
+              </>
+            )}
+            {participante?.tipo === "cliente" && (
+              <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
+            )}
             <div><span className="text-muted-foreground">Pedido:</span> {pedido?.codigo || "—"}</div>
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
           </CardContent>
