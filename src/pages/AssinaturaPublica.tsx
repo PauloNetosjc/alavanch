@@ -124,7 +124,7 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
-      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && s.status !== "concluido");
+      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && !s.cliente_assinado_em && s.status !== "concluido");
 
       // Carrega contrato + template e renderiza HTML inline (somente leitura)
       if (s.contrato_id) {
