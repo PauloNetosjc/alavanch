@@ -1335,23 +1335,6 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                               setTimeout(() => URL.revokeObjectURL(url), 1000);
                             } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
                           }}>📥 Baixar contrato original</DropdownMenuItem>
-                          <DropdownMenuItem onClick={async () => {
-                            try {
-                              const bucket = d.bucket_name || "contratos-assinatura";
-                              const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
-                              if (error || !blob) throw error || new Error("Falha ao abrir");
-                              const pdfBlob = blob.type ? blob : new Blob([blob], { type: "application/pdf" });
-                              const url = URL.createObjectURL(pdfBlob);
-                              const w = window.open(url, "_blank");
-                              if (!w) {
-                                // popup bloqueado: força download
-                                const a = document.createElement("a");
-                                a.href = url; a.download = sanitizeNome(d.nome || "contrato-original.pdf");
-                                document.body.appendChild(a); a.click(); a.remove();
-                              }
-                              setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                            } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
-                          }}>👁 Ver contrato original</DropdownMenuItem>
                           {requerLoja && (
                             <DropdownMenuItem onClick={() => copiarLinkPart("loja")}>🔗 Copiar link da loja</DropdownMenuItem>
                           )}
