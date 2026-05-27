@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { buildLojaSignatureBlob, buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
 import { useAuth } from "@/contexts/AuthContext";
+import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 
 type Props = {
   open: boolean;
@@ -114,16 +115,19 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
 
       // === Pré-assinatura automática da loja (carimbo + assinatura simulada) ===
       try {
-        const { data: lojaInfo } = await supabase
-          .from("lojas")
-          .select("nome,cnpj,endereco,cidade,uf")
-          .eq("id", pedido.loja_id)
-          .maybeSingle();
+        const [{ data: lojaInfo }, { data: configEmpresa }] = await Promise.all([
+          supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle(),
+          supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco").eq("loja_id", pedido.loja_id).maybeSingle(),
+        ]);
         const responsavel = (profile as any)?.nome_completo || user?.email || "Loja";
+        const razaoSocial = configEmpresa?.nome_empresa || lojaInfo?.nome || "Loja";
+        const nomeFantasia = configEmpresa?.nome_fantasia || lojaInfo?.nome || razaoSocial;
         const sigData = {
-          nome: lojaInfo?.nome || "Loja",
-          cnpj: lojaInfo?.cnpj,
-          endereco: lojaInfo?.endereco,
+          nome: nomeFantasia,
+          razao_social: razaoSocial,
+          nome_fantasia: nomeFantasia,
+          cnpj: lojaInfo?.cnpj || configEmpresa?.cnpj,
+          endereco: lojaInfo?.endereco || configEmpresa?.endereco,
           cidade: lojaInfo?.cidade,
           uf: lojaInfo?.uf,
           responsavel,
@@ -185,6 +189,8 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         // Não bloqueia a criação se a pré-assinatura falhar
         console.warn("Falha ao gerar pré-assinatura da loja:", preErr);
       }
+
+      if (defaults?.contrato_id) await prepararContratoParaAssinatura(data.id);
 
 
       const url = getPublicSignatureUrl(data.token);
