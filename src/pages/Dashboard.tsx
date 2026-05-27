@@ -19,6 +19,8 @@ type Pedido = {
   workflow_estagio: string | null;
   data_limite_finalizacao: string | null;
   loja_id: string | null;
+  is_adendo?: boolean | null;
+  is_complemento?: boolean | null;
 };
 type Lanc = { tipo: string; valor: number; status: string | null; data_vencimento: string | null; data_pagamento: string | null; loja_id: string | null };
 
@@ -52,7 +54,7 @@ export default function Dashboard() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id, orcamento_id");
+        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id, orcamento_id, is_adendo, is_complemento");
       let qLan = supabase
         .from("lancamentos_financeiros")
         .select("tipo, valor, status, data_vencimento, data_pagamento, loja_id");
@@ -180,9 +182,13 @@ export default function Dashboard() {
     [pedidos, inicio, fim]
   );
 
-  const vendaBruta = pedidosPeriodo.reduce((s, p) => s + Number(p.valor_total || 0), 0);
-  const totalJuros = pedidosPeriodo.reduce((s, p) => s + (jurosMap[p.id] ?? Number(p.juros_total || 0)), 0);
-  const totalRT = pedidosPeriodo.reduce((s, p) => s + (rtMap[p.id] ?? Number(p.rt_repassado || 0)), 0);
+  // Considera apenas PV ativos (não cancelados) + Complementos (CP). Exclui Adendos (AD).
+  const pedidosVenda = pedidosPeriodo.filter(
+    (p) => !p.is_adendo && (p.status || "").toLowerCase() !== "cancelado"
+  );
+  const vendaBruta = pedidosVenda.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+  const totalJuros = pedidosVenda.reduce((s, p) => s + (jurosMap[p.id] ?? Number(p.juros_total || 0)), 0);
+  const totalRT = pedidosVenda.reduce((s, p) => s + (rtMap[p.id] ?? Number(p.rt_repassado || 0)), 0);
   const vendaLiquida = vendaBruta - totalJuros - totalRT;
   const pctMeta = meta ? (vendaLiquida / meta) * 100 : 0;
 
