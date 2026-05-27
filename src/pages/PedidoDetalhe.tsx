@@ -2094,7 +2094,6 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
 function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
-  const [uploading, setUploading] = useState(false);
   const [criando, setCriando] = useState(false);
 
   // SEMPRE usa o novo módulo público /assinatura/:token
@@ -2142,99 +2141,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
     window.open(`https://wa.me/55${fone}?text=${msg}`, "_blank");
   };
 
-  // Conclui o contrato manual somente quando AMBOS anexos existirem
-  const tryFinalizar = async (extra: { pdf_assinado_url?: string; documento_cliente_url?: string } = {}) => {
-    const pdfOk = !!(extra.pdf_assinado_url ?? contrato.pdf_assinado_url);
-    const docOk = !!(extra.documento_cliente_url ?? (contrato as any).documento_cliente_url);
-    if (pdfOk && docOk && contrato.status !== "assinado") {
-      const { error } = await supabase.from("contratos").update({
-        status: "assinado",
-        assinado_em: new Date().toISOString(),
-        assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
-        metodo_assinatura: "manual",
-      }).eq("id", contrato.id);
-      if (error) throw error;
-      if (solic?.id) {
-        await supabase.from("solicitacoes_assinatura").update({
-          status: "concluido", concluido_em: new Date().toISOString(),
-        }).eq("id", solic.id);
-      }
-      toast.success("Contrato confirmado — assinatura manual concluída");
-    }
-  };
-
-  const anexarPdfAssinado = async (file: File) => {
-    setUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "pdf";
-      const path = `${contrato.id}/assinado-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("contratos-assinatura").upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: pub } = supabase.storage.from("contratos-assinatura").getPublicUrl(path);
-      const { error: e2 } = await supabase.from("contratos").update({
-        pdf_assinado_url: pub.publicUrl,
-      }).eq("id", contrato.id);
-      if (e2) throw e2;
-      const pastaDocumentos = pastas.find((p: any) => !p._virtual && p.nome.toLowerCase() === "documentos");
-      await supabase.from("pedido_documentos").insert({
-        pedido_id: pedido.id,
-        pasta_id: pastaDocumentos?.id || null,
-        nome: `Contrato assinado - ${contrato.numero}`,
-        storage_path: path,
-        bucket_name: "contratos-assinatura",
-        tamanho: file.size,
-        mime_type: file.type || "application/pdf",
-        assinado_em: new Date().toISOString(),
-        assinatura_nome: cliente?.nome || "Assinatura manual (impressa)",
-      } as any);
-      toast.success("Contrato impresso assinado anexado");
-      await tryFinalizar({ pdf_assinado_url: pub.publicUrl });
-      if (!(contrato as any).documento_cliente_url) {
-        toast.message("Falta anexar o documento com foto do cliente para concluir a assinatura.");
-      }
-      onChange();
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao anexar PDF assinado");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const anexarDocumentoCliente = async (file: File) => {
-    setUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${contrato.id}/doc-cliente-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("contratos-assinatura").upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: pub } = supabase.storage.from("contratos-assinatura").getPublicUrl(path);
-      const { error: e2 } = await supabase.from("contratos").update({
-        documento_cliente_url: pub.publicUrl,
-      } as any).eq("id", contrato.id);
-      if (e2) throw e2;
-      const pastaDocumentos = pastas.find((p: any) => !p._virtual && p.nome.toLowerCase() === "documentos");
-      await supabase.from("pedido_documentos").insert({
-        pedido_id: pedido.id,
-        pasta_id: pastaDocumentos?.id || null,
-        nome: `Documento com foto - ${cliente?.nome || "cliente"}`,
-        storage_path: path,
-        bucket_name: "contratos-assinatura",
-        tamanho: file.size,
-        mime_type: file.type || "image/jpeg",
-      } as any);
-      toast.success("Documento do cliente anexado");
-      await tryFinalizar({ documento_cliente_url: pub.publicUrl });
-      if (!contrato.pdf_assinado_url) {
-        toast.message("Falta anexar o contrato impresso assinado para concluir a assinatura.");
-      }
-      onChange();
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao anexar documento do cliente");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const statusLabel = solic?.status
     ? ({
         aguardando_cliente: "Aguardando cliente assinar",
@@ -2273,29 +2179,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
           <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
           </Button>
-          <label className="inline-flex">
-            <input type="file" accept="application/pdf,image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarPdfAssinado(f); }} />
-            <Button asChild size="sm" variant="outline"
-              className={`cursor-pointer ${contrato.pdf_assinado_url ? "text-emerald-700 border-emerald-400 bg-emerald-50" : "text-amber-800 border-amber-400"}`}
-              disabled={uploading}>
-              <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : contrato.pdf_assinado_url ? "Contrato anexado ✓ (substituir)" : "Anexar contrato impresso assinado"}</span>
-            </Button>
-          </label>
-          <label className="inline-flex">
-            <input type="file" accept="application/pdf,image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarDocumentoCliente(f); }} />
-            <Button asChild size="sm" variant="outline"
-              className={`cursor-pointer ${(contrato as any).documento_cliente_url ? "text-emerald-700 border-emerald-400 bg-emerald-50" : "text-amber-800 border-amber-400"}`}
-              disabled={uploading}>
-              <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : (contrato as any).documento_cliente_url ? "Documento do cliente ✓ (substituir)" : "Anexar documento com foto do cliente"}</span>
-            </Button>
-          </label>
-        </div>
-      )}
-      {solic && (contrato.pdf_assinado_url || (contrato as any).documento_cliente_url) && contrato.status !== "assinado" && (
-        <div className="text-[11px] text-amber-900 bg-amber-100 border border-amber-300 rounded p-2">
-          Para concluir manualmente, anexe <b>contrato impresso assinado</b> <i>e</i> <b>documento com foto do cliente</b>.
         </div>
       )}
       {solic?.created_at && (

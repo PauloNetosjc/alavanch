@@ -78,10 +78,17 @@ Deno.serve(async (req) => {
 
     const { data: s, error: errS } = await sb
       .from("solicitacoes_assinatura")
-      .select("*, tipos_documento(nome), pedidos(codigo), pedido_documentos(nome,storage_path,bucket_name,mime_type)")
+      .select("*, tipos_documento(nome,requer_assinatura_loja), pedidos(codigo), pedido_documentos(nome,storage_path,bucket_name,mime_type)")
       .eq("id", solicitacao_id)
       .single();
     if (errS || !s) throw new Error("Solicitação não encontrada");
+    const requerLoja = Boolean((s as any).tipos_documento?.requer_assinatura_loja);
+    const assinaturaCompleta = s.status === "concluido"
+      && Boolean(s.cliente_assinado_em)
+      && (!requerLoja || Boolean(s.loja_assinado_em));
+    if (!assinaturaCompleta) {
+      throw new Error("PDF final disponível somente após assinatura do cliente e da loja.");
+    }
 
     const { data: parts } = await sb
       .from("assinatura_participantes")

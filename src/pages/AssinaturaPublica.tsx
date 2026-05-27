@@ -36,6 +36,7 @@ type Solicitacao = {
   cliente_id: string | null;
   loja_id: string | null;
   tipo_documento_id: string;
+  cliente_assinado_em?: string | null;
   assinatura_loja_url?: string | null;
   loja_assinado_em?: string | null;
 };
@@ -89,6 +90,10 @@ export default function AssinaturaPublica() {
     (async () => {
       if (!token) return;
       setLoading(true);
+      setErro("");
+      setDone(false);
+      setAguardandoLoja(false);
+      setRecusado(false);
       const cacheBust = Date.now().toString();
       const { data: s, error: solicError } = await supabase
         .from("solicitacoes_assinatura")
@@ -109,8 +114,6 @@ export default function AssinaturaPublica() {
       }
       if (new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
       else if (["cancelado", "expirado", "recusado"].includes(s.status)) setErro("Esta solicitação foi cancelada.");
-      else if (s.status === "concluido" || !!s.cliente_assinado_em)
-        setDone(true);
 
       setSolic(s as Solicitacao);
 
@@ -132,12 +135,12 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
-      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && !s.cliente_assinado_em && s.status !== "concluido");
+      const assinaturaCompleta = s.status === "concluido" && !!s.cliente_assinado_em && (!t?.requer_assinatura_loja || !!s.loja_assinado_em);
+      setDone(assinaturaCompleta);
+      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && s.status !== "concluido");
 
       // Carrega contrato + template e renderiza HTML inline (somente leitura)
       if (s.contrato_id) {
-        // Garante que a loja sempre tenha assinatura fictícia gravada e o HTML atualizado.
-        await prepararContratoParaAssinatura(s.id).catch(() => null);
         const { data: sAtualizada } = await supabase
           .from("solicitacoes_assinatura")
           .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id,storage_path,file_name")
@@ -305,7 +308,8 @@ export default function AssinaturaPublica() {
         await arquivarDocumentoAssinado(solic.id);
       }
 
-      setDone(true);
+      setDone(novoStatus === "concluido");
+      if (novoStatus !== "concluido") setAguardandoLoja(true);
       toast.success("Assinatura registrada!");
     } catch (e: any) {
       toast.error(e.message || "Falha ao registrar assinatura.");
