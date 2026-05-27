@@ -977,7 +977,12 @@ export default function RH() {
                   <div key={z.id} className="flex items-center justify-between border-b py-1.5 text-sm">
                     <div>
                       <span className="font-medium">{z.nome}</span>
-                      <span className="text-xs text-muted-foreground"> · {z.setor_id ? setorNome(z.setor_id) : "Todos os setores"} · raio {z.raio_metros}m</span>
+                      <span className="text-xs text-muted-foreground"> · {
+                        z.funcionario_id ? `Funcionário: ${funcs.find(x => x.id === z.funcionario_id)?.nome_completo || "—"}` :
+                        z.cargo_id ? `Cargo: ${cargoNome(z.cargo_id)}` :
+                        z.setor_id ? `Setor: ${setorNome(z.setor_id)}` :
+                        "Todos"
+                      } · raio {z.raio_metros}m</span>
                       <div className="text-xs text-muted-foreground">{z.latitude.toFixed(5)}, {z.longitude.toFixed(5)}</div>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => removerZona(z.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
