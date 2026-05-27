@@ -180,6 +180,8 @@ export default function Comercial() {
   const today = new Date();
   const [refDate, setRefDate] = useState(today);
   const [monthFilter, setMonthFilter] = useState<string>("todos"); // "todos" or `${year}-${month}`
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const months = useMemo(() => buildMonths(refDate, 6), [refDate]);
 
