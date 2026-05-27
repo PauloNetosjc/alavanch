@@ -141,15 +141,27 @@ export function VisualizarAssinaturasDialog({
               );
             })}
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
               <div className="text-[11px] text-muted-foreground">
                 {solic?.file_name ? (
                   <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {solic.file_name}</span>
                 ) : "Solicitação de assinatura"}
               </div>
-              <Button size="sm" variant="outline" onClick={() => setEvidOpen(true)}>
-                <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
-              </Button>
+              <div className="flex flex-wrap gap-1.5">
+                {solic && solic.status !== "concluido" && solic.status !== "assinado_manual" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    onClick={() => setManualOpen(true)}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" /> Assinatura manual
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setEvidOpen(true)}>
+                  <Eye className="w-3.5 h-3.5 mr-1" /> Ver evidências
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -159,6 +171,14 @@ export function VisualizarAssinaturasDialog({
         open={evidOpen}
         onOpenChange={setEvidOpen}
         solicitacaoId={solicitacaoId}
+      />
+
+      <UploadContratoManualDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        solicitacaoId={solicitacaoId}
+        pedidoId={pedidoId}
+        onDone={() => { onOpenChange(false); onChange?.(); }}
       />
     </>
   );
