@@ -430,6 +430,13 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
                 <div className="text-[11px] text-[#CCC] truncate">{profile?.nome_completo || user?.email}</div>
                 <div className="text-[10px] text-[#555] uppercase tracking-wider">{role || "—"}</div>
               </div>
+              <button
+                onClick={() => setPwdOpen(true)}
+                title="Alterar senha"
+                className="text-[#666] hover:text-white transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
               <UserThemePicker />
               <button onClick={() => signOut()} className="text-[10px] uppercase tracking-wider text-[#666] hover:text-white transition-colors">
                 Sair
