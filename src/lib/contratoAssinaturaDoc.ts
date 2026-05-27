@@ -34,112 +34,152 @@ function canvasIsMostlyBlank(canvas: HTMLCanvasElement): boolean {
   }
 }
 
-async function htmlToPdfBlob(html: string, _filename: string) {
-  const container = document.createElement("div");
-  // Visível fora da viewport (não display:none nem -10000px) para o html2canvas capturar corretamente.
-  container.style.cssText = [
+async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
+  // Renderiza o MESMO HTML usado pelo botão Imprimir dentro de um iframe isolado.
+  // Evita conflitos com CSS da SPA (Tailwind, reset, variáveis) que estavam zerando o canvas.
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("sandbox", "allow-same-origin");
+  iframe.style.cssText = [
     "position:fixed",
     "left:0",
     "top:0",
-    "width:794px",
-    "background:#ffffff",
-    "color:#111111",
-    "padding:24px",
-    "font-family: 'DM Sans', Arial, sans-serif",
-    "z-index:-9999",
-    "opacity:1",
+    "width:794px",       // ~A4 em px @ 96dpi
+    "height:1123px",     // inicial; será ajustado pelo scrollHeight
+    "border:0",
+    "opacity:0",         // invisível p/ o usuário mas renderizado pelo layout engine
     "pointer-events:none",
-    "overflow:visible",
-    "transform:translateX(100vw)",
+    "z-index:-1",
+    "background:#ffffff",
   ].join(";");
-  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
-  const styles = Array.from(html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)).map((s) => s[1]).join("\n");
-  container.innerHTML = `${styles ? `<style>${styles}</style>` : ""}<div style="background:#fff;color:#111;width:100%;">${body}</div>`;
-  document.body.appendChild(container);
+  iframe.srcdoc = html;
+  document.body.appendChild(iframe);
 
-  try { await (document as any).fonts?.ready; } catch { /* noop */ }
-  await waitForImages(container);
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  await new Promise((r) => setTimeout(r, 200));
+  const cleanup = () => { try { iframe.remove(); } catch { /* noop */ } };
 
-  // eslint-disable-next-line no-console
-  console.log("[contratoPDF] container", {
-    offsetWidth: container.offsetWidth,
-    offsetHeight: container.offsetHeight,
-    textLen: container.innerText.length,
-    htmlSnippet: container.innerHTML.slice(0, 300),
-  });
+  try {
+    // Espera o load do iframe
+    await new Promise<void>((resolve, reject) => {
+      const to = setTimeout(() => reject(new Error("Timeout ao carregar iframe do contrato")), 15000);
+      iframe.onload = () => { clearTimeout(to); resolve(); };
+      iframe.onerror = () => { clearTimeout(to); reject(new Error("Erro ao carregar iframe do contrato")); };
+    });
 
-  if (container.offsetHeight < 50 || container.innerText.trim().length < 20) {
-    container.remove();
-    throw new Error("Conteúdo do contrato não foi renderizado.");
-  }
+    const doc = iframe.contentDocument;
+    const win = iframe.contentWindow;
+    if (!doc || !win || !doc.body) throw new Error("iframe sem documento acessível");
 
-  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf"),
-  ]);
+    // Garante fundo branco no documento interno
+    doc.documentElement.style.background = "#ffffff";
+    doc.body.style.background = "#ffffff";
 
-  const canvas = await html2canvas(container, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-    windowWidth: 794,
-    width: container.offsetWidth,
-    height: container.offsetHeight,
-  });
+    // Aguarda fontes do iframe e da página
+    try { await (doc as any).fonts?.ready; } catch { /* noop */ }
+    try { await (document as any).fonts?.ready; } catch { /* noop */ }
 
-  // eslint-disable-next-line no-console
-  console.log("[contratoPDF] canvas", { w: canvas.width, h: canvas.height });
+    // Aguarda imagens do iframe
+    await waitForImages(doc.body);
 
-  if (canvasIsMostlyBlank(canvas)) {
-    container.remove();
-    throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
-  }
+    // 2 RAFs + pequeno delay para garantir layout final
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 250));
 
-  // jsPDF A4 portrait em pt: 595.28 x 841.89
-  const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const imgW = pageW;
-  const imgH = (canvas.height * imgW) / canvas.width;
+    // Ajusta altura do iframe ao scrollHeight real
+    const realHeight = Math.max(
+      doc.body.scrollHeight,
+      doc.documentElement.scrollHeight,
+      1123,
+    );
+    iframe.style.height = `${realHeight}px`;
+    await new Promise((r) => setTimeout(r, 100));
 
-  // Multi-página: corta o canvas em fatias verticais.
-  if (imgH <= pageH) {
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
-  } else {
-    const pageHeightInCanvasPx = Math.floor((pageH * canvas.width) / imgW);
-    let renderedPx = 0;
-    let first = true;
-    while (renderedPx < canvas.height) {
-      const sliceH = Math.min(pageHeightInCanvasPx, canvas.height - renderedPx);
-      const slice = document.createElement("canvas");
-      slice.width = canvas.width;
-      slice.height = sliceH;
-      const sctx = slice.getContext("2d")!;
-      sctx.fillStyle = "#ffffff";
-      sctx.fillRect(0, 0, slice.width, slice.height);
-      sctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-      const data = slice.toDataURL("image/jpeg", 0.95);
-      const sliceImgH = (sliceH * imgW) / canvas.width;
-      if (!first) pdf.addPage();
-      pdf.addImage(data, "JPEG", 0, 0, imgW, sliceImgH);
-      renderedPx += sliceH;
-      first = false;
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] iframe body", {
+      offsetWidth: doc.body.offsetWidth,
+      scrollHeight: doc.body.scrollHeight,
+      textLen: (doc.body.innerText || "").length,
+      htmlSnippet: doc.body.innerHTML.slice(0, 300),
+    });
+
+    if ((doc.body.innerText || "").trim().length < 20 || realHeight < 50) {
+      throw new Error("Conteúdo do contrato não foi renderizado dentro do iframe.");
     }
-  }
 
-  const blob = pdf.output("blob") as Blob;
-  container.remove();
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
 
-  if (!blob || blob.size < 5000) {
-    throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
+    const canvas = await html2canvas(doc.body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: 794,
+      windowHeight: realHeight,
+      width: 794,
+      height: realHeight,
+      // @ts-ignore — html2canvas aceita foreignObjectRendering
+      foreignObjectRendering: false,
+    });
+
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] canvas", {
+      w: canvas.width,
+      h: canvas.height,
+      dataPrefix: canvas.toDataURL("image/png").slice(0, 80),
+    });
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error("Canvas do contrato com dimensão zero.");
+    }
+    if (canvasIsMostlyBlank(canvas)) {
+      throw new Error("Canvas do contrato ficou em branco. Verifique estilos do template.");
+    }
+
+    // PDF A4 portrait em pt: 595.28 x 841.89
+    const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    if (imgH <= pageH) {
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, imgH);
+    } else {
+      const pageHeightInCanvasPx = Math.floor((pageH * canvas.width) / imgW);
+      let renderedPx = 0;
+      let first = true;
+      while (renderedPx < canvas.height) {
+        const sliceH = Math.min(pageHeightInCanvasPx, canvas.height - renderedPx);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = sliceH;
+        const sctx = slice.getContext("2d")!;
+        sctx.fillStyle = "#ffffff";
+        sctx.fillRect(0, 0, slice.width, slice.height);
+        sctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const data = slice.toDataURL("image/jpeg", 0.95);
+        const sliceImgH = (sliceH * imgW) / canvas.width;
+        if (!first) pdf.addPage();
+        pdf.addImage(data, "JPEG", 0, 0, imgW, sliceImgH);
+        renderedPx += sliceH;
+        first = false;
+      }
+    }
+
+    const blob = pdf.output("blob") as Blob;
+    if (!blob || blob.size < 5000) {
+      throw new Error("Falha ao gerar PDF do contrato (arquivo muito pequeno).");
+    }
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] blob size", blob.size);
+    return blob;
+  } finally {
+    cleanup();
   }
-  return blob;
 }
+
 
 async function ensurePastaDocumentos(pedidoId: string) {
   let { data: pasta } = await supabase
