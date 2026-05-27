@@ -453,9 +453,11 @@ export type Database = {
           id: string
           ip: string | null
           localizacao: Json | null
+          manual: boolean
           participante_id: string | null
           selfie_url: string | null
           solicitacao_id: string
+          tipo: string | null
           user_agent: string | null
         }
         Insert: {
@@ -468,9 +470,11 @@ export type Database = {
           id?: string
           ip?: string | null
           localizacao?: Json | null
+          manual?: boolean
           participante_id?: string | null
           selfie_url?: string | null
           solicitacao_id: string
+          tipo?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -483,9 +487,11 @@ export type Database = {
           id?: string
           ip?: string | null
           localizacao?: Json | null
+          manual?: boolean
           participante_id?: string | null
           selfie_url?: string | null
           solicitacao_id?: string
+          tipo?: string | null
           user_agent?: string | null
         }
         Relationships: [
@@ -3001,6 +3007,7 @@ export type Database = {
           pasta_id: string | null
           pedido_id: string
           signing_token: string | null
+          solicitacao_id: string | null
           storage_path: string
           tamanho: number | null
         }
@@ -3019,6 +3026,7 @@ export type Database = {
           pasta_id?: string | null
           pedido_id: string
           signing_token?: string | null
+          solicitacao_id?: string | null
           storage_path: string
           tamanho?: number | null
         }
@@ -3037,6 +3045,7 @@ export type Database = {
           pasta_id?: string | null
           pedido_id?: string
           signing_token?: string | null
+          solicitacao_id?: string | null
           storage_path?: string
           tamanho?: number | null
         }
@@ -5028,6 +5037,7 @@ export type Database = {
         | "recusado"
         | "cancelado"
         | "expirado"
+        | "assinado_manual"
       autorizacao_status: "pendente" | "aprovada" | "rejeitada" | "expirada"
       autorizacao_tipo:
         | "desconto_acima_limite"
@@ -5198,6 +5208,7 @@ export const Constants = {
         "recusado",
         "cancelado",
         "expirado",
+        "assinado_manual",
       ],
       autorizacao_status: ["pendente", "aprovada", "rejeitada", "expirada"],
       autorizacao_tipo: [
