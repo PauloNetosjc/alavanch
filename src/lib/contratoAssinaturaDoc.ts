@@ -44,17 +44,36 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
   // 96 DPI: 1mm ≈ 3.78px → 186mm ≈ 703px de largura útil
   const CONTENT_W_PX = Math.round(CONTENT_W_MM * 3.7795);
 
-  // Injeta CSS de saneamento e wrapper de largura útil no MESMO HTML do Imprimir.
+  // CSS agressivo de quebra/wrap injetado no <head> do iframe — força tudo a caber em CONTENT_W_PX.
   const safetyCss = `
-    <style>
-      *, *::before, *::after { box-sizing: border-box !important; }
-      html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #111111 !important; }
-      body { width: ${CONTENT_W_PX}px !important; }
-      img, svg { max-width: 100% !important; height: auto !important; }
+    <style id="pdf-overflow-fix">
+      *, *::before, *::after { box-sizing: border-box !important; max-width: 100% !important; }
+      html, body {
+        width: ${CONTENT_W_PX}px !important;
+        max-width: ${CONTENT_W_PX}px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #111111 !important;
+        overflow-x: hidden !important;
+      }
+      p, div, span, section, article, li, td, th, h1, h2, h3, h4, h5, h6, label, dd, dt, blockquote {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-wrap: break-word !important;
+        word-break: normal !important;
+        hyphens: auto !important;
+        max-width: 100% !important;
+      }
       table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
-      td, th { word-break: break-word !important; overflow-wrap: anywhere !important; }
-      pre, code { white-space: pre-wrap !important; word-break: break-word !important; }
-      .page, .a4, .contract-page, .contrato-page, .sheet { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+      td, th { max-width: 100% !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+      img, svg, canvas, video { max-width: 100% !important; height: auto !important; }
+      pre, code { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+      .page, .a4, .contract-page, .contrato-page, .sheet, .contract-container, .contrato-container {
+        width: 100% !important; max-width: ${CONTENT_W_PX}px !important;
+        margin: 0 auto !important; padding: 0 !important;
+        box-shadow: none !important; overflow-x: hidden !important;
+      }
       .__pdf_wrapper {
         width: ${CONTENT_W_PX}px;
         max-width: ${CONTENT_W_PX}px;
@@ -62,9 +81,11 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         padding: 0;
         background: #ffffff;
         color: #111111;
-        overflow-wrap: break-word;
+        overflow-x: hidden;
+        overflow-wrap: anywhere;
         word-break: normal;
         white-space: normal;
+        transform-origin: top left;
       }
     </style>
   `;
