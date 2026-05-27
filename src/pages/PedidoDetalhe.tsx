@@ -1499,11 +1499,6 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {!d._readonly && (
-                  <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)} title="Excluir">
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Button>
-                )}
               </div>
             </div>
           );
