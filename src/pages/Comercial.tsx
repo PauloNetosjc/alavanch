@@ -258,6 +258,17 @@ export default function Comercial() {
         if (d.getFullYear() !== y || d.getMonth() !== m) return false;
       }
 
+      if (dateFrom) {
+        const d = new Date(r.created_at);
+        const from = new Date(dateFrom + "T00:00:00");
+        if (d < from) return false;
+      }
+      if (dateTo) {
+        const d = new Date(r.created_at);
+        const to = new Date(dateTo + "T23:59:59");
+        if (d > to) return false;
+      }
+
       const q = search.toLowerCase().trim();
       if (q) {
         const hay = `${r.codigo} ${r.nome_projeto ?? ""} ${r.cliente?.nome ?? ""}`.toLowerCase();
