@@ -957,6 +957,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
   const [evidId, setEvidId] = useState<string | null>(null);
   const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
+  const [verAssinaturasId, setVerAssinaturasId] = useState<string | null>(null);
+  const [partsBySol, setPartsBySol] = useState<Record<string, any[]>>({});
 
   // Mapa: pedido_documento_id -> última solicitação
   const solicByDoc = useMemo(() => {
@@ -964,6 +966,24 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     for (const s of solicitacoes) if (s.pedido_documento_id && !m[s.pedido_documento_id]) m[s.pedido_documento_id] = s;
     return m;
   }, [solicitacoes]);
+
+  // Carrega participantes das solicitações visíveis
+  useEffect(() => {
+    const ids = Array.from(new Set((solicitacoes || []).map((s: any) => s.id))).filter(Boolean);
+    if (!ids.length) { setPartsBySol({}); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("assinatura_participantes" as any)
+        .select("id,solicitacao_id,tipo,status,assinado_em,nome,email,token")
+        .in("solicitacao_id", ids);
+      const map: Record<string, any[]> = {};
+      for (const p of ((data as any[]) || [])) {
+        (map[p.solicitacao_id] ||= []).push(p);
+      }
+      setPartsBySol(map);
+    })();
+  }, [solicitacoes]);
+
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
