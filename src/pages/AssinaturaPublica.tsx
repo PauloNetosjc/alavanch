@@ -126,9 +126,8 @@ export default function AssinaturaPublica() {
 
       // Carrega contrato + template e renderiza HTML inline (somente leitura)
       if (s.contrato_id) {
-        if (!(s as any).assinatura_loja_url || !(s as any).loja_assinado_em || !(s as any).file_url) {
-          await prepararContratoParaAssinatura(s.id).catch(() => null);
-        }
+        // Garante que a loja sempre tenha assinatura fictícia gravada e o HTML atualizado.
+        await prepararContratoParaAssinatura(s.id).catch(() => null);
         const { data: sAtualizada } = await supabase
           .from("solicitacoes_assinatura")
           .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id")
