@@ -2149,6 +2149,8 @@ export type Database = {
           loja_id: string
           mes: number
           meta_valor: number
+          meta_valor_2: number
+          meta_valor_3: number
           updated_at: string
           vendedor_id: string | null
         }
@@ -2159,6 +2161,8 @@ export type Database = {
           loja_id: string
           mes: number
           meta_valor?: number
+          meta_valor_2?: number
+          meta_valor_3?: number
           updated_at?: string
           vendedor_id?: string | null
         }
@@ -2169,6 +2173,8 @@ export type Database = {
           loja_id?: string
           mes?: number
           meta_valor?: number
+          meta_valor_2?: number
+          meta_valor_3?: number
           updated_at?: string
           vendedor_id?: string | null
         }
