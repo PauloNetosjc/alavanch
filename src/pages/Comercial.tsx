@@ -226,7 +226,7 @@ export default function Comercial() {
         for (const s of (sols as any[]) || []) {
           const slug = s.tipos_documento?.slug;
           if (slug !== "pdf_final" && slug !== "vistoria") continue;
-          if (["assinado_cliente", "assinado_loja", "concluido"].includes(s.status)) {
+          if (["assinado_cliente", "concluido"].includes(s.status)) {
             revisadoSet.add(s.pedido_id);
           }
         }
