@@ -118,10 +118,21 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
       .from("pedido_documentos")
       .update({ pasta_id: pastaId, enviado_para_assinatura: true } as any)
       .eq("id", solic.pedido_documento_id);
-  } else if (tpl) {
+  }
+
+  if (tpl) {
     const ctx = {
-      ...((contrato.conteudo_snapshot as any) || {}),
-      cliente: ((contrato.conteudo_snapshot as any)?.cliente || cliente || null),
+      ...snapshot,
+      empresa: {
+        ...(empresaSnapshot || {}),
+        nome: lojaNome,
+        razao_social: razaoSocial,
+        nome_fantasia: nomeFantasia,
+        cnpj: loja?.cnpj || configEmpresa?.cnpj || empresaSnapshot.cnpj || "",
+        endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco || "",
+        telefone: configEmpresa?.telefone || empresaSnapshot.telefone || "",
+      },
+      cliente: (snapshot?.cliente || cliente || null),
       signing_url: getPublicSignatureUrl(solic.token),
       assinatura_loja_url: assinaturaLojaUrl,
       loja_assinado_em: lojaAssinadoEm,
@@ -136,9 +147,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     });
     if (upErr) throw upErr;
     const publicUrl = supabase.storage.from("contratos-assinatura").getPublicUrl(path).data.publicUrl;
-    const { data: doc } = await supabase
-      .from("pedido_documentos")
-      .insert({
+    const docPayload = {
         pedido_id: solic.pedido_id,
         pasta_id: pastaId,
         nome: `Contrato ${contrato.numero} - pré-assinado pela loja`,
@@ -147,14 +156,19 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
         tamanho: blob.size,
         mime_type: "text/html",
         enviado_para_assinatura: true,
-      } as any)
-      .select("id")
-      .single();
+      } as any;
+    let docId = solic.pedido_documento_id || null;
+    if (docId) {
+      await supabase.from("pedido_documentos").update(docPayload).eq("id", docId);
+    } else {
+      const { data: doc } = await supabase.from("pedido_documentos").insert(docPayload).select("id").single();
+      docId = doc?.id || null;
+    }
 
     await supabase
       .from("solicitacoes_assinatura")
       .update({
-        pedido_documento_id: doc?.id || null,
+        pedido_documento_id: docId,
         file_name: `Contrato ${contrato.numero}`,
         file_url: publicUrl,
         storage_path: path,
