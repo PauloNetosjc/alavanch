@@ -177,12 +177,19 @@ export default function Comissoes() {
         } else if (projetista) {
           participantes = [{ user_id: projetista, percentual: 100, papel: "Projetista" }];
         } else participantes = [];
+        const valor_total = Number(p.valor_total || 0);
+        const rt = Number(p.rt_repassado || 0);
+        const juros = Number(p.juros_total || 0);
+        const valor_liquido = p.valor_liquido != null ? Number(p.valor_liquido) : Math.max(0, valor_total - rt - juros);
         return {
           id: p.id,
           codigo: p.codigo,
           cliente_nome: p.clientes?.nome || "—",
           data: p.created_at,
-          valor_total: Number(p.valor_total || 0),
+          valor_total,
+          valor_liquido,
+          rt,
+          juros,
           consultor_id: consultor,
           projetista_id: projetista,
           participantes,
