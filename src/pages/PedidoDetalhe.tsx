@@ -1181,8 +1181,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
-                      <Eye className="w-3.5 h-3.5 mr-1" /> Evidências
+                    <Button size="sm" variant="outline" onClick={() => setVerAssinaturasId(sol.id)} title="Ver assinaturas e links">
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Ver assinaturas
                     </Button>
                     {podeAssinarLoja && (
                       <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAssinarLojaId(sol.id)}>
