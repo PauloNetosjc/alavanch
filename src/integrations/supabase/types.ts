@@ -3609,6 +3609,7 @@ export type Database = {
           concluir_pipeline_destino: string | null
           cor: string | null
           created_at: string
+          criar_card_em: string[]
           id: string
           nome: string
           ordem: number
@@ -3623,6 +3624,7 @@ export type Database = {
           concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
+          criar_card_em?: string[]
           id?: string
           nome: string
           ordem?: number
@@ -3637,6 +3639,7 @@ export type Database = {
           concluir_pipeline_destino?: string | null
           cor?: string | null
           created_at?: string
+          criar_card_em?: string[]
           id?: string
           nome?: string
           ordem?: number
