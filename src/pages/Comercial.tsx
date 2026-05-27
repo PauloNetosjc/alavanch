@@ -180,6 +180,8 @@ export default function Comercial() {
   const today = new Date();
   const [refDate, setRefDate] = useState(today);
   const [monthFilter, setMonthFilter] = useState<string>("todos"); // "todos" or `${year}-${month}`
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const months = useMemo(() => buildMonths(refDate, 6), [refDate]);
 
@@ -254,6 +256,17 @@ export default function Comercial() {
         const [y, m] = monthFilter.split("-").map(Number);
         const d = new Date(r.created_at);
         if (d.getFullYear() !== y || d.getMonth() !== m) return false;
+      }
+
+      if (dateFrom) {
+        const d = new Date(r.created_at);
+        const from = new Date(dateFrom + "T00:00:00");
+        if (d < from) return false;
+      }
+      if (dateTo) {
+        const d = new Date(r.created_at);
+        const to = new Date(dateTo + "T23:59:59");
+        if (d > to) return false;
       }
 
       const q = search.toLowerCase().trim();
@@ -437,6 +450,33 @@ export default function Comercial() {
           >
             Todos
           </button>
+        </div>
+
+        {/* Date range filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[12px] font-medium text-muted-foreground">Período:</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); if (e.target.value) setMonthFilter("todos"); }}
+            className="h-9 w-[160px]"
+          />
+          <span className="text-[12px] text-muted-foreground">até</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); if (e.target.value) setMonthFilter("todos"); }}
+            className="h-9 w-[160px]"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-lg border hover:bg-muted"
+              style={{ borderColor: "#E5E7EB", color: "#1B2240" }}
+            >
+              Limpar
+            </button>
+          )}
         </div>
       </div>
 
