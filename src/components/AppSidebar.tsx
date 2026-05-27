@@ -3,6 +3,12 @@ import { NavLink, useLocation } from "react-router-dom";
 import alavanchLogo from "@/assets/alavanch-logo.png";
 import { UserThemePicker, useUserThemeBoot } from "@/components/UserThemePicker";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
   LayoutDashboard,
   Trophy,
   BarChart3,
@@ -39,6 +45,7 @@ import {
   Shield,
   Tags,
   Fingerprint,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
