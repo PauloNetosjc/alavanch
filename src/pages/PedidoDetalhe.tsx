@@ -81,12 +81,15 @@ export default function PedidoDetalhe() {
   const [subItens, setSubItens] = useState<any[]>([]);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
 
-  const totalProjeto = useMemo(
-    () =>
+  const totalProjeto = useMemo(() => {
+    // Valor final negociado do pedido (com descontos aplicados); fallback à soma original.
+    const negociado = Number(pedido?.valor_total || 0);
+    if (negociado > 0) return negociado;
+    return (
       ambientes.reduce((s, a) => s + Number(a.preco_sugerido || 0), 0) +
-      itensAvulsos.reduce((s, i) => s + Number(i.valor_venda || 0), 0),
-    [ambientes, itensAvulsos],
-  );
+      itensAvulsos.reduce((s, i) => s + Number(i.valor_venda || 0), 0)
+    );
+  }, [pedido, ambientes, itensAvulsos]);
 
   const carregar = async () => {
     if (!id) return;
