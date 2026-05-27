@@ -4006,6 +4006,7 @@ export type Database = {
           status: string
           telefone: string | null
           tipo_contrato: string
+          turno_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4029,6 +4030,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo_contrato?: string
+          turno_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4052,6 +4054,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo_contrato?: string
+          turno_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4067,6 +4070,13 @@ export type Database = {
             columns: ["setor_id"]
             isOneToOne: false
             referencedRelation: "rh_setores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_funcionarios_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "rh_turnos"
             referencedColumns: ["id"]
           },
         ]
@@ -4112,6 +4122,59 @@ export type Database = {
           },
         ]
       }
+      rh_pontos: {
+        Row: {
+          atraso_min: number
+          created_at: string
+          data: string
+          funcionario_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          marcado_em: string
+          observacoes: string | null
+          origem: string
+          selfie_url: string | null
+          tipo: string
+        }
+        Insert: {
+          atraso_min?: number
+          created_at?: string
+          data?: string
+          funcionario_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          marcado_em?: string
+          observacoes?: string | null
+          origem?: string
+          selfie_url?: string | null
+          tipo: string
+        }
+        Update: {
+          atraso_min?: number
+          created_at?: string
+          data?: string
+          funcionario_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          marcado_em?: string
+          observacoes?: string | null
+          origem?: string
+          selfie_url?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_pontos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_setores: {
         Row: {
           created_at: string
@@ -4129,6 +4192,86 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      rh_turnos: {
+        Row: {
+          created_at: string
+          dias_semana: number[]
+          hora_entrada: string
+          hora_saida: string
+          hora_saida_almoco: string | null
+          hora_volta_almoco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          tolerancia_min: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dias_semana?: number[]
+          hora_entrada: string
+          hora_saida: string
+          hora_saida_almoco?: string | null
+          hora_volta_almoco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          tolerancia_min?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dias_semana?: number[]
+          hora_entrada?: string
+          hora_saida?: string
+          hora_saida_almoco?: string | null
+          hora_volta_almoco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          tolerancia_min?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_zonas_ponto: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_metros: number
+          setor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_metros?: number
+          setor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          nome?: string
+          raio_metros?: number
+          setor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_zonas_ponto_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "rh_setores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissoes: {
         Row: {
