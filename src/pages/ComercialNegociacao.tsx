@@ -153,8 +153,10 @@ function ResumoFinanceiroDialog({
   const podeVerCusto = can("itens", "view_custo");
   const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
+  // Indicador incide sobre o Valor Total da Venda (recalcula a partir do %)
+  const parceiroValorReal = totalProposta * (parceiroPerc / 100);
   const valorSemJuros = totalProposta - jurosCliente;
-  const totalVPL = valorSemJuros - parceiroValor;
+  const totalVPL = valorSemJuros - parceiroValorReal;
 
   // Itens fixos da Formação de Preço (alinhado com Configurações)
   const FIXED_ITEMS = [
@@ -262,7 +264,7 @@ function ResumoFinanceiroDialog({
             <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
             {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
-                value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
+                value={<>-{fmtBrl(parceiroValorReal)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
             )}
             {podeVerCusto && <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />}
             {podeVerMarkup && (
