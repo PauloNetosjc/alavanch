@@ -98,6 +98,12 @@ export default function AssinaturaPublica() {
   const [recusando, setRecusando] = useState(false);
   const padRef = useRef<SignaturePadHandle>(null);
 
+  // Dados do representante da loja (preenchidos a partir da sessão, se houver)
+  const [representanteEmail, setRepresentanteEmail] = useState("");
+  const [representanteCargo, setRepresentanteCargo] = useState("");
+  const [representanteUserId, setRepresentanteUserId] = useState<string | null>(null);
+  const [representanteVeioDaSessao, setRepresentanteVeioDaSessao] = useState(false);
+
   useEffect(() => {
     (async () => {
       if (!token) return;
@@ -206,21 +212,37 @@ export default function AssinaturaPublica() {
 
       // 7) Prefill — REGRA: nunca usar dados do cliente para o participante 'loja'.
       if (participanteAtual?.tipo === "loja") {
-        // Tenta carregar dados do usuário logado (se houver sessão na aba)
+        // Prioridade: 1) dados já salvos no participante  2) sessão atual  3) manual
         let nomeLoja = participanteAtual?.nome || (s as any)?.loja_assinatura_nome || "";
+        let emailLoja = participanteAtual?.email || (s as any)?.loja_assinatura_email || "";
+        let cargoLoja = (participanteAtual as any)?.cargo || (s as any)?.loja_assinatura_cargo || "";
+        let userIdLoja: string | null = (participanteAtual as any)?.user_id || null;
+        let veioDaSessao = false;
+
         try {
           const { data: sess } = await supabase.auth.getSession();
-          const uid = sess?.session?.user?.id;
-          if (uid && !nomeLoja) {
-            const { data: prof } = await supabase
-              .from("profiles")
-              .select("nome_completo")
-              .eq("user_id", uid)
-              .maybeSingle();
-            nomeLoja = prof?.nome_completo || sess?.session?.user?.email || "";
+          const sUser = sess?.session?.user;
+          if (sUser?.id) {
+            const [{ data: prof }, { data: rol }] = await Promise.all([
+              supabase.from("profiles").select("nome_completo,loja_id").eq("user_id", sUser.id).maybeSingle(),
+              supabase.from("user_roles").select("role").eq("user_id", sUser.id).limit(1).maybeSingle(),
+            ]);
+            const nomeSessao = prof?.nome_completo || sUser.email || "";
+            const emailSessao = sUser.email || "";
+            const cargoSessao = (rol as any)?.role || "";
+
+            if (!nomeLoja && nomeSessao) { nomeLoja = nomeSessao; veioDaSessao = true; }
+            if (!emailLoja && emailSessao) { emailLoja = emailSessao; veioDaSessao = true; }
+            if (!cargoLoja && cargoSessao) cargoLoja = cargoSessao;
+            if (!userIdLoja && sUser.id) userIdLoja = sUser.id;
           }
         } catch { /* sem sessão — usuário preenche manualmente */ }
+
         if (nomeLoja) setNome(nomeLoja);
+        if (emailLoja) setRepresentanteEmail(emailLoja);
+        if (cargoLoja) setRepresentanteCargo(cargoLoja);
+        if (userIdLoja) setRepresentanteUserId(userIdLoja);
+        setRepresentanteVeioDaSessao(veioDaSessao);
         // NUNCA preencher CPF/documento para loja
       } else {
         // Cliente: pode usar dados do próprio cliente
@@ -295,21 +317,27 @@ export default function AssinaturaPublica() {
       const agora = new Date().toISOString();
 
       // 1) Atualiza APENAS o participante do token atual
+      const updPart: any = {
+        status: "assinado",
+        assinado_em: agora,
+        ip,
+        user_agent: ua,
+        nome,
+        documento: isCliente ? (doc || null) : null,
+      };
+      if (!isCliente) {
+        if (representanteEmail) updPart.email = representanteEmail;
+        if (representanteCargo) updPart.cargo = representanteCargo;
+        if (representanteUserId) updPart.user_id = representanteUserId;
+      }
       const { error: errPart } = await supabase
         .from("assinatura_participantes" as any)
-        .update({
-          status: "assinado",
-          assinado_em: agora,
-          ip,
-          user_agent: ua,
-          nome,
-          documento: doc || null,
-        })
+        .update(updPart)
         .eq("id", participante.id);
       if (errPart) throw errPart;
 
       // 2) Evidência vinculada ao participante
-      await supabase.from("assinatura_evidencias").insert({
+      const evid: any = {
         solicitacao_id: solic.id,
         participante_id: participante.id,
         documento_foto_url: docUrl,
@@ -320,14 +348,22 @@ export default function AssinaturaPublica() {
         ip,
         localizacao,
         user_agent: ua,
-      } as any);
+      };
+      if (!isCliente) {
+        evid.aceite_texto =
+          `Assinado pela loja — Representante: ${nome}` +
+          (representanteEmail ? ` <${representanteEmail}>` : "") +
+          (representanteCargo ? ` — Cargo: ${representanteCargo}` : "");
+      }
+      await supabase.from("assinatura_evidencias").insert(evid);
 
       // 3) Evento
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: solic.id,
         tipo_evento: isCliente ? "cliente_assinou" : "loja_assinou",
         participante_id: participante.id,
-        descricao: `${isCliente ? "Cliente" : "Loja"} assinou: ${nome}`,
+        descricao: `${isCliente ? "Cliente" : "Loja"} assinou: ${nome}${!isCliente && representanteEmail ? ` <${representanteEmail}>` : ""}`,
+        user_id: !isCliente ? representanteUserId : null,
         user_agent: ua,
       } as any);
 
@@ -346,6 +382,8 @@ export default function AssinaturaPublica() {
       } else {
         updSolic.loja_assinado_em = agora;
         updSolic.loja_assinatura_nome = nome;
+        if (representanteEmail) updSolic.loja_assinatura_email = representanteEmail;
+        if (representanteCargo) updSolic.loja_assinatura_cargo = representanteCargo;
         updSolic.loja_ip = ip;
         updSolic.loja_user_agent = ua;
         updSolic.assinatura_loja_url = assinaturaUrl;
@@ -513,6 +551,10 @@ export default function AssinaturaPublica() {
               <>
                 <div><span className="text-muted-foreground">Loja:</span> {loja?.nome || "—"}</div>
                 <div><span className="text-muted-foreground">Representante:</span> {nome || "(preencha abaixo)"}</div>
+                <div><span className="text-muted-foreground">E-mail:</span> {representanteEmail || "(preencha abaixo)"}</div>
+                {representanteCargo && (
+                  <div><span className="text-muted-foreground">Cargo:</span> {representanteCargo}</div>
+                )}
                 <div><span className="text-muted-foreground">Cliente (referência):</span> {cliente?.nome || "—"}</div>
               </>
             )}
@@ -523,6 +565,12 @@ export default function AssinaturaPublica() {
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
           </CardContent>
         </Card>
+
+        {participante?.tipo === "loja" && !representanteVeioDaSessao && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-xs p-3">
+            Você está assinando pela loja sem sessão ativa. Preencha os dados do representante.
+          </div>
+        )}
 
         {solic?.file_url && (solic.file_url.toLowerCase().includes(".pdf") || solic.file_name?.toLowerCase().endsWith(".pdf")) ? (
           <Card>
@@ -564,8 +612,32 @@ export default function AssinaturaPublica() {
           <CardContent className="space-y-3">
             <div>
               <Label>Nome completo</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Input
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                readOnly={!isCliente && representanteVeioDaSessao && !!nome}
+              />
             </div>
+            {!isCliente && (
+              <>
+                <div>
+                  <Label>E-mail do representante</Label>
+                  <Input
+                    type="email"
+                    value={representanteEmail}
+                    onChange={(e) => setRepresentanteEmail(e.target.value)}
+                    readOnly={representanteVeioDaSessao && !!representanteEmail}
+                    placeholder="email@empresa.com"
+                  />
+                </div>
+                {representanteCargo && (
+                  <div>
+                    <Label>Cargo</Label>
+                    <Input value={representanteCargo} readOnly />
+                  </div>
+                )}
+              </>
+            )}
             {isCliente && (
               <>
                 <div>
