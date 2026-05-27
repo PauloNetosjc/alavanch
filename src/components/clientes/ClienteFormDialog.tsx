@@ -268,13 +268,68 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
                 </Select>
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Label>Endereço de cobrança</Label>
-                <Textarea rows={2} value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="CEP"
+                    className="max-w-[140px]"
+                    value={form.cep_cobranca}
+                    onChange={(e) => setForm({ ...form, cep_cobranca: maskCep(e.target.value) })}
+                    onBlur={async () => {
+                      const end = await buscarCep(form.cep_cobranca);
+                      if (end) {
+                        setForm((f) => ({ ...f, endereco_cobranca: end }));
+                        toast.success("Endereço preenchido pelo CEP");
+                      } else if (form.cep_cobranca.replace(/\D/g, "").length === 8) {
+                        toast.error("CEP não encontrado");
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground self-center">Preenche automaticamente</span>
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder="Rua, número, complemento, bairro, cidade/UF"
+                  value={form.endereco_cobranca}
+                  onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })}
+                />
               </div>
-              <div className="col-span-2">
-                <Label>Endereço de entrega</Label>
-                <Textarea rows={2} value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
+              <div className="col-span-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Endereço de entrega</Label>
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setForm((f) => ({ ...f, cep_entrega: f.cep_cobranca, endereco_entrega: f.endereco_cobranca }))}
+                  >
+                    Copiar do endereço de cobrança
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="CEP"
+                    className="max-w-[140px]"
+                    value={form.cep_entrega}
+                    onChange={(e) => setForm({ ...form, cep_entrega: maskCep(e.target.value) })}
+                    onBlur={async () => {
+                      const end = await buscarCep(form.cep_entrega);
+                      if (end) {
+                        setForm((f) => ({ ...f, endereco_entrega: end }));
+                        toast.success("Endereço preenchido pelo CEP");
+                      } else if (form.cep_entrega.replace(/\D/g, "").length === 8) {
+                        toast.error("CEP não encontrado");
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground self-center">Preenche automaticamente</span>
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder="Rua, número, complemento, bairro, cidade/UF"
+                  value={form.endereco_entrega}
+                  onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Observações</Label>
