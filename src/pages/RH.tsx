@@ -545,11 +545,12 @@ export default function RH() {
       const { error: eU } = await supabase.storage.from("rh").upload(path, selfie, { contentType: "image/jpeg" });
       if (!eU) selfie_url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
     }
-    // atraso (apenas para entrada / volta_almoco)
+    // atraso (apenas para entrada / volta_almoco) — respeita horários por dia
     let atraso = 0;
     if (turno) {
-      const ref = tipo === "entrada" ? turno.hora_entrada
-        : tipo === "volta_almoco" ? turno.hora_volta_almoco
+      const hd = getHorarioDia(turno, new Date().getDay());
+      const ref = tipo === "entrada" ? hd.hora_entrada
+        : tipo === "volta_almoco" ? hd.hora_volta_almoco
         : null;
       if (ref) {
         const diff = hmToMin(nowHM()) - hmToMin(ref);
