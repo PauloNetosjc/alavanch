@@ -1503,7 +1503,118 @@ export default function ComercialNovo() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Estoque */}
+                <div className="rounded-lg border border-border p-5">
+                  <div className="flex items-center gap-2 text-[14px] font-semibold mb-4">
+                    <Package className="w-4 h-4 text-[#2D6BE5]" />
+                    Montar do Estoque
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Nome do Ambiente</Label>
+                      <Input
+                        value={estoqueNome}
+                        onChange={(e) => setEstoqueNome(e.target.value)}
+                        placeholder="Ex: Cozinha modulada"
+                      />
+                    </div>
+                    <div>
+                      <Label>Produtos</Label>
+                      <Popover open={estoquePickerOpen} onOpenChange={setEstoquePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span className="truncate">
+                              {estoqueSelecionados.length === 0
+                                ? "Selecionar produtos…"
+                                : `${estoqueSelecionados.length} produto(s) selecionado(s)`}
+                            </span>
+                            <ChevronDown className="w-4 h-4 opacity-60" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[380px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar produto..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {estoqueProdutos.map((p) => {
+                                  const sel = estoqueSelecionados.some((s) => s.produto.id === p.id);
+                                  return (
+                                    <CommandItem
+                                      key={p.id}
+                                      value={`${p.descricao} ${p.codigo_interno ?? ""} ${p.codigo_barra ?? ""}`}
+                                      onSelect={() => {
+                                        setEstoqueSelecionados((prev) =>
+                                          sel
+                                            ? prev.filter((s) => s.produto.id !== p.id)
+                                            : [...prev, { produto: p, qtd: 1 }],
+                                        );
+                                      }}
+                                      className="flex items-start gap-2"
+                                    >
+                                      <Checkbox checked={sel} className="mt-1" />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[13px] font-medium truncate">{p.descricao}</div>
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {(p.codigo_interno || p.codigo_barra || "—")} · {fmtBrl(p.preco_venda)}
+                                        </div>
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className={Number(p.quantidade) <= 0 ? "text-rose-600 border-rose-300" : ""}
+                                      >
+                                        {Number(p.quantidade)} {p.unidade_medida}
+                                      </Badge>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {estoqueSelecionados.length > 0 && (
+                      <div className="space-y-1.5 max-h-40 overflow-auto pr-1">
+                        {estoqueSelecionados.map((s) => (
+                          <div key={s.produto.id} className="flex items-center gap-2 text-[12px]">
+                            <span className="flex-1 truncate">{s.produto.descricao}</span>
+                            <Input
+                              type="number" min={1} step="1"
+                              value={s.qtd}
+                              onChange={(e) =>
+                                setEstoqueSelecionados((prev) =>
+                                  prev.map((x) =>
+                                    x.produto.id === s.produto.id
+                                      ? { ...x, qtd: Math.max(1, Number(e.target.value) || 1) }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              className="h-7 w-16 text-center"
+                            />
+                            <Button
+                              variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() =>
+                                setEstoqueSelecionados((prev) => prev.filter((x) => x.produto.id !== s.produto.id))
+                              }
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <Button onClick={addEstoqueAmbiente} className="w-full">
+                      <Plus className="w-4 h-4 mr-1.5" /> Criar Ambiente
+                    </Button>
+                  </div>
+                </div>
               </div>
+
             </div>
 
             {/* Tabela ambientes */}
