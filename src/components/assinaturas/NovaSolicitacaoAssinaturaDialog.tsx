@@ -128,8 +128,9 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
         .eq("solicitacao_id", data.id)
         .eq("tipo", "cliente")
         .maybeSingle();
-      if (!partCliente?.token) throw new Error("Falha ao gerar link do participante.");
-      const url = getPublicSignatureUrl(partCliente.token);
+      const tokenCliente = (partCliente as any)?.token as string | undefined;
+      if (!tokenCliente) throw new Error("Falha ao gerar link do participante.");
+      const url = getPublicSignatureUrl(tokenCliente);
       setLink(url);
       onCreated?.(data.id, url);
       toast.success("Solicitação criada");
