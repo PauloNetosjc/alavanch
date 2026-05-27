@@ -1384,6 +1384,12 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         solicitacaoId={assinarLojaId}
         onDone={() => { setAssinarLojaId(null); onChange(); }}
       />
+      <VisualizarAssinaturasDialog
+        open={!!verAssinaturasId}
+        onOpenChange={(v) => !v && setVerAssinaturasId(null)}
+        solicitacaoId={verAssinaturasId}
+        onAssinarLoja={(id) => { setVerAssinaturasId(null); setAssinarLojaId(id); }}
+      />
     </section>
   );
 }
