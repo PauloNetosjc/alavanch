@@ -398,7 +398,12 @@ export default function PedidoDetalhe() {
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
 
-  const assinaturaPendente = contrato && contrato.status === "aguardando_assinatura" && solicAssin?.status !== "concluido";
+  const ASSIN_LIBERADA = ["concluido", "assinado_manual", "assinado", "concluido_manual"];
+  const assinaturaPendente =
+    contrato &&
+    contrato.status === "aguardando_assinatura" &&
+    !ASSIN_LIBERADA.includes(String(solicAssin?.status || "")) &&
+    contrato.status !== "assinado_manual";
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
   const ehAdendo = !!pedido.pedido_pai_id;
