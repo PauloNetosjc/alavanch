@@ -129,33 +129,45 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        <div style="white-space:pre-wrap;border:1px solid #E5E5E5;border-radius:6px;padding:12px;background:#FAFAFA;font-size:12px;line-height:1.5">${ctx.observacoes_adicionais}</div>`
     : "";
 
-  const responsavelLoja = ctx.loja_assinatura_nome || ctx.empresa.nome || "Loja";
-  const assinaturaLojaUrl = ctx.loja_assinado_em
-    ? (ctx.assinatura_loja_url || buildLojaSignatureDataUrl({
-        nome: ctx.empresa.nome || "Loja",
-        razao_social: ctx.empresa.razao_social || ctx.empresa.nome || "Loja",
-        nome_fantasia: ctx.empresa.nome_fantasia || ctx.empresa.nome || null,
-        cnpj: ctx.empresa.cnpj || null,
-        endereco: ctx.empresa.endereco || null,
-        responsavel: responsavelLoja,
-      }))
-    : "";
-  const assinaturaLojaHtml = assinaturaLojaUrl
-    ? `<div class="loja-signature"><img src="${escapeHtml(assinaturaLojaUrl)}" alt="Assinatura digital da loja com CNPJ e razão social" /></div>`
-    : `<div class="loja-signature"></div>`;
-  const assinaturaLojaMeta = ctx.loja_assinado_em
-    ? `<div class="lb">Assinatura / Responsável</div>
-       ${ctx.loja_assinatura_nome ? `<div class="lb" style="margin-top:2px;font-size:11px;color:#1A1A1A"><b>${escapeHtml(ctx.loja_assinatura_nome)}</b></div>` : ""}
-       ${ctx.loja_assinatura_email ? `<div class="lb" style="font-size:10px">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
-       <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.loja_assinado_em)}</div>`
-    : `<div class="lb">Assinatura da loja pendente</div>`;
-  const assinaturaClienteHtml = ctx.cliente_assinado_em && ctx.assinatura_cliente_url
-    ? `<div class="loja-signature"><img src="${escapeHtml(ctx.assinatura_cliente_url)}" alt="Assinatura digital do cliente" /></div>`
-    : `<div class="loja-signature"></div>`;
-  const assinaturaClienteMeta = ctx.cliente_assinado_em
-    ? `<div class="lb">Assinatura / CPF ou CNPJ</div>
-       <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.cliente_assinado_em)}${ctx.cliente_ip ? ` · IP ${escapeHtml(ctx.cliente_ip)}` : ""}</div>`
-    : `<div class="lb">Assinatura / CPF ou CNPJ</div>`;
+  const fmtDateTime = (d: string | Date) =>
+    new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  // ---- Carimbo eletrônico da loja (sem assinatura desenhada) ----
+  const lojaStamp = ctx.loja_assinado_em
+    ? `<div class="estamp estamp-loja">
+         <div class="estamp-title">✓ Assinado eletronicamente por</div>
+         <div class="estamp-name">${escapeHtml(ctx.loja_assinatura_nome || ctx.empresa.nome || "Representante da loja")}</div>
+         ${ctx.loja_assinatura_email ? `<div class="estamp-row">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
+         ${ctx.loja_assinatura_cargo ? `<div class="estamp-row">${escapeHtml(ctx.loja_assinatura_cargo)}</div>` : ""}
+         <div class="estamp-row estamp-when">${fmtDateTime(ctx.loja_assinado_em)}</div>
+         <div class="estamp-role">Representante da loja</div>
+       </div>`
+    : `<div class="estamp estamp-pending"><div class="estamp-title">Assinatura da loja pendente</div></div>`;
+
+  // ---- Carimbo eletrônico do cliente ----
+  const clienteStamp = ctx.cliente_assinado_em
+    ? `<div class="estamp estamp-cliente">
+         <div class="estamp-title">✓ Assinado eletronicamente por</div>
+         <div class="estamp-name">${escapeHtml(ctx.cliente?.nome || "Cliente")}</div>
+         ${ctx.cliente?.cpf_cnpj ? `<div class="estamp-row">${escapeHtml(ctx.cliente.cpf_cnpj)}</div>` : ""}
+         <div class="estamp-row estamp-when">${fmtDateTime(ctx.cliente_assinado_em)}${ctx.cliente_ip ? ` · IP ${escapeHtml(ctx.cliente_ip)}` : ""}</div>
+         <div class="estamp-role">Cliente</div>
+       </div>`
+    : `<div class="estamp estamp-pending"><div class="estamp-title">Assinatura do cliente pendente</div></div>`;
+
+  const assinaturaLojaHtml = `<div class="loja-signature">${lojaStamp}</div>`;
+  const assinaturaLojaMeta = `<div class="lb">Representante da loja</div>`;
+  const assinaturaClienteHtml = `<div class="loja-signature">${clienteStamp}</div>`;
+  const assinaturaClienteMeta = `<div class="lb">CPF ou CNPJ</div>`;
+
+  const validationUrl = ctx.validation_url || "";
+  const qrImgHtml = ctx.qr_data_url
+    ? `<img src="${ctx.qr_data_url}" alt="QR Code de validação do contrato" style="width:80px;height:80px;display:block" />`
+    : `<div class="qr">QR</div>`;
+  const qrImgHtmlLarge = ctx.qr_data_url
+    ? `<img src="${ctx.qr_data_url}" alt="QR Code de validação do contrato" style="width:96px;height:96px;display:block" />`
+    : `<div class="qr">QR</div>`;
+
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
