@@ -104,6 +104,8 @@ export default function Comissoes() {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [dialogPedido, setDialogPedido] = useState<PedidoRow | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [incluirAdendos, setIncluirAdendos] = useState(true);
+  const [incluirComplementos, setIncluirComplementos] = useState(true);
 
   const { inicio, fim } = useMemo(() => resolvePeriodo(periodo), [periodo]);
   const lojaRegrasId = lojasFiltro[0] || null;
