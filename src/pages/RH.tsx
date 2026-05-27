@@ -26,7 +26,7 @@ type Turno = {
   hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
   dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
 };
-type Zona = { id: string; setor_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
+type Zona = { id: string; setor_id: string | null; cargo_id: string | null; funcionario_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
 type Ponto = {
   id: string; funcionario_id: string; data: string;
   tipo: "entrada" | "saida_almoco" | "volta_almoco" | "saida";
