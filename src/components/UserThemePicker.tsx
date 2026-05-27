@@ -33,10 +33,22 @@ export function applyUserTheme(p: Prefs) {
   // tokens lidos pela sidebar
   r.style.setProperty("--user-accent", p.accent);
   r.style.setProperty("--user-accent-bg", `hsl(${p.accent} / 0.22)`);
-  // contraste
+  // contraste — detecta se o tema atual é escuro para inverter corretamente
+  const isDark = document.documentElement.classList.contains("dark")
+    || getComputedStyle(document.documentElement).getPropertyValue("color-scheme").includes("dark")
+    || (() => {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--background").trim();
+      const m = bg.match(/(\d+(?:\.\d+)?)%\s*$/);
+      return m ? parseFloat(m[1]) < 50 : true;
+    })();
   if (p.contrast === "alto") {
-    r.style.setProperty("--foreground", "0 0% 8%");
-    r.style.setProperty("--muted-foreground", "0 0% 25%");
+    if (isDark) {
+      r.style.setProperty("--foreground", "0 0% 100%");
+      r.style.setProperty("--muted-foreground", "0 0% 80%");
+    } else {
+      r.style.setProperty("--foreground", "0 0% 8%");
+      r.style.setProperty("--muted-foreground", "0 0% 25%");
+    }
   } else {
     r.style.removeProperty("--foreground");
     r.style.removeProperty("--muted-foreground");
