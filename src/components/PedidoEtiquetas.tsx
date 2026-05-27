@@ -50,17 +50,28 @@ export function PedidoEtiquetas({ pedidoId, compact }: Props) {
   const visiveis = todas.filter(t => selecionadas.includes(t.id));
 
   return (
-    <div className="inline-flex items-center gap-1.5 flex-wrap">
+    <div className={compact ? "inline-flex items-center gap-1.5 flex-wrap" : "flex items-center gap-2 flex-wrap"}>
       {visiveis.map(e => (
-        <span key={e.id} className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full text-white"
-          style={{ background: e.cor }}>
+        <span
+          key={e.id}
+          className={
+            compact
+              ? "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full text-white"
+              : "inline-flex items-center gap-1 text-[13px] font-bold uppercase tracking-wider px-3 py-1.5 rounded text-white shadow-sm"
+          }
+          style={{ background: e.cor }}
+        >
           {e.nome}
         </span>
       ))}
       <Popover>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px] gap-1">
-            <Tags className="w-3 h-3" />{compact ? (visiveis.length ? "Editar" : "Etiquetas") : "Etiquetas"}
+          <Button
+            size={compact ? "sm" : "default"}
+            variant="outline"
+            className={compact ? "h-6 px-2 text-[11px] gap-1" : "h-9 px-3 text-[13px] gap-1.5"}
+          >
+            <Tags className={compact ? "w-3 h-3" : "w-4 h-4"} />{compact ? (visiveis.length ? "Editar" : "Etiquetas") : "Etiquetas"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-2">
