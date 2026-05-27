@@ -11,26 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 export type UrgenciaNivel = "baixa" | "media" | "alta";
 
 export type KanbanFiltros = {
-  dataFim?: string;
+  dataVenda?: string;
   unidadeId?: string;
   responsavelId?: string;
-  tipoOcorrencia?: string;
-  equipe?: string;
-  grupoLinhasGrade?: string;
   urgencia?: UrgenciaNivel;
   somenteAtrasados: boolean;
   mostrarValores: boolean;
-  mostrarTarefas: boolean;
-  arquivados: boolean;
-  ordenarPor: "indices" | "urgencia" | "entrega";
 };
 
 export const FILTROS_DEFAULT: KanbanFiltros = {
   somenteAtrasados: false,
   mostrarValores: true,
-  mostrarTarefas: false,
-  arquivados: false,
-  ordenarPor: "indices",
 };
 
 export const URGENCIA_META: Record<UrgenciaNivel, { label: string; color: string; bg: string }> = {
