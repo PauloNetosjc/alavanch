@@ -60,6 +60,8 @@ export default function PedidoDetalhe() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
+  const [gerandoContrato, setGerandoContrato] = useState(false);
+  const [contratoRecemGerado, setContratoRecemGerado] = useState(false);
   const [orcamento, setOrcamento] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
   const [ambientes, setAmbientes] = useState<any[]>([]);
