@@ -139,7 +139,7 @@ export default function Comissoes() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, codigo, valor_total, valor_liquido, rt_repassado, juros_total, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
+        .select("id, codigo, valor_total, valor_liquido, rt_repassado, juros_total, is_adendo, is_complemento, projetista_id, created_at, cliente_id, loja_id, orcamentos(consultor_id, vendedor_id, projetista_id), clientes(nome)");
       if (inicio && fim) qPed = qPed.gte("created_at", inicio.toISOString()).lte("created_at", fim.toISOString());
       if (lojasFiltro.length > 0) qPed = qPed.in("loja_id", lojasFiltro);
 
