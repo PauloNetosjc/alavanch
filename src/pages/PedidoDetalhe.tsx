@@ -2437,7 +2437,10 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
   const parceiroPerc = Number(orcamento?.parceiro_perc) || 0;
   const subtotalAmbs = (ambientes || []).reduce((s: number, a: any) => s + (Number(a.preco_sugerido) || 0), 0);
   const parceiroValor = totalProposta * (parceiroPerc / 100);
-  const valorInicial = subtotalAmbs > 0 ? (subtotalAmbs + parceiroValor) : (totalProposta + descValor);
+  // Valor Inicial (sem indicador) e com indicador (fixo, não muda com desconto)
+  const parceiroAcrescimoOrig = subtotalAmbs * (parceiroPerc / 100);
+  const valorInicialSemInd = subtotalAmbs > 0 ? subtotalAmbs : (totalProposta + descValor - parceiroAcrescimoOrig);
+  const valorInicialComInd = valorInicialSemInd + parceiroAcrescimoOrig;
   const custoFabrica = (ambientes || []).reduce((s: number, a: any) => s + (Number(a.custo_fabrica) || 0), 0);
   const jurosCliente = (pagamentos || []).reduce((s: number, p: any) => {
     const n = Number(p.parcelas) || 1;
