@@ -2646,12 +2646,17 @@ function PedidoAcoesMenu({
     }
     setCancelando(true);
     await salvarPedido({ status: "cancelado" });
-    // Reverte o orçamento associado para a fase de negociação
+    // Reverte o orçamento associado para a fase de negociação e zera descontos/pagamentos
     if (pedido?.orcamento_id) {
-      await supabase.from("orcamentos").update({
-        status: "negociacao",
-        confirmado_em: null,
-      }).eq("id", pedido.orcamento_id);
+      await Promise.all([
+        supabase.from("orcamentos").update({
+          status: "negociacao",
+          confirmado_em: null,
+          desconto_perc: 0,
+          desconto_valor: 0,
+        }).eq("id", pedido.orcamento_id),
+        supabase.from("pagamentos_orcamento").delete().eq("orcamento_id", pedido.orcamento_id),
+      ]);
     }
     setCancelando(false);
     setCancelOpen(false);
