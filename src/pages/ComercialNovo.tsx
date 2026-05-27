@@ -584,6 +584,57 @@ export default function ComercialNovo() {
   const [mDescricao, setMDescricao] = useState("");
   const [mVenda, setMVenda] = useState<string>("");
 
+  // ---- estoque (terceira forma de adicionar ambiente) ----
+  const [estoqueProdutos, setEstoqueProdutos] = useState<ProdutoEstoque[]>([]);
+  const [estoquePickerOpen, setEstoquePickerOpen] = useState(false);
+  const [estoqueNome, setEstoqueNome] = useState("");
+  const [estoqueSelecionados, setEstoqueSelecionados] = useState<Array<{ produto: ProdutoEstoque; qtd: number }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,descricao,codigo_barra,codigo_interno,unidade_medida,quantidade,preco_custo,preco_venda")
+        .eq("ativo", true)
+        .order("descricao");
+      setEstoqueProdutos((data as ProdutoEstoque[]) || []);
+    })();
+  }, []);
+
+  const addEstoqueAmbiente = () => {
+    if (!estoqueNome.trim()) return toast.error("Nome do ambiente é obrigatório");
+    if (estoqueSelecionados.length === 0) return toast.error("Selecione ao menos um produto");
+    const itens: Item[] = estoqueSelecionados.map((s) => ({
+      descricao: s.produto.descricao,
+      quantidade: s.qtd,
+      largura: null, altura: null, profundidade: null,
+      custo_cliente: Number(s.produto.preco_venda || 0),
+      custo_loja: Number(s.produto.preco_custo || 0),
+      custo_fabrica: Number(s.produto.preco_custo || 0),
+      cor: null, categoria: null,
+      codigo: s.produto.codigo_interno || s.produto.codigo_barra || null,
+    }));
+    const custo = itens.reduce((a, i) => a + i.custo_fabrica * i.quantidade, 0);
+    const venda = itens.reduce((a, i) => a + i.custo_cliente * i.quantidade, 0);
+    const novo: Ambiente = {
+      id: uid(),
+      nome: estoqueNome.trim(),
+      descricao: "Ambiente montado a partir do estoque",
+      prazo_dias: null,
+      custo_aquisicao: Number(custo.toFixed(2)),
+      preco_sugerido: Number(venda.toFixed(2)),
+      markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
+      itens,
+      manual: true,
+    };
+    setAmbientes((prev) => [...prev, novo]);
+    setEstoqueNome("");
+    setEstoqueSelecionados([]);
+    toast.success("Ambiente criado a partir do estoque");
+  };
+
+
+
 
   /* --------------------------------- load --------------------------------- */
   useEffect(() => {
