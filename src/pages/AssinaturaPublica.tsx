@@ -304,7 +304,8 @@ export default function AssinaturaPublica() {
         await arquivarDocumentoAssinado(solic.id);
       }
 
-      setDone(true);
+      setDone(novoStatus === "concluido");
+      if (novoStatus !== "concluido") setAguardandoLoja(true);
       toast.success("Assinatura registrada!");
     } catch (e: any) {
       toast.error(e.message || "Falha ao registrar assinatura.");
