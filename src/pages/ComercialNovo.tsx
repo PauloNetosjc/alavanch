@@ -276,6 +276,20 @@ function DetalhamentoDialog({
   const [novoQtd, setNovoQtd] = useState<number>(1);
   const [novoCusto, setNovoCusto] = useState<number>(0);
   const [novoVenda, setNovoVenda] = useState<number>(0);
+  const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,descricao,codigo_barra,codigo_interno,unidade_medida,quantidade,preco_custo,preco_venda")
+        .eq("ativo", true)
+        .order("descricao");
+      setProdutos((data as ProdutoEstoque[]) || []);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (ambiente) setItens(ambiente.itens.map((i) => ({ ...i })));
