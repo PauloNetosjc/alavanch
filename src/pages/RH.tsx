@@ -16,10 +16,23 @@ import { maskCpf, maskPhone } from "@/lib/masks";
 import {
   Users, UserPlus, Plane, AlertTriangle, Briefcase, UserX, Search,
   FileText, Upload, Trash2, Pencil, Calendar, AlertCircle,
+  Clock, MapPin, Camera, History, Fingerprint,
 } from "lucide-react";
 
 type Setor = { id: string; nome: string };
 type Cargo = { id: string; nome: string; setor_id: string | null };
+type Turno = {
+  id: string; nome: string;
+  hora_entrada: string; hora_saida_almoco: string | null; hora_volta_almoco: string | null; hora_saida: string;
+  dias_semana: number[]; tolerancia_min: number; observacoes: string | null;
+};
+type Zona = { id: string; setor_id: string | null; nome: string; latitude: number; longitude: number; raio_metros: number };
+type Ponto = {
+  id: string; funcionario_id: string; data: string;
+  tipo: "entrada" | "saida_almoco" | "volta_almoco" | "saida";
+  marcado_em: string; latitude: number | null; longitude: number | null;
+  selfie_url: string | null; origem: "sistema" | "celular"; atraso_min: number;
+};
 type Funcionario = {
   id: string;
   nome_completo: string;
@@ -31,6 +44,7 @@ type Funcionario = {
   endereco: string | null;
   cargo_id: string | null;
   setor_id: string | null;
+  turno_id: string | null;
   salario: number | null;
   data_admissao: string | null;
   tipo_contrato: "clt" | "pj" | "terceirizado" | "autonomo";
@@ -65,6 +79,44 @@ function daysUntil(date: string | null) {
   return Math.round((d - now.getTime()) / 86400000);
 }
 
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
+function nowHM() { const d = new Date(); return d.toTimeString().slice(0, 5); }
+function hmToMin(hm: string) { const [h, m] = hm.split(":").map(Number); return h * 60 + m; }
+function minToHM(min: number) {
+  const sign = min < 0 ? "-" : "";
+  const a = Math.abs(min);
+  return `${sign}${String(Math.floor(a / 60)).padStart(2, "0")}:${String(a % 60).padStart(2, "0")}`;
+}
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000;
+  const toR = (x: number) => (x * Math.PI) / 180;
+  const dLat = toR(lat2 - lat1); const dLon = toR(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+const TIPO_PONTO_LABEL: Record<string, string> = {
+  entrada: "Entrada", saida_almoco: "Saída almoço", volta_almoco: "Volta almoço", saida: "Saída final",
+};
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function calcSaldoDia(pontos: Ponto[], turno: Turno | undefined): { trabalhado: number; previsto: number; saldo: number } {
+  if (!turno) return { trabalhado: 0, previsto: 0, saldo: 0 };
+  const previsto =
+    (hmToMin(turno.hora_saida) - hmToMin(turno.hora_entrada)) -
+    (turno.hora_saida_almoco && turno.hora_volta_almoco
+      ? hmToMin(turno.hora_volta_almoco) - hmToMin(turno.hora_saida_almoco)
+      : 0);
+  const get = (t: string) => pontos.find(p => p.tipo === t);
+  const e = get("entrada"); const sa = get("saida_almoco"); const va = get("volta_almoco"); const s = get("saida");
+  let trabalhado = 0;
+  if (e && s) {
+    const min = (a: string) => { const d = new Date(a); return d.getHours() * 60 + d.getMinutes(); };
+    trabalhado = min(s.marcado_em) - min(e.marcado_em);
+    if (sa && va) trabalhado -= (min(va.marcado_em) - min(sa.marcado_em));
+  }
+  return { trabalhado, previsto, saldo: trabalhado - previsto };
+}
+
 export default function RH() {
   const [tab, setTab] = useState("dashboard");
   const [setores, setSetores] = useState<Setor[]>([]);
@@ -96,15 +148,34 @@ export default function RH() {
   const [docForm, setDocForm] = useState<{ tipo: string; observacoes: string }>({ tipo: "RG", observacoes: "" });
   const [docFile, setDocFile] = useState<File | null>(null);
 
+  // Turnos / Ponto / Banco de horas
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [zonas, setZonas] = useState<Zona[]>([]);
+  const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [turnoDialog, setTurnoDialog] = useState(false);
+  const [turnoForm, setTurnoForm] = useState<Partial<Turno>>({
+    dias_semana: [1, 2, 3, 4, 5], tolerancia_min: 5,
+    hora_entrada: "08:00", hora_saida_almoco: "12:00", hora_volta_almoco: "13:00", hora_saida: "17:00",
+  });
+  const [zonaDialog, setZonaDialog] = useState(false);
+  const [zonaForm, setZonaForm] = useState<Partial<Zona>>({ raio_metros: 150 });
+  const [pontoFuncId, setPontoFuncId] = useState<string>("");
+  const [bancoFiltroFunc, setBancoFiltroFunc] = useState<string>("todos");
+  const [bancoDe, setBancoDe] = useState<string>(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0,10); });
+  const [bancoAte, setBancoAte] = useState<string>(hojeISO());
+
   async function load() {
     setLoading(true);
-    const [s, c, f, fe, oc, dc] = await Promise.all([
+    const [s, c, f, fe, oc, dc, t, z, p] = await Promise.all([
       supabase.from("rh_setores").select("*").order("nome"),
       supabase.from("rh_cargos").select("*").order("nome"),
       supabase.from("rh_funcionarios").select("*").order("nome_completo"),
       supabase.from("rh_ferias").select("*").order("data_inicio", { ascending: false }),
       supabase.from("rh_ocorrencias").select("*").order("data", { ascending: false }),
       supabase.from("rh_documentos").select("*").order("created_at", { ascending: false }),
+      supabase.from("rh_turnos" as any).select("*").order("nome"),
+      supabase.from("rh_zonas_ponto" as any).select("*").order("nome"),
+      supabase.from("rh_pontos" as any).select("*").order("marcado_em", { ascending: false }),
     ]);
     setSetores((s.data as Setor[]) || []);
     setCargos((c.data as Cargo[]) || []);
@@ -112,6 +183,9 @@ export default function RH() {
     setFerias((fe.data as Ferias[]) || []);
     setOcorrencias((oc.data as Ocorrencia[]) || []);
     setDocumentos((dc.data as Documento[]) || []);
+    setTurnos(((t.data as unknown) as Turno[]) || []);
+    setZonas(((z.data as unknown) as Zona[]) || []);
+    setPontos(((p.data as unknown) as Ponto[]) || []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -221,6 +295,7 @@ export default function RH() {
       endereco: funcForm.endereco || null,
       cargo_id: funcForm.cargo_id || null,
       setor_id: funcForm.setor_id || null,
+      turno_id: (funcForm as any).turno_id || null,
       salario: funcForm.salario || null,
       data_admissao: funcForm.data_admissao || null,
       tipo_contrato: funcForm.tipo_contrato || "clt",
@@ -310,6 +385,197 @@ export default function RH() {
     await supabase.from("rh_documentos").delete().eq("id", id); load();
   }
 
+  // ===== Turnos =====
+  function abrirNovoTurno() {
+    setTurnoForm({
+      dias_semana: [1, 2, 3, 4, 5], tolerancia_min: 5,
+      hora_entrada: "08:00", hora_saida_almoco: "12:00", hora_volta_almoco: "13:00", hora_saida: "17:00",
+    });
+    setTurnoDialog(true);
+  }
+  function abrirEditarTurno(t: Turno) { setTurnoForm(t); setTurnoDialog(true); }
+  async function salvarTurno() {
+    if (!turnoForm.nome?.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
+    const payload: any = {
+      nome: turnoForm.nome,
+      hora_entrada: turnoForm.hora_entrada || "08:00",
+      hora_saida_almoco: turnoForm.hora_saida_almoco || null,
+      hora_volta_almoco: turnoForm.hora_volta_almoco || null,
+      hora_saida: turnoForm.hora_saida || "17:00",
+      dias_semana: turnoForm.dias_semana || [1,2,3,4,5],
+      tolerancia_min: turnoForm.tolerancia_min ?? 5,
+      observacoes: turnoForm.observacoes || null,
+    };
+    const { error } = (turnoForm as any).id
+      ? await supabase.from("rh_turnos" as any).update(payload).eq("id", (turnoForm as any).id)
+      : await supabase.from("rh_turnos" as any).insert(payload);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setTurnoDialog(false); load();
+  }
+  async function removerTurno(id: string) {
+    if (!confirm("Remover turno?")) return;
+    await supabase.from("rh_turnos" as any).delete().eq("id", id); load();
+  }
+
+  // ===== Zonas =====
+  async function salvarZona() {
+    if (!zonaForm.nome?.trim() || zonaForm.latitude == null || zonaForm.longitude == null) {
+      toast({ title: "Preencha nome, latitude e longitude", variant: "destructive" }); return;
+    }
+    const { error } = await supabase.from("rh_zonas_ponto" as any).insert({
+      nome: zonaForm.nome, setor_id: zonaForm.setor_id || null,
+      latitude: zonaForm.latitude, longitude: zonaForm.longitude,
+      raio_metros: zonaForm.raio_metros ?? 150,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setZonaForm({ raio_metros: 150 }); setZonaDialog(false); load();
+  }
+  async function removerZona(id: string) {
+    if (!confirm("Remover zona?")) return;
+    await supabase.from("rh_zonas_ponto" as any).delete().eq("id", id); load();
+  }
+  async function usarMinhaLocalizacao() {
+    if (!navigator.geolocation) { toast({ title: "Geolocalização indisponível", variant: "destructive" }); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setZonaForm(p => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude })),
+      (err) => toast({ title: "Erro localização", description: err.message, variant: "destructive" }),
+      { enableHighAccuracy: true }
+    );
+  }
+
+  // ===== Ponto =====
+  function getLocation(): Promise<GeolocationPosition> {
+    return new Promise((res, rej) => {
+      if (!navigator.geolocation) return rej(new Error("Geolocalização indisponível"));
+      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 15000 });
+    });
+  }
+  async function tirarSelfie(): Promise<Blob | null> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      const video = document.createElement("video");
+      video.srcObject = stream; await video.play();
+      await new Promise(r => setTimeout(r, 600));
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext("2d")!.drawImage(video, 0, 0);
+      stream.getTracks().forEach(t => t.stop());
+      return await new Promise(res => canvas.toBlob(b => res(b), "image/jpeg", 0.8));
+    } catch (e: any) {
+      toast({ title: "Não foi possível acessar a câmera", description: e.message, variant: "destructive" });
+      return null;
+    }
+  }
+  async function baterPonto(funcionarioId: string, tipo: Ponto["tipo"]) {
+    const func = funcs.find(f => f.id === funcionarioId);
+    if (!func) return;
+    const turno = turnos.find(t => t.id === func.turno_id);
+    // localização
+    let lat: number | null = null, lng: number | null = null;
+    try {
+      const pos = await getLocation();
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } catch (e: any) {
+      toast({ title: "Localização necessária", description: e.message, variant: "destructive" }); return;
+    }
+    // valida zona
+    const zonasAplic = zonas.filter(z => !z.setor_id || z.setor_id === func.setor_id);
+    if (zonasAplic.length > 0) {
+      const ok = zonasAplic.some(z => haversineM(lat!, lng!, z.latitude, z.longitude) <= z.raio_metros);
+      if (!ok) { toast({ title: "Fora da zona autorizada", description: "Aproxime-se do local de trabalho.", variant: "destructive" }); return; }
+    }
+    // selfie
+    const selfie = await tirarSelfie();
+    let selfie_url: string | null = null;
+    if (selfie) {
+      const path = `pontos/${funcionarioId}/${Date.now()}.jpg`;
+      const { error: eU } = await supabase.storage.from("rh").upload(path, selfie, { contentType: "image/jpeg" });
+      if (!eU) selfie_url = supabase.storage.from("rh").getPublicUrl(path).data.publicUrl;
+    }
+    // atraso (apenas para entrada / volta_almoco)
+    let atraso = 0;
+    if (turno) {
+      const ref = tipo === "entrada" ? turno.hora_entrada
+        : tipo === "volta_almoco" ? turno.hora_volta_almoco
+        : null;
+      if (ref) {
+        const diff = hmToMin(nowHM()) - hmToMin(ref);
+        atraso = Math.max(0, diff);
+      }
+    }
+    const origem = /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "celular" : "sistema";
+    const { error } = await supabase.from("rh_pontos" as any).insert({
+      funcionario_id: funcionarioId, tipo, latitude: lat, longitude: lng,
+      selfie_url, origem, atraso_min: atraso,
+    });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `${TIPO_PONTO_LABEL[tipo]} registrada`, description: atraso > 0 ? `Atraso de ${atraso} min` : "No horário" });
+    load();
+  }
+
+  // ===== Notificações de atraso =====
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+  useEffect(() => {
+    if (funcs.length === 0 || turnos.length === 0) return;
+    const interval = setInterval(() => {
+      const agora = new Date();
+      const dow = agora.getDay();
+      const nowMin = agora.getHours() * 60 + agora.getMinutes();
+      const hoje = hojeISO();
+      funcs.filter(f => f.status === "ativo" && f.turno_id).forEach(f => {
+        const t = turnos.find(x => x.id === f.turno_id); if (!t) return;
+        if (!t.dias_semana.includes(dow)) return;
+        const pHoje = pontos.filter(p => p.funcionario_id === f.id && p.data === hoje);
+        const checks: { tipo: Ponto["tipo"]; ref: string | null }[] = [
+          { tipo: "entrada", ref: t.hora_entrada },
+          { tipo: "saida_almoco", ref: t.hora_saida_almoco },
+          { tipo: "volta_almoco", ref: t.hora_volta_almoco },
+          { tipo: "saida", ref: t.hora_saida },
+        ];
+        for (const c of checks) {
+          if (!c.ref) continue;
+          if (pHoje.some(p => p.tipo === c.tipo)) continue;
+          const limite = hmToMin(c.ref) + (t.tolerancia_min || 0) + 5;
+          if (nowMin >= limite) {
+            const key = `rh_aviso_${f.id}_${hoje}_${c.tipo}`;
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, "1");
+            const msg = `${f.nome_completo} — ${TIPO_PONTO_LABEL[c.tipo]} pendente (previsto ${c.ref})`;
+            try {
+              if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("RH — Atraso de ponto", { body: msg });
+              }
+            } catch {}
+            toast({ title: "Atraso de ponto", description: msg, variant: "destructive" });
+          }
+        }
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [funcs, turnos, pontos]);
+
+  // ===== Banco de horas =====
+  const bancoLinhas = useMemo(() => {
+    const fLista = bancoFiltroFunc === "todos" ? ativos : ativos.filter(f => f.id === bancoFiltroFunc);
+    const out: { funcionario: Funcionario; data: string; trabalhado: number; previsto: number; saldo: number }[] = [];
+    fLista.forEach(f => {
+      const turno = turnos.find(t => t.id === f.turno_id);
+      const datas = new Set(pontos.filter(p => p.funcionario_id === f.id && p.data >= bancoDe && p.data <= bancoAte).map(p => p.data));
+      datas.forEach(d => {
+        const ps = pontos.filter(p => p.funcionario_id === f.id && p.data === d);
+        const { trabalhado, previsto, saldo } = calcSaldoDia(ps, turno);
+        out.push({ funcionario: f, data: d, trabalhado, previsto, saldo });
+      });
+    });
+    return out.sort((a, b) => b.data.localeCompare(a.data));
+  }, [pontos, turnos, ativos, bancoFiltroFunc, bancoDe, bancoAte]);
+
+  const bancoTotal = useMemo(() => bancoLinhas.reduce((s, l) => s + l.saldo, 0), [bancoLinhas]);
+
   const docsFunc = detalheFunc ? documentos.filter(d => d.funcionario_id === detalheFunc.id) : [];
   const feriasFunc = detalheFunc ? ferias.filter(d => d.funcionario_id === detalheFunc.id) : [];
   const ocoFunc = detalheFunc ? ocorrencias.filter(d => d.funcionario_id === detalheFunc.id) : [];
@@ -325,7 +591,10 @@ export default function RH() {
           <TabsTrigger value="ferias">Férias</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
           <TabsTrigger value="cargos">Cargos & Setores</TabsTrigger>
+          <TabsTrigger value="turnos">Turnos</TabsTrigger>
+          <TabsTrigger value="ponto">Bater Ponto</TabsTrigger>
           <TabsTrigger value="desligados">Desligados</TabsTrigger>
+          <TabsTrigger value="banco">Banco de Horas</TabsTrigger>
         </TabsList>
 
         {/* DASHBOARD */}
@@ -615,6 +884,199 @@ export default function RH() {
             </div>
           </Card>
         </TabsContent>
+
+        {/* TURNOS */}
+        <TabsContent value="turnos" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><Clock className="w-4 h-4" /> Turnos de trabalho</h3>
+              <Button size="sm" onClick={abrirNovoTurno}>+ Novo turno</Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Nome</th>
+                  <th className="px-3 py-2">Entrada</th>
+                  <th className="px-3 py-2">Almoço</th>
+                  <th className="px-3 py-2">Saída</th>
+                  <th className="px-3 py-2">Dias</th>
+                  <th className="px-3 py-2">Tolerância</th>
+                  <th className="px-3 py-2"></th>
+                </tr></thead>
+                <tbody>
+                  {turnos.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Nenhum turno cadastrado.</td></tr>
+                  ) : turnos.map(t => (
+                    <tr key={t.id} className="border-t">
+                      <td className="px-3 py-2 font-medium">{t.nome}</td>
+                      <td className="px-3 py-2">{t.hora_entrada?.slice(0,5)}</td>
+                      <td className="px-3 py-2">{t.hora_saida_almoco?.slice(0,5) || "—"} / {t.hora_volta_almoco?.slice(0,5) || "—"}</td>
+                      <td className="px-3 py-2">{t.hora_saida?.slice(0,5)}</td>
+                      <td className="px-3 py-2 text-xs">{(t.dias_semana || []).map(d => DIAS_SEMANA[d]).join(", ")}</td>
+                      <td className="px-3 py-2">{t.tolerancia_min} min</td>
+                      <td className="px-3 py-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => abrirEditarTurno(t)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => removerTurno(t.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Zonas autorizadas para bater ponto</h3>
+              <Button size="sm" onClick={() => setZonaDialog(true)}>+ Nova zona</Button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">A marcação só é aceita dentro do raio de uma zona aplicável (do setor do funcionário ou geral).</p>
+            <div className="space-y-1">
+              {zonas.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma zona cadastrada — qualquer localização será aceita.</p> :
+                zonas.map(z => (
+                  <div key={z.id} className="flex items-center justify-between border-b py-1.5 text-sm">
+                    <div>
+                      <span className="font-medium">{z.nome}</span>
+                      <span className="text-xs text-muted-foreground"> · {z.setor_id ? setorNome(z.setor_id) : "Todos os setores"} · raio {z.raio_metros}m</span>
+                      <div className="text-xs text-muted-foreground">{z.latitude.toFixed(5)}, {z.longitude.toFixed(5)}</div>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => removerZona(z.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </div>
+                ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* BATER PONTO */}
+        <TabsContent value="ponto" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Fingerprint className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">Marcação de ponto</h3>
+                <p className="text-xs text-muted-foreground">Requer localização autorizada e selfie. Funciona em computador e celular.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <Label>Funcionário</Label>
+                <Select value={pontoFuncId} onValueChange={setPontoFuncId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o funcionário" /></SelectTrigger>
+                  <SelectContent>
+                    {ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {pontoFuncId && (() => {
+                const f = funcs.find(x => x.id === pontoFuncId);
+                const t = turnos.find(x => x.id === f?.turno_id);
+                return (
+                  <div className="text-sm">
+                    <Label>Turno</Label>
+                    <div className="border rounded px-3 py-2 mt-1 text-xs">
+                      {t ? <><span className="font-medium">{t.nome}</span> · {t.hora_entrada.slice(0,5)} → {t.hora_saida.slice(0,5)} · tol. {t.tolerancia_min} min</>
+                        : <span className="text-muted-foreground">Sem turno atribuído</span>}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {pontoFuncId && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(["entrada","saida_almoco","volta_almoco","saida"] as const).map(t => (
+                  <Button key={t} variant="outline" onClick={() => baterPonto(pontoFuncId, t)} className="h-auto py-3 flex-col">
+                    <Camera className="w-4 h-4 mb-1" />
+                    <span className="text-xs">{TIPO_PONTO_LABEL[t]}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="w-4 h-4" /> Últimas marcações</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Data/Hora</th>
+                  <th className="px-3 py-2">Funcionário</th>
+                  <th className="px-3 py-2">Tipo</th>
+                  <th className="px-3 py-2">Origem</th>
+                  <th className="px-3 py-2">Atraso</th>
+                  <th className="px-3 py-2">Geo</th>
+                  <th className="px-3 py-2">Selfie</th>
+                </tr></thead>
+                <tbody>
+                  {pontos.slice(0, 50).map(p => {
+                    const f = funcs.find(x => x.id === p.funcionario_id);
+                    return (
+                      <tr key={p.id} className="border-t">
+                        <td className="px-3 py-2">{new Date(p.marcado_em).toLocaleString("pt-BR")}</td>
+                        <td className="px-3 py-2">{f?.nome_completo || "—"}</td>
+                        <td className="px-3 py-2">{TIPO_PONTO_LABEL[p.tipo]}</td>
+                        <td className="px-3 py-2"><Badge variant="secondary">{p.origem}</Badge></td>
+                        <td className="px-3 py-2">{p.atraso_min > 0 ? <span className="text-rose-600">+{p.atraso_min} min</span> : "—"}</td>
+                        <td className="px-3 py-2 text-xs">{p.latitude != null ? `${p.latitude.toFixed(4)}, ${p.longitude!.toFixed(4)}` : "—"}</td>
+                        <td className="px-3 py-2">{p.selfie_url ? <a href={p.selfie_url} target="_blank" rel="noreferrer"><img src={p.selfie_url} className="w-8 h-8 rounded object-cover" /></a> : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                  {pontos.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Sem marcações ainda.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* BANCO DE HORAS */}
+        <TabsContent value="banco" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
+              <div>
+                <Label>Funcionário</Label>
+                <Select value={bancoFiltroFunc} onValueChange={setBancoFiltroFunc}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>De</Label><Input type="date" value={bancoDe} onChange={e => setBancoDe(e.target.value)} /></div>
+              <div><Label>Até</Label><Input type="date" value={bancoAte} onChange={e => setBancoAte(e.target.value)} /></div>
+              <div className="flex items-end">
+                <div className="surface-card w-full text-center">
+                  <div className="kpi-label">Saldo total</div>
+                  <div className={`kpi-value mt-1 ${bancoTotal < 0 ? "text-rose-600" : "text-emerald-600"}`}>{minToHM(bancoTotal)}</div>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr className="text-left">
+                  <th className="px-3 py-2">Data</th>
+                  <th className="px-3 py-2">Funcionário</th>
+                  <th className="px-3 py-2">Previsto</th>
+                  <th className="px-3 py-2">Trabalhado</th>
+                  <th className="px-3 py-2">Saldo</th>
+                </tr></thead>
+                <tbody>
+                  {bancoLinhas.length === 0 ? (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Sem registros no período.</td></tr>
+                  ) : bancoLinhas.map((l, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-2">{new Date(l.data + "T00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-2">{l.funcionario.nome_completo}</td>
+                      <td className="px-3 py-2">{minToHM(l.previsto)}</td>
+                      <td className="px-3 py-2">{minToHM(l.trabalhado)}</td>
+                      <td className={`px-3 py-2 font-medium ${l.saldo < 0 ? "text-rose-600" : "text-emerald-600"}`}>{minToHM(l.saldo)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Dialog Funcionário */}
@@ -650,6 +1112,13 @@ export default function RH() {
               <Select value={funcForm.cargo_id || ""} onValueChange={v => setFuncForm(p => ({...p, cargo_id: v}))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Turno</Label>
+              <Select value={(funcForm as any).turno_id || ""} onValueChange={v => setFuncForm(p => ({...p, turno_id: v} as any))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{turnos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome} ({t.hora_entrada.slice(0,5)}–{t.hora_saida.slice(0,5)})</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Salário</Label><Input type="number" step="0.01" value={funcForm.salario || ""} onChange={e => setFuncForm(p => ({...p, salario: e.target.value ? Number(e.target.value) : null}))} /></div>
@@ -858,6 +1327,68 @@ export default function RH() {
             <div><Label>Observações</Label><Textarea value={docForm.observacoes} onChange={e => setDocForm({...docForm, observacoes: e.target.value})} /></div>
           </div>
           <DialogFooter><Button onClick={salvarDocumento} disabled={!docFile}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Turno */}
+      <Dialog open={turnoDialog} onOpenChange={setTurnoDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>{(turnoForm as any).id ? "Editar" : "Novo"} turno</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Label>Nome *</Label><Input value={turnoForm.nome || ""} onChange={e => setTurnoForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div><Label>Entrada *</Label><Input type="time" value={turnoForm.hora_entrada || ""} onChange={e => setTurnoForm(p => ({...p, hora_entrada: e.target.value}))} /></div>
+            <div><Label>Saída final *</Label><Input type="time" value={turnoForm.hora_saida || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida: e.target.value}))} /></div>
+            <div><Label>Saída almoço</Label><Input type="time" value={turnoForm.hora_saida_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida_almoco: e.target.value}))} /></div>
+            <div><Label>Volta almoço</Label><Input type="time" value={turnoForm.hora_volta_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_volta_almoco: e.target.value}))} /></div>
+            <div className="col-span-2">
+              <Label>Dias da semana</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {DIAS_SEMANA.map((d, i) => {
+                  const ativo = (turnoForm.dias_semana || []).includes(i);
+                  return (
+                    <Button key={i} type="button" size="sm" variant={ativo ? "default" : "outline"}
+                      onClick={() => setTurnoForm(p => ({
+                        ...p,
+                        dias_semana: ativo
+                          ? (p.dias_semana || []).filter(x => x !== i)
+                          : [...(p.dias_semana || []), i].sort()
+                      }))}
+                    >{d}</Button>
+                  );
+                })}
+              </div>
+            </div>
+            <div><Label>Tolerância (min)</Label><Input type="number" value={turnoForm.tolerancia_min ?? 5} onChange={e => setTurnoForm(p => ({...p, tolerancia_min: Number(e.target.value)}))} /></div>
+            <div className="col-span-2"><Label>Observações</Label><Textarea value={turnoForm.observacoes || ""} onChange={e => setTurnoForm(p => ({...p, observacoes: e.target.value}))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTurnoDialog(false)}>Cancelar</Button>
+            <Button onClick={salvarTurno}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Zona */}
+      <Dialog open={zonaDialog} onOpenChange={setZonaDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova zona autorizada</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label>Nome *</Label><Input value={zonaForm.nome || ""} onChange={e => setZonaForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div>
+              <Label>Setor (opcional — em branco vale para todos)</Label>
+              <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
+                <SelectTrigger><SelectValue placeholder="Todos os setores" /></SelectTrigger>
+                <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Latitude</Label><Input type="number" step="0.000001" value={zonaForm.latitude ?? ""} onChange={e => setZonaForm(p => ({...p, latitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
+              <div><Label>Longitude</Label><Input type="number" step="0.000001" value={zonaForm.longitude ?? ""} onChange={e => setZonaForm(p => ({...p, longitude: e.target.value ? Number(e.target.value) : undefined}))} /></div>
+            </div>
+            <Button variant="outline" size="sm" onClick={usarMinhaLocalizacao}><MapPin className="w-3.5 h-3.5 mr-1" /> Usar minha localização</Button>
+            <div><Label>Raio (metros)</Label><Input type="number" value={zonaForm.raio_metros ?? 150} onChange={e => setZonaForm(p => ({...p, raio_metros: Number(e.target.value)}))} /></div>
+          </div>
+          <DialogFooter><Button onClick={salvarZona}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
