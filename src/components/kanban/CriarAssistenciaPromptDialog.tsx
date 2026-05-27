@@ -72,6 +72,10 @@ export function CriarAssistenciaPromptDialog({
         status: "triagem",
       } as any);
       if (error) throw error;
+      try {
+        const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
+        await dispatchKanbanTrigger("assistencia_aberta", { pedidoId });
+      } catch {}
       toast.success("Assistência criada!");
       onOpenChange(false);
       onSimCriada?.();

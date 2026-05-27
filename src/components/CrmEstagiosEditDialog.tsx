@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus, GripVertical, ArrowUp, ArrowDown, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { KANBAN_TRIGGERS } from "@/lib/kanbanTriggers";
 
 const CRM_PIPELINE = "comercial";
 
@@ -25,6 +27,7 @@ type Estagio = {
   concluir_acao: string | null;
   concluir_pipeline_destino: string | null;
   concluir_estagio_destino_id: string | null;
+  criar_card_em: string[];
 };
 type Template = { id: string; nome: string; tipo_servico: string };
 
@@ -118,6 +121,7 @@ export function CrmEstagiosEditDialog({
       concluir_acao: e.concluir_acao ?? "proxima",
       concluir_pipeline_destino: e.concluir_pipeline_destino ?? null,
       concluir_estagio_destino_id: e.concluir_estagio_destino_id ?? null,
+      criar_card_em: Array.isArray(e.criar_card_em) ? e.criar_card_em : [],
     }));
     setRows(mapped);
     setOutrosPipelinesEstagios(((outros ?? []) as any[]).map((e) => ({
@@ -128,6 +132,7 @@ export function CrmEstagiosEditDialog({
       concluir_acao: e.concluir_acao ?? "proxima",
       concluir_pipeline_destino: e.concluir_pipeline_destino ?? null,
       concluir_estagio_destino_id: e.concluir_estagio_destino_id ?? null,
+      criar_card_em: Array.isArray(e.criar_card_em) ? e.criar_card_em : [],
     })));
     setTemplates((tpls ?? []) as Template[]);
     const itensMap: Record<string, { descricao: string }[]> = {};
@@ -189,6 +194,7 @@ export function CrmEstagiosEditDialog({
         concluir_acao: "proxima",
         concluir_pipeline_destino: null,
         concluir_estagio_destino_id: null,
+        criar_card_em: [],
       },
     ]);
   };
@@ -254,13 +260,14 @@ export function CrmEstagiosEditDialog({
           concluir_acao: row.concluir_acao ?? "proxima",
           concluir_pipeline_destino: row.concluir_acao === "outro_kanban" ? row.concluir_pipeline_destino : null,
           concluir_estagio_destino_id: row.concluir_acao === "outro_kanban" ? row.concluir_estagio_destino_id : null,
+          criar_card_em: row.criar_card_em ?? [],
         };
         if (row.id.startsWith("new-")) {
-          const { data, error } = await supabase.from("crm_estagios").insert(payload).select("id").single();
+          const { data, error } = await (supabase as any).from("crm_estagios").insert(payload).select("id").single();
           if (error) throw error;
           idMap[row.id] = (data as any).id;
         } else {
-          const { error } = await supabase.from("crm_estagios").update(payload).eq("id", row.id);
+          const { error } = await (supabase as any).from("crm_estagios").update(payload).eq("id", row.id);
           if (error) throw error;
         }
       }
@@ -417,6 +424,28 @@ export function CrmEstagiosEditDialog({
                               </Select>
                             </>
                           )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t">
+                        <div className="text-xs font-medium text-muted-foreground">Criar card neste estágio quando:</div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                          {KANBAN_TRIGGERS.map((t) => {
+                            const checked = (r.criar_card_em ?? []).includes(t.value);
+                            return (
+                              <label key={t.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const cur = new Set(r.criar_card_em ?? []);
+                                    if (v) cur.add(t.value); else cur.delete(t.value);
+                                    update(i, { criar_card_em: Array.from(cur) });
+                                  }}
+                                />
+                                <span>{t.label}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 

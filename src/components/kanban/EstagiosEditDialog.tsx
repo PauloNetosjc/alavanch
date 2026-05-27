@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, GripVertical, ArrowUp, ArrowDown, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { KANBAN_TRIGGERS } from "@/lib/kanbanTriggers";
 
 type Estagio = {
   id: string;
@@ -20,6 +22,7 @@ type Estagio = {
   concluir_acao: string | null;
   concluir_pipeline_destino: string | null;
   concluir_estagio_destino_id: string | null;
+  criar_card_em: string[];
 };
 type Template = { id: string; nome: string; tipo_servico: string };
 
@@ -115,8 +118,9 @@ export function EstagiosEditDialog({
       supabase.from("profiles").select("user_id,nome_completo").order("nome_completo"),
       supabase.from("checklist_template_itens").select("template_id,descricao,ordem").order("ordem"),
     ]);
-    setRows((ests ?? []) as Estagio[]);
-    setTodosEstagios((todos ?? []) as Estagio[]);
+    const norm = (e: any): Estagio => ({ ...e, criar_card_em: Array.isArray(e.criar_card_em) ? e.criar_card_em : [] });
+    setRows(((ests ?? []) as any[]).map(norm));
+    setTodosEstagios(((todos ?? []) as any[]).map(norm));
     setTemplates((tpls ?? []) as Template[]);
     const itensMap: Record<string, { descricao: string }[]> = {};
     ((itens ?? []) as any[]).forEach((it) => {
@@ -159,7 +163,7 @@ export function EstagiosEditDialog({
   const addNew = () => {
     setRows((r) => [
       ...r,
-      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null, concluir_acao: "proxima", concluir_pipeline_destino: null, concluir_estagio_destino_id: null },
+      { id: `new-${Date.now()}`, pipeline, nome: "Novo estágio", ordem: r.length + 1, cor: "#6b7280", ativo: true, checklist_template_id: null, sla_dias_uteis: null, concluir_acao: "proxima", concluir_pipeline_destino: null, concluir_estagio_destino_id: null, criar_card_em: [] },
     ]);
   };
 
@@ -241,6 +245,7 @@ export function EstagiosEditDialog({
           concluir_acao: row.concluir_acao ?? "proxima",
           concluir_pipeline_destino: row.concluir_acao === "outro_kanban" ? row.concluir_pipeline_destino : null,
           concluir_estagio_destino_id: row.concluir_acao === "outro_kanban" ? row.concluir_estagio_destino_id : null,
+          criar_card_em: row.criar_card_em ?? [],
         };
         if (row.id.startsWith("new-")) {
           const { data, error } = await (supabase as any).from("pipeline_estagios").insert({ pipeline, ...payload }).select("id").single();
@@ -411,6 +416,30 @@ export function EstagiosEditDialog({
                               </Select>
                             </>
                           )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Criar card neste estágio quando:
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                          {KANBAN_TRIGGERS.map((t) => {
+                            const checked = (r.criar_card_em ?? []).includes(t.value);
+                            return (
+                              <label key={t.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const cur = new Set(r.criar_card_em ?? []);
+                                    if (v) cur.add(t.value); else cur.delete(t.value);
+                                    update(i, { criar_card_em: Array.from(cur) });
+                                  }}
+                                />
+                                <span>{t.label}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 
