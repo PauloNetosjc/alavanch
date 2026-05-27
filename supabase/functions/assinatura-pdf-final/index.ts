@@ -125,9 +125,8 @@ Deno.serve(async (req) => {
     } else if (s.file_url) {
       const origUrl = await fetchBytes(s.file_url);
       if (origUrl && originalLooksPdf) {
-      if (orig) {
         try {
-            pdf = await PDFDocument.load(origUrl, { ignoreEncryption: true });
+          pdf = await PDFDocument.load(origUrl, { ignoreEncryption: true });
         } catch {
           pdf = await PDFDocument.create();
         }
