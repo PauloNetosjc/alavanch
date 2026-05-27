@@ -4870,6 +4870,10 @@ export type Database = {
         Returns: string
       }
       current_loja_id: { Args: never; Returns: string }
+      ensure_participants_for_solicitation: {
+        Args: { p_solic: string }
+        Returns: undefined
+      }
       executar_automacao_acao: {
         Args: {
           _card_id: string
