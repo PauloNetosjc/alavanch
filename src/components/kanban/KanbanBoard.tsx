@@ -48,6 +48,7 @@ type CardRow = {
     arquivado: boolean | null;
     cliente: { nome: string } | null;
   } | null;
+  etiquetas?: { id: string; nome: string; cor: string }[];
 };
 type Profile = { user_id: string; nome_completo: string | null };
 
