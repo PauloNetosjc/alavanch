@@ -1165,22 +1165,47 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     )}
                   </>
                 )}
-                <Button size="sm" variant="ghost" title="Baixar arquivo" onClick={async () => {
+                <Button size="sm" variant="ghost" title="Baixar PDF" onClick={async () => {
                   try {
                     const bucket = d._bucket || d.bucket_name || "pedido-docs";
                     const path = d.storage_path;
-                    const fileName = d.nome || (path?.split("/").pop() ?? "arquivo");
+                    const baseName = (d.nome || (path?.split("/").pop() ?? "arquivo")).replace(/\.(html?|txt|pdf)$/i, "");
                     const { data: blob, error } = await supabase.storage.from(bucket).download(path);
-                    if (error || !blob) {
-                      const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60, { download: fileName });
-                      if (signed?.signedUrl) { window.location.href = signed.signedUrl; return; }
-                      throw error || new Error("Falha ao baixar");
+                    if (error || !blob) throw error || new Error("Falha ao baixar");
+
+                    const isHtml = /\.html?$/i.test(path || "") || blob.type.includes("html") || blob.type.includes("text");
+                    if (isHtml) {
+                      const html = await blob.text();
+                      const container = document.createElement("div");
+                      container.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;background:#fff;";
+                      // extrai apenas o body se possível
+                      const m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                      container.innerHTML = m ? m[1] : html;
+                      // injeta estilos do <style> presentes no html
+                      const styles = Array.from(html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)).map(s => s[1]).join("\n");
+                      if (styles) {
+                        const st = document.createElement("style");
+                        st.textContent = styles;
+                        container.prepend(st);
+                      }
+                      document.body.appendChild(container);
+                      const html2pdf = (await import("html2pdf.js")).default;
+                      await html2pdf().set({
+                        margin: 10,
+                        filename: `${baseName}.pdf`,
+                        image: { type: "jpeg", quality: 0.95 },
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+                        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                        pagebreak: { mode: ["css", "legacy"] },
+                      }).from(container).save();
+                      container.remove();
+                    } else {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = baseName;
+                      document.body.appendChild(a); a.click(); a.remove();
+                      setTimeout(() => URL.revokeObjectURL(url), 1000);
                     }
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url; a.download = fileName;
-                    document.body.appendChild(a); a.click(); a.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
                   } catch (e: any) {
                     toast.error("Erro ao baixar: " + (e?.message || "desconhecido"));
                   }
