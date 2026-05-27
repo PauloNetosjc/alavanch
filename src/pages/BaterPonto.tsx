@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle } from "lucide-react";
+import { Fingerprint, Camera, Clock, MapPin, History, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
 
 type Turno = {
   id: string; nome: string;
