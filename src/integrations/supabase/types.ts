@@ -452,6 +452,7 @@ export type Database = {
           documento_foto_url: string | null
           id: string
           ip: string | null
+          localizacao: Json | null
           participante_id: string | null
           selfie_url: string | null
           solicitacao_id: string
@@ -466,6 +467,7 @@ export type Database = {
           documento_foto_url?: string | null
           id?: string
           ip?: string | null
+          localizacao?: Json | null
           participante_id?: string | null
           selfie_url?: string | null
           solicitacao_id: string
@@ -480,6 +482,7 @@ export type Database = {
           documento_foto_url?: string | null
           id?: string
           ip?: string | null
+          localizacao?: Json | null
           participante_id?: string | null
           selfie_url?: string | null
           solicitacao_id?: string
@@ -4441,9 +4444,11 @@ export type Database = {
           assinatura_loja_url: string | null
           cancelado_em: string | null
           cliente_assinado_em: string | null
+          cliente_documento: string | null
           cliente_email: string | null
           cliente_id: string | null
           cliente_ip: string | null
+          cliente_localizacao: Json | null
           cliente_nome: string | null
           cliente_telefone: string | null
           cliente_user_agent: string | null
@@ -4455,9 +4460,16 @@ export type Database = {
           expira_em: string
           file_name: string | null
           file_url: string | null
+          final_pdf_storage_path: string | null
+          final_pdf_url: string | null
           id: string
           loja_assinado_em: string | null
+          loja_assinatura_cargo: string | null
+          loja_assinatura_email: string | null
+          loja_assinatura_nome: string | null
           loja_id: string | null
+          loja_ip: string | null
+          loja_user_agent: string | null
           motivo_recusa: string | null
           observacao: string | null
           pedido_documento_id: string | null
@@ -4476,9 +4488,11 @@ export type Database = {
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
+          cliente_documento?: string | null
           cliente_email?: string | null
           cliente_id?: string | null
           cliente_ip?: string | null
+          cliente_localizacao?: Json | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
           cliente_user_agent?: string | null
@@ -4490,9 +4504,16 @@ export type Database = {
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
+          final_pdf_storage_path?: string | null
+          final_pdf_url?: string | null
           id?: string
           loja_assinado_em?: string | null
+          loja_assinatura_cargo?: string | null
+          loja_assinatura_email?: string | null
+          loja_assinatura_nome?: string | null
           loja_id?: string | null
+          loja_ip?: string | null
+          loja_user_agent?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           pedido_documento_id?: string | null
@@ -4511,9 +4532,11 @@ export type Database = {
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
+          cliente_documento?: string | null
           cliente_email?: string | null
           cliente_id?: string | null
           cliente_ip?: string | null
+          cliente_localizacao?: Json | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
           cliente_user_agent?: string | null
@@ -4525,9 +4548,16 @@ export type Database = {
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
+          final_pdf_storage_path?: string | null
+          final_pdf_url?: string | null
           id?: string
           loja_assinado_em?: string | null
+          loja_assinatura_cargo?: string | null
+          loja_assinatura_email?: string | null
+          loja_assinatura_nome?: string | null
           loja_id?: string | null
+          loja_ip?: string | null
+          loja_user_agent?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           pedido_documento_id?: string | null

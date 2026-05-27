@@ -220,6 +220,18 @@ Deno.serve(async (req) => {
       codigo_validacao: codigo,
     });
 
+    await sb.from("solicitacoes_assinatura").update({
+      final_pdf_storage_path: path,
+      final_pdf_url: url,
+    }).eq("id", s.id);
+
+    if (s.contrato_id) {
+      await sb.from("contratos").update({
+        pdf_assinado_url: url,
+        metodo_assinatura: "digital",
+      }).eq("id", s.contrato_id);
+    }
+
     const { data: pastaDocs } = await sb
       .from("pedido_pastas")
       .select("id")

@@ -606,13 +606,18 @@ export default function ComercialNegociacao() {
         setMeuLimite(indiv != null ? Number(indiv) : maxRole);
       }
 
-      // Template de contrato (loja atual ou padrão global)
-      const { data: tpls } = await supabase
-        .from("contratos_template")
-        .select("*")
-        .eq("ativo", true)
-        .order("loja_id", { nullsFirst: false });
-      setTplContrato((tpls?.[0] ?? null) as ContratoTemplate | null);
+      // Template de contrato da loja do orçamento
+      const { data: tplLoja } = o?.loja_id
+        ? await supabase
+            .from("contratos_template")
+            .select("*")
+            .eq("ativo", true)
+            .eq("loja_id", o.loja_id)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : ({ data: null } as any);
+      setTplContrato((tplLoja ?? null) as ContratoTemplate | null);
 
       // Configurações da empresa (composição de custos e markup)
       const lojaId = (o as any)?.loja_id;
