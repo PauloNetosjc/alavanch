@@ -2407,3 +2407,164 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
     </section>
   );
 }
+
+/* ============================================================== */
+/*               RESUMO FINANCEIRO DO PEDIDO (real)               */
+/* ============================================================== */
+function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido }: any) {
+  const [open, setOpen] = useState(false);
+  const [config, setConfig] = useState<any>(null);
+  const [metodos, setMetodos] = useState<any[]>([]);
+  const [parceiroNome, setParceiroNome] = useState<string>("");
+  const [usarMarkup, setUsarMarkup] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const lojaId = pedido?.loja_id || orcamento?.loja_id;
+      const cfgQ = lojaId
+        ? supabase.from("configuracoes_empresa" as any).select("*").eq("loja_id", lojaId).maybeSingle()
+        : supabase.from("configuracoes_empresa" as any).select("*").limit(1).maybeSingle();
+      const [{ data: cfg }, { data: mts }] = await Promise.all([
+        cfgQ,
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela"),
+      ]);
+      setConfig(cfg || null);
+      setUsarMarkup(!!(cfg as any)?.usar_markup);
+      setMetodos(mts || []);
+      if (orcamento?.parceiro_id) {
+        const { data: pc } = await supabase.from("parceiros").select("nome").eq("id", orcamento.parceiro_id).maybeSingle();
+        setParceiroNome((pc as any)?.nome || "");
+      } else setParceiroNome("");
+    })();
+  }, [open, pedido?.loja_id, orcamento?.loja_id, orcamento?.parceiro_id]);
+
+  if (!orcamento) return null;
+
+  // Derivados a partir dos dados reais do pedido
+  const totalProposta = Number(pedido?.valor_total) || Number(orcamento?.total) || 0;
+  const descPerc = Number(orcamento?.desconto_perc) || 0;
+  const descValor = Number(orcamento?.desconto_valor) || 0;
+  const parceiroPerc = Number(orcamento?.parceiro_perc) || 0;
+  const subtotalAmbs = (ambientes || []).reduce((s: number, a: any) => s + (Number(a.preco_sugerido) || 0), 0);
+  const parceiroValor = subtotalAmbs * (parceiroPerc / 100);
+  const valorInicial = subtotalAmbs > 0 ? (subtotalAmbs + parceiroValor) : (totalProposta + descValor);
+  const custoFabrica = (ambientes || []).reduce((s: number, a: any) => s + (Number(a.custo_fabrica) || 0), 0);
+  const jurosCliente = (pagamentos || []).reduce((s: number, p: any) => {
+    if (!p.parcelas || p.parcelas <= 1) return s;
+    const met = metodos.find((m: any) => m.nome === p.metodo);
+    const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
+    if (!taxa) return s;
+    const principal = Number(p.valor || 0) / p.parcelas;
+    let total = 0;
+    for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
+    return s + total;
+  }, 0);
+
+  const fretePerc = Number(config?.frete_venda_perc) || 0;
+  const comissaoLojaPerc = Number(config?.comissao_loja_perc) || 0;
+  const montagemPerc = Number(config?.montagem_perc) || 0;
+  const impostosPerc = Number(config?.imp_saida_perc) || 0;
+  const outrosPerc = Number(config?.outros_perc) || 0;
+  const frete = totalProposta * (fretePerc / 100);
+  const comissaoLoja = totalProposta * (comissaoLojaPerc / 100);
+  const montagem = totalProposta * (montagemPerc / 100);
+  const impostos = totalProposta * (impostosPerc / 100);
+  const outros = totalProposta * (outrosPerc / 100);
+  const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
+  const valorSemJuros = totalProposta - jurosCliente;
+  const totalVPL = valorSemJuros - parceiroValor;
+  const lucro = totalVPL - totalCustos;
+  const margem = totalProposta > 0 ? (lucro / totalProposta) * 100 : 0;
+  const markup = custoFabrica > 0 ? totalVPL / custoFabrica : 0;
+  const composicaoTotal = totalCustos > 0 ? totalCustos : 1;
+  const pct = (v: number) => (v / composicaoTotal) * 100;
+
+  const Field = ({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) => (
+    <div>
+      <div className="text-[12px] text-muted-foreground">{label}</div>
+      <div className="text-[18px] font-semibold leading-tight" style={color ? { color } : {}}>{value}</div>
+    </div>
+  );
+  const Row = ({ label, valor, perc, color }: { label: string; valor: number; perc: number; color: string }) => (
+    <div>
+      <div className="flex items-center justify-between text-[13px]">
+        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: color }} />{label}</div>
+        <span className="font-semibold">{fmtBrl(valor)}</span>
+      </div>
+      <div className="mt-1 h-1 rounded-full bg-muted overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, perc)}%`, background: color }} />
+      </div>
+      <div className="text-right text-[11px] text-muted-foreground mt-0.5">{perc.toFixed(2)}%</div>
+    </div>
+  );
+
+  return (
+    <>
+      <Button variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" onClick={() => setOpen(true)}>
+        <PieChart className="w-4 h-4 mr-1.5" /> Resumo Financeiro
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Resumo Financeiro</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+            <div className="space-y-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valores Principais</div>
+              <Field label="Valor Inicial" value={fmtBrl(valorInicial)} />
+              <Field label="Descontos" color="#B83232" value={<>-{fmtBrl(descValor)} <span className="text-[12px] text-muted-foreground">({descPerc.toFixed(2)}%)</span></>} />
+              <Field label="Valor Total da Venda" value={fmtBrl(totalProposta)} />
+              <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
+              <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
+              {parceiroNome && (
+                <Field label={`Indicador (${parceiroNome})`} color="#B83232" value={<>-{fmtBrl(parceiroValor)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
+              )}
+              <Field label="VPL (Valor Presente Líquido)" color="#16A34A" value={fmtBrl(totalVPL)} />
+              {usarMarkup && (
+                <div>
+                  <div className="text-[12px] text-muted-foreground">Markup Médio</div>
+                  <div className="text-[20px] font-semibold text-emerald-600">{markup.toFixed(2)}x</div>
+                </div>
+              )}
+            </div>
+            <div className="space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
+              <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" />
+              <Row label="Frete" valor={frete} perc={pct(frete)} color="#A855F7" />
+              <Row label="Comissão Loja" valor={comissaoLoja} perc={pct(comissaoLoja)} color="#F59E0B" />
+              <Row label="Montagem" valor={montagem} perc={pct(montagem)} color="#06B6D4" />
+              <Row label="Impostos Saída" valor={impostos} perc={pct(impostos)} color="#F97316" />
+              <Row label="Outros" valor={outros} perc={pct(outros)} color="#94A3B8" />
+              <div className="border-t border-border pt-2 flex items-center justify-between text-[14px] font-semibold">
+                <span>Total</span><span>{fmtBrl(totalCustos)}</span>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Resultado Real</div>
+              <div className="flex flex-col items-center py-2">
+                <div className="w-32 h-32 rounded-full flex items-center justify-center" style={{ background: `conic-gradient(#3F8B5C ${Math.max(0, margem)}%, #E5E7EB 0)` }}>
+                  <div className="w-24 h-24 rounded-full bg-background flex flex-col items-center justify-center">
+                    <div className="text-[20px] font-semibold">{margem.toFixed(1)}%</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">margem</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-3 text-[11px]">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lucro</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Custos</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[13px]"><span className="text-muted-foreground">Total VPL</span><span className="font-semibold">{fmtBrl(totalVPL)}</span></div>
+                <div className="flex items-center justify-between text-[13px]"><span className="text-muted-foreground">Total Custos</span><span className="font-semibold text-rose-600">-{fmtBrl(totalCustos)}</span></div>
+                <div className="border-t border-border pt-2">
+                  <div className="text-[12px] text-muted-foreground">Lucro Real</div>
+                  <div className="text-[24px] font-semibold text-emerald-600">{fmtBrl(lucro)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter><Button onClick={() => setOpen(false)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
