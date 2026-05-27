@@ -14,6 +14,8 @@ import {
   Briefcase, Plus, Search, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, Calculator, FileSignature,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import { useLoja } from "@/contexts/LojaContext";
 
 type OrcRow = {
   id: string;
@@ -23,6 +25,7 @@ type OrcRow = {
   total: number | null;
   created_at: string;
   cliente_id: string | null;
+  loja_id?: string | null;
   cliente?: { nome: string } | null;
   pedido_id?: string | null;
   contrato_status?: string | null;
@@ -167,6 +170,12 @@ export default function Comercial() {
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
   const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
+  const { selectedLojaId } = useLoja();
+  const [lojasFilter, setLojasFilter] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
+  useEffect(() => {
+    if (selectedLojaId && lojasFilter.length === 0) setLojasFilter([selectedLojaId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLojaId]);
 
   const today = new Date();
   const [refDate, setRefDate] = useState(today);
@@ -178,7 +187,7 @@ export default function Comercial() {
     setLoading(true);
     const { data, error } = await supabase
       .from("orcamentos")
-      .select("id, codigo, nome_projeto, status, total, created_at, cliente_id, cliente:clientes(nome)")
+      .select("id, codigo, nome_projeto, status, total, created_at, cliente_id, loja_id, cliente:clientes(nome)")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     const orcs = (data ?? []) as any[];
@@ -235,6 +244,7 @@ export default function Comercial() {
   const visibleRows = useMemo(() => {
     return rows.filter((r) => {
       if (!showCancelled && r.status === "perdido") return false;
+      if (lojasFilter.length > 0 && (!r.loja_id || !lojasFilter.includes(r.loja_id))) return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
       if (revisaoFilter === "revisado" && !r.revisado) return false;
@@ -253,7 +263,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search, lojasFilter]);
 
   const stats = useMemo(() => {
     const negociacao = rows
@@ -299,6 +309,7 @@ export default function Comercial() {
               className="pl-9 rounded-xl"
             />
           </div>
+          <LojasFilter value={lojasFilter} onChange={setLojasFilter} />
           <label
             className="flex items-center gap-2 text-[12px] font-medium px-3 py-2 rounded-xl border cursor-pointer"
             style={{
