@@ -25,6 +25,7 @@ import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
+import { VisualizarAssinaturasDialog } from "@/components/assinaturas/VisualizarAssinaturasDialog";
 import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
@@ -957,6 +958,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   const [novaAssinDoc, setNovaAssinDoc] = useState<any>(null);
   const [evidId, setEvidId] = useState<string | null>(null);
   const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
+  const [verAssinaturasId, setVerAssinaturasId] = useState<string | null>(null);
+  const [partsBySol, setPartsBySol] = useState<Record<string, any[]>>({});
 
   // Mapa: pedido_documento_id -> última solicitação
   const solicByDoc = useMemo(() => {
@@ -964,6 +967,24 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     for (const s of solicitacoes) if (s.pedido_documento_id && !m[s.pedido_documento_id]) m[s.pedido_documento_id] = s;
     return m;
   }, [solicitacoes]);
+
+  // Carrega participantes das solicitações visíveis
+  useEffect(() => {
+    const ids = Array.from(new Set((solicitacoes || []).map((s: any) => s.id))).filter(Boolean);
+    if (!ids.length) { setPartsBySol({}); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("assinatura_participantes" as any)
+        .select("id,solicitacao_id,tipo,status,assinado_em,nome,email,token")
+        .in("solicitacao_id", ids);
+      const map: Record<string, any[]> = {};
+      for (const p of ((data as any[]) || [])) {
+        (map[p.solicitacao_id] ||= []).push(p);
+      }
+      setPartsBySol(map);
+    })();
+  }, [solicitacoes]);
+
 
   useEffect(() => { if (!pastaAtiva && pastas[0]) setPastaAtiva(pastas[0].id); }, [pastas]);
 
@@ -1110,6 +1131,10 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
             if (!t) return toast.error(`Sem participante ${tipo}.`);
             window.open(getPublicSignatureUrl(t), "_blank");
           };
+          const partes = (sol && partsBySol[sol.id]) || [];
+          const partesReq = partes.filter((p: any) => p.tipo === "cliente" || (p.tipo === "loja" && requerLoja !== false));
+          const assinadosCount = partesReq.filter((p: any) => !!p.assinado_em).length;
+          const totalCount = partesReq.length;
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -1118,8 +1143,14 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                   <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
                     <span className="truncate">{d.nome}</span>
                     {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
+                    {sol && totalCount > 0 && (
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${assinadosCount === totalCount ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-amber-50 text-amber-700 border-amber-300"}`}>
+                        Assinaturas: {assinadosCount}/{totalCount}
+                      </Badge>
+                    )}
                     {requerLoja && <Badge variant="outline" className="text-[10px] px-1.5 py-0">requer loja</Badge>}
                   </div>
+
                   <div className="text-[10px] text-muted-foreground">
                     {fmtDateTime(d.created_at)}
                     {sol?.cliente_assinado_em && ` • Cliente: ${new Date(sol.cliente_assinado_em).toLocaleString("pt-BR")}`}
@@ -1151,8 +1182,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEvidId(sol.id)}>
-                      <Eye className="w-3.5 h-3.5 mr-1" /> Evidências
+                    <Button size="sm" variant="outline" onClick={() => setVerAssinaturasId(sol.id)} title="Ver assinaturas e links">
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Ver assinaturas
                     </Button>
                     {podeAssinarLoja && (
                       <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAssinarLojaId(sol.id)}>
@@ -1352,6 +1383,12 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
         onOpenChange={(v) => !v && setAssinarLojaId(null)}
         solicitacaoId={assinarLojaId}
         onDone={() => { setAssinarLojaId(null); onChange(); }}
+      />
+      <VisualizarAssinaturasDialog
+        open={!!verAssinaturasId}
+        onOpenChange={(v) => !v && setVerAssinaturasId(null)}
+        solicitacaoId={verAssinaturasId}
+        onAssinarLoja={(id) => { setVerAssinaturasId(null); setAssinarLojaId(id); }}
       />
     </section>
   );
