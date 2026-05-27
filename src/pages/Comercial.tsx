@@ -203,10 +203,11 @@ export default function Comercial() {
     const ids = orcs.map((o) => o.id);
     if (ids.length > 0) {
       const [{ data: peds }, { data: cts }] = await Promise.all([
-        supabase.from("pedidos").select("id, orcamento_id").in("orcamento_id", ids),
+        supabase.from("pedidos").select("id, orcamento_id, cliente_final").in("orcamento_id", ids),
         supabase.from("contratos").select("status, orcamento_id").in("orcamento_id", ids),
       ]);
       const pedMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.id]));
+      const pedClienteFinalMap = new Map((peds || []).map((p: any) => [p.orcamento_id, p.cliente_final]));
       const pedIds = (peds || []).map((p: any) => p.id);
       const ctMap = new Map((cts || []).map((c: any) => [c.orcamento_id, c.status]));
 
