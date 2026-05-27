@@ -1070,7 +1070,36 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     prevContratoRef.current = temContrato;
   }, [temContrato, pastaDocumentosId]);
 
-  const docsDaPasta = docs.filter((d: any) => d.pasta_id === pastaAtiva);
+  // Mapa: solicitacao_id -> doc final (bucket assinaturas-finais)
+  const finalDocBySol = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const d of docs) {
+      if (d.bucket_name === "assinaturas-finais" && d.solicitacao_id) {
+        if (!m[d.solicitacao_id] || new Date(d.created_at) > new Date(m[d.solicitacao_id].created_at)) {
+          m[d.solicitacao_id] = d;
+        }
+      }
+    }
+    return m;
+  }, [docs]);
+
+  // Sanitiza .pdf.pdf duplicado em qualquer nome exibido
+  const sanitizeNome = (nome: string) => (nome || "").replace(/\.pdf\.pdf$/i, ".pdf");
+
+  // Esconde da listagem o doc final quando existir o original na mesma solicitação
+  const docsDaPasta = docs.filter((d: any) => {
+    if (d.pasta_id !== pastaAtiva) return false;
+    if (d.bucket_name === "assinaturas-finais" && d.solicitacao_id) {
+      const temOriginal = docs.some(
+        (o: any) =>
+          o.id !== d.id &&
+          o.solicitacao_id === d.solicitacao_id &&
+          o.bucket_name !== "assinaturas-finais",
+      );
+      if (temOriginal) return false;
+    }
+    return true;
+  });
 
   const criarPasta = async () => {
     if (!novaPastaNome.trim()) return;
@@ -1217,13 +1246,18 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const partesReq = partes.filter((p: any) => p.tipo === "cliente" || (p.tipo === "loja" && requerLoja !== false));
           const assinadosCount = partesReq.filter((p: any) => !!p.assinado_em).length;
           const totalCount = partesReq.length;
+          const docFinal = sol ? finalDocBySol[sol.id] : null;
+          const codigoPedido = (d.nome || "").match(/PV-[A-Z0-9-]+/i)?.[0];
+          const nomeExibido = sanitizeNome(
+            assinaturaCompleta && codigoPedido ? `Contrato assinado - ${codigoPedido}.pdf` : d.nome,
+          );
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <FileText className="w-5 h-5 text-purple-600 mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
-                    <span className="truncate">{d.nome}</span>
+                    <span className="truncate">{nomeExibido}</span>
                     {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
                     {sol && totalCount > 0 && (
                       <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${assinadosCount === totalCount ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-amber-50 text-amber-700 border-amber-300"}`}>
@@ -1253,17 +1287,21 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                 )}
                 {sol && (
                   <>
-                    {requerLoja && (
+                    {!assinaturaCompleta && requerLoja && (
                       <Button size="sm" variant="outline" onClick={() => copiarLinkPart("loja")} title="Copiar link da loja">
                         <Copy className="w-3.5 h-3.5 mr-1" /> Link loja
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
-                      <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
-                    </Button>
+                    {!assinaturaCompleta && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => copiarLinkPart("cliente")} title="Copiar link do cliente">
+                          <Copy className="w-3.5 h-3.5 mr-1" /> Link cliente
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => abrirLinkPart("cliente")} title="Abrir link do cliente">
+                          <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir
+                        </Button>
+                      </>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => setVerAssinaturasId(sol.id)} title="Ver assinaturas e links">
                       <Eye className="w-3.5 h-3.5 mr-1" /> Ver assinaturas
                     </Button>
@@ -1273,9 +1311,44 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                       </Button>
                     )}
                     {assinaturaCompleta && (
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, d.nome)}>
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, nomeExibido)}>
                         <FileText className="w-3.5 h-3.5 mr-1" /> Baixar completo
                       </Button>
+                    )}
+                    {assinaturaCompleta && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" title="Mais opções">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={async () => {
+                            try {
+                              const bucket = d.bucket_name || "contratos-assinatura";
+                              const { data: blob, error } = await supabase.storage.from(bucket).download(d.storage_path);
+                              if (error || !blob) throw error || new Error("Falha ao baixar");
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url; a.download = sanitizeNome(d.nome || "contrato-original.pdf");
+                              document.body.appendChild(a); a.click(); a.remove();
+                              setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                          }}>📥 Baixar contrato original</DropdownMenuItem>
+                          <DropdownMenuItem onClick={async () => {
+                            try {
+                              const bucket = d.bucket_name || "contratos-assinatura";
+                              const { data } = await supabase.storage.from(bucket).createSignedUrl(d.storage_path, 60);
+                              if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                            } catch (e: any) { toast.error("Erro: " + (e?.message || "desconhecido")); }
+                          }}>👁 Ver contrato original</DropdownMenuItem>
+                          {requerLoja && (
+                            <DropdownMenuItem onClick={() => copiarLinkPart("loja")}>🔗 Copiar link da loja</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => copiarLinkPart("cliente")}>🔗 Copiar link do cliente</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEvidId(sol.id)}>🧾 Ver evidências</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </>
                 )}
