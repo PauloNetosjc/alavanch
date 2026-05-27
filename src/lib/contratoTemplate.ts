@@ -199,13 +199,22 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   .data-loc { text-align:center; margin-top:30px; font-style:italic; font-size:13px; }
   .sigs { display:flex; justify-content:space-between; gap:60px; margin-top:48px; }
   .sigs .col { flex:1; text-align:center; }
-  .loja-signature { height:128px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
+  .loja-signature { min-height:128px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:4px; }
   .loja-signature img { width:320px; max-width:100%; max-height:128px; object-fit:contain; }
+  .estamp { width:100%; max-width:320px; margin:0 auto; padding:10px 12px; border:1.5px solid #1B2240; border-radius:6px; background:#F5F8FF; text-align:left; font-size:11px; line-height:1.4; color:#1A1A1A; }
+  .estamp-pending { border-style:dashed; background:#FAFAFA; color:#6B6760; text-align:center; }
+  .estamp-title { font-size:10px; font-weight:700; color:#1B2240; text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .estamp-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+  .estamp-row { font-size:11px; color:#1A1A1A; }
+  .estamp-when { color:#6B6760; margin-top:2px; }
+  .estamp-role { margin-top:6px; padding-top:4px; border-top:1px dashed #C2CCE6; font-size:10px; font-weight:700; color:#1B2240; text-transform:uppercase; letter-spacing:.4px; }
   .sigs .line { border-top:1px solid #1A1A1A; padding-top:6px; }
   .sigs .nm { font-weight:700; font-size:13px; }
   .sigs .lb { color:#6B6760; font-size:11px; }
   .footer { margin-top:30px; font-size:10px; color:#6B6760; text-align:center; border-top:1px solid #EEE; padding-top:8px; }
   .auth-block { margin-top:20px; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px; background:#FAFAFA; border:1px solid #EEE; border-radius:6px; font-size:11px; color:#6B6760;}
+  .auth-block img { width:96px; height:96px; }
+
 </style></head><body>
 <div class="page">
 
@@ -219,9 +228,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
     </div>
     <div style="text-align:right">
       <div style="font-size:9px;color:#6B6760;letter-spacing:1px;margin-bottom:2px">AUTENTICIDADE</div>
-      <div class="qr">QR</div>
+      ${qrImgHtml}
     </div>
   </div>
+
 
   <div class="num-bar">
     <div class="lbl">CONTRATO Nº</div>
@@ -305,11 +315,13 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   <div class="auth-block">
     <div>
       <div style="font-weight:700;color:#1B2240;margin-bottom:2px">AUTENTICIDADE DIGITAL</div>
-      <div>Para assinar e validar este contrato acesse:</div>
-      <div style="color:#2D6BE5;word-break:break-all">${ctx.signing_url}</div>
+      <div>Valide este contrato em:</div>
+      <div style="color:#2D6BE5;word-break:break-all">${validationUrl || ctx.signing_url}</div>
+      <div style="margin-top:4px;color:#6B6760">ID da solicitação: ${escapeHtml(ctx.numero)}</div>
     </div>
-    <div class="qr">QR</div>
+    ${qrImgHtmlLarge}
   </div>
+
 
   ${tpl.rodape ? `<div class="footer">${tpl.rodape}</div>` : ""}
 </div>
