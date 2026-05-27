@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import logo from "@/assets/alavanch-logo.png";
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
@@ -10,6 +12,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -32,79 +35,183 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm surface-card" style={{ padding: 32 }}>
-        <div className="flex items-center gap-2.5 mb-8">
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center"
-            style={{ background: "#1A1A1A", border: "0.5px solid #333" }}
-          >
-            <span className="text-[11px] font-medium text-white">P</span>
-          </div>
-          <div>
-            <div className="text-[13px] font-medium tracking-[0.02em]">Alavanch</div>
-            <div className="text-[9px] uppercase text-muted-foreground tracking-[0.12em]">Sistema</div>
-          </div>
+    <div className="min-h-screen w-full grid lg:grid-cols-2 bg-[#0a0a0f] text-white overflow-hidden">
+      {/* Left brand panel */}
+      <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden">
+        {/* Animated gradient backdrop */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,#2a1f4a_0%,#0a0a0f_55%)]" />
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-indigo-600/20 blur-[120px]" />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
+            backgroundSize: "44px 44px",
+          }}
+        />
+
+        <div className="relative z-10">
+          <img src={logo} alt="Alavanch" className="h-14 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" />
         </div>
 
-        <h1 className="mb-1">{mode === "login" ? "Entrar" : "Criar conta"}</h1>
-        <p className="text-[12px] text-muted-foreground mb-6">
-          {mode === "login" ? "Acesse seu painel" : "Crie sua conta administrativa"}
-        </p>
+        <div className="relative z-10 space-y-6 max-w-md">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] uppercase tracking-[0.18em] text-purple-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+            Acelerador Digital
+          </div>
+          <h2 className="text-4xl font-light leading-tight tracking-tight">
+            Gestão inteligente,
+            <br />
+            <span className="font-serif italic text-purple-300">resultados acelerados.</span>
+          </h2>
+          <p className="text-sm text-white/60 leading-relaxed">
+            Plataforma completa para gerenciar orçamentos, pedidos, produção e relacionamento — tudo em um só lugar.
+          </p>
+        </div>
 
-        <form onSubmit={submit} className="space-y-4">
-          {mode === "signup" && (
-            <div>
-              <label className="kpi-label block mb-1.5">Nome</label>
-              <input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
-                style={{ border: "0.5px solid hsl(var(--border-strong))" }}
-              />
+        <div className="relative z-10 text-[11px] text-white/40 tracking-wider">
+          © {new Date().getFullYear()} ALAVANCH · TODOS OS DIREITOS RESERVADOS
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="relative flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-[#0f0f17] via-[#0a0a0f] to-[#0a0a0f]">
+        {/* mobile logo backdrop */}
+        <div className="absolute inset-0 lg:hidden bg-[radial-gradient(ellipse_at_top,#2a1f4a_0%,#0a0a0f_60%)]" />
+
+        <div className="relative z-10 w-full max-w-md">
+          <div className="lg:hidden mb-10 flex justify-center">
+            <img src={logo} alt="Alavanch" className="h-12 w-auto" />
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_0_60px_-15px_rgba(139,92,246,0.25)]">
+            <div className="mb-8">
+              <h1 className="text-2xl font-light tracking-tight text-white">
+                {mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}
+              </h1>
+              <p className="text-sm text-white/50 mt-1">
+                {mode === "login" ? "Entre para acessar seu painel" : "Comece a acelerar agora"}
+              </p>
             </div>
-          )}
-          <div>
-            <label className="kpi-label block mb-1.5">E-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
-              style={{ border: "0.5px solid hsl(var(--border-strong))" }}
-            />
-          </div>
-          <div>
-            <label className="kpi-label block mb-1.5">Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full h-9 px-3 rounded-md bg-card text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
-              style={{ border: "0.5px solid hsl(var(--border-strong))" }}
-            />
+
+            <form onSubmit={submit} className="space-y-4">
+              {mode === "signup" && (
+                <Field
+                  icon={<User size={15} />}
+                  label="Nome"
+                  type="text"
+                  value={nome}
+                  onChange={setNome}
+                  required
+                />
+              )}
+              <Field
+                icon={<Mail size={15} />}
+                label="E-mail"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                required
+              />
+              <Field
+                icon={<Lock size={15} />}
+                label="Senha"
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={setPassword}
+                required
+                minLength={6}
+                rightSlot={
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((v) => !v)}
+                    className="text-white/40 hover:text-white/80 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                }
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative w-full h-11 rounded-lg text-sm font-medium text-white overflow-hidden transition-all disabled:opacity-60"
+                style={{
+                  background: "linear-gradient(135deg,#7c3aed 0%,#6366f1 50%,#4f46e5 100%)",
+                  boxShadow: "0 10px 30px -10px rgba(124,58,237,0.6)",
+                }}
+              >
+                <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
+                <span className="relative flex items-center justify-center gap-2">
+                  {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
+                  {!loading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
+                </span>
+              </button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-white/10 text-center">
+              <button
+                onClick={() => setMode(mode === "login" ? "signup" : "login")}
+                className="text-[13px] text-white/50 hover:text-white transition-colors"
+              >
+                {mode === "login" ? (
+                  <>Não tem conta? <span className="text-purple-300 font-medium">Criar conta</span></>
+                ) : (
+                  <>Já tem conta? <span className="text-purple-300 font-medium">Entrar</span></>
+                )}
+              </button>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-9 rounded-md text-[12px] font-medium text-white transition-colors"
-            style={{ background: loading ? "#555" : "#1A1A1A" }}
-          >
-            {loading ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}
-          </button>
-        </form>
+          <p className="text-center text-[11px] text-white/30 mt-6 tracking-wider lg:hidden">
+            © {new Date().getFullYear()} ALAVANCH
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        <button
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="w-full text-center mt-4 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {mode === "login" ? "Não tem conta? Criar conta" : "Já tem conta? Entrar"}
-        </button>
+function Field({
+  icon,
+  label,
+  type,
+  value,
+  onChange,
+  required,
+  minLength,
+  rightSlot,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  minLength?: number;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-[10px] uppercase tracking-[0.14em] text-white/40 mb-1.5">{label}</label>
+      <div className="relative group">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35 group-focus-within:text-purple-300 transition-colors">
+          {icon}
+        </span>
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          minLength={minLength}
+          className="w-full h-11 pl-9 pr-10 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-purple-400/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-purple-500/20 transition-all"
+        />
+        {rightSlot && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2">{rightSlot}</span>
+        )}
       </div>
     </div>
   );
