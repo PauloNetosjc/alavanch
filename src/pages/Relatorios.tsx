@@ -406,7 +406,7 @@ export default function Relatorios() {
   );
 }
 
-function KpiBig({ icon, color, label, value, badge }: { icon: React.ReactNode; color: "primary" | "emerald" | "rose"; label: string; value: string; badge: string }) {
+function KpiBig({ icon, color, label, value, badge, hint }: { icon: React.ReactNode; color: "primary" | "emerald" | "rose"; label: string; value: string; badge: string; hint?: string }) {
   const colors: Record<string, { bg: string; fg: string; badgeBg: string; badgeFg: string }> = {
     primary: { bg: "bg-primary/15", fg: "text-primary", badgeBg: "bg-primary/15", badgeFg: "text-primary" },
     emerald: { bg: "bg-emerald-500/15", fg: "text-emerald-500", badgeBg: "bg-emerald-500/15", badgeFg: "text-emerald-500" },
@@ -421,6 +421,7 @@ function KpiBig({ icon, color, label, value, badge }: { icon: React.ReactNode; c
       </div>
       <div className="text-[10px] uppercase text-muted-foreground tracking-wider mt-3">{label}</div>
       <div className="text-[18px] font-medium mt-1">{value}</div>
+      {hint && <div className="text-[10px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
