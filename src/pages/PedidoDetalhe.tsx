@@ -2441,6 +2441,16 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
           }}>
             🔄 Regenerar PDF
           </Button>
+          {solic.status !== "concluido" && solic.status !== "assinado_manual" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+              onClick={() => setManualOpen(true)}
+            >
+              📎 Anexar contrato impresso assinado
+            </Button>
+          )}
         </div>
       )}
       {solic?.created_at && (
@@ -2448,6 +2458,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
           Solicitação criada em {new Date(solic.created_at).toLocaleString("pt-BR")}.
         </div>
       )}
+      <UploadContratoManualDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        solicitacaoId={solic?.id || null}
+        pedidoId={pedido?.id || null}
+        onDone={() => { onChange(); }}
+      />
     </div>
   );
 }
