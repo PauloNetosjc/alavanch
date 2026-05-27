@@ -163,18 +163,27 @@ function PoliticasTab() {
             { k: "montagem_perc", label: "Montagem (%)" },
             { k: "imp_saida_perc", label: "Imp. Saída (%)" },
             { k: "outros_perc", label: "Outros (%)" },
-          ].map((f) => (
-            <div key={f.k} className="surface-card p-3">
-              <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{f.label}</div>
-              <Input
-                type="number"
-                step="0.1"
-                className="mt-1 h-8 border-0 bg-transparent text-[18px] font-medium text-primary p-0"
-                value={c[f.k] ?? ""}
-                onChange={(e) => set(f.k, parseFloat(e.target.value))}
-              />
-            </div>
-          ))}
+          ].map((f) => {
+            const labels = (c.formacao_preco_labels && typeof c.formacao_preco_labels === "object") ? c.formacao_preco_labels : {};
+            const shown = labels[f.k] ?? f.label;
+            return (
+              <div key={f.k} className="surface-card p-3">
+                <Input
+                  className="text-[10px] uppercase text-muted-foreground tracking-wider h-5 border-0 bg-transparent p-0"
+                  value={shown}
+                  onChange={(e) => set("formacao_preco_labels", { ...labels, [f.k]: e.target.value })}
+                  title="Clique para renomear"
+                />
+                <Input
+                  type="number"
+                  step="0.1"
+                  className="mt-1 h-8 border-0 bg-transparent text-[18px] font-medium text-primary p-0"
+                  value={c[f.k] ?? ""}
+                  onChange={(e) => set(f.k, parseFloat(e.target.value))}
+                />
+              </div>
+            );
+          })}
           {(Array.isArray(c.formacao_preco_extras) ? c.formacao_preco_extras : []).map((item: any, idx: number) => (
             <div key={item.id ?? idx} className="surface-card p-3 relative group">
               <button
