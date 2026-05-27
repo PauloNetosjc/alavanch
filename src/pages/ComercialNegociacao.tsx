@@ -868,7 +868,9 @@ export default function ComercialNegociacao() {
           parcelas: p.parcelas,
           data_vencimento: p.data_vencimento,
           parcelas_detalhe: p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas ? p.parcelas_detalhe : null,
-        })),
+          parcelas_vencimentos: (p as any).parcelas_vencimentos && (p as any).parcelas_vencimentos.length === p.parcelas ? (p as any).parcelas_vencimentos : null,
+          parcelas_formas: (p as any).parcelas_formas && (p as any).parcelas_formas.length === p.parcelas ? (p as any).parcelas_formas : null,
+        })) as any,
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
