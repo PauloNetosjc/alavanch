@@ -55,6 +55,7 @@ export function AssinarPelaLojaDialog({
         descricao: `Loja assinou (${(profile as any)?.nome_completo || user?.email})`,
         user_id: user?.id,
       });
+      await arquivarDocumentoAssinado(solic.id);
       toast.success("Documento concluído!");
       onOpenChange(false); onDone?.();
     } catch (e: any) {
