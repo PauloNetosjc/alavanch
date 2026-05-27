@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,19 @@ function maskDocAuto(v: string) {
 const ACEITE_TEXT =
   "Declaro que li e estou de acordo com o conteúdo deste documento. Confirmo que os dados enviados são verdadeiros e autorizo o uso desta assinatura digital para validação deste documento.";
 
+type Participante = {
+  id: string;
+  solicitacao_id: string;
+  tipo: "cliente" | "loja";
+  status: string;
+  token: string;
+  nome: string | null;
+  email: string | null;
+  documento: string | null;
+  assinado_em: string | null;
+  visualizado_em: string | null;
+};
+
 type Solicitacao = {
   id: string;
   pedido_id: string;
@@ -37,8 +50,9 @@ type Solicitacao = {
   loja_id: string | null;
   tipo_documento_id: string;
   cliente_assinado_em?: string | null;
-  assinatura_loja_url?: string | null;
   loja_assinado_em?: string | null;
+  contrato_id?: string | null;
+  assinatura_loja_url?: string | null;
 };
 
 async function getClientLocation() {
@@ -61,17 +75,16 @@ async function getClientLocation() {
 export default function AssinaturaPublica() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const [participante, setParticipante] = useState<Participante | null>(null);
   const [solic, setSolic] = useState<Solicitacao | null>(null);
   const [tipo, setTipo] = useState<any>(null);
   const [pedido, setPedido] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
-  const [contrato, setContrato] = useState<any>(null);
   const [tpl, setTpl] = useState<ContratoTemplate | null>(null);
   const [docHtml, setDocHtml] = useState<string>("");
   const [erro, setErro] = useState<string>("");
-  const [done, setDone] = useState(false);
-  const [aguardandoLoja, setAguardandoLoja] = useState(false);
   const [requerLoja, setRequerLoja] = useState(false);
 
   const [nome, setNome] = useState("");
@@ -83,7 +96,6 @@ export default function AssinaturaPublica() {
   const [recusarOpen, setRecusarOpen] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const [recusando, setRecusando] = useState(false);
-  const [recusado, setRecusado] = useState(false);
   const padRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
@@ -91,35 +103,83 @@ export default function AssinaturaPublica() {
       if (!token) return;
       setLoading(true);
       setErro("");
-      setDone(false);
-      setAguardandoLoja(false);
-      setRecusado(false);
-      const cacheBust = Date.now().toString();
-      const { data: s, error: solicError } = await supabase
-        .from("solicitacoes_assinatura")
+
+      // 1) Busca por token do PARTICIPANTE (novo fluxo)
+      const { data: part } = await supabase
+        .from("assinatura_participantes" as any)
         .select("*")
-        .filter("id", "not.is", null)
         .eq("token", token)
-        .limit(1)
         .maybeSingle();
-      if (solicError) {
-        setErro("Não foi possível carregar a assinatura. Tente abrir o link novamente.");
-        setLoading(false);
-        return;
-      }
-      if (!s) {
+
+      let solicId: string | null = (part as any)?.solicitacao_id ?? null;
+      let participanteAtual: Participante | null = (part as any) || null;
+
+      // 2) Fallback legado: token da solicitação → redireciona pro participante cliente
+      if (!part) {
+        const { data: legacy } = await supabase
+          .from("solicitacoes_assinatura")
+          .select("id")
+          .eq("token", token)
+          .maybeSingle();
+        if (legacy?.id) {
+          const { data: candidatos } = await supabase
+            .from("assinatura_participantes" as any)
+            .select("token,tipo,status")
+            .eq("solicitacao_id", legacy.id)
+            .order("created_at", { ascending: true });
+          const cli = (candidatos as any[] | null)?.find(p => p.tipo === "cliente" && p.status !== "assinado");
+          if (cli?.token) {
+            setRedirectTo(`/assinatura/${cli.token}`);
+            setLoading(false);
+            return;
+          }
+          // sem participante cliente disponível: link inválido (não marca nada como assinado)
+          setErro("Link de assinatura indisponível. Solicite um novo link à loja.");
+          setLoading(false);
+          return;
+        }
         setErro("Link inválido.");
         setLoading(false);
         return;
       }
-      if (new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
-      else if (["cancelado", "expirado", "recusado"].includes(s.status)) setErro("Esta solicitação foi cancelada.");
+
+      if (!solicId) {
+        setErro("Link inválido.");
+        setLoading(false);
+        return;
+      }
+
+      // 3) Carrega solicitação
+      const { data: s } = await supabase
+        .from("solicitacoes_assinatura")
+        .select("*")
+        .eq("id", solicId)
+        .maybeSingle();
+      if (!s) {
+        setErro("Solicitação não encontrada.");
+        setLoading(false);
+        return;
+      }
+
+      if (s.status === "cancelado") setErro("Esta solicitação foi cancelada.");
+      else if (s.status === "expirado" || new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
+      else if (s.status === "recusado") setErro("Esta assinatura foi recusada.");
 
       setSolic(s as Solicitacao);
+      setParticipante(participanteAtual);
 
+      // 4) Marca como visualizado (uma vez)
+      if (participanteAtual && !participanteAtual.visualizado_em && participanteAtual.status === "pendente") {
+        await supabase
+          .from("assinatura_participantes" as any)
+          .update({ visualizado_em: new Date().toISOString(), status: "visualizado" })
+          .eq("id", participanteAtual.id);
+      }
+
+      // 5) Carrega contexto (tipo, pedido, cliente, loja)
       const [{ data: t }, { data: p }, { data: c }, { data: l }] = await Promise.all([
         supabase.from("tipos_documento").select("*").eq("id", s.tipo_documento_id).maybeSingle(),
-        supabase.from("pedidos").select("id,codigo,valor_total,loja_id,orcamento_id").eq("id", s.pedido_id).limit(1).maybeSingle(),
+        supabase.from("pedidos").select("id,codigo,valor_total,loja_id,orcamento_id").eq("id", s.pedido_id).maybeSingle(),
         s.cliente_id
           ? supabase.from("clientes").select("nome,email,cpf_cnpj,telefone").eq("id", s.cliente_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -135,30 +195,12 @@ export default function AssinaturaPublica() {
       setCliente(c);
       setLoja(l);
       setRequerLoja(!!t?.requer_assinatura_loja);
-      const assinaturaCompleta = s.status === "concluido" && !!s.cliente_assinado_em && (!t?.requer_assinatura_loja || !!s.loja_assinado_em);
-      setDone(assinaturaCompleta);
-      setAguardandoLoja(!!t?.requer_assinatura_loja && !s.loja_assinado_em && s.status !== "concluido");
 
-      // Carrega contrato + template e renderiza HTML inline (somente leitura)
+      // 6) Render do contrato HTML, se houver
       if (s.contrato_id) {
-        const { data: sAtualizada } = await supabase
-          .from("solicitacoes_assinatura")
-          .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id,storage_path,file_name")
-          .eq("id", s.id)
-          .maybeSingle();
-        if (sAtualizada) setSolic({ ...(s as any), ...(sAtualizada as any) } as Solicitacao);
-        const { data: ct } = await supabase
-          .from("contratos")
-          .select("*")
-          .eq("id", s.contrato_id)
-          .maybeSingle();
-        setContrato(ct);
+        const { data: ct } = await supabase.from("contratos").select("*").eq("id", s.contrato_id).maybeSingle();
         if (ct?.template_id) {
-          const { data: tpls } = await supabase
-            .from("contratos_template")
-            .select("*")
-            .eq("id", ct.template_id)
-            .maybeSingle();
+          const { data: tpls } = await supabase.from("contratos_template").select("*").eq("id", ct.template_id).maybeSingle();
           setTpl(tpls as any);
           if (tpls && ct.conteudo_snapshot) {
             try {
@@ -175,82 +217,103 @@ export default function AssinaturaPublica() {
                   endereco: l?.endereco || cfg?.endereco || empresaSnap.endereco || "",
                   telefone: cfg?.telefone || empresaSnap.telefone || "",
                 },
-                signing_url: `${getPublicSignatureUrl(token)}?v=${cacheBust}`,
-                assinatura_loja_url: (sAtualizada as any)?.assinatura_loja_url || (s as any).assinatura_loja_url,
-                loja_assinado_em: (sAtualizada as any)?.loja_assinado_em || (s as any).loja_assinado_em,
+                signing_url: getPublicSignatureUrl(token),
+                assinatura_loja_url: (s as any).assinatura_loja_url,
+                loja_assinado_em: (s as any).loja_assinado_em,
               }));
             } catch {/* noop */}
           }
         }
       }
 
-      // Prefill com dados do cliente
-      if (c?.nome) setNome(c.nome);
-      if (c?.cpf_cnpj) setDoc(maskDocAuto(c.cpf_cnpj));
+      // 7) Prefill com dados do participante / cliente
+      const nomeInicial = participanteAtual?.nome || c?.nome || "";
+      const docInicial = participanteAtual?.documento || c?.cpf_cnpj || "";
+      if (nomeInicial) setNome(nomeInicial);
+      if (docInicial) setDoc(maskDocAuto(docInicial));
+
       setLoading(false);
     })();
   }, [token]);
 
   async function finalizar() {
-    if (!solic) return;
+    if (!solic || !participante) return;
     if (!aceite) return toast.error("Você precisa aceitar os termos.");
     if (!nome.trim()) return toast.error("Informe seu nome completo.");
-    if (!docFoto) return toast.error("Envie a foto do documento identificador.");
-    if (!selfie) return toast.error("Envie a selfie segurando o documento.");
     if (padRef.current?.isEmpty()) return toast.error("Desenhe sua assinatura.");
+
+    const isCliente = participante.tipo === "cliente";
+    if (isCliente) {
+      if (!docFoto) return toast.error("Envie a foto do documento identificador.");
+      if (!selfie) return toast.error("Envie a selfie segurando o documento.");
+    }
 
     setEnviando(true);
     try {
       const ua = navigator.userAgent;
-      // Captura de IP (best effort, sem bloquear)
       let ip: string | null = null;
       try {
         const r = await fetch("https://api.ipify.org?format=json");
         ip = (await r.json())?.ip || null;
       } catch { /* ignore */ }
-      const localizacao = await getClientLocation();
+      const localizacao = isCliente ? await getClientLocation() : null;
 
-      // Sobe arquivos para storage `assinaturas-evidencias/{solic_id}/...`
+      // Uploads
       const ts = Date.now();
-      const docExt = (docFoto.name.split(".").pop() || "jpg").toLowerCase();
-      const selfieExt = (selfie.name.split(".").pop() || "jpg").toLowerCase();
-      const docPath = `${solic.id}/documento-${ts}.${docExt}`;
-      const selfiePath = `${solic.id}/selfie-${ts}.${selfieExt}`;
       const sigBlob = await (await fetch(padRef.current!.toDataURL())).blob();
-      const sigPath = `${solic.id}/assinatura-${ts}.png`;
+      const sigPath = `${solic.id}/${participante.tipo}-assinatura-${ts}.png`;
+      let docUrl: string | null = null;
+      let selfieUrl: string | null = null;
 
-      const ups = await Promise.all([
-        supabase.storage.from("assinaturas-evidencias").upload(docPath, docFoto, { upsert: true, contentType: docFoto.type }),
-        supabase.storage.from("assinaturas-evidencias").upload(selfiePath, selfie, { upsert: true, contentType: selfie.type }),
+      const ups: Promise<any>[] = [
         supabase.storage.from("assinaturas-evidencias").upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" }),
-      ]);
-      const upErr = ups.find((u) => u.error);
-      if (upErr?.error) throw upErr.error;
-      const docUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(docPath).data.publicUrl;
-      const selfieUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(selfiePath).data.publicUrl;
-      const assinaturaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+      ];
+      if (isCliente && docFoto) {
+        const docExt = (docFoto.name.split(".").pop() || "jpg").toLowerCase();
+        const docPath = `${solic.id}/cliente-documento-${ts}.${docExt}`;
+        ups.push(supabase.storage.from("assinaturas-evidencias").upload(docPath, docFoto, { upsert: true, contentType: docFoto.type }));
+      }
+      if (isCliente && selfie) {
+        const selfieExt = (selfie.name.split(".").pop() || "jpg").toLowerCase();
+        const selfiePath = `${solic.id}/cliente-selfie-${ts}.${selfieExt}`;
+        ups.push(supabase.storage.from("assinaturas-evidencias").upload(selfiePath, selfie, { upsert: true, contentType: selfie.type }));
+      }
+      const results = await Promise.all(ups);
+      const errAny = results.find((r: any) => r.error);
+      if (errAny?.error) throw errAny.error;
 
-      // Cria participante
-      const { data: part, error: errP } = await supabase
-        .from("assinatura_participantes")
-        .insert({
-          solicitacao_id: solic.id,
-          tipo: "cliente",
-          nome,
-          documento: doc || null,
+      const assinaturaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+      if (isCliente && docFoto) {
+        const docExt = (docFoto.name.split(".").pop() || "jpg").toLowerCase();
+        const docPath = `${solic.id}/cliente-documento-${ts}.${docExt}`;
+        docUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(docPath).data.publicUrl;
+      }
+      if (isCliente && selfie) {
+        const selfieExt = (selfie.name.split(".").pop() || "jpg").toLowerCase();
+        const selfiePath = `${solic.id}/cliente-selfie-${ts}.${selfieExt}`;
+        selfieUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(selfiePath).data.publicUrl;
+      }
+
+      const agora = new Date().toISOString();
+
+      // 1) Atualiza APENAS o participante do token atual
+      const { error: errPart } = await supabase
+        .from("assinatura_participantes" as any)
+        .update({
           status: "assinado",
-          assinado_em: new Date().toISOString(),
+          assinado_em: agora,
           ip,
           user_agent: ua,
+          nome,
+          documento: doc || null,
         })
-        .select()
-        .single();
-      if (errP) throw errP;
+        .eq("id", participante.id);
+      if (errPart) throw errPart;
 
-      // Evidência (imutável)
-      const { error: errE } = await supabase.from("assinatura_evidencias").insert({
+      // 2) Evidência vinculada ao participante
+      await supabase.from("assinatura_evidencias").insert({
         solicitacao_id: solic.id,
-        participante_id: part.id,
+        participante_id: participante.id,
         documento_foto_url: docUrl,
         selfie_url: selfieUrl,
         assinatura_url: assinaturaUrl,
@@ -260,56 +323,56 @@ export default function AssinaturaPublica() {
         localizacao,
         user_agent: ua,
       } as any);
-      if (errE) throw errE;
 
-      // Atualiza status + snapshot. Só conclui quando as duas assinaturas exigidas existirem.
-      const { data: sCheck } = await supabase
-        .from("solicitacoes_assinatura")
-        .select("loja_assinado_em")
-        .eq("id", solic.id)
-        .maybeSingle();
-      const lojaJaAssinou = !!sCheck?.loja_assinado_em;
-      const novoStatus = lojaJaAssinou ? "concluido" : (requerLoja ? "aguardando_loja" : "concluido");
-      const upd: any = {
-        status: novoStatus,
-        cliente_assinado_em: new Date().toISOString(),
-        cliente_nome: nome,
-        cliente_documento: doc || null,
-        cliente_ip: ip,
-        cliente_user_agent: ua,
-        cliente_localizacao: localizacao,
-        assinatura_cliente_url: assinaturaUrl,
-        doc_foto_url: docUrl,
-        selfie_url: selfieUrl,
-      };
-      if (novoStatus === "concluido") upd.concluido_em = new Date().toISOString();
-      const { error: errUpd } = await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
-      if (errUpd) throw errUpd;
-
-      // Evento
+      // 3) Evento
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: solic.id,
-        tipo_evento: "cliente_assinou",
-        status_anterior: "aguardando_cliente",
-        status_novo: novoStatus,
-        descricao: `Cliente assinou: ${nome}`,
-        participante_id: part.id,
+        tipo_evento: isCliente ? "cliente_assinou" : "loja_assinou",
+        participante_id: participante.id,
+        descricao: `${isCliente ? "Cliente" : "Loja"} assinou: ${nome}`,
         user_agent: ua,
-      });
+      } as any);
 
-      await prepararContratoParaAssinatura(solic.id, null, {
-        url: assinaturaUrl,
-        assinadoEm: upd.cliente_assinado_em,
-        ip,
-      }).catch(() => null);
+      // 4) Espelho legado em solicitacoes_assinatura (para PDF final e contratos)
+      const updSolic: any = {};
+      if (isCliente) {
+        updSolic.cliente_assinado_em = agora;
+        updSolic.cliente_nome = nome;
+        updSolic.cliente_documento = doc || null;
+        updSolic.cliente_ip = ip;
+        updSolic.cliente_user_agent = ua;
+        updSolic.cliente_localizacao = localizacao;
+        updSolic.assinatura_cliente_url = assinaturaUrl;
+        if (docUrl) updSolic.doc_foto_url = docUrl;
+        if (selfieUrl) updSolic.selfie_url = selfieUrl;
+      } else {
+        updSolic.loja_assinado_em = agora;
+        updSolic.loja_assinatura_nome = nome;
+        updSolic.loja_ip = ip;
+        updSolic.loja_user_agent = ua;
+        updSolic.assinatura_loja_url = assinaturaUrl;
+      }
+      await supabase.from("solicitacoes_assinatura").update(updSolic).eq("id", solic.id);
 
-      if (novoStatus === "concluido") {
+      // 5) Trigger SQL recalcula status geral
+      await prepararContratoParaAssinatura(
+        solic.id,
+        isCliente ? null : { nome, email: participante.email || "" },
+        isCliente ? { url: assinaturaUrl, assinadoEm: agora, ip } : undefined
+      ).catch(() => null);
+
+      // 6) Recarrega participante para refletir status
+      const { data: solicNova } = await supabase
+        .from("solicitacoes_assinatura")
+        .select("status,cliente_assinado_em,loja_assinado_em")
+        .eq("id", solic.id)
+        .maybeSingle();
+      if (solicNova?.status === "concluido") {
         await supabase.functions.invoke("assinatura-pdf-final", { body: { solicitacao_id: solic.id } }).catch(() => null);
-        await arquivarDocumentoAssinado(solic.id);
+        await arquivarDocumentoAssinado(solic.id).catch(() => null);
       }
 
-      setDone(novoStatus === "concluido");
-      if (novoStatus !== "concluido") setAguardandoLoja(true);
+      setParticipante({ ...participante, status: "assinado", assinado_em: agora });
       toast.success("Assinatura registrada!");
     } catch (e: any) {
       toast.error(e.message || "Falha ao registrar assinatura.");
@@ -319,30 +382,31 @@ export default function AssinaturaPublica() {
   }
 
   async function recusar() {
-    if (!solic) return;
+    if (!solic || !participante) return;
     if (!motivoRecusa.trim()) return toast.error("Informe o motivo da recusa.");
     setRecusando(true);
     try {
       const ua = navigator.userAgent;
-      const { error } = await supabase
-        .from("solicitacoes_assinatura")
-        .update({
-          status: "recusado",
-          motivo_recusa: motivoRecusa,
-          recusado_em: new Date().toISOString(),
-        })
-        .eq("id", solic.id);
-      if (error) throw error;
+      await supabase
+        .from("assinatura_participantes" as any)
+        .update({ status: "recusado", user_agent: ua })
+        .eq("id", participante.id);
+      await supabase.from("solicitacoes_assinatura").update({
+        status: "recusado",
+        motivo_recusa: motivoRecusa,
+        recusado_em: new Date().toISOString(),
+      }).eq("id", solic.id);
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: solic.id,
-        tipo_evento: "cliente_recusou",
+        tipo_evento: `${participante.tipo}_recusou`,
         status_anterior: solic.status,
         status_novo: "recusado",
-        descricao: `Cliente recusou. Motivo: ${motivoRecusa}`,
+        descricao: `${participante.tipo === "cliente" ? "Cliente" : "Loja"} recusou. Motivo: ${motivoRecusa}`,
+        participante_id: participante.id,
         user_agent: ua,
-      });
+      } as any);
       setRecusarOpen(false);
-      setRecusado(true);
+      setParticipante({ ...participante, status: "recusado" });
       toast.success("Recusa registrada");
     } catch (e: any) {
       toast.error(e.message || "Falha ao registrar recusa");
@@ -350,6 +414,8 @@ export default function AssinaturaPublica() {
       setRecusando(false);
     }
   }
+
+  if (redirectTo) return <Navigate to={redirectTo} replace />;
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted" role="status" aria-label="Carregando assinatura">
@@ -369,7 +435,8 @@ export default function AssinaturaPublica() {
       </div>
     );
 
-  if (recusado)
+  // === Decisão de tela baseada SOMENTE no participante deste token ===
+  if (participante?.status === "recusado")
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted p-6">
         <Card className="max-w-md w-full">
@@ -379,13 +446,34 @@ export default function AssinaturaPublica() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Sua recusa foi registrada e a equipe da loja foi notificada. Em caso de dúvidas, entre em contato.
+            Sua recusa foi registrada. Em caso de dúvidas, entre em contato com a loja.
           </CardContent>
         </Card>
       </div>
     );
 
-  if (aguardandoLoja)
+  if (participante?.status === "assinado")
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="w-5 h-5" /> Assinatura já realizada
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              Esta assinatura foi concluída
+              {participante.assinado_em ? <> em <strong>{new Date(participante.assinado_em).toLocaleString("pt-BR")}</strong></> : null}.
+            </p>
+            <p>Você pode fechar esta página.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+
+  // Cliente esperando loja assinar (regra do tipo de documento)
+  if (participante?.tipo === "cliente" && requerLoja && !solic?.loja_assinado_em)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted p-6">
         <Card className="max-w-md w-full">
@@ -395,29 +483,13 @@ export default function AssinaturaPublica() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Este contrato exige assinatura da loja antes da assinatura do cliente. Assim que a loja assinar, este mesmo link ficará liberado para você concluir a assinatura.
+            Este contrato exige assinatura da loja antes da sua. Assim que a loja assinar, este mesmo link ficará liberado para você concluir.
           </CardContent>
         </Card>
       </div>
     );
 
-  if (done)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted p-6">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-emerald-700">
-              <CheckCircle2 className="w-5 h-5" /> Assinatura realizada
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {requerLoja
-              ? "Assinatura realizada com sucesso. Este link foi encerrado e o PDF assinado ficará registrado junto ao pedido."
-              : "Assinatura realizada com sucesso. Este link foi encerrado e o PDF assinado ficará registrado junto ao pedido."}
-          </CardContent>
-        </Card>
-      </div>
-    );
+  const isCliente = participante?.tipo === "cliente";
 
   return (
     <div className="min-h-screen bg-muted py-6 px-4">
@@ -426,7 +498,9 @@ export default function AssinaturaPublica() {
           <div className="inline-flex items-center gap-2 text-primary font-semibold">
             <ShieldCheck className="w-5 h-5" /> {loja?.nome || "Assinatura Digital"}
           </div>
-          <p className="text-xs text-muted-foreground">Confira o documento e assine com segurança</p>
+          <p className="text-xs text-muted-foreground">
+            {isCliente ? "Confira o documento e assine com segurança" : "Assinatura pela loja"}
+          </p>
         </div>
 
         <Card>
@@ -436,6 +510,7 @@ export default function AssinaturaPublica() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-1">
+            <div><span className="text-muted-foreground">Assinando como:</span> {participante?.tipo === "loja" ? "Loja" : "Cliente"}</div>
             <div><span className="text-muted-foreground">Cliente:</span> {cliente?.nome || "—"}</div>
             <div><span className="text-muted-foreground">Pedido:</span> {pedido?.codigo || "—"}</div>
             <div><span className="text-muted-foreground">Documento:</span> {solic?.file_name || tipo?.nome}</div>
@@ -468,18 +543,22 @@ export default function AssinaturaPublica() {
               <Label>Nome completo</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
-            <div>
-              <Label>CPF/CNPJ</Label>
-              <Input value={doc} onChange={(e) => setDoc(maskDocAuto(e.target.value))} placeholder="000.000.000-00" />
-            </div>
-            <div>
-              <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Foto do documento (RG/CNH)</Label>
-              <Input type="file" accept="image/*" capture="environment" onChange={(e) => setDocFoto(e.target.files?.[0] || null)} />
-            </div>
-            <div>
-              <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Selfie segurando o documento</Label>
-              <Input type="file" accept="image/*" capture="user" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
-            </div>
+            {isCliente && (
+              <>
+                <div>
+                  <Label>CPF/CNPJ</Label>
+                  <Input value={doc} onChange={(e) => setDoc(maskDocAuto(e.target.value))} placeholder="000.000.000-00" />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Foto do documento (RG/CNH)</Label>
+                  <Input type="file" accept="image/*" capture="environment" onChange={(e) => setDocFoto(e.target.files?.[0] || null)} />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-2"><Upload className="w-3.5 h-3.5" /> Selfie segurando o documento</Label>
+                  <Input type="file" accept="image/*" capture="user" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
