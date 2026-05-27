@@ -362,7 +362,7 @@ export default function PedidoDetalhe() {
   if (loading) return <div className="text-center py-20 text-muted-foreground text-[13px]">Carregando…</div>;
   if (!pedido) return <div className="text-center py-20 text-muted-foreground text-[13px]">Pedido não encontrado.</div>;
 
-  const assinaturaPendente = contrato && contrato.status === "aguardando_assinatura";
+  const assinaturaPendente = contrato && contrato.status === "aguardando_assinatura" && solicAssin?.status !== "concluido";
   const stageIndex = WF_STAGES.findIndex(s => s.key === pedido.workflow_estagio);
 
   const ehAdendo = !!pedido.pedido_pai_id;
@@ -1082,6 +1082,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           };
           const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
+          const assinaturaCompleta = !!sol?.cliente_assinado_em && (!requerLoja || !!sol?.loja_assinado_em) && sol?.status === "concluido";
           const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
           const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
           return (
@@ -1128,7 +1129,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                         <PenLine className="w-3.5 h-3.5 mr-1" /> Assinar pela loja
                       </Button>
                     )}
-                    {sol.status === "concluido" && (
+                    {assinaturaCompleta && (
                       <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, d.nome)}>
                         <FileText className="w-3.5 h-3.5 mr-1" /> Baixar completo
                       </Button>
@@ -1137,7 +1138,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                 )}
                 <Button size="sm" variant="ghost" title="Baixar PDF" onClick={async () => {
                   try {
-                    if (sol && ["concluido", "assinado_loja", "assinado_cliente", "aguardando_loja"].includes(sol.status)) {
+                    if (sol && assinaturaCompleta) {
                       await baixarPdfFinalAssinatura(sol.id, d.nome);
                       return;
                     }
