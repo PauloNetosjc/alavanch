@@ -560,7 +560,7 @@ export default function Comercial() {
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-amber-600"
                           >
                             <Calculator className="w-3.5 h-3.5" /> Negociar
                           </button>
