@@ -87,6 +87,25 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
         white-space: normal;
         transform-origin: top left;
       }
+      /* page-break control */
+      p, div, section, article, table, tr, li, h1, h2, h3, h4, h5, h6,
+      .no-break, .clausula, .contract-section, .contrato-section, .section-title, .payment-table, .signature-block {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      table { page-break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tfoot { display: table-footer-group !important; }
+      h1, h2, h3, h4 { break-after: avoid !important; page-break-after: avoid !important; }
+      .pdf-page-image, .anexo-imagem, img[data-pdf-page="true"], img[data-anexo="true"] {
+        display: block !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        margin: 0 auto !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
     </style>
   `;
   // Move o conteúdo do <body> original para dentro de um wrapper de largura útil
