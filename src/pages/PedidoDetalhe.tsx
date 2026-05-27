@@ -26,6 +26,7 @@ import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSo
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
 import { VisualizarAssinaturasDialog } from "@/components/assinaturas/VisualizarAssinaturasDialog";
+import { UploadContratoManualDialog } from "@/components/assinaturas/UploadContratoManualDialog";
 import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
@@ -2315,6 +2316,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, setGerando, setRecemGerado }: any) {
   const [criando, setCriando] = useState(false);
   const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
+  const [manualOpen, setManualOpen] = useState(false);
 
   // Carrega tokens dos PARTICIPANTES (nunca solicitacao.token)
   useEffect(() => {
@@ -2439,6 +2441,16 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
           }}>
             🔄 Regenerar PDF
           </Button>
+          {solic.status !== "concluido" && solic.status !== "assinado_manual" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+              onClick={() => setManualOpen(true)}
+            >
+              📎 Anexar contrato impresso assinado
+            </Button>
+          )}
         </div>
       )}
       {solic?.created_at && (
@@ -2446,6 +2458,13 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
           Solicitação criada em {new Date(solic.created_at).toLocaleString("pt-BR")}.
         </div>
       )}
+      <UploadContratoManualDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        solicitacaoId={solic?.id || null}
+        pedidoId={pedido?.id || null}
+        onDone={() => { onChange(); }}
+      />
     </div>
   );
 }
