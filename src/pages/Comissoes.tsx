@@ -454,8 +454,8 @@ export default function Comissoes() {
                     .filter((x) => x.pedido)
                     .sort((a, b) => +new Date(b.pedido.data) - +new Date(a.pedido.data));
                   return (
-                    <>
-                      <tr key={r.user_id}
+                    <FragmentRow key={r.user_id}>
+                      <tr
                         className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
                         onClick={() => setExpandido(isOpen ? null : r.user_id)}>
                         <td className="py-2 px-2">
