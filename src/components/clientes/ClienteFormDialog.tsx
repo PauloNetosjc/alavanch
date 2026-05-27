@@ -42,13 +42,39 @@ const empty = {
   email: "",
   telefone: "",
   telefone_secundario: "",
+  cep_cobranca: "",
   endereco_cobranca: "",
+  cep_entrega: "",
   endereco_entrega: "",
   data_nascimento: "",
   observacoes: "",
   vendedor_id: "",
   origem_id: "",
   parceiro_id: "",
+};
+
+const maskCep = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+};
+
+const buscarCep = async (cep: string): Promise<string | null> => {
+  const d = cep.replace(/\D/g, "");
+  if (d.length !== 8) return null;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+    const j = await r.json();
+    if (j.erro) return null;
+    const partes = [
+      j.logradouro,
+      j.bairro,
+      j.localidade && j.uf ? `${j.localidade}/${j.uf}` : j.localidade || j.uf,
+      `CEP ${maskCep(d)}`,
+    ].filter(Boolean);
+    return partes.join(", ");
+  } catch {
+    return null;
+  }
 };
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -85,7 +111,9 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
         email: cliente.email ?? "",
         telefone: cliente.telefone ?? "",
         telefone_secundario: cliente.telefone_secundario ?? "",
+        cep_cobranca: (cliente.endereco_cobranca ?? "").match(/\d{5}-?\d{3}/)?.[0] ?? "",
         endereco_cobranca: cliente.endereco_cobranca ?? "",
+        cep_entrega: (cliente.endereco_entrega ?? "").match(/\d{5}-?\d{3}/)?.[0] ?? "",
         endereco_entrega: cliente.endereco_entrega ?? "",
         data_nascimento: cliente.data_nascimento ?? "",
         observacoes: cliente.observacoes ?? "",
@@ -240,13 +268,68 @@ export function ClienteFormDialog({ open, onOpenChange, cliente, onSaved }: Prop
                 </Select>
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Label>Endereço de cobrança</Label>
-                <Textarea rows={2} value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="CEP"
+                    className="max-w-[140px]"
+                    value={form.cep_cobranca}
+                    onChange={(e) => setForm({ ...form, cep_cobranca: maskCep(e.target.value) })}
+                    onBlur={async () => {
+                      const end = await buscarCep(form.cep_cobranca);
+                      if (end) {
+                        setForm((f) => ({ ...f, endereco_cobranca: end }));
+                        toast.success("Endereço preenchido pelo CEP");
+                      } else if (form.cep_cobranca.replace(/\D/g, "").length === 8) {
+                        toast.error("CEP não encontrado");
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground self-center">Preenche automaticamente</span>
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder="Rua, número, complemento, bairro, cidade/UF"
+                  value={form.endereco_cobranca}
+                  onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })}
+                />
               </div>
-              <div className="col-span-2">
-                <Label>Endereço de entrega</Label>
-                <Textarea rows={2} value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
+              <div className="col-span-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Endereço de entrega</Label>
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setForm((f) => ({ ...f, cep_entrega: f.cep_cobranca, endereco_entrega: f.endereco_cobranca }))}
+                  >
+                    Copiar do endereço de cobrança
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="CEP"
+                    className="max-w-[140px]"
+                    value={form.cep_entrega}
+                    onChange={(e) => setForm({ ...form, cep_entrega: maskCep(e.target.value) })}
+                    onBlur={async () => {
+                      const end = await buscarCep(form.cep_entrega);
+                      if (end) {
+                        setForm((f) => ({ ...f, endereco_entrega: end }));
+                        toast.success("Endereço preenchido pelo CEP");
+                      } else if (form.cep_entrega.replace(/\D/g, "").length === 8) {
+                        toast.error("CEP não encontrado");
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground self-center">Preenche automaticamente</span>
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder="Rua, número, complemento, bairro, cidade/UF"
+                  value={form.endereco_entrega}
+                  onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Observações</Label>
