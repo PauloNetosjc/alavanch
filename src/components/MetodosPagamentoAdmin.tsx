@@ -262,13 +262,47 @@ export function MetodosPagamentoAdmin() {
                         <tr key={i} className="border-t border-border/60">
                           <td className="py-1.5 px-2 font-medium">{p.numero}x</td>
                           <td className="py-1.5 px-2">
-                            <select
-                              className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px]"
-                              value={p.forma_pagamento}
-                              onChange={(e) => updateParcela(i, { forma_pagamento: e.target.value })}
-                            >
-                              {FORMAS.map((f) => <option key={f} value={f}>{f}</option>)}
-                            </select>
+                            {(() => {
+                              const sel = toFormas(p.forma_pagamento);
+                              const label = sel.length ? sel.join(", ") : "Selecione...";
+                              return (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-full h-8 px-2 rounded-md border border-input bg-background text-[13px] flex items-center justify-between gap-2 text-left"
+                                    >
+                                      <span className="truncate">{label}</span>
+                                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-56 p-2" align="start">
+                                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pb-1.5">
+                                      Formas aceitas
+                                    </div>
+                                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                                      {FORMAS.map((f) => {
+                                        const checked = sel.includes(f);
+                                        return (
+                                          <label key={f} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-[13px]">
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={(v) => {
+                                                const next = v
+                                                  ? Array.from(new Set([...sel, f]))
+                                                  : sel.filter((x) => x !== f);
+                                                updateParcela(i, { forma_pagamento: next });
+                                              }}
+                                            />
+                                            <span>{f}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              );
+                            })()}
                           </td>
                           <td className="py-1.5 px-2">
                             <Input
