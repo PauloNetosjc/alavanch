@@ -1390,10 +1390,11 @@ export default function RH() {
 
       {/* Dialog Turno */}
       <Dialog open={turnoDialog} onOpenChange={setTurnoDialog}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{(turnoForm as any).id ? "Editar" : "Novo"} turno</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2"><Label>Nome *</Label><Input value={turnoForm.nome || ""} onChange={e => setTurnoForm(p => ({...p, nome: e.target.value}))} /></div>
+            <div className="col-span-2 text-xs text-muted-foreground -mb-1">Horários padrão (aplicados a todos os dias selecionados, salvo override abaixo)</div>
             <div><Label>Entrada *</Label><Input type="time" value={turnoForm.hora_entrada || ""} onChange={e => setTurnoForm(p => ({...p, hora_entrada: e.target.value}))} /></div>
             <div><Label>Saída final *</Label><Input type="time" value={turnoForm.hora_saida || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida: e.target.value}))} /></div>
             <div><Label>Saída almoço</Label><Input type="time" value={turnoForm.hora_saida_almoco || ""} onChange={e => setTurnoForm(p => ({...p, hora_saida_almoco: e.target.value}))} /></div>
@@ -1418,6 +1419,34 @@ export default function RH() {
             </div>
             <div><Label>Tolerância (min)</Label><Input type="number" value={turnoForm.tolerancia_min ?? 5} onChange={e => setTurnoForm(p => ({...p, tolerancia_min: Number(e.target.value)}))} /></div>
             <div className="col-span-2"><Label>Observações</Label><Textarea value={turnoForm.observacoes || ""} onChange={e => setTurnoForm(p => ({...p, observacoes: e.target.value}))} /></div>
+
+            <div className="col-span-2 border-t pt-3 mt-1">
+              <Label>Horários específicos por dia (opcional)</Label>
+              <p className="text-xs text-muted-foreground mb-2">Preencha apenas para os dias com horário diferente (ex.: sábado). Campos em branco usam o padrão acima.</p>
+              <div className="space-y-2">
+                {(turnoForm.dias_semana || []).map(i => {
+                  const hp = ((turnoForm as any).horarios_por_dia || {}) as Record<string, HorarioDia>;
+                  const cur = hp[String(i)] || {};
+                  const setField = (k: keyof HorarioDia, v: string) => setTurnoForm(p => {
+                    const prev = ((p as any).horarios_por_dia || {}) as Record<string, HorarioDia>;
+                    const novo = { ...(prev[String(i)] || {}), [k]: v || null };
+                    return { ...p, horarios_por_dia: { ...prev, [String(i)]: novo } } as any;
+                  });
+                  return (
+                    <div key={i} className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-2 items-center">
+                      <Badge variant="outline" className="justify-center">{DIAS_SEMANA[i]}</Badge>
+                      <Input type="time" placeholder="Entrada" value={cur.hora_entrada || ""} onChange={e => setField("hora_entrada", e.target.value)} />
+                      <Input type="time" placeholder="Saída almoço" value={cur.hora_saida_almoco || ""} onChange={e => setField("hora_saida_almoco", e.target.value)} />
+                      <Input type="time" placeholder="Volta almoço" value={cur.hora_volta_almoco || ""} onChange={e => setField("hora_volta_almoco", e.target.value)} />
+                      <Input type="time" placeholder="Saída final" value={cur.hora_saida || ""} onChange={e => setField("hora_saida", e.target.value)} />
+                    </div>
+                  );
+                })}
+                {(turnoForm.dias_semana || []).length === 0 && (
+                  <p className="text-xs text-muted-foreground">Selecione ao menos um dia da semana para configurar horários específicos.</p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTurnoDialog(false)}>Cancelar</Button>
