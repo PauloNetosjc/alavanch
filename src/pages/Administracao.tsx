@@ -550,6 +550,7 @@ function Lojas() {
   return <SimpleCrud title="Lojas" subtitle="Filiais e unidades de negócio" icon={Building2} table="lojas"
     fields={[
       { name: "nome", label: "Nome" },
+      { name: "sigla", label: "Sigla (usada no código do pedido — ex.: SJC, JAC, CAR)" },
       { name: "cnpj", label: "CNPJ" },
       { name: "telefone", label: "Telefone" },
       { name: "email", label: "Email" },
@@ -558,7 +559,7 @@ function Lojas() {
       { name: "uf", label: "UF (sigla — ex.: SP, RJ)" },
       { name: "ativo", label: "Ativo", type: "switch" },
     ]}
-    defaultRow={{ nome: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", uf: "", ativo: true }} />;
+    defaultRow={{ nome: "", sigla: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", uf: "", ativo: true }} />;
 }
 
 function Bancos() {
