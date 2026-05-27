@@ -32,6 +32,8 @@ export type ContratoCtx = {
   assinatura_cliente_url?: string | null;
   cliente_assinado_em?: string | null;
   cliente_ip?: string | null;
+  vendedor?: { nome?: string | null; email?: string | null } | null;
+  prazo_entrega?: string | null;
 };
 
 export const fmtBrl = (n: number) =>
@@ -44,6 +46,7 @@ const escapeHtml = (v: string) =>
   String(v).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c] as string));
 
 export function applyVariables(text: string, ctx: ContratoCtx): string {
+  const prazo = ctx.prazo_entrega ? fmtDate(ctx.prazo_entrega) : "";
   const map: Record<string, string> = {
     "{{numero}}": ctx.numero,
     "{{data}}": fmtDate(ctx.emitido_em),
@@ -54,6 +57,23 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{cliente.endereco}}": ctx.cliente?.endereco_cobranca || "",
     "{{empresa.nome}}": ctx.empresa.nome,
     "{{empresa.cnpj}}": ctx.empresa.cnpj || "",
+    "{{empresa.endereco}}": ctx.empresa.endereco || "",
+    "{{empresa.telefone}}": ctx.empresa.telefone || "",
+    "{{empresa.razao_social}}": ctx.empresa.razao_social || ctx.empresa.nome,
+    "{{empresa.nome_fantasia}}": ctx.empresa.nome_fantasia || ctx.empresa.nome,
+    "{{loja.nome}}": ctx.empresa.nome,
+    "{{loja.cnpj}}": ctx.empresa.cnpj || "",
+    "{{loja.endereco}}": ctx.empresa.endereco || "",
+    "{{loja.telefone}}": ctx.empresa.telefone || "",
+    "{{loja.razao_social}}": ctx.empresa.razao_social || ctx.empresa.nome,
+    "{{loja.nome_fantasia}}": ctx.empresa.nome_fantasia || ctx.empresa.nome,
+    "{{vendedor.nome}}": ctx.vendedor?.nome || "",
+    "{{vendedor.email}}": ctx.vendedor?.email || "",
+    "{{prazo.entrega}}": prazo,
+    "{{prazo_entrega}}": prazo,
+    "{{subtotal}}": fmtBrl(ctx.subtotal),
+    "{{desconto}}": fmtBrl(ctx.desconto_valor),
+    "{{desconto_perc}}": `${(ctx.desconto_perc || 0).toFixed(2)}%`,
     "{{total}}": fmtBrl(ctx.total),
   };
   let out = text;
