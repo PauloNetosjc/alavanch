@@ -37,7 +37,8 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
-type Pedido = { id: string; codigo: string; created_at: string | null };
+type Pedido = { id: string; codigo: string; created_at: string | null; receita_codigo: string | null; pedido_pai_id: string | null; pedido_origem_complemento_id: string | null; cliente_id: string | null };
+type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
