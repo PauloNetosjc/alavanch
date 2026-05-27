@@ -33,10 +33,22 @@ export function applyUserTheme(p: Prefs) {
   // tokens lidos pela sidebar
   r.style.setProperty("--user-accent", p.accent);
   r.style.setProperty("--user-accent-bg", `hsl(${p.accent} / 0.22)`);
-  // contraste
+  // contraste — detecta se o tema atual é escuro para inverter corretamente
+  const isDark = document.documentElement.classList.contains("dark")
+    || getComputedStyle(document.documentElement).getPropertyValue("color-scheme").includes("dark")
+    || (() => {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--background").trim();
+      const m = bg.match(/(\d+(?:\.\d+)?)%\s*$/);
+      return m ? parseFloat(m[1]) < 50 : true;
+    })();
   if (p.contrast === "alto") {
-    r.style.setProperty("--foreground", "0 0% 8%");
-    r.style.setProperty("--muted-foreground", "0 0% 25%");
+    if (isDark) {
+      r.style.setProperty("--foreground", "0 0% 100%");
+      r.style.setProperty("--muted-foreground", "0 0% 80%");
+    } else {
+      r.style.setProperty("--foreground", "0 0% 8%");
+      r.style.setProperty("--muted-foreground", "0 0% 25%");
+    }
   } else {
     r.style.removeProperty("--foreground");
     r.style.removeProperty("--muted-foreground");
@@ -125,7 +137,7 @@ export function UserThemePicker({ collapsed = false }: { collapsed?: boolean }) 
 
       {open && pos && (
         <div
-          className="fixed z-[100] w-[260px] rounded-md p-3 shadow-xl"
+          className="fixed z-[9999] w-[260px] rounded-md p-3 shadow-xl"
           style={{
             background: "#1A1A1A",
             border: "0.5px solid #2A2A2A",
