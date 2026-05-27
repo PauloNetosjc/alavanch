@@ -2179,29 +2179,6 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
           <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={enviarWhatsapp}>
             <Send className="w-3.5 h-3.5 mr-1.5" /> Enviar por WhatsApp
           </Button>
-          <label className="inline-flex">
-            <input type="file" accept="application/pdf,image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarPdfAssinado(f); }} />
-            <Button asChild size="sm" variant="outline"
-              className={`cursor-pointer ${contrato.pdf_assinado_url ? "text-emerald-700 border-emerald-400 bg-emerald-50" : "text-amber-800 border-amber-400"}`}
-              disabled={uploading}>
-              <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : contrato.pdf_assinado_url ? "Contrato anexado ✓ (substituir)" : "Anexar contrato impresso assinado"}</span>
-            </Button>
-          </label>
-          <label className="inline-flex">
-            <input type="file" accept="application/pdf,image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarDocumentoCliente(f); }} />
-            <Button asChild size="sm" variant="outline"
-              className={`cursor-pointer ${(contrato as any).documento_cliente_url ? "text-emerald-700 border-emerald-400 bg-emerald-50" : "text-amber-800 border-amber-400"}`}
-              disabled={uploading}>
-              <span><FileUp className="w-3.5 h-3.5 mr-1.5" /> {uploading ? "Anexando…" : (contrato as any).documento_cliente_url ? "Documento do cliente ✓ (substituir)" : "Anexar documento com foto do cliente"}</span>
-            </Button>
-          </label>
-        </div>
-      )}
-      {solic && (contrato.pdf_assinado_url || (contrato as any).documento_cliente_url) && contrato.status !== "assinado" && (
-        <div className="text-[11px] text-amber-900 bg-amber-100 border border-amber-300 rounded p-2">
-          Para concluir manualmente, anexe <b>contrato impresso assinado</b> <i>e</i> <b>documento com foto do cliente</b>.
         </div>
       )}
       {solic?.created_at && (
