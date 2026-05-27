@@ -4983,6 +4983,17 @@ export type Database = {
         Args: { p_solic: string }
         Returns: undefined
       }
+      registrar_assinatura_manual: {
+        Args: {
+          p_contrato_path: string
+          p_contrato_url: string
+          p_doc_cliente_path?: string
+          p_doc_cliente_url?: string
+          p_observacao?: string
+          p_solic: string
+        }
+        Returns: undefined
+      }
       revisao_avancar_preparo_pj_final: {
         Args: { _pedido_id: string; _revisao_data: string }
         Returns: undefined
