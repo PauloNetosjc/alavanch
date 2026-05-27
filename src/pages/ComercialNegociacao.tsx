@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClienteFormDialog, ClienteRow } from "@/components/clientes/ClienteFormDialog";
 import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/lib/contratoTemplate";
+import { dispatchKanbanTrigger } from "@/lib/kanbanTriggers";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 const fmtBrl = (n: number) =>
