@@ -22,10 +22,11 @@ export function UploadContratoManualDialog({
   const [contrato, setContrato] = useState<File | null>(null);
   const [docCliente, setDocCliente] = useState<File | null>(null);
   const [observacao, setObservacao] = useState("");
+  const [confirmado, setConfirmado] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const reset = () => {
-    setContrato(null); setDocCliente(null); setObservacao("");
+    setContrato(null); setDocCliente(null); setObservacao(""); setConfirmado(false);
   };
 
   const upload = async (file: File, kind: "contrato" | "doc") => {
