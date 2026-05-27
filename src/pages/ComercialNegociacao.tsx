@@ -483,7 +483,7 @@ export default function ComercialNegociacao() {
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
-          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe")
+          .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe, parcelas_vencimentos, parcelas_formas")
           .eq("orcamento_id", id),
         supabase.auth.getUser(),
       ]);
@@ -507,6 +507,8 @@ export default function ComercialNegociacao() {
       setPagamentos(((pgs ?? []) as any).map((p: any) => ({
         ...p,
         parcelas_detalhe: Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe.map(Number) : null,
+        parcelas_vencimentos: Array.isArray(p.parcelas_vencimentos) ? p.parcelas_vencimentos.map((v: any) => v || null) : null,
+        parcelas_formas: Array.isArray(p.parcelas_formas) ? p.parcelas_formas.map(String) : null,
       })));
 
       const ambIds = (amb ?? []).map((a: any) => a.id);
@@ -868,7 +870,9 @@ export default function ComercialNegociacao() {
           parcelas: p.parcelas,
           data_vencimento: p.data_vencimento,
           parcelas_detalhe: p.parcelas_detalhe && p.parcelas_detalhe.length === p.parcelas ? p.parcelas_detalhe : null,
-        })),
+          parcelas_vencimentos: (p as any).parcelas_vencimentos && (p as any).parcelas_vencimentos.length === p.parcelas ? (p as any).parcelas_vencimentos : null,
+          parcelas_formas: (p as any).parcelas_formas && (p as any).parcelas_formas.length === p.parcelas ? (p as any).parcelas_formas : null,
+        })) as any,
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }

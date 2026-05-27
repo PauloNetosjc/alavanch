@@ -1482,15 +1482,22 @@ function ParcelasTabela({ pagamentos, total }: any) {
           arr[n - 1] = Number((Number(p.valor) - base * (n - 1)).toFixed(2));
           return arr;
         })();
+    const vencsNeg: (string | null)[] = Array.isArray(p.parcelas_vencimentos) && p.parcelas_vencimentos.length === n
+      ? p.parcelas_vencimentos.map((v: any) => (v ? String(v).slice(0, 10) : null))
+      : [];
+    const formasNeg: string[] = Array.isArray(p.parcelas_formas) && p.parcelas_formas.length === n
+      ? p.parcelas_formas.map((f: any) => String(f || ""))
+      : [];
     const venc = p.data_vencimento ? new Date(p.data_vencimento + "T00:00:00") : null;
     for (let i = 0; i < n; i++) {
-      let dt: string | null = null;
-      if (venc) {
+      let dt: string | null = vencsNeg[i] || null;
+      if (!dt && venc) {
         const d = new Date(venc);
         d.setMonth(d.getMonth() + i);
         dt = d.toISOString().slice(0, 10);
       }
-      linhas.push({ idx: linhas.length + 1, data: dt, metodo: p.metodo, valor: det[i] || 0 });
+      const metodoLinha = formasNeg[i] || p.metodo;
+      linhas.push({ idx: linhas.length + 1, data: dt, metodo: metodoLinha, valor: det[i] || 0 });
     }
   });
   const somaParcelas = linhas.reduce((s, l) => s + l.valor, 0);

@@ -1,0 +1,1 @@
+ALTER TABLE public.pagamentos_orcamento ADD COLUMN IF NOT EXISTS parcelas_vencimentos jsonb, ADD COLUMN IF NOT EXISTS parcelas_formas jsonb;
