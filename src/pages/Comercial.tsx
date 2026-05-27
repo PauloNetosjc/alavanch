@@ -553,18 +553,19 @@ export default function Comercial() {
                       ) : (
                         <>
                           <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                          >
-                            <Calculator className="w-3.5 h-3.5" /> Negociar
-                          </button>
-                          <button
                             onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#C0392B]"
                           >
                             <XCircle className="w-3.5 h-3.5" /> Declinar
                           </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                          >
+                            <Calculator className="w-3.5 h-3.5" /> Negociar
+                          </button>
                         </>
+
                       )}
                     </div>
                   </li>
@@ -649,14 +650,6 @@ export default function Comercial() {
                             ) : (
                               <>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
-                                  aria-label="Negociação"
-                                  title="Abrir negociação"
-                                >
-                                  <Calculator className="w-3.5 h-3.5" /> Negociar
-                                </button>
-                                <button
                                   onClick={(e) => { e.stopPropagation(); handleDeclinar(r.id); }}
                                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#C0392B]"
                                   aria-label="Declinar orçamento"
@@ -664,7 +657,16 @@ export default function Comercial() {
                                 >
                                   <XCircle className="w-3.5 h-3.5" /> Declinar
                                 </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/comercial/${r.id}/negociacao`); }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-muted text-[12px] font-medium text-[#2D6BE5]"
+                                  aria-label="Negociação"
+                                  title="Abrir negociação"
+                                >
+                                  <Calculator className="w-3.5 h-3.5" /> Negociar
+                                </button>
                               </>
+
                             )}
                           </div>
                         </TableCell>
