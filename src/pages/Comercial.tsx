@@ -190,7 +190,7 @@ export default function Comercial() {
     setLoading(true);
     const { data, error } = await supabase
       .from("orcamentos")
-      .select("id, codigo, nome_projeto, status, total, created_at, cliente_id, loja_id, cliente:clientes(nome)")
+      .select("id, codigo, nome_projeto, status, total, created_at, confirmado_em, cliente_id, loja_id, cliente:clientes(nome)")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     const orcs = (data ?? []) as any[];
