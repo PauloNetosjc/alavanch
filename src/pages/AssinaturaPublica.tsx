@@ -316,58 +316,9 @@ export default function AssinaturaPublica() {
 
       const agora = new Date().toISOString();
 
-      // 1) Atualiza APENAS o participante do token atual
-      const updPart: any = {
-        status: "assinado",
-        assinado_em: agora,
-        ip,
-        user_agent: ua,
-        nome,
-        documento: isCliente ? (doc || null) : null,
-      };
-      if (!isCliente) {
-        if (representanteEmail) updPart.email = representanteEmail;
-        if (representanteCargo) updPart.cargo = representanteCargo;
-        if (representanteUserId) updPart.user_id = representanteUserId;
-      }
-      const { error: errPart } = await supabase
-        .from("assinatura_participantes" as any)
-        .update(updPart)
-        .eq("id", participante.id);
-      if (errPart) throw errPart;
-
-      // 2) Evidência vinculada ao participante
-      const evid: any = {
-        solicitacao_id: solic.id,
-        participante_id: participante.id,
-        documento_foto_url: docUrl,
-        selfie_url: selfieUrl,
-        assinatura_url: assinaturaUrl,
-        aceite: true,
-        aceite_texto: ACEITE_TEXT,
-        ip,
-        localizacao,
-        user_agent: ua,
-      };
-      if (!isCliente) {
-        evid.aceite_texto =
-          `Assinado pela loja — Representante: ${nome}` +
-          (representanteEmail ? ` <${representanteEmail}>` : "") +
-          (representanteCargo ? ` — Cargo: ${representanteCargo}` : "");
-      }
-      await supabase.from("assinatura_evidencias").insert(evid);
-
-      // 3) Evento
-      await supabase.from("assinatura_eventos").insert({
-        solicitacao_id: solic.id,
-        tipo_evento: isCliente ? "cliente_assinou" : "loja_assinou",
-        participante_id: participante.id,
-        descricao: `${isCliente ? "Cliente" : "Loja"} assinou: ${nome}${!isCliente && representanteEmail ? ` <${representanteEmail}>` : ""}`,
-        user_id: !isCliente ? representanteUserId : null,
-        user_agent: ua,
-      } as any);
-
-      // 4) Espelho legado em solicitacoes_assinatura (para PDF final e contratos)
+      // 1) Espelho em solicitacoes_assinatura ANTES do participante.
+      //    O trigger trg_recalcular_status_ap altera cliente_assinado_em/status quando o participante
+      //    vira 'assinado'; se atualizarmos o espelho depois, a policy anon bloqueia.
       const updSolic: any = {};
       if (isCliente) {
         updSolic.cliente_assinado_em = agora;
@@ -388,16 +339,74 @@ export default function AssinaturaPublica() {
         updSolic.loja_user_agent = ua;
         updSolic.assinatura_loja_url = assinaturaUrl;
       }
-      await supabase.from("solicitacoes_assinatura").update(updSolic).eq("id", solic.id);
+      const { error: errSolic } = await supabase.from("solicitacoes_assinatura").update(updSolic).eq("id", solic.id);
+      if (errSolic) console.warn("[finalizar] update solicitacoes_assinatura falhou:", errSolic);
 
-      // 5) Trigger SQL recalcula status geral
-      await prepararContratoParaAssinatura(
-        solic.id,
-        isCliente ? null : { nome, email: participante.email || "" },
-        isCliente ? { url: assinaturaUrl, assinadoEm: agora, ip } : undefined
-      ).catch(() => null);
+      // 2) Evidência vinculada ao participante (antes do participante mudar para 'assinado')
+      const evid: any = {
+        solicitacao_id: solic.id,
+        participante_id: participante.id,
+        documento_foto_url: docUrl,
+        selfie_url: selfieUrl,
+        assinatura_url: assinaturaUrl,
+        aceite: true,
+        aceite_texto: ACEITE_TEXT,
+        ip,
+        localizacao,
+        user_agent: ua,
+      };
+      if (!isCliente) {
+        evid.aceite_texto =
+          `Assinado pela loja — Representante: ${nome}` +
+          (representanteEmail ? ` <${representanteEmail}>` : "") +
+          (representanteCargo ? ` — Cargo: ${representanteCargo}` : "");
+      }
+      const { error: errEvid } = await supabase.from("assinatura_evidencias").insert(evid);
+      if (errEvid) console.warn("[finalizar] insert assinatura_evidencias falhou:", errEvid);
 
-      // 6) Recarrega participante para refletir status
+      // 3) Evento
+      const { error: errEv } = await supabase.from("assinatura_eventos").insert({
+        solicitacao_id: solic.id,
+        tipo_evento: isCliente ? "cliente_assinou" : "loja_assinou",
+        participante_id: participante.id,
+        descricao: `${isCliente ? "Cliente" : "Loja"} assinou: ${nome}${!isCliente && representanteEmail ? ` <${representanteEmail}>` : ""}`,
+        user_id: !isCliente ? representanteUserId : null,
+        user_agent: ua,
+      } as any);
+      if (errEv) console.warn("[finalizar] insert assinatura_eventos falhou:", errEv);
+
+      // 4) Atualiza o participante POR ÚLTIMO — o trigger SQL recalcula o status da solicitação
+      const updPart: any = {
+        status: "assinado",
+        assinado_em: agora,
+        ip,
+        user_agent: ua,
+        nome,
+        documento: isCliente ? (doc || null) : null,
+      };
+      if (!isCliente) {
+        if (representanteEmail) updPart.email = representanteEmail;
+        if (representanteCargo) updPart.cargo = representanteCargo;
+        if (representanteUserId) updPart.user_id = representanteUserId;
+      }
+      const { error: errPart } = await supabase
+        .from("assinatura_participantes" as any)
+        .update(updPart)
+        .eq("id", participante.id);
+      if (errPart) throw errPart;
+
+      // 5) Regenera o PDF base do contrato com o carimbo do cliente ANTES de gerar o PDF final
+      try {
+        await prepararContratoParaAssinatura(
+          solic.id,
+          isCliente ? null : { nome, email: participante.email || "" },
+          isCliente ? { url: assinaturaUrl, assinadoEm: agora, ip } : undefined
+        );
+      } catch (e) {
+        console.error("[finalizar] regeneração do contrato falhou:", e);
+      }
+
+      // 6) Só agora dispara o PDF final (concatena o contrato regenerado + evidências)
       const { data: solicNova } = await supabase
         .from("solicitacoes_assinatura")
         .select("status,cliente_assinado_em,loja_assinado_em")
