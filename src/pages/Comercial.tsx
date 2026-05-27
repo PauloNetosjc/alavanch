@@ -243,6 +243,11 @@ export default function Comercial() {
         o.contrato_status = ctMap.get(o.id) || null;
         o.revisado = o.pedido_id ? revisadoSet.has(o.pedido_id) : false;
         o.etiquetas = o.pedido_id ? (etiquetasPorPedido.get(o.pedido_id) || []) : [];
+        // Se o pedido foi cancelado (sem pedido ativo), o orçamento volta à negociação
+        if (!o.pedido_id && (o.status === "convertido" || o.status === "aprovado")) {
+          o.status = "negociacao";
+          o.confirmado_em = null;
+        }
       }
     }
     setRows(orcs as unknown as OrcRow[]);
