@@ -263,11 +263,11 @@ export function CrmEstagiosEditDialog({
           criar_card_em: row.criar_card_em ?? [],
         };
         if (row.id.startsWith("new-")) {
-          const { data, error } = await supabase.from("crm_estagios").insert(payload).select("id").single();
+          const { data, error } = await (supabase as any).from("crm_estagios").insert(payload).select("id").single();
           if (error) throw error;
           idMap[row.id] = (data as any).id;
         } else {
-          const { error } = await supabase.from("crm_estagios").update(payload).eq("id", row.id);
+          const { error } = await (supabase as any).from("crm_estagios").update(payload).eq("id", row.id);
           if (error) throw error;
         }
       }
