@@ -1251,7 +1251,6 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const nomeExibido = sanitizeNome(
             assinaturaCompleta && codigoPedido ? `Contrato assinado - ${codigoPedido}.pdf` : d.nome,
           );
-          const totalCount = partesReq.length;
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
