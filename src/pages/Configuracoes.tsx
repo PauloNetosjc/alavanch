@@ -560,14 +560,34 @@ function MetasTab() {
           </div>
           <div className="text-[11px] text-muted-foreground">Soma das metas individuais: <span className="text-foreground font-medium">{fmtBRL(totalIndiv)}</span></div>
         </div>
-        <div className="max-w-md">
-          <Label>Meta mensal (R$)</Label>
-          <Input
-            type="number"
-            value={metas.get("global") ?? ""}
-            onChange={(e) => setMeta("global", parseFloat(e.target.value) || 0)}
-            placeholder="0,00"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <Label>Meta 1 (R$)</Label>
+            <Input
+              type="number"
+              value={metas.get("global") ?? ""}
+              onChange={(e) => setMeta("global", parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label>Meta 2 (R$)</Label>
+            <Input
+              type="number"
+              value={metaGlobal2 || ""}
+              onChange={(e) => setMetaGlobal2(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label>Meta 3 (R$)</Label>
+            <Input
+              type="number"
+              value={metaGlobal3 || ""}
+              onChange={(e) => setMetaGlobal3(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
         </div>
       </div>
 
