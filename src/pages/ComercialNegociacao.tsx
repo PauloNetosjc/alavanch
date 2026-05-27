@@ -156,28 +156,46 @@ function ResumoFinanceiroDialog({
   const valorSemJuros = totalProposta - jurosCliente;
   const totalVPL = valorSemJuros - parceiroValor;
 
-  // Percentuais editáveis (pré-carregados da configuração da loja)
-  const [fretePerc, setFretePerc] = useState<number>(Number(config?.frete_venda_perc) || 0);
-  const [comissaoLojaPerc, setComissaoLojaPerc] = useState<number>(Number(config?.comissao_loja_perc) || 0);
-  const [montagemPerc, setMontagemPerc] = useState<number>(Number(config?.montagem_perc) || 0);
-  const [impostosPerc, setImpostosPerc] = useState<number>(Number(config?.imp_saida_perc) || 0);
-  const [outrosPerc, setOutrosPerc] = useState<number>(Number(config?.outros_perc) || 0);
+  // Itens fixos da Formação de Preço (alinhado com Configurações)
+  const FIXED_ITEMS = [
+    { key: "frete_compra_perc",  defLabel: "Frete Compra",  color: "#7C3AED", base: "vpl" as const },
+    { key: "frete_venda_perc",   defLabel: "Frete",         color: "#A855F7", base: "vpl" as const },
+    { key: "comissao_loja_perc", defLabel: "Comissão Loja", color: "#F59E0B", base: "vpl" as const },
+    { key: "icms_compra_perc",   defLabel: "ICMS Compra",   color: "#EAB308", base: "vpl" as const },
+    { key: "montagem_perc",      defLabel: "Montagem",      color: "#06B6D4", base: "vpl" as const },
+    { key: "imp_saida_perc",     defLabel: "Impostos Saída",color: "#F97316", base: "venda" as const },
+    { key: "outros_perc",        defLabel: "Outros",        color: "#94A3B8", base: "vpl" as const },
+  ];
+  const EXTRA_COLORS = ["#0EA5E9","#10B981","#EC4899","#6366F1","#14B8A6","#F43F5E","#84CC16","#D946EF"];
+  const labelsCfg = (config?.formacao_preco_labels && typeof config.formacao_preco_labels === "object") ? config.formacao_preco_labels : {};
+  const extrasCfg: any[] = Array.isArray(config?.formacao_preco_extras) ? config.formacao_preco_extras : [];
+
+  const [percs, setPercs] = useState<Record<string, number>>({});
   useEffect(() => {
     if (!config) return;
-    setFretePerc(Number(config?.frete_venda_perc) || 0);
-    setComissaoLojaPerc(Number(config?.comissao_loja_perc) || 0);
-    setMontagemPerc(Number(config?.montagem_perc) || 0);
-    setImpostosPerc(Number(config?.imp_saida_perc) || 0);
-    setOutrosPerc(Number(config?.outros_perc) || 0);
+    const next: Record<string, number> = {};
+    FIXED_ITEMS.forEach((f) => { next[f.key] = Number((config as any)?.[f.key]) || 0; });
+    extrasCfg.forEach((e: any) => { next[`extra:${e.id}`] = Number(e?.value) || 0; });
+    setPercs(next);
   }, [config]);
 
-  // Base: VPL para todos, exceto Impostos (sobre Valor Total da Venda)
-  const frete = totalVPL * (fretePerc / 100);
-  const comissaoLoja = totalVPL * (comissaoLojaPerc / 100);
-  const montagem = totalVPL * (montagemPerc / 100);
-  const impostos = totalProposta * (impostosPerc / 100);
-  const outros = totalVPL * (outrosPerc / 100);
-  const totalCustos = custoFabrica + frete + comissaoLoja + montagem + impostos + outros;
+  const itensCusto = [
+    ...FIXED_ITEMS.map((f) => {
+      const label = labelsCfg[f.key] ?? f.defLabel;
+      const perc = percs[f.key] ?? 0;
+      const base = f.base === "venda" ? totalProposta : totalVPL;
+      return { id: f.key, label, perc, color: f.color, valor: base * (perc / 100) };
+    }),
+    ...extrasCfg.map((e: any, idx: number) => {
+      const id = `extra:${e.id}`;
+      const perc = percs[id] ?? 0;
+      return { id, label: e.label || "Item", perc, color: EXTRA_COLORS[idx % EXTRA_COLORS.length], valor: totalVPL * (perc / 100) };
+    }),
+  ];
+  const setPerc = (id: string, v: number) => setPercs((p) => ({ ...p, [id]: v }));
+
+  const totalItensCusto = itensCusto.reduce((s, i) => s + i.valor, 0);
+  const totalCustos = custoFabrica + totalItensCusto;
   const lucro = totalVPL - totalCustos;
   const margem = totalProposta > 0 ? (lucro / totalProposta) * 100 : 0;
   const markup = custoFabrica > 0 ? totalVPL / custoFabrica : 0;
