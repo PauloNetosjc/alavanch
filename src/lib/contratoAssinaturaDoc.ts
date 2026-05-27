@@ -139,7 +139,39 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     await new Promise((r) => setTimeout(r, 250));
 
     const wrapper = (doc.querySelector(".__pdf_wrapper") as HTMLElement) || doc.body;
-    const realHeight = Math.max(wrapper.scrollHeight, doc.body.scrollHeight, doc.documentElement.scrollHeight, 200);
+
+    // Mede overflow horizontal ANTES do html2canvas
+    const bodyScrollWidth = doc.body.scrollWidth;
+    const bodyClientWidth = doc.body.clientWidth;
+    const htmlScrollWidth = doc.documentElement.scrollWidth;
+    const htmlClientWidth = doc.documentElement.clientWidth;
+    const wrapperScrollWidth = wrapper.scrollWidth;
+    const wrapperClientWidth = wrapper.clientWidth;
+    // eslint-disable-next-line no-console
+    console.log("[contratoPDF] overflow check", {
+      bodyScrollWidth, bodyClientWidth, htmlScrollWidth, htmlClientWidth,
+      wrapperScrollWidth, wrapperClientWidth,
+    });
+
+    // Se algum elemento ainda estoura, aplica scale para encolher o conteúdo até caber.
+    const worstScroll = Math.max(bodyScrollWidth, htmlScrollWidth, wrapperScrollWidth);
+    let scaleFix = 1;
+    if (worstScroll > CONTENT_W_PX + 1) {
+      scaleFix = CONTENT_W_PX / worstScroll;
+      wrapper.style.transform = `scale(${scaleFix})`;
+      wrapper.style.transformOrigin = "top left";
+      wrapper.style.width = `${Math.ceil(worstScroll)}px`;
+      // eslint-disable-next-line no-console
+      console.log("[contratoPDF] scaleFix", scaleFix);
+      await new Promise((r) => setTimeout(r, 80));
+    }
+
+    const realHeight = Math.max(
+      Math.ceil((wrapper.scrollHeight || 0) * scaleFix),
+      doc.body.scrollHeight,
+      doc.documentElement.scrollHeight,
+      200,
+    );
     iframe.style.height = `${realHeight}px`;
     await new Promise((r) => setTimeout(r, 100));
 
@@ -147,10 +179,11 @@ async function htmlToPdfBlob(html: string, _filename: string): Promise<Blob> {
     console.log("[contratoPDF] wrapper", {
       clientWidth: wrapper.clientWidth,
       scrollWidth: wrapper.scrollWidth,
-      clientHeight: wrapper.clientHeight,
       scrollHeight: wrapper.scrollHeight,
+      realHeight,
       textLen: (wrapper.innerText || "").length,
       hOverflow: wrapper.scrollWidth > wrapper.clientWidth,
+      scaleFix,
     });
 
     if ((wrapper.innerText || "").trim().length < 20 || realHeight < 50) {
