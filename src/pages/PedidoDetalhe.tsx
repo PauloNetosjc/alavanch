@@ -223,6 +223,30 @@ export default function PedidoDetalhe() {
 
     setLoading(false);
   };
+
+  // Reload focado em assinatura/documentos — usado após prepararContratoParaAssinatura,
+  // sem depender de realtime que pode atrasar ou falhar.
+  const recarregarAssinatura = async () => {
+    if (!id) return;
+    const { data: ped } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
+    if (ped) setPedido((prev: any) => ({ ...(prev || {}), ...ped }));
+    const orcId = ped?.orcamento_id;
+    const [ctRes, dcsRes, solsRes, saRes] = await Promise.all([
+      orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
+      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("solicitacoes_assinatura").select("*, tipos_documento(nome,slug,requer_assinatura_loja)").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("solicitacoes_assinatura").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    setContrato(ctRes.data);
+    // Preserva docs virtuais (orçamento) e substitui docs do pedido
+    setDocs((prev) => {
+      const virtuais = (prev || []).filter((d: any) => d._readonly);
+      return [...virtuais, ...((dcsRes.data as any[]) || [])];
+    });
+    setSolicitacoes(solsRes.data || []);
+    setSolicAssin(saRes.data || null);
+  };
+
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
 
   // Realtime subscriptions
