@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_estagios ADD COLUMN IF NOT EXISTS criar_card_em text[] NOT NULL DEFAULT '{}'::text[];
