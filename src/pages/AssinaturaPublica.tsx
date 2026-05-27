@@ -40,13 +40,21 @@ type Solicitacao = {
   loja_assinado_em?: string | null;
 };
 
-async function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result as string);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+async function getClientLocation() {
+  if (!navigator.geolocation) return null;
+  try {
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    });
+    return {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+      captured_at: new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function AssinaturaPublica() {
@@ -132,9 +140,10 @@ export default function AssinaturaPublica() {
         await prepararContratoParaAssinatura(s.id).catch(() => null);
         const { data: sAtualizada } = await supabase
           .from("solicitacoes_assinatura")
-          .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id")
+          .select("assinatura_loja_url,loja_assinado_em,file_url,pedido_documento_id,storage_path,file_name")
           .eq("id", s.id)
           .maybeSingle();
+        if (sAtualizada) setSolic({ ...(s as any), ...(sAtualizada as any) } as Solicitacao);
         const { data: ct } = await supabase
           .from("contratos")
           .select("*")
@@ -196,6 +205,7 @@ export default function AssinaturaPublica() {
         const r = await fetch("https://api.ipify.org?format=json");
         ip = (await r.json())?.ip || null;
       } catch { /* ignore */ }
+      const localizacao = await getClientLocation();
 
       // Sobe arquivos para storage `assinaturas-evidencias/{solic_id}/...`
       const ts = Date.now();
@@ -227,6 +237,7 @@ export default function AssinaturaPublica() {
           documento: doc || null,
           status: "assinado",
           assinado_em: new Date().toISOString(),
+          ip,
           user_agent: ua,
         })
         .select()
@@ -242,6 +253,8 @@ export default function AssinaturaPublica() {
         assinatura_url: assinaturaUrl,
         aceite: true,
         aceite_texto: ACEITE_TEXT,
+        ip,
+        localizacao,
         user_agent: ua,
       });
       if (errE) throw errE;
@@ -258,8 +271,10 @@ export default function AssinaturaPublica() {
         status: novoStatus,
         cliente_assinado_em: new Date().toISOString(),
         cliente_nome: nome,
+        cliente_documento: doc || null,
         cliente_ip: ip,
         cliente_user_agent: ua,
+        cliente_localizacao: localizacao,
         assinatura_cliente_url: assinaturaUrl,
         doc_foto_url: docUrl,
         selfie_url: selfieUrl,
@@ -280,6 +295,7 @@ export default function AssinaturaPublica() {
       });
 
       if (novoStatus === "concluido") {
+        await prepararContratoParaAssinatura(solic.id).catch(() => null);
         await arquivarDocumentoAssinado(solic.id);
       }
 
@@ -386,8 +402,8 @@ export default function AssinaturaPublica() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             {requerLoja
-              ? "Assinatura realizada com sucesso. O documento foi enviado para validação interna da loja e ficará registrado junto ao seu pedido."
-              : "Assinatura realizada com sucesso. O documento foi concluído e registrado junto ao seu pedido."}
+              ? "Assinatura realizada com sucesso. Este link foi encerrado e o PDF assinado ficará registrado junto ao pedido."
+              : "Assinatura realizada com sucesso. Este link foi encerrado e o PDF assinado ficará registrado junto ao pedido."}
           </CardContent>
         </Card>
       </div>
@@ -416,7 +432,14 @@ export default function AssinaturaPublica() {
           </CardContent>
         </Card>
 
-        {docHtml && (
+        {solic?.file_url && (solic.file_url.toLowerCase().includes(".pdf") || solic.file_name?.toLowerCase().endsWith(".pdf")) ? (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Contrato em PDF</CardTitle></CardHeader>
+            <CardContent>
+              <iframe title="Contrato para assinatura" src={solic.file_url} className="w-full h-[70vh] rounded border bg-background" />
+            </CardContent>
+          </Card>
+        ) : docHtml && (
           <Card>
             <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
             <CardContent>
