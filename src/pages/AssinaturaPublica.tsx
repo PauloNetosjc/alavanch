@@ -100,7 +100,7 @@ export default function AssinaturaPublica() {
       }
       if (new Date(s.expira_em) < new Date()) setErro("Este link expirou.");
       else if (["cancelado", "expirado", "recusado"].includes(s.status)) setErro("Esta solicitação foi cancelada.");
-      else if (["concluido", "assinado_cliente", "aguardando_loja", "assinado_loja"].includes(s.status))
+      else if (["concluido", "assinado_cliente", "aguardando_loja"].includes(s.status))
         setDone(true);
 
       setSolic(s as Solicitacao);
