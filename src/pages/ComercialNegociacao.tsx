@@ -1015,7 +1015,9 @@ export default function ComercialNegociacao() {
           observacoes_venda: observacoes || null,
           estagio_responsavel_id: user?.id || null,
         };
-        if (previsaoMedicao) patch.data_medicao_tecnica = previsaoMedicao;
+        // Previsão informada na venda NÃO preenche data_medicao_tecnica.
+        // Esse campo só é preenchido ao agendar a medição (pelo Cronograma ou pela Agenda).
+        if (previsaoMedicao) patch.observacoes_venda = `${observacoes ? observacoes + "\n\n" : ""}Previsão de medição informada na venda: ${new Date(previsaoMedicao).toLocaleDateString("pt-BR")}`;
         await supabase.from("pedidos").update(patch).eq("id", ped.id);
         navigate(`/pedidos/${ped.id}`);
       } else {
