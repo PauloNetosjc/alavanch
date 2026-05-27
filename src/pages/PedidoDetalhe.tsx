@@ -2244,7 +2244,7 @@ function PipelinesPanel({ pedido }: { pedido: any }) {
 /* ============================================================== */
 /*           CONTRATO — barra de envio e confirmação              */
 /* ============================================================== */
-function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }: any) {
+function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, setGerando, setRecemGerado }: any) {
   const [criando, setCriando] = useState(false);
   const [tokens, setTokens] = useState<{ cliente?: string; loja?: string }>({});
 
@@ -2268,6 +2268,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
 
   const criarSolicitacao = async () => {
     setCriando(true);
+    setGerando?.(true);
     try {
       const { data, error } = await supabase.rpc("auto_criar_solic_contrato", {
         p_pedido_id: pedido.id, p_contrato_id: contrato.id,
@@ -2275,10 +2276,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange }
       if (error) throw error;
       if (data) toast.success("Solicitação de assinatura criada");
       if (data) await prepararContratoParaAssinatura(data as string);
-      onChange();
+      setRecemGerado?.(true);
+      await onChange();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar solicitação");
-    } finally { setCriando(false); }
+    } finally {
+      setCriando(false);
+      setGerando?.(false);
+    }
   };
 
   const copiar = async (url: string | null, label: string) => {
