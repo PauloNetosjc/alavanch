@@ -44,6 +44,7 @@ type Funcionario = {
   endereco: string | null;
   cargo_id: string | null;
   setor_id: string | null;
+  turno_id: string | null;
   salario: number | null;
   data_admissao: string | null;
   tipo_contrato: "clt" | "pj" | "terceirizado" | "autonomo";
