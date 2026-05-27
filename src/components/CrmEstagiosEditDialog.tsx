@@ -194,6 +194,7 @@ export function CrmEstagiosEditDialog({
         concluir_acao: "proxima",
         concluir_pipeline_destino: null,
         concluir_estagio_destino_id: null,
+        criar_card_em: [],
       },
     ]);
   };
