@@ -29,6 +29,9 @@ export type ContratoCtx = {
   loja_assinado_em?: string | null;
   loja_assinatura_nome?: string | null;
   loja_assinatura_email?: string | null;
+  assinatura_cliente_url?: string | null;
+  cliente_assinado_em?: string | null;
+  cliente_ip?: string | null;
 };
 
 export const fmtBrl = (n: number) =>
@@ -120,6 +123,13 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
        ${ctx.loja_assinatura_email ? `<div class="lb" style="font-size:10px">${escapeHtml(ctx.loja_assinatura_email)}</div>` : ""}
        <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.loja_assinado_em)}</div>`
     : `<div class="lb">Assinatura da loja pendente</div>`;
+  const assinaturaClienteHtml = ctx.cliente_assinado_em && ctx.assinatura_cliente_url
+    ? `<div class="loja-signature"><img src="${escapeHtml(ctx.assinatura_cliente_url)}" alt="Assinatura digital do cliente" /></div>`
+    : `<div class="loja-signature"></div>`;
+  const assinaturaClienteMeta = ctx.cliente_assinado_em
+    ? `<div class="lb">Assinatura / CPF ou CNPJ</div>
+       <div class="lb" style="margin-top:2px;font-size:10px">Assinado digitalmente em ${fmtDate(ctx.cliente_assinado_em)}${ctx.cliente_ip ? ` · IP ${escapeHtml(ctx.cliente_ip)}` : ""}</div>`
+    : `<div class="lb">Assinatura / CPF ou CNPJ</div>`;
 
   return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"/>
 <title>Contrato ${ctx.numero}</title>
@@ -244,9 +254,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
       </div>
     </div>
     <div class="col">
+      ${assinaturaClienteHtml}
       <div class="line">
         <div class="nm">${ctx.cliente?.nome || ""}</div>
-        <div class="lb">Assinatura / CPF ou CNPJ</div>
+        ${assinaturaClienteMeta}
       </div>
     </div>
   </div>
