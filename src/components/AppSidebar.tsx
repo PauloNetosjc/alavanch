@@ -288,6 +288,38 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
     });
   };
 
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdLoading, setPwdLoading] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPwd !== confirmPwd) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    if (newPwd.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setPwdLoading(true);
+    try {
+      const { updatePassword } = useAuth();
+      await updatePassword(newPwd);
+      toast.success("Senha alterada com sucesso!");
+      setPwdOpen(false);
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao alterar senha");
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   const filterItems = (items: Item[]) =>
     items.filter((it) => {
       if (it.modulo && !can(it.modulo, "view")) return false;
