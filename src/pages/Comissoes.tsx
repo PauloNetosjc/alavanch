@@ -159,7 +159,10 @@ export default function Comissoes() {
         divByPed.set(d.pedido_id, arr);
       });
 
-      const list: PedidoRow[] = (peds || []).map((p: any) => {
+      const pedsFiltrados = (peds || []).filter((p: any) =>
+        (incluirAdendos || !p.is_adendo) && (incluirComplementos || !p.is_complemento)
+      );
+      const list: PedidoRow[] = pedsFiltrados.map((p: any) => {
         const orc = p.orcamentos || {};
         const consultor = orc.consultor_id || orc.vendedor_id || null;
         const projetista = p.projetista_id || orc.projetista_id || null;
