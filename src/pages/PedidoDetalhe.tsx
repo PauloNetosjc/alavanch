@@ -1257,7 +1257,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                 <FileText className="w-5 h-5 text-purple-600 mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium flex items-center gap-2 flex-wrap">
-                    <span className="truncate">{d.nome}</span>
+                    <span className="truncate">{nomeExibido}</span>
                     {st && <Badge className={`${st.tone} text-[10px] px-1.5 py-0 font-medium`}>{st.label}</Badge>}
                     {sol && totalCount > 0 && (
                       <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${assinadosCount === totalCount ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-amber-50 text-amber-700 border-amber-300"}`}>
