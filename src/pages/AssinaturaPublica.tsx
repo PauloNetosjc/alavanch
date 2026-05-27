@@ -14,6 +14,7 @@ import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
+import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
 
 function maskDocAuto(v: string) {
   const d = unmask(v);
