@@ -1362,6 +1362,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     )}
                   </>
                 )}
+                {!(sol && assinaturaCompleta) && (
                 <Button size="sm" variant="ghost" title="Baixar PDF" onClick={async () => {
                   try {
                     if (sol && assinaturaCompleta) {
