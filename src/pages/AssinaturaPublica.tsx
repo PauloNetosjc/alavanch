@@ -233,7 +233,7 @@ export default function AssinaturaPublica() {
         doc_foto_url: docUrl,
         selfie_url: selfieUrl,
       };
-      if (!requerLoja) upd.concluido_em = new Date().toISOString();
+      if (novoStatus === "concluido") upd.concluido_em = new Date().toISOString();
       const { error: errUpd } = await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
       if (errUpd) throw errUpd;
 
