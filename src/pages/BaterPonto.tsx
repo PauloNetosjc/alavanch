@@ -90,12 +90,20 @@ export default function BaterPonto() {
     const local = `${md.getFullYear()}-${String(md.getMonth() + 1).padStart(2, "0")}-${String(md.getDate()).padStart(2, "0")}`;
     return p.data === hoje || local === hoje;
   }), [pontos, hoje]);
-  const ORDEM = ["entrada", "saida_almoco", "volta_almoco", "saida"] as const;
+  const hd = useMemo(() => turno ? getHorarioDia(turno, new Date().getDay()) : null, [turno]);
+  const turnoCurto = useMemo(() => {
+    if (!hd) return false;
+    const dur = hmToMin(hd.hora_saida) - hmToMin(hd.hora_entrada);
+    return dur > 0 && dur < 300; // < 5h: sem almoço
+  }, [hd]);
+  const ORDEM = useMemo<readonly Ponto["tipo"][]>(
+    () => (turnoCurto ? ["entrada", "saida"] : ["entrada", "saida_almoco", "volta_almoco", "saida"]),
+    [turnoCurto]
+  );
   const jaFez = (tipo: string) => pontosHoje.some(p => p.tipo === tipo);
   const proximoIdx = ORDEM.findIndex(t => !jaFez(t));
-  const horarioPrevisto = (tipo: typeof ORDEM[number]): string | null => {
-    if (!turno) return null;
-    const hd = getHorarioDia(turno, new Date().getDay());
+  const horarioPrevisto = (tipo: Ponto["tipo"]): string | null => {
+    if (!hd) return null;
     const map: Record<string, string | null> = {
       entrada: hd.hora_entrada,
       saida_almoco: hd.hora_saida_almoco,
