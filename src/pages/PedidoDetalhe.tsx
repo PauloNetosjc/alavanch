@@ -1246,6 +1246,12 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const partesReq = partes.filter((p: any) => p.tipo === "cliente" || (p.tipo === "loja" && requerLoja !== false));
           const assinadosCount = partesReq.filter((p: any) => !!p.assinado_em).length;
           const totalCount = partesReq.length;
+          const docFinal = sol ? finalDocBySol[sol.id] : null;
+          const codigoPedido = (d.nome || "").match(/PV-[A-Z0-9-]+/i)?.[0];
+          const nomeExibido = sanitizeNome(
+            assinaturaCompleta && codigoPedido ? `Contrato assinado - ${codigoPedido}.pdf` : d.nome,
+          );
+          const totalCount = partesReq.length;
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
               <div className="flex items-start gap-3 flex-1 min-w-0">
