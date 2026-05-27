@@ -660,8 +660,8 @@ export default function PedidoDetalhe() {
         </div>
       </section>
 
-      {/* Itens avulsos do pedido (apenas leitura — adições devem ir para um adendo) */}
-      <ItensAvulsosManager pedidoId={pedido.id} readOnly />
+
+
 
       {/* IMPORTAR REVISÃO PROMOB */}
       {!revisaoPendente && (
