@@ -2416,7 +2416,7 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
         : supabase.from("configuracoes_empresa" as any).select("*").limit(1).maybeSingle();
       const [{ data: cfg }, { data: mts }] = await Promise.all([
         cfgQ,
-        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela"),
+        supabase.from("metodos_pagamento").select("nome, taxa_perc_parcela, juros_modo, parcelas_config"),
       ]);
       setConfig(cfg || null);
       setUsarMarkup(!!(cfg as any)?.usar_markup);
@@ -2440,13 +2440,23 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
   const valorInicial = subtotalAmbs > 0 ? (subtotalAmbs + parceiroValor) : (totalProposta + descValor);
   const custoFabrica = (ambientes || []).reduce((s: number, a: any) => s + (Number(a.custo_fabrica) || 0), 0);
   const jurosCliente = (pagamentos || []).reduce((s: number, p: any) => {
-    if (!p.parcelas || p.parcelas <= 1) return s;
+    const n = Number(p.parcelas) || 1;
+    if (n <= 1) return s;
     const met = metodos.find((m: any) => m.nome === p.metodo);
+    // Prioriza juros_perc da parcela configurada (% total sobre o valor financiado)
+    const cfg = Array.isArray(met?.parcelas_config)
+      ? met.parcelas_config.find((c: any) => Number(c?.numero) === n)
+      : null;
+    const jurosPerc = Number(cfg?.juros_perc) || 0;
+    if (jurosPerc > 0) {
+      return s + (Number(p.valor || 0) * jurosPerc) / 100;
+    }
+    // Fallback (legado): taxa mensal simples
     const taxa = (Number(met?.taxa_perc_parcela) || 0) / 100;
     if (!taxa) return s;
-    const principal = Number(p.valor || 0) / p.parcelas;
+    const principal = Number(p.valor || 0) / n;
     let total = 0;
-    for (let i = 1; i < p.parcelas; i++) total += principal * taxa * i;
+    for (let i = 1; i < n; i++) total += principal * taxa * i;
     return s + total;
   }, 0);
 
