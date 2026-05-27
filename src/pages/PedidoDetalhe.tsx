@@ -1165,9 +1165,26 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     )}
                   </>
                 )}
-                <a href={supabase.storage.from(d._bucket || d.bucket_name || "pedido-docs").getPublicUrl(d.storage_path).data.publicUrl} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="ghost" title="Baixar arquivo"><FileText className="w-4 h-4" /></Button>
-                </a>
+                <Button size="sm" variant="ghost" title="Baixar arquivo" onClick={async () => {
+                  try {
+                    const bucket = d._bucket || d.bucket_name || "pedido-docs";
+                    const path = d.storage_path;
+                    const fileName = d.nome || (path?.split("/").pop() ?? "arquivo");
+                    const { data: blob, error } = await supabase.storage.from(bucket).download(path);
+                    if (error || !blob) {
+                      const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60, { download: fileName });
+                      if (signed?.signedUrl) { window.location.href = signed.signedUrl; return; }
+                      throw error || new Error("Falha ao baixar");
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = fileName;
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                  } catch (e: any) {
+                    toast.error("Erro ao baixar: " + (e?.message || "desconhecido"));
+                  }
+                }}><FileText className="w-4 h-4" /></Button>
                 {!d._readonly && (
                   <Button size="sm" variant="ghost" onClick={() => removerDoc(d.id)}>
                     <Trash2 className="w-4 h-4 text-red-500" />
