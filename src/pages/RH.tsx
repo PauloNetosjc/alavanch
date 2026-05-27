@@ -1420,12 +1420,47 @@ export default function RH() {
           <div className="space-y-2">
             <div><Label>Nome *</Label><Input value={zonaForm.nome || ""} onChange={e => setZonaForm(p => ({...p, nome: e.target.value}))} /></div>
             <div>
-              <Label>Setor (opcional — em branco vale para todos)</Label>
-              <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
-                <SelectTrigger><SelectValue placeholder="Todos os setores" /></SelectTrigger>
-                <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+              <Label>Aplicar a</Label>
+              <Select
+                value={(zonaForm as any)._escopo || "todos"}
+                onValueChange={v => setZonaForm(p => ({ ...p, _escopo: v, setor_id: null, cargo_id: null, funcionario_id: null } as any))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os funcionários</SelectItem>
+                  <SelectItem value="setor">Setor específico</SelectItem>
+                  <SelectItem value="cargo">Cargo específico</SelectItem>
+                  <SelectItem value="funcionario">Funcionário específico</SelectItem>
+                </SelectContent>
               </Select>
             </div>
+            {(zonaForm as any)._escopo === "setor" && (
+              <div>
+                <Label>Setor *</Label>
+                <Select value={zonaForm.setor_id || ""} onValueChange={v => setZonaForm(p => ({...p, setor_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{setores.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            {(zonaForm as any)._escopo === "cargo" && (
+              <div>
+                <Label>Cargo *</Label>
+                <Select value={zonaForm.cargo_id || ""} onValueChange={v => setZonaForm(p => ({...p, cargo_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{cargos.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            {(zonaForm as any)._escopo === "funcionario" && (
+              <div>
+                <Label>Funcionário *</Label>
+                <Select value={zonaForm.funcionario_id || ""} onValueChange={v => setZonaForm(p => ({...p, funcionario_id: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{ativos.map(f => <SelectItem key={f.id} value={f.id}>{f.nome_completo}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
                 <Label>CEP *</Label>
