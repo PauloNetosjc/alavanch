@@ -306,7 +306,6 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
     }
     setPwdLoading(true);
     try {
-      const { updatePassword } = useAuth();
       await updatePassword(newPwd);
       toast.success("Senha alterada com sucesso!");
       setPwdOpen(false);
