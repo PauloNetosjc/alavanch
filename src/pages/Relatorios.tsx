@@ -113,6 +113,21 @@ export default function Relatorios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo, lojasFiltro]);
 
+  // ===== RT por pedido (a partir de parceiro_comissoes) =====
+  const rtByPedido = useMemo(() => {
+    const m = new Map<string, number>();
+    parceiros.forEach((c: any) => {
+      if (!c.pedido_id) return;
+      m.set(c.pedido_id, (m.get(c.pedido_id) || 0) + Number(c.valor_calculado || 0));
+    });
+    return m;
+  }, [parceiros]);
+  const rtDe = (p: any) => {
+    const direct = Number(p.rt_repassado || 0);
+    if (direct > 0) return direct;
+    return rtByPedido.get(p.id) || 0;
+  };
+
   // ===== KPIs gerais =====
   const kpi = useMemo(() => {
     // Conversão considera apenas PEDIDOS (sem adendo/complemento)
@@ -123,7 +138,7 @@ export default function Relatorios() {
 
     const bruto = pedidos.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const juros = pedidos.reduce((s, p) => s + Number(p.juros_total || 0), 0);
-    const rt = pedidos.reduce((s, p) => s + Number(p.rt_repassado || 0), 0);
+    const rt = pedidos.reduce((s, p) => s + rtDe(p), 0);
     const liquido = bruto - juros - rt;
     let custoTotal = 0;
     pedidos.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
@@ -140,7 +155,7 @@ export default function Relatorios() {
     const descontoTotal = pedidos.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
 
     return { bruto, liquido, juros, rt, custoTotal, margemValor, margemPerc, ticket, qtdPv: pvs.length, qtd: pedidos.length, conv, cancelados, fechadosPed: fechadosPed.length, totalOrcPed: orcsPedido.length, descontoTotal };
-  }, [orcs, pedidos]);
+  }, [orcs, pedidos, rtByPedido]);
 
   // ===== Tabela por tipo (PV / AD / CP) =====
   const porTipo = useMemo(() => {
@@ -153,7 +168,7 @@ export default function Relatorios() {
       const arr = pedidos.filter(b.match);
       const bruto = arr.reduce((s, p) => s + Number(p.valor_total || 0), 0);
       const juros = arr.reduce((s, p) => s + Number(p.juros_total || 0), 0);
-      const rt = arr.reduce((s, p) => s + Number(p.rt_repassado || 0), 0);
+      const rt = arr.reduce((s, p) => s + rtDe(p), 0);
       const liq = bruto - juros - rt;
       let custo = 0;
       arr.forEach((p) => (p.orcamentos?.ambientes || []).forEach((a: any) => {
@@ -164,7 +179,7 @@ export default function Relatorios() {
       const desconto = arr.reduce((s, p) => s + Number(p.orcamentos?.desconto_valor || 0), 0);
       return { ...b, qtd: arr.length, bruto, liquido: liq, juros, rt, custo, margem, margemValor: liq - custo, ticket, desconto };
     });
-  }, [pedidos]);
+  }, [pedidos, rtByPedido]);
 
   const evolucao = useMemo(() => {
     const map = new Map<number, number>();
