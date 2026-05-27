@@ -46,6 +46,7 @@ type CardRow = {
     loja_id: string | null;
     urgencia: UrgenciaNivel | null;
     arquivado: boolean | null;
+    created_at: string | null;
     cliente: { nome: string } | null;
   } | null;
   etiquetas?: { id: string; nome: string; cor: string }[];
