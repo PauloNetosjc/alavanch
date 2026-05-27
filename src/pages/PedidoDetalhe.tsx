@@ -2411,8 +2411,10 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
 /* ============================================================== */
 /*               RESUMO FINANCEIRO DO PEDIDO (real)               */
 /* ============================================================== */
-function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido }: any) {
-  const [open, setOpen] = useState(false);
+function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido, open: openProp, onOpenChange, hideTrigger }: any) {
+  const [openInner, setOpenInner] = useState(false);
+  const open = openProp !== undefined ? openProp : openInner;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setOpenInner(v); };
   const [config, setConfig] = useState<any>(null);
   const [metodos, setMetodos] = useState<any[]>([]);
   const [parceiroNome, setParceiroNome] = useState<string>("");
