@@ -21,6 +21,8 @@ type OrcRow = {
   id: string;
   codigo: string;
   nome_projeto: string | null;
+  cliente_final: string | null;
+  cliente_final_pedido?: string | null;
   status: string;
   total: number | null;
   created_at: string;
