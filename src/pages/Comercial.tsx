@@ -24,6 +24,7 @@ type OrcRow = {
   status: string;
   total: number | null;
   created_at: string;
+  confirmado_em?: string | null;
   cliente_id: string | null;
   loja_id?: string | null;
   cliente?: { nome: string } | null;
