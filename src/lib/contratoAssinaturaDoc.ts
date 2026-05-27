@@ -267,10 +267,13 @@ export async function prepararContratoParaAssinatura(
   const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);
-  const path = `${solic.pedido_id}/contrato-${safeName(contrato.numero || solic.id)}-${solic.id}.pdf`;
+  // Caminho versionado por timestamp para evitar cache de CDN/navegador no PDF antigo em branco.
+  const version = Date.now();
+  const path = `${solic.pedido_id}/contrato-${safeName(contrato.numero || solic.id)}-${solic.id}-v${version}.pdf`;
   const { error: upErr } = await supabase.storage.from("contratos-assinatura").upload(path, blob, {
     upsert: true,
     contentType: "application/pdf",
+    cacheControl: "0",
   });
   if (upErr) throw upErr;
   const publicUrl = supabase.storage.from("contratos-assinatura").getPublicUrl(path).data.publicUrl;
