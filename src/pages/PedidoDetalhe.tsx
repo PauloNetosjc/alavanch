@@ -1516,7 +1516,7 @@ function ParcelasTabela({ pagamentos, total }: any) {
               <tr key={l.idx} className="border-b hover:bg-muted/20">
                 <td className="py-3 pr-2 text-muted-foreground">{l.idx}</td>
                 <td className="py-3 pr-2">{l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                <td className="py-3 pr-2">{l.metodo}</td>
+                <td className="py-3 pr-2">{String(l.metodo || "").replace(/\s*\d+x(\s*a\s*\d+x)?\s*$/i, "").trim() || "—"}</td>
                 <td className="py-3 pr-2 text-muted-foreground">—</td>
                 <td className="py-3 text-right font-medium">{fmtBrl(l.valor)}</td>
               </tr>
