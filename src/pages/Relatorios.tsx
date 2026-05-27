@@ -201,7 +201,13 @@ export default function Relatorios() {
             <p className="text-[12px] text-muted-foreground mt-1">Análise de desempenho comercial</p>
           </div>
         </div>
-        <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link to="/comissoes" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border bg-card hover:bg-muted/50 text-[12px] transition-colors">
+            <Award className="w-3.5 h-3.5 text-amber-500" />
+            Cálculo de Comissão
+          </Link>
+          <PageFilters value={periodo} onChange={setPeriodo} lojas={lojasFiltro} onLojasChange={setLojasFiltro} />
+        </div>
       </div>
 
       {/* KPIs gerais */}
