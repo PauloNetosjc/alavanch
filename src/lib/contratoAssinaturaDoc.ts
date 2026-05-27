@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
-import { buildLojaSignatureDataUrl } from "@/lib/lojaSignature";
+import { buildLojaSignatureDataUrl, buildLojaSignaturePngBlob } from "@/lib/lojaSignature";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -59,7 +59,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
   const nomeFantasia = configEmpresa?.nome_fantasia || loja?.nome || empresaSnapshot.nome_fantasia || empresaSnapshot.nome || razaoSocial;
   const lojaNome = nomeFantasia || razaoSocial;
   const responsavel = profile?.nome_completo || currentUser?.email || lojaNome;
-  const assinaturaLojaUrl = solic.assinatura_loja_url || buildLojaSignatureDataUrl({
+  const sigData = {
     nome: lojaNome,
     razao_social: razaoSocial,
     nome_fantasia: nomeFantasia,
@@ -68,7 +68,20 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     cidade: loja?.cidade,
     uf: loja?.uf,
     responsavel,
-  });
+  };
+  let assinaturaLojaUrl = solic.assinatura_loja_url || "";
+  if (!assinaturaLojaUrl) {
+    try {
+      const sigBlob = await buildLojaSignaturePngBlob(sigData);
+      const sigPath = `${solicitacaoId}/assinatura-loja-${Date.now()}.png`;
+      const up = await supabase.storage.from("assinaturas-evidencias").upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" });
+      assinaturaLojaUrl = up.error
+        ? buildLojaSignatureDataUrl(sigData)
+        : supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+    } catch {
+      assinaturaLojaUrl = buildLojaSignatureDataUrl(sigData);
+    }
+  }
   const lojaAssinadoEm = solic.loja_assinado_em || new Date().toISOString();
 
   if (!solic.loja_assinado_em) {
