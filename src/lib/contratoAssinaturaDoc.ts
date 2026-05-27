@@ -25,6 +25,11 @@ async function ensurePastaDocumentos(pedidoId: string) {
   return pasta?.id || null;
 }
 
+/**
+ * Gera o HTML do contrato e registra o documento na Central de Documentos do pedido.
+ * NÃO assina automaticamente pela loja — a assinatura da loja é feita manualmente
+ * pelo usuário logado via "Assinar pela loja" na Central de Documentos.
+ */
 export async function prepararContratoParaAssinatura(solicitacaoId: string) {
   const { data: solic } = await supabase
     .from("solicitacoes_assinatura")
@@ -33,96 +38,24 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     .maybeSingle();
   if (!solic?.pedido_id || !solic?.contrato_id) return;
 
-  const [{ data: contrato }, { data: pedido }, { data: participantes }] = await Promise.all([
+  const [{ data: contrato }, { data: pedido }] = await Promise.all([
     supabase.from("contratos").select("*").eq("id", solic.contrato_id).maybeSingle(),
     supabase.from("pedidos").select("id,codigo,cliente_id,loja_id").eq("id", solic.pedido_id).maybeSingle(),
-    supabase.from("assinatura_participantes").select("id,tipo,status").eq("solicitacao_id", solicitacaoId),
   ]);
   if (!contrato || !pedido) return;
 
-  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tpl }, auth] = await Promise.all([
+  const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tpl }] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
-    supabase.auth.getUser(),
   ]);
-
-  const currentUser = (auth as any)?.data?.user;
-  const { data: profile } = currentUser?.id
-    ? await supabase.from("profiles").select("nome_completo,cargo").eq("user_id", currentUser.id).maybeSingle()
-    : ({ data: null } as any);
 
   const snapshot = ((contrato.conteudo_snapshot as any) || {});
   const empresaSnapshot = snapshot.empresa || {};
   const razaoSocial = configEmpresa?.nome_empresa || loja?.nome || empresaSnapshot.razao_social || empresaSnapshot.nome || "Loja";
   const nomeFantasia = configEmpresa?.nome_fantasia || loja?.nome || empresaSnapshot.nome_fantasia || empresaSnapshot.nome || razaoSocial;
   const lojaNome = nomeFantasia || razaoSocial;
-  const responsavel = profile?.nome_completo || currentUser?.email || lojaNome;
-  const sigData = {
-    nome: lojaNome,
-    razao_social: razaoSocial,
-    nome_fantasia: nomeFantasia,
-    cnpj: loja?.cnpj || configEmpresa?.cnpj || empresaSnapshot.cnpj,
-    endereco: loja?.endereco || configEmpresa?.endereco || empresaSnapshot.endereco,
-    cidade: loja?.cidade,
-    uf: loja?.uf,
-    responsavel,
-  };
-  let assinaturaLojaUrl = solic.assinatura_loja_url || "";
-  if (!assinaturaLojaUrl) {
-    try {
-      const sigBlob = await buildLojaSignaturePngBlob(sigData);
-      const sigPath = `${solicitacaoId}/assinatura-loja-${Date.now()}.png`;
-      const up = await supabase.storage.from("assinaturas-evidencias").upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" });
-      assinaturaLojaUrl = up.error
-        ? buildLojaSignatureDataUrl(sigData)
-        : supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
-    } catch {
-      assinaturaLojaUrl = buildLojaSignatureDataUrl(sigData);
-    }
-  }
-  const lojaAssinadoEm = solic.loja_assinado_em || new Date().toISOString();
-
-  if (!solic.loja_assinado_em) {
-    const jaTemLoja = (participantes || []).some((p: any) => p.tipo === "loja" && p.status === "assinado");
-    let participanteId: string | null = null;
-    if (!jaTemLoja) {
-      const { data: part } = await supabase
-        .from("assinatura_participantes")
-        .insert({
-          solicitacao_id: solicitacaoId,
-          tipo: "loja",
-          nome: responsavel,
-          user_id: currentUser?.id || null,
-          cargo: profile?.cargo || null,
-          status: "assinado",
-          assinado_em: lojaAssinadoEm,
-          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-        })
-        .select("id")
-        .single();
-      participanteId = part?.id || null;
-    }
-
-    await supabase.from("assinatura_evidencias").insert({
-      solicitacao_id: solicitacaoId,
-      participante_id: participanteId,
-      assinatura_url: assinaturaLojaUrl,
-      aceite: true,
-      aceite_texto: "Pré-assinatura digital da loja (carimbo eletrônico)",
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-    });
-
-    await supabase.from("assinatura_eventos").insert({
-      solicitacao_id: solicitacaoId,
-      tipo_evento: "loja_assinou",
-      status_anterior: solic.status,
-      status_novo: solic.status,
-      descricao: `Loja pré-assinou automaticamente (${responsavel})`,
-      user_id: currentUser?.id || null,
-    });
-  }
 
   const pastaId = await ensurePastaDocumentos(solic.pedido_id);
 
@@ -147,9 +80,8 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
       },
       cliente: (snapshot?.cliente || cliente || null),
       signing_url: getPublicSignatureUrl(solic.token),
-      assinatura_loja_url: assinaturaLojaUrl,
-      loja_assinado_em: lojaAssinadoEm,
-      loja_assinatura_nome: responsavel,
+      assinatura_loja_url: solic.assinatura_loja_url || "",
+      loja_assinado_em: solic.loja_assinado_em || "",
     };
     const html = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -163,7 +95,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
     const docPayload = {
         pedido_id: solic.pedido_id,
         pasta_id: pastaId,
-        nome: `Contrato ${contrato.numero} - pré-assinado pela loja`,
+        nome: `Contrato ${contrato.numero}`,
         storage_path: path,
         bucket_name: "contratos-assinatura",
         tamanho: blob.size,
@@ -185,15 +117,7 @@ export async function prepararContratoParaAssinatura(solicitacaoId: string) {
         file_name: `Contrato ${contrato.numero}`,
         file_url: publicUrl,
         storage_path: path,
-        assinatura_loja_url: assinaturaLojaUrl,
-        loja_assinado_em: lojaAssinadoEm,
       } as any)
       .eq("id", solicitacaoId);
-    return;
   }
-
-  await supabase
-    .from("solicitacoes_assinatura")
-    .update({ assinatura_loja_url: assinaturaLojaUrl, loja_assinado_em: lojaAssinadoEm } as any)
-    .eq("id", solicitacaoId);
 }

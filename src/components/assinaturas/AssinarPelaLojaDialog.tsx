@@ -33,30 +33,64 @@ export function AssinarPelaLojaDialog({
     setBusy(true);
     try {
       const ua = navigator.userAgent;
+      const agora = new Date().toISOString();
+
+      // Upload da assinatura da loja para o storage (para embed no contrato)
+      let assinaturaLojaUrl: string | null = null;
+      try {
+        const sigBlob = await (await fetch(padRef.current!.toDataURL())).blob();
+        const sigPath = `${solic.id}/assinatura-loja-${Date.now()}.png`;
+        const up = await supabase.storage
+          .from("assinaturas-evidencias")
+          .upload(sigPath, sigBlob, { upsert: true, contentType: "image/png" });
+        if (!up.error) {
+          assinaturaLojaUrl = supabase.storage.from("assinaturas-evidencias").getPublicUrl(sigPath).data.publicUrl;
+        } else {
+          assinaturaLojaUrl = padRef.current!.toDataURL();
+        }
+      } catch {
+        assinaturaLojaUrl = padRef.current!.toDataURL();
+      }
+
       const { data: part } = await supabase.from("assinatura_participantes").insert({
         solicitacao_id: solic.id, tipo: "loja",
         nome: (profile as any)?.nome_completo || user?.email,
         user_id: user?.id, cargo: role,
-        status: "assinado", assinado_em: new Date().toISOString(), user_agent: ua,
+        status: "assinado", assinado_em: agora, user_agent: ua,
       }).select().single();
 
       await supabase.from("assinatura_evidencias").insert({
         solicitacao_id: solic.id, participante_id: part?.id,
-        assinatura_url: padRef.current!.toDataURL(),
+        assinatura_url: assinaturaLojaUrl,
         aceite: true, aceite_texto: obs || "Assinado pela loja",
         user_agent: ua,
       });
-      await supabase.from("solicitacoes_assinatura").update({
-        status: "concluido", loja_assinado_em: new Date().toISOString(), concluido_em: new Date().toISOString(),
-      }).eq("id", solic.id);
+
+      // Conclui SOMENTE se cliente também já tiver assinado
+      const clienteJaAssinou = !!solic.cliente_assinado_em;
+      const novoStatus = clienteJaAssinou ? "concluido" : "assinado_loja";
+      const upd: any = {
+        status: novoStatus,
+        loja_assinado_em: agora,
+        assinatura_loja_url: assinaturaLojaUrl,
+      };
+      if (clienteJaAssinou) upd.concluido_em = agora;
+
+      await supabase.from("solicitacoes_assinatura").update(upd).eq("id", solic.id);
+
       await supabase.from("assinatura_eventos").insert({
         solicitacao_id: solic.id, tipo_evento: "loja_assinou",
-        status_anterior: solic.status, status_novo: "concluido",
+        status_anterior: solic.status, status_novo: novoStatus,
         descricao: `Loja assinou (${(profile as any)?.nome_completo || user?.email})`,
         user_id: user?.id,
       });
-      await arquivarDocumentoAssinado(solic.id);
-      toast.success("Documento concluído!");
+
+      if (clienteJaAssinou) {
+        await arquivarDocumentoAssinado(solic.id);
+        toast.success("Documento concluído!");
+      } else {
+        toast.success("Loja assinou. Aguardando assinatura do cliente.");
+      }
       onOpenChange(false); onDone?.();
     } catch (e: any) {
       toast.error(e.message);

@@ -1118,7 +1118,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           };
           const st = sol ? (STATUS_LABEL[sol.status] || { label: sol.status, tone: "bg-muted" }) : null;
           const requerLoja = sol?.tipos_documento?.requer_assinatura_loja;
-          const podeAssinarLoja = sol && requerLoja && (sol.status === "assinado_cliente" || sol.status === "aguardando_loja");
+          const podeAssinarLoja = sol && requerLoja && !sol.loja_assinado_em && !["concluido", "cancelado", "recusado", "expirado"].includes(sol.status);
           const linkPub = sol ? getPublicSignatureUrl(sol.token) : null;
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">
@@ -1162,6 +1162,11 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
                     {podeAssinarLoja && (
                       <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAssinarLojaId(sol.id)}>
                         <PenLine className="w-3.5 h-3.5 mr-1" /> Assinar pela loja
+                      </Button>
+                    )}
+                    {sol.status === "concluido" && (
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => baixarPdfFinalAssinatura(sol.id, d.nome)}>
+                        <FileText className="w-3.5 h-3.5 mr-1" /> Baixar completo
                       </Button>
                     )}
                   </>
