@@ -54,7 +54,7 @@ export default function Dashboard() {
       setLoading(true);
       let qPed = supabase
         .from("pedidos")
-        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id, orcamento_id");
+        .select("id, valor_total, juros_total, rt_repassado, created_at, status, workflow_estagio, data_limite_finalizacao, loja_id, orcamento_id, is_adendo, is_complemento");
       let qLan = supabase
         .from("lancamentos_financeiros")
         .select("tipo, valor, status, data_vencimento, data_pagamento, loja_id");
