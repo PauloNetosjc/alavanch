@@ -116,8 +116,9 @@ export function NovaSolicitacaoAssinaturaDialog({ open, onOpenChange, pedidoId, 
       if (defaults?.contrato_id) {
         try {
           await prepararContratoParaAssinatura(data.id);
-        } catch (prepErr) {
-          console.warn("Falha ao preparar contrato com assinatura da loja:", prepErr);
+        } catch (prepErr: any) {
+          console.warn("Falha ao preparar contrato:", prepErr);
+          toast.warning(prepErr?.message || "Não foi possível gerar o PDF do contrato.");
         }
       }
 
