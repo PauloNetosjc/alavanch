@@ -15,6 +15,7 @@ export default function Ranking() {
   const [lojasFiltro, setLojasFiltro] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
   useEffect(() => { setLojasFiltro(selectedLojaId ? [selectedLojaId] : []); }, [selectedLojaId]);
   const [rows, setRows] = useState<Row[]>([]);
+  const [totalRealizado, setTotalRealizado] = useState(0);
   const [metaGlobal, setMetaGlobal] = useState(0);
   const [loading, setLoading] = useState(true);
   const { inicio, fim } = useMemo(() => resolvePeriodo(periodo), [periodo]);
