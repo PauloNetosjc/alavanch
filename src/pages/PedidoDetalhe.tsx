@@ -25,6 +25,7 @@ import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
+import { VisualizarAssinaturasDialog } from "@/components/assinaturas/VisualizarAssinaturasDialog";
 import { Badge } from "@/components/ui/badge";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
