@@ -6,7 +6,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw, Check, Pencil, RotateCcw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { gerarPreviewReceita, type MetodoPagamento } from "@/lib/receitaPreview";
 
@@ -244,19 +244,41 @@ export default function PedidoReceita() {
   async function confirmarBaixa(p: BaixaPayload) {
     if (!baixaAlvo) return;
     const agora = new Date();
+    const bruto = Number(baixaAlvo.valor || 0);
+    const juros = Number(baixaAlvo.juros_previsto || 0);
+    const liquidoPrev = Math.max(0, Math.round((bruto - juros) * 100) / 100);
+    const recebido = Number(p.valor) || 0;
+    const diff = Math.round((recebido - liquidoPrev) * 100) / 100;
+    const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
+    const exigeAprov = !souAprovador && diff < -0.005 && percDiff > TOLERANCIA_PERC;
+
+    const contaTrocada = (baixaAlvo.conta_id || "") !== (p.conta_id || "");
+    const contaAnt = contas.find((c) => c.id === baixaAlvo.conta_id)?.nome || "—";
+    const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
+    const auditoria: string[] = [];
+    if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" em ${agora.toLocaleString("pt-BR")}.`);
+    if (diff > 0.005) auditoria.push(`Recebido maior que previsto. Diferença positiva: ${fmtBrl(diff)}.`);
+    else if (diff < -0.005) auditoria.push(`Recebido menor que previsto. Diferença: ${fmtBrl(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
+
     const { error } = await supabase.from("lancamentos_financeiros").update({
       status: "recebido",
       data_pagamento: p.data_pagamento,
       conta_id: p.conta_id,
       forma_pagamento: p.forma_pagamento,
-      valor: Number(p.valor) || 0,
+      valor: recebido,
       baixado_por: user?.id ?? null,
       baixado_em: agora.toISOString(),
+      notas: notasNovas,
+      ...(exigeAprov ? { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null } : {}),
     }).eq("id", baixaAlvo.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Recebido");
+    if (diff > 0.005) toast.success(`Recebido. Diferença positiva: ${fmtBrl(diff)}.`);
+    else if (exigeAprov) toast.success("Baixa registrada — enviada para Aprovador.");
+    else toast.success("Recebido");
     carregar();
   }
+
 
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
@@ -440,10 +462,12 @@ export default function PedidoReceita() {
         tipo="entrada"
         descricao={baixaAlvo?.descricao ?? null}
         valorOriginal={Number(baixaAlvo?.valor || 0)}
+        jurosPrevisto={Number(baixaAlvo?.juros_previsto || 0)}
         contaIdAtual={baixaAlvo?.conta_id ?? null}
         contas={contas}
         onConfirm={confirmarBaixa}
       />
+
 
       <EditarLancamentoDialog
         open={editOpen}

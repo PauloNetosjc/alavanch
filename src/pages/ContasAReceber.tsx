@@ -9,7 +9,7 @@ import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Pri
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
-import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
@@ -241,9 +241,25 @@ export default function ContasAReceber() {
   async function confirmarBaixa(p: BaixaPayload) {
     if (!baixaAlvo) return;
     const agora = new Date();
-    const original = Number(baixaAlvo.valor || 0);
+    const bruto = Number(baixaAlvo.valor || 0);
+    const juros = Number(baixaAlvo.juros_previsto || 0);
+    const liquidoPrev = Math.max(0, Math.round((bruto - juros) * 100) / 100);
     const recebido = Number(p.valor) || 0;
-    const diff = Math.round((original - recebido) * 100) / 100;
+    const diff = Math.round((recebido - liquidoPrev) * 100) / 100; // >0 maior, <0 menor
+    const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
+
+    // Regra: valor maior, igual ou divergência negativa dentro da tolerância => baixa direta.
+    // Apenas divergência negativa acima da tolerância exige aprovação.
+    const exigeAprov = !souAprovador && diff < -0.005 && percDiff > TOLERANCIA_PERC;
+
+    const contaTrocada = (baixaAlvo.conta_id || "") !== (p.conta_id || "");
+    const contaAnt = contas.find((c) => c.id === baixaAlvo.conta_id)?.nome || "—";
+    const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
+    const auditoria: string[] = [];
+    if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" por ${userName(user?.id ?? null)} em ${agora.toLocaleString("pt-BR")}.`);
+    if (diff > 0.005) auditoria.push(`Recebido maior que previsto. Diferença positiva: ${BRL(diff)}.`);
+    else if (diff < -0.005) auditoria.push(`Recebido menor que previsto. Diferença: ${BRL(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
 
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
@@ -254,31 +270,19 @@ export default function ContasAReceber() {
         valor: recebido,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
+        notas: notasNovas,
+        ...(exigeAprov ? { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null } : {}),
       })
       .eq("id", baixaAlvo.id);
     if (error) { toast.error(error.message); return; }
 
-    if (diff > 0.005) {
-      const novoVenc = baixaAlvo.data_vencimento || new Date().toISOString().slice(0, 10);
-      const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
-        tipo: "entrada",
-        descricao: `${baixaAlvo.descricao || "Recebimento"} — saldo restante`,
-        valor: diff,
-        data_vencimento: novoVenc,
-        categoria_id: baixaAlvo.categoria_id,
-        conta_id: p.conta_id,
-        pedido_id: baixaAlvo.pedido_id,
-        status: "pendente",
-        aprovacao_status: baixaAlvo.aprovacao_status || "pendente_aprovacao",
-        loja_id: (baixaAlvo as any).loja_id ?? null,
-      });
-      if (e2) toast.error("Baixa OK, mas falhou criar saldo: " + e2.message);
-      else toast.success(`Recebido. Parcela de saldo (${diff.toFixed(2)}) criada.`);
-    } else {
-      toast.success("Recebido");
-    }
+    if (diff > 0.005) toast.success(`Recebido. Diferença positiva: ${BRL(diff)}.`);
+    else if (exigeAprov) toast.success("Baixa registrada — enviada para Aprovador (diferença acima da tolerância).");
+    else if (diff < -0.005) toast.success(`Recebido. Diferença ${BRL(Math.abs(diff))} dentro da tolerância.`);
+    else toast.success("Recebido");
     load();
   }
+
 
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
@@ -537,10 +541,12 @@ export default function ContasAReceber() {
         tipo="entrada"
         descricao={baixaAlvo?.descricao ?? null}
         valorOriginal={Number(baixaAlvo?.valor || 0)}
+        jurosPrevisto={Number(baixaAlvo?.juros_previsto || 0)}
         contaIdAtual={baixaAlvo?.conta_id ?? null}
         contas={contas}
         onConfirm={confirmarBaixa}
       />
+
 
       <EditarLancamentoDialog
         open={editOpen}
