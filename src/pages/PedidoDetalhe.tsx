@@ -2838,7 +2838,11 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
             <Link to={`/comercial/${orcamento.id}`} className="text-primary hover:underline">{orcamento.codigo}</Link>
           ) : "—"}
         </Field>
-        <Field label="Fluxo de trabalho">{fluxoTrabalho || "—"}</Field>
+        <Field label="Etapa atual">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${etapaCls}`}>
+            {etapaLabel}
+          </span>
+        </Field>
         <Field label="Receita">
           <Link to={`/pedidos/${pedido.id}/receita`} className="text-primary hover:underline">
             {pedido.receita_codigo ? `#${pedido.receita_codigo}` : fmtBrl(Number(pedido.valor_total) || 0)}
