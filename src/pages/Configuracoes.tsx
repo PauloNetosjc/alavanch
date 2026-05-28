@@ -130,10 +130,67 @@ function PoliticasTab() {
             <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
             <div className="text-[15px] font-medium">Prazo de Entrega</div>
           </div>
-          <div>
-            <Label>Prazo Padrão (dias)</Label>
-            <Input type="number" value={c.prazo_padrao_dias ?? ""} onChange={(e) => set("prazo_padrao_dias", parseInt(e.target.value))} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Prazo Padrão (dias)</Label>
+              <Input type="number" min={0} value={c.prazo_padrao_dias ?? ""} onChange={(e) => set("prazo_padrao_dias", parseInt(e.target.value || "0"))} />
+            </div>
+            <div>
+              <Label>Tipo de contagem</Label>
+              <Select value={c.prazo_entrega_tipo_dias ?? "corridos"} onValueChange={(v) => set("prazo_entrega_tipo_dias", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="corridos">Dias corridos</SelectItem>
+                  <SelectItem value="uteis">Dias úteis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Início da contagem</Label>
+              <Select value={c.prazo_entrega_inicio_contagem ?? "assinatura_contrato"} onValueChange={(v) => set("prazo_entrega_inicio_contagem", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="assinatura_contrato">Assinatura do contrato</SelectItem>
+                  <SelectItem value="assinatura_pdf_final">Assinatura do PDF Final</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3">Calcula automaticamente o prazo máximo de entrega de cada pedido.</p>
+        </div>
+
+        <div className="surface-card p-5 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded bg-amber-500/15 flex items-center justify-center"><Calendar className="w-4 h-4 text-amber-500" /></div>
+            <div className="text-[15px] font-medium">Prazo da Montagem</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Prazo padrão para iniciar montagem (dias)</Label>
+              <Input type="number" min={0} value={c.prazo_montagem_dias ?? ""} onChange={(e) => set("prazo_montagem_dias", parseInt(e.target.value || "0"))} />
+            </div>
+            <div>
+              <Label>Tipo de contagem</Label>
+              <Select value={c.prazo_montagem_tipo_dias ?? "uteis"} onValueChange={(v) => set("prazo_montagem_tipo_dias", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uteis">Dias úteis</SelectItem>
+                  <SelectItem value="corridos">Dias corridos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Início da contagem</Label>
+              <Select value={c.prazo_montagem_inicio_contagem ?? "entrega_realizada"} onValueChange={(v) => set("prazo_montagem_inicio_contagem", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entrega_realizada">Entrega realizada</SelectItem>
+                  <SelectItem value="fim_prazo_entrega">Fim do prazo de entrega</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3">Calcula automaticamente o prazo máximo para iniciar a montagem.</p>
         </div>
       </div>
 
