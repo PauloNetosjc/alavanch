@@ -1204,7 +1204,10 @@ export default function ComercialNegociacao() {
         };
         // Se o pedido estava cancelado (re-negociação), reativa
         if (ped.status === "cancelado") patch.status = "em_producao";
-        if (previsaoMedicao) patch.observacoes_venda = `${observacoes ? observacoes + "\n\n" : ""}Previsão de medição informada na venda: ${new Date(previsaoMedicao).toLocaleDateString("pt-BR")}`;
+        if (previsaoMedicao) {
+          patch.previsao_medicao = previsaoMedicao;
+          patch.observacoes_venda = `${observacoes ? observacoes + "\n\n" : ""}Previsão de medição informada na venda: ${new Date(previsaoMedicao).toLocaleDateString("pt-BR")}`;
+        }
         await supabase.from("pedidos").update(patch).eq("id", ped.id);
         // Dispara gatilhos de criação automática de cards nos kanbans operacionais
         await dispatchKanbanTrigger("contrato_criado", { pedidoId: ped.id, orcamentoId: id, responsavelId: user?.id ?? null });
