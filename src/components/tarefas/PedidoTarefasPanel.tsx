@@ -444,17 +444,27 @@ export function ConcluirDialog({
           <DialogDescription>{tarefa?.titulo}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {concluiPorUpload && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
+              Esta tarefa é concluída automaticamente quando você envia as fotos/arquivos pelo
+              ícone de <b>anexo (📎)</b>. Os arquivos vão direto para a Central de Documentos &gt;
+              {" "}<b>Medição Técnica</b>.
+            </div>
+          )}
           <div>
             <Label className="text-[11px]">Observação de conclusão</Label>
             <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Descreva como foi concluída…" />
           </div>
-          <div>
-            <Label className="text-[11px]">
-              Anexo {tarefa?.exige_anexo && <span className="text-red-600">*obrigatório</span>}
-            </Label>
-            <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          </div>
+          {!concluiPorUpload && (
+            <div>
+              <Label className="text-[11px]">
+                Anexo {tarefa?.exige_anexo && <span className="text-red-600">*obrigatório</span>}
+              </Label>
+              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={confirmar} disabled={saving}>{saving ? "Salvando…" : "Confirmar conclusão"}</Button>
