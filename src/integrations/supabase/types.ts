@@ -5347,6 +5347,10 @@ export type Database = {
         Returns: string
       }
       current_loja_id: { Args: never; Returns: string }
+      ensure_fluxo_revisao_e_pdf_final: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       ensure_participants_for_solicitation: {
         Args: { p_solic: string }
         Returns: undefined

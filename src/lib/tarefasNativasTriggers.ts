@@ -112,3 +112,38 @@ export async function ensureTarefasCronogramaPedido(
     console.error("[ensureTarefasCronograma] exceção", e);
   }
 }
+
+/**
+ * Garante o fluxo Revisão Loja → Preparo e envio de PDF Projeto Final.
+ *
+ * Chama a RPC SQL `ensure_fluxo_revisao_e_pdf_final` que:
+ *  - Cria/garante a tarefa "Revisão loja" (chave: revisao_loja) com prazo
+ *    de 7 dias úteis após a data da Revisão Final agendada (ou após hoje,
+ *    como fallback) — nunca deixa a tarefa sem prazo.
+ *  - Conclui a "Revisão loja" automaticamente quando houver upload em
+ *    Arquivos do Projeto > Projeto Revisado SEM revisão de valores
+ *    pendente, ou quando a revisão de valores for aprovada.
+ *  - Dispara a criação da tarefa "Preparo e envio de PDF Projeto Final"
+ *    (chave: preparo_envio_pdf_projeto_final) com prazo de 7 dias úteis.
+ *
+ * Idempotente e tolerante a falhas. Chame após uploads em Projeto para
+ * Revisão / Projeto Revisado, após aprovação de revisão de valores, e
+ * como fallback no carregamento do painel de tarefas do pedido.
+ */
+export async function ensureFluxoRevisaoEPdfFinal(
+  pedido_id: string
+): Promise<void> {
+  try {
+    if (!pedido_id) return;
+    const { error } = await (supabase as any).rpc(
+      "ensure_fluxo_revisao_e_pdf_final",
+      { p_pedido_id: pedido_id }
+    );
+    if (error) {
+      console.error("[ensureFluxoRevisao] RPC erro", error);
+    }
+  } catch (e) {
+    console.error("[ensureFluxoRevisao] exceção", e);
+  }
+}
+

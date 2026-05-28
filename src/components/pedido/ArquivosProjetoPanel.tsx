@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import JSZip from "jszip";
 import { sanitizeStorageFileName } from "@/lib/storagePath";
+import { ensureFluxoRevisaoEPdfFinal } from "@/lib/tarefasNativasTriggers";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
@@ -262,6 +263,12 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
       toast.warning(`${sucesso} enviado${sucesso > 1 ? "s" : ""}, ${falha} falha${falha > 1 ? "s" : ""}.`);
     } else if (falha > 0) {
       toast.error(`Falha no upload de ${falha} arquivo${falha > 1 ? "s" : ""}.`);
+    }
+
+    // Blindagem: garante fluxo Revisão Loja → PDF Final após upload em
+    // Projeto para Revisão ou Projeto Revisado.
+    if (sucesso > 0 && (cat === "projeto_para_revisao" || cat === "projeto_revisado")) {
+      await ensureFluxoRevisaoEPdfFinal(pedido.id);
     }
 
     if (falhas.length > 0) {
