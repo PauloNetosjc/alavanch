@@ -493,7 +493,7 @@ function ReabrirDialog({
   );
 }
 
-function ComentarDialog({
+export function ComentarDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [txt, setTxt] = useState("");
