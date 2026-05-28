@@ -352,7 +352,7 @@ export default function MedicoesPrevistasDialog({
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <TopCard icon={CalendarRange} tone="slate" label="Total com previsão" value={topCards.totalPrev} />
             <TopCard icon={CalendarClock} tone="blue" label="Previstas este mês" value={topCards.qtdMes} />
-            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL.format(topCards.valorMes)} />
+            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL(topCards.valorMes)} />
             <TopCard icon={CalendarX2} tone="red" label="Previsões vencidas" value={topCards.vencidas} />
             <TopCard icon={CheckCircle2} tone="emerald" label="Medições já agendadas" value={topCards.agendadas} />
           </div>
@@ -439,8 +439,8 @@ export default function MedicoesPrevistasDialog({
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E7EEF2] text-[#3F7898]">{m.qtd} pedidos</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Valor total</div>
-                      <div className="text-base font-semibold">{BRL.format(m.valor)}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1">Ticket médio: {BRL.format(ticket(m.qtd, m.valor))}</div>
+                      <div className="text-base font-semibold">{BRL(m.valor)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">Ticket médio: {BRL(ticket(m.qtd, m.valor))}</div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                         <div className="rounded-md bg-red-50 text-red-700 px-2 py-1 flex items-center gap-1">
@@ -520,7 +520,7 @@ export default function MedicoesPrevistasDialog({
                         <td className="p-2">{p.loja_nome || "—"}</td>
                         <td className="p-2">{p.responsavel_nome || "—"}</td>
                         <td className="p-2">{p.vendedor_nome || "—"}</td>
-                        <td className="p-2 text-right">{BRL.format(Number(p.valor_total || 0))}</td>
+                        <td className="p-2 text-right">{BRL(Number(p.valor_total || 0))}</td>
                         <td className="p-2">{fmtDate(p.created_at)}</td>
                         <td className="p-2">{fmtDate(p.previsao_medicao)}</td>
                         <td className="p-2">
