@@ -162,19 +162,23 @@ export default function PedidoReceita() {
   const parcelas: Parcela[] = useMemo(() => {
     if (integrado) {
       const total = lancamentos.length;
-      return lancamentos.map((l, idx) => {
+      return lancamentos.map<Parcela>((l, idx) => {
         const valor = Number(l.valor) || 0;
         const juros = Number(l.juros_previsto || 0);
-        const recebido = isPago(l.status) ? valor : 0;
+        const pago = isPago(l.status);
+        const jurosReal = Number(l.juros_real || 0);
+        const recebido = pago ? Math.round((valor - jurosReal) * 100) / 100 : 0;
+        const saldo = pago ? 0 : Math.max(valor - juros, 0);
         const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
         return {
           numero: l.numero_parcela ?? (m ? parseInt(m[1], 10) : idx + 1),
           total: l.total_parcelas ?? (m ? parseInt(m[2], 10) : total),
           valor,
           juros,
+          juros_real: pago ? jurosReal : 0,
           taxa_perc: Number(l.taxa_perc || 0),
           recebido,
-          saldo: valor - juros - recebido,
+          saldo,
           vencimento: l.data_vencimento || null,
           forma: l.forma_pagamento || "—",
           agrupado: !!l.agrupado,
@@ -188,14 +192,15 @@ export default function PedidoReceita() {
     // Fallback (prévia): usa o mesmo cálculo do gerador SQL
     const dataBase = (pedido?.created_at || new Date().toISOString()).slice(0, 10);
     const prev = gerarPreviewReceita(pagamentos as any, metodos, dataBase);
-    return prev.map((p) => ({
+    return prev.map<Parcela>((p) => ({
       numero: p.numero,
       total: p.total,
       valor: p.valor,
       juros: p.juros,
+      juros_real: 0,
       taxa_perc: p.taxa_perc,
       recebido: 0,
-      saldo: p.saldo,
+      saldo: Math.max(p.valor - p.juros, 0),
       vencimento: p.vencimento,
       forma: p.forma,
       agrupado: p.agrupado,
@@ -203,6 +208,7 @@ export default function PedidoReceita() {
       origemReal: false,
     }));
   }, [integrado, lancamentos, pagamentos, metodos, pedido]);
+
 
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
