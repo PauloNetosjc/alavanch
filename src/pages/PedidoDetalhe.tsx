@@ -345,7 +345,15 @@ export default function PedidoDetalhe() {
       }
     }
     const { error } = await supabase.from("pedidos").update(finalPatch).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = String(error.message || "");
+      if (msg.includes("assine o Projeto Final PDF")) {
+        toast.error("Para implantar na fábrica, é necessário que o cliente assine o Projeto Final PDF.");
+      } else {
+        toast.error(msg);
+      }
+      return;
+    }
     setPedido((p: any) => ({ ...p, ...finalPatch }));
   };
 
