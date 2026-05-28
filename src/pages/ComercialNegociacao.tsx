@@ -284,9 +284,19 @@ function ResumoFinanceiroDialog({
                 <Field label="Desconto Forma Pagamento" color="#B83232" value={<>-{fmtBrl(descMetodo)} <span className="text-[12px] text-muted-foreground">({descMetodoPerc.toFixed(2)}%)</span></>} />
               );
             })()}
-            <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
-            <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
-            <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
+            <Field label="Valor da Proposta (sem juros)" value={fmtBrl(totalProposta)} />
+            {jurosRepassado > 0.01 && (
+              <>
+                <Field label="Juros repassado ao cliente" color="#B83232" value={<>+{fmtBrl(jurosRepassado)}</>} />
+                <Field label="Valor final com juros (contrato)" color="#1F5235" value={fmtBrl(totalContrato)} />
+              </>
+            )}
+            {jurosAbsorvido > 0.01 && (
+              <>
+                <Field label="Juros absorvido pela loja" color="#B83232" value={<>-{fmtBrl(jurosAbsorvido)}</>} />
+                <Field label="Valor do contrato sem acréscimo" value={fmtBrl(totalProposta)} />
+              </>
+            )}
             {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
                 value={<>-{fmtBrl(parceiroValorReal)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
