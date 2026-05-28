@@ -951,28 +951,40 @@ export type Database = {
       }
       categorias_financeiras: {
         Row: {
+          ativo: boolean
+          contabilizar_dre: boolean
           created_at: string
           id: string
+          loja_id: string | null
           nome: string
           ordem: number | null
           parent_id: string | null
           tipo: string
+          updated_at: string
         }
         Insert: {
+          ativo?: boolean
+          contabilizar_dre?: boolean
           created_at?: string
           id?: string
+          loja_id?: string | null
           nome: string
           ordem?: number | null
           parent_id?: string | null
           tipo: string
+          updated_at?: string
         }
         Update: {
+          ativo?: boolean
+          contabilizar_dre?: boolean
           created_at?: string
           id?: string
+          loja_id?: string | null
           nome?: string
           ordem?: number | null
           parent_id?: string | null
           tipo?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -980,6 +992,53 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      centros_custo: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "centros_custo_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
             referencedColumns: ["id"]
           },
         ]
@@ -2030,6 +2089,7 @@ export type Database = {
           baixado_em: string | null
           baixado_por: string | null
           categoria_id: string | null
+          centro_custo_id: string | null
           comprovante_storage_path: string | null
           conciliado: boolean | null
           conciliado_em: string | null
@@ -2071,6 +2131,7 @@ export type Database = {
           baixado_em?: string | null
           baixado_por?: string | null
           categoria_id?: string | null
+          centro_custo_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
           conciliado_em?: string | null
@@ -2112,6 +2173,7 @@ export type Database = {
           baixado_em?: string | null
           baixado_por?: string | null
           categoria_id?: string | null
+          centro_custo_id?: string | null
           comprovante_storage_path?: string | null
           conciliado?: boolean | null
           conciliado_em?: string | null
@@ -2149,6 +2211,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
             referencedColumns: ["id"]
           },
           {
