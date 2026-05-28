@@ -74,7 +74,7 @@ export function MetodosPagamentoAdmin() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => {
-    setEditing({ id: "", nome: "", ativo: true, agrupado: false, juros_modo: "repassar", taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
+    setEditing({ id: "", nome: "", ativo: true, agrupado: false, juros_modo: "repassar", taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)], prazo_recebimento_dias: 0 });
     setOpen(true);
   };
 
