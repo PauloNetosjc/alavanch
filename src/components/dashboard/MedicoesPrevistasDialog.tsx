@@ -17,6 +17,7 @@ type PedidoRow = {
   codigo: string;
   status: string | null;
   valor_total: number | null;
+  custo: number;
   loja_id: string | null;
   loja_nome: string | null;
   cliente_nome: string | null;
@@ -154,6 +155,19 @@ export default function MedicoesPrevistasDialog({
       const orcVend: Record<string, string | null> = {};
       ((orcs as any[]) || []).forEach((o) => { orcVend[o.id] = o.vendedor_id || null; });
 
+      // Custo de fábrica por orçamento (soma dos ambientes.custo_fabrica)
+      const custoPorOrc: Record<string, number> = {};
+      if (orcIds.length) {
+        const { data: ambs } = await supabase
+          .from("ambientes")
+          .select("orcamento_id, custo_fabrica")
+          .in("orcamento_id", orcIds);
+        ((ambs as any[]) || []).forEach((a) => {
+          if (!a.orcamento_id) return;
+          custoPorOrc[a.orcamento_id] = (custoPorOrc[a.orcamento_id] || 0) + Number(a.custo_fabrica || 0);
+        });
+      }
+
       const rows: PedidoRow[] = raw.map((p) => {
         const vendId = p.orcamento_id ? orcVend[p.orcamento_id] || null : null;
         return {
@@ -161,6 +175,7 @@ export default function MedicoesPrevistasDialog({
           codigo: p.codigo,
           status: p.status,
           valor_total: p.valor_total,
+          custo: p.orcamento_id ? Number(custoPorOrc[p.orcamento_id] || 0) : 0,
           loja_id: p.loja_id,
           loja_nome: p.loja?.nome ?? null,
           cliente_nome: p.cliente?.nome ?? null,
