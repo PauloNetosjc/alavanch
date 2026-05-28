@@ -2767,7 +2767,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
 /* ============================================================== */
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
-function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido, prazoConfig }: any) {
   const ETAPA_LABEL: Record<string, string> = {
     contrato_assinado: "Contrato assinado",
     projeto_inicial: "Projeto inicial",
