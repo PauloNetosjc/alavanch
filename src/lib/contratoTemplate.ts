@@ -164,6 +164,8 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{cliente.email}}": ctx.cliente?.email || "",
     "{{cliente.telefone}}": ctx.cliente?.telefone || "",
     "{{cliente.endereco}}": ctx.cliente?.endereco_cobranca || "",
+    "{{cliente.endereco_entrega}}": (ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "",
+    "{{endereco_entrega}}": (ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "—",
     "{{empresa.nome}}": ctx.empresa.nome,
     "{{empresa.cnpj}}": ctx.empresa.cnpj || "",
     "{{empresa.endereco}}": ctx.empresa.endereco || "",
@@ -386,6 +388,9 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
       <td class="lbl">ENDEREÇO</td><td colspan="3">${ctx.cliente?.endereco_cobranca || "—"}</td>
     </tr>
     <tr>
+      <td class="lbl">ENDEREÇO DE ENTREGA</td><td colspan="3">${(ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "—"}</td>
+    </tr>
+    <tr>
       <td class="lbl">E-MAIL</td><td>${ctx.cliente?.email || "—"}</td>
       <td class="lbl">TELEFONE</td><td>${ctx.cliente?.telefone || "—"}</td>
     </tr>
@@ -463,4 +468,105 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   ${tpl.rodape ? `<div class="footer">${tpl.rodape}</div>` : ""}
 </div>
 </body></html>`;
+}
+
+/**
+ * Enriquece o ctx com dados ao vivo (parcelas reais e endereço de entrega) para
+ * contratos cujos snapshots foram salvos antes de existirem esses campos.
+ *
+ * - Faz merge dos `pagamentos_orcamento` quando faltar vencimentos/parcelas no snapshot,
+ *   preservando o `valor` do snapshot (que já inclui juros repassado).
+ * - Preenche `cliente.endereco_entrega` a partir da tabela `clientes` quando ausente.
+ */
+export async function enrichContratoCtxWithLive(
+  ctx: ContratoCtx,
+  args: { orcamento_id?: string | null; cliente_id?: string | null },
+): Promise<ContratoCtx> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const out: ContratoCtx = { ...ctx, cliente: ctx.cliente ? { ...ctx.cliente } : ctx.cliente } as ContratoCtx;
+
+  // 1) Endereço de entrega — busca apenas se ausente no snapshot
+  const clienteAny = out.cliente as any;
+  if (args.cliente_id && (!clienteAny || !clienteAny.endereco_entrega)) {
+    try {
+      const { data: c } = await supabase
+        .from("clientes")
+        .select("endereco_entrega, endereco_cobranca")
+        .eq("id", args.cliente_id)
+        .maybeSingle();
+      if (c) {
+        out.cliente = {
+          ...(out.cliente || ({} as any)),
+          endereco_entrega: (c as any).endereco_entrega ?? clienteAny?.endereco_entrega ?? null,
+          endereco_cobranca: clienteAny?.endereco_cobranca ?? (c as any).endereco_cobranca ?? null,
+        } as any;
+      }
+    } catch { /* noop */ }
+  }
+
+  // 2) Vencimentos / detalhes de parcelas — preferimos a fonte que gera os lançamentos
+  if (args.orcamento_id && Array.isArray(out.pagamentos)) {
+    const precisaEnriquecer = out.pagamentos.some(
+      (p) =>
+        !Array.isArray(p.parcelas_vencimentos) ||
+        p.parcelas_vencimentos.length !== (Number(p.parcelas) || 0) ||
+        !Array.isArray(p.parcelas_detalhe) ||
+        p.parcelas_detalhe.length !== (Number(p.parcelas) || 0),
+    );
+    if (precisaEnriquecer) {
+      try {
+        const { data: live } = await supabase
+          .from("pagamentos_orcamento")
+          .select("metodo, parcelas, valor, data_vencimento, parcelas_detalhe, parcelas_vencimentos, parcelas_formas")
+          .eq("orcamento_id", args.orcamento_id);
+        const livePagos = (live || []) as any[];
+        if (livePagos.length) {
+          const usados = new Set<number>();
+          out.pagamentos = out.pagamentos.map((snap, idx) => {
+            let matchIdx = livePagos.findIndex(
+              (lp, i) =>
+                !usados.has(i) &&
+                String(lp.metodo || "").trim() === String(snap.metodo || "").trim() &&
+                Number(lp.parcelas) === Number(snap.parcelas),
+            );
+            if (matchIdx < 0 && livePagos[idx] && !usados.has(idx)) matchIdx = idx;
+            if (matchIdx < 0) return snap;
+            usados.add(matchIdx);
+            const lp = livePagos[matchIdx];
+            const n = Number(snap.parcelas) || 1;
+            const liveVencs = Array.isArray(lp.parcelas_vencimentos)
+              ? lp.parcelas_vencimentos.map((v: any) => (v ? String(v).slice(0, 10) : null))
+              : null;
+            const liveDet = Array.isArray(lp.parcelas_detalhe) ? lp.parcelas_detalhe.map(Number) : null;
+            const liveFormas = Array.isArray(lp.parcelas_formas) ? lp.parcelas_formas.map(String) : null;
+            // Reescalonar parcelas_detalhe para preservar o total do snapshot (juros repassado já incluso).
+            let detalhe = Array.isArray(snap.parcelas_detalhe) && snap.parcelas_detalhe.length === n
+              ? snap.parcelas_detalhe
+              : null;
+            if (!detalhe && liveDet && liveDet.length === n) {
+              const totalLive = liveDet.reduce((s, v) => s + v, 0);
+              const totalSnap = Number(snap.valor) || 0;
+              const fator = totalLive > 0 ? totalSnap / totalLive : 1;
+              const escal = liveDet.map((v) => Number((v * fator).toFixed(2)));
+              const diff = Number((totalSnap - escal.reduce((s, v) => s + v, 0)).toFixed(2));
+              if (escal.length) escal[escal.length - 1] = Number((escal[escal.length - 1] + diff).toFixed(2));
+              detalhe = escal;
+            }
+            return {
+              ...snap,
+              data_vencimento: snap.data_vencimento || (lp.data_vencimento ? String(lp.data_vencimento).slice(0, 10) : null),
+              parcelas_vencimentos: Array.isArray(snap.parcelas_vencimentos) && snap.parcelas_vencimentos.length === n
+                ? snap.parcelas_vencimentos
+                : liveVencs,
+              parcelas_detalhe: detalhe,
+              parcelas_formas: Array.isArray(snap.parcelas_formas) && snap.parcelas_formas.length === n
+                ? snap.parcelas_formas
+                : liveFormas,
+            };
+          });
+        }
+      } catch { /* noop */ }
+    }
+  }
+  return out;
 }

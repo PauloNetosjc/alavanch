@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import QRCode from "qrcode";
-import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { renderContratoHtml, enrichContratoCtxWithLive, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { getPublicSignatureUrl, getPublicAppOrigin } from "@/lib/publicLinks";
 
 const safeName = (value: string) => value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -760,7 +760,11 @@ export async function prepararContratoParaAssinatura(
   };
 
 
-  const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
+  const ctxEnriched = await enrichContratoCtxWithLive(ctx as any, {
+    orcamento_id: (pedido as any)?.orcamento_id || null,
+    cliente_id: pedido.cliente_id || null,
+  });
+  const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctxEnriched as any);
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);

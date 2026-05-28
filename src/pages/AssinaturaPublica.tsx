@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
-import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { renderContratoHtml, enrichContratoCtxWithLive, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
@@ -192,7 +192,7 @@ export default function AssinaturaPublica() {
             try {
               const snap = (ct.conteudo_snapshot as any) || {};
               const empresaSnap = snap.empresa || {};
-              setDocHtml(renderContratoHtml(tpls as any, {
+              const baseCtx = {
                 ...snap,
                 empresa: {
                   ...empresaSnap,
@@ -207,7 +207,12 @@ export default function AssinaturaPublica() {
                 assinatura_loja_url: (s as any).assinatura_loja_url,
                 loja_assinado_em: (s as any).loja_assinado_em,
                 mostrar_desconto: (cfg as any)?.mostrar_desconto_contrato !== false,
-              }));
+              };
+              const enriched = await enrichContratoCtxWithLive(baseCtx as any, {
+                orcamento_id: (p as any)?.orcamento_id || null,
+                cliente_id: s.cliente_id || null,
+              });
+              setDocHtml(renderContratoHtml(tpls as any, enriched));
             } catch {/* noop */}
           }
         }

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { renderContratoHtml, enrichContratoCtxWithLive, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 export default function ContratoVisualizar() {
@@ -49,7 +49,11 @@ export default function ContratoVisualizar() {
         : await q.limit(1).maybeSingle();
       ctx.mostrar_desconto = (cfg as any)?.mostrar_desconto_contrato !== false;
     } catch { ctx.mostrar_desconto = true; }
-    const html = renderContratoHtml(tpl, ctx, contrato.assinado_em ? {
+    const enriched = await enrichContratoCtxWithLive(ctx, {
+      orcamento_id: (contrato as any).orcamento_id || null,
+      cliente_id: (contrato as any).cliente_id || ctx?.cliente?.id || null,
+    });
+    const html = renderContratoHtml(tpl, enriched, contrato.assinado_em ? {
       assinado: { nome: contrato.assinatura_nome, cpf: contrato.assinatura_cpf, data: contrato.assinado_em },
     } : undefined);
     const w = window.open("", "_blank", "width=900,height=900");
