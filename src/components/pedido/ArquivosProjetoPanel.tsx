@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import JSZip from "jszip";
+import { sanitizeStorageFileName } from "@/lib/storagePath";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
@@ -212,7 +213,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
       });
 
       try {
-        const safe = file.name.replace(/[^\w.\-]+/g, "_");
+        const safe = sanitizeStorageFileName(file.name);
         const path = `${pedido.id}/${cat}/${Date.now()}-${safe}`;
         const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
