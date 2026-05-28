@@ -368,10 +368,11 @@ export default function MedicoesPrevistasDialog({
           </div>
 
           {/* Top Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <TopCard icon={CalendarRange} tone="slate" label="Total com previsão" value={topCards.totalPrev} />
             <TopCard icon={CalendarClock} tone="blue" label="Previstas este mês" value={topCards.qtdMes} />
-            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL(topCards.valorMes)} />
+            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL(topCards.valorMes)} money />
+            <TopCard icon={CalendarCheck2} tone="slate" label="Custo (mês)" value={BRL(topCards.custoMes)} money />
             <TopCard icon={CalendarX2} tone="red" label="Previsões vencidas" value={topCards.vencidas} />
             <TopCard icon={CheckCircle2} tone="emerald" label="Medições já agendadas" value={topCards.agendadas} />
           </div>
