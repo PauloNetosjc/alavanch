@@ -164,9 +164,14 @@ export function gerarPreviewReceita(
     if (grupoQtd > 0) {
       const jurosPerc = jurosPercParaQtd(metodo, grupoQtd);
       const juros = Math.round(grupoValor * jurosPerc) / 100;
-      let venc = grupoVenc;
-      if (!venc) {
-        const d = new Date(dataBase + "T00:00");
+      // Data base do agrupado: vencimento negociado primeiro; assinatura/dataBase só como fallback.
+      // O prazo de recebimento agrupado é SEMPRE somado sobre essa data base.
+      let venc = grupoVenc
+        || (vencs[0] ? dateStr(vencs[0]) : null)
+        || (pag.data_vencimento ? dateStr(pag.data_vencimento) : null)
+        || dataBase;
+      if (prazo > 0 && venc) {
+        const d = new Date(venc + "T00:00");
         d.setDate(d.getDate() + prazo);
         venc = d.toISOString().slice(0, 10);
       }
