@@ -317,12 +317,13 @@ export default function WorkflowOperacionalDashboard() {
     return out;
   }, [pedidos, tarefas, docs, profileNomes]);
 
-  // Resumos por etapa
+  // Resumos por grupo visual
   const resumos = useMemo(() => {
-    const map = new Map<EtapaKey, { qtd: number; valor: number; vencidos: number; preAlerta: number; hoje: number }>();
-    ETAPAS.forEach((e) => map.set(e.key, { qtd: 0, valor: 0, vencidos: 0, preAlerta: 0, hoje: 0 }));
+    const map = new Map<GroupKey, { qtd: number; valor: number; vencidos: number; preAlerta: number; hoje: number }>();
+    WORKFLOW_STAGE_GROUPS.forEach((g) => map.set(g.visualKey, { qtd: 0, valor: 0, vencidos: 0, preAlerta: 0, hoje: 0 }));
     pedidosComEtapa.forEach((p) => {
-      const r = map.get(p.etapa)!;
+      const gk = ETAPA_TO_GROUP[p.etapa];
+      const r = map.get(gk); if (!r) return;
       r.qtd += 1;
       r.valor += Number(p.valor_total || 0);
       if (p.statusPrazo === "vencido") r.vencidos += 1;
@@ -335,8 +336,8 @@ export default function WorkflowOperacionalDashboard() {
   const resumoGeral = useMemo(() => {
     const totalValor = pedidosComEtapa.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const vencidos = pedidosComEtapa.filter((p) => p.statusPrazo === "vencido");
-    let maiorGargalo: { etapa: EtapaKey; qtd: number } | null = null;
-    resumos.forEach((v, k) => { if (!maiorGargalo || v.qtd > maiorGargalo.qtd) maiorGargalo = { etapa: k, qtd: v.qtd }; });
+    let maiorGargalo: { grupo: GroupKey; qtd: number } | null = null;
+    resumos.forEach((v, k) => { if (!maiorGargalo || v.qtd > maiorGargalo.qtd) maiorGargalo = { grupo: k, qtd: v.qtd }; });
     return {
       totalAtivos: pedidosComEtapa.length,
       totalValor,
@@ -346,11 +347,13 @@ export default function WorkflowOperacionalDashboard() {
     };
   }, [pedidosComEtapa, resumos]);
 
-  // Lista expandida da etapa selecionada
+  // Lista expandida do grupo selecionado
   const listaExpandida = useMemo(() => {
-    if (!etapaSelecionada) return [];
+    if (!grupoSelecionado) return [];
+    const grupo = WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === grupoSelecionado);
+    const internas = new Set(grupo?.internalKeys || []);
     return pedidosComEtapa
-      .filter((p) => p.etapa === etapaSelecionada)
+      .filter((p) => internas.has(p.etapa))
       .filter((p) => {
         if (statusFiltro !== "todos" && p.statusPrazo !== statusFiltro) return false;
         const b = busca.trim().toLowerCase();
@@ -361,21 +364,27 @@ export default function WorkflowOperacionalDashboard() {
         const order = { vencido: 0, hoje: 1, pre_alerta: 2, no_prazo: 3, sem_prazo: 4 };
         return order[a.statusPrazo] - order[b.statusPrazo];
       });
-  }, [etapaSelecionada, pedidosComEtapa, statusFiltro, busca]);
+  }, [grupoSelecionado, pedidosComEtapa, statusFiltro, busca]);
 
   const etapaLabel = (k: EtapaKey) => ETAPAS.find((e) => e.key === k)?.label || k;
+  const grupoLabel = (k: GroupKey) => WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === k)?.label || k;
 
   function exportarExcel() {
-    const fonte = etapaSelecionada
-      ? pedidosComEtapa.filter((p) => p.etapa === etapaSelecionada)
+    const fonte = grupoSelecionado
+      ? (() => {
+          const internas = new Set(WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === grupoSelecionado)?.internalKeys || []);
+          return pedidosComEtapa.filter((p) => internas.has(p.etapa));
+        })()
       : pedidosComEtapa;
     const rows = fonte.map((p) => ({
-      Etapa: etapaLabel(p.etapa),
+      "Etapa visual": grupoLabel(ETAPA_TO_GROUP[p.etapa]),
+      "Subetapa": etapaLabel(p.etapa),
       Cliente: p.cliente_nome || "—",
       "PV/Contrato": p.codigo,
       "Valor do contrato": Number(p.valor_total || 0),
       Loja: p.loja_nome || "—",
       Responsável: p.responsavel_nome || "—",
+      "Data de criação": fmtDateBR(p.created_at),
       "Data início etapa": fmtDateBR(p.data_inicio_etapa),
       "Data de vencimento": fmtDateBR(p.prazo),
       "Status do prazo":
@@ -384,7 +393,6 @@ export default function WorkflowOperacionalDashboard() {
         p.statusPrazo === "pre_alerta" ? "Pré-alerta" :
         p.statusPrazo === "no_prazo" ? "No prazo" : "Sem prazo",
       "Dias (- atraso / + restantes)": p.diasRestantes ?? "",
-      "Etapa atual": etapaLabel(p.etapa),
       "Prazo máximo de entrega": fmtDateBR(p.data_limite_entrega),
       "Prazo máximo de montagem": fmtDateBR(p.data_limite_inicio_montagem),
     }));
@@ -393,6 +401,7 @@ export default function WorkflowOperacionalDashboard() {
     XLSX.utils.book_append_sheet(wb, ws, "Workflow");
     XLSX.writeFile(wb, "workflow_operacional_pedidos.xlsx");
   }
+
 
 
   if (loading) {
