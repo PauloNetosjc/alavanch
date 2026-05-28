@@ -389,7 +389,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           else if (msg.includes("prazo")) tipoTec = "lead_time_abaixo_minimo";
           else if (msg.includes("horário") || msg.includes("horario")) tipoTec = "agenda_fora_horario";
 
-          const responsavelNome = (await supabase.from("profiles").select("nome").eq("user_id", responsavelId).maybeSingle()).data?.nome || null;
+          const responsavelNome = (await supabase.from("profiles").select("nome_completo").eq("user_id", responsavelId).maybeSingle()).data?.nome_completo || null;
           await solicitarAutorizacao({
             categoria: "agenda",
             tipo: tipoTec,
