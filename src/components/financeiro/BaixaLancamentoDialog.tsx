@@ -21,6 +21,7 @@ type Props = {
   tipo: "entrada" | "saida";
   descricao: string | null;
   valorOriginal: number;
+  jurosPrevisto?: number;
   contaIdAtual: string | null;
   contas: Conta[];
   onConfirm: (p: BaixaPayload) => Promise<void> | void;
@@ -28,14 +29,17 @@ type Props = {
 
 const FORMAS = ["PIX", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Boleto", "Transferência", "Cheque", "Outro"];
 
+const TOLERANCIA_PERC = 2; // tolerância padrão para divergência negativa em baixa
+
 export default function BaixaLancamentoDialog({
-  open, onOpenChange, tipo, descricao, valorOriginal, contaIdAtual, contas, onConfirm,
+  open, onOpenChange, tipo, descricao, valorOriginal, jurosPrevisto = 0, contaIdAtual, contas, onConfirm,
 }: Props) {
+  const liquidoPrev = Math.max(0, Math.round((Number(valorOriginal) - Number(jurosPrevisto || 0)) * 100) / 100);
   const hoje = new Date().toISOString().slice(0, 10);
   const [contaId, setContaId] = useState<string>("");
   const [forma, setForma] = useState<string>("PIX");
   const [data, setData] = useState<string>(hoje);
-  const [valor, setValor] = useState<number>(valorOriginal);
+  const [valor, setValor] = useState<number>(liquidoPrev);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,9 +47,10 @@ export default function BaixaLancamentoDialog({
       setContaId(contaIdAtual || contas[0]?.id || "");
       setForma("PIX");
       setData(new Date().toISOString().slice(0, 10));
-      setValor(valorOriginal);
+      setValor(liquidoPrev);
     }
-  }, [open, contaIdAtual, valorOriginal, contas]);
+  }, [open, contaIdAtual, liquidoPrev, contas]);
+
 
   const titulo = tipo === "entrada" ? "Receber lançamento" : "Pagar lançamento";
   const contaSel = contas.find((c) => c.id === contaId);
