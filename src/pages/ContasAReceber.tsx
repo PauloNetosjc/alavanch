@@ -192,6 +192,10 @@ export default function ContasAReceber() {
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
+      if (formaPrevFiltro) {
+        if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
+        else if ((l.forma_pagamento_prevista || "") !== formaPrevFiltro) return false;
+      }
       const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
@@ -211,7 +215,7 @@ export default function ContasAReceber() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
 
 
   const [baixaOpen, setBaixaOpen] = useState(false);
