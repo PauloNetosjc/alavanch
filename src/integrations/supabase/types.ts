@@ -5351,6 +5351,10 @@ export type Database = {
         Args: { p_solic: string }
         Returns: undefined
       }
+      ensure_tarefas_cronograma_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       executar_automacao_acao: {
         Args: {
           _card_id: string

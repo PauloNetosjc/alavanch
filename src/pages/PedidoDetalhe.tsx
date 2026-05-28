@@ -36,6 +36,7 @@ import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
+import { ensureTarefasCronogramaPedido } from "@/lib/tarefasNativasTriggers";
 
 const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
@@ -851,6 +852,9 @@ function Cronograma({ pedido, salvarPedido }: any) {
       await salvarPedido({ data_medicao_tecnica: dataStr });
       toast.success("Medição técnica agendada");
     }
+    // Blindagem: garante tarefas obrigatórias do cronograma
+    // (fazer_medicao_tecnica + preparo_projeto_revisao)
+    await ensureTarefasCronogramaPedido(pedido.id);
     await carregar();
   };
 
