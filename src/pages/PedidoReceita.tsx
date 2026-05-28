@@ -259,17 +259,22 @@ export default function PedidoReceita() {
     return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
+  // Resumo da forma NEGOCIADA (contrato) — usa pagamentos_orcamento, não os lançamentos reais.
   const resumoPagamento = useMemo(() => {
-    if (parcelas.length === 0) return "—";
-    const grupos = new Map<string, number>();
-    for (const p of parcelas) {
-      const f = (p.forma || "—").trim();
-      grupos.set(f, (grupos.get(f) || 0) + 1);
+    if (!pagamentos || pagamentos.length === 0) return "—";
+    const pags = [...pagamentos].sort((a: any, b: any) =>
+      String(a.created_at || "").localeCompare(String(b.created_at || ""))
+    );
+    const partes: string[] = [];
+    for (const pag of pags) {
+      const det = Array.isArray(pag.parcelas_detalhe) ? pag.parcelas_detalhe : [];
+      const qtd = det.length > 0 ? det.length : Math.max(Number(pag.parcelas) || 1, 1);
+      const metodo = metodos.find((m: any) => m.nome === pag.metodo) as any;
+      const nome = (metodo?.nome || pag.metodo || pag.forma_pagamento || "—").trim();
+      partes.push(`${qtd}x ${nome}`);
     }
-    return Array.from(grupos.entries())
-      .map(([forma, qtd]) => `${qtd}x ${forma}`)
-      .join(" + ");
-  }, [parcelas]);
+    return partes.join(" + ");
+  }, [pagamentos, metodos]);
 
 
   const gerarReceber = async () => {
