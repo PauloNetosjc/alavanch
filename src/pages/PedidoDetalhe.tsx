@@ -36,6 +36,7 @@ import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
 import { baixarPdfFinalAssinatura } from "@/lib/assinaturaPdfDownload";
+import { ensureTarefasCronogramaPedido } from "@/lib/tarefasNativasTriggers";
 
 const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
