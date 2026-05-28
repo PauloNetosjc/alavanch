@@ -785,11 +785,21 @@ function Cronograma({ pedido, salvarPedido }: any) {
       return arr[arr.length - 1];
     };
 
-    const evAssin = saidaFor("revisao", "assinatura pdf final");
-    setDataAssinaturaPdf(evAssin?.created_at ? String(evAssin.created_at).slice(0, 10) : null);
+    // Prioriza a coluna data_assinatura_pdf_final do pedido (preenchida ao assinar o PDF final)
+    if (pedido.data_assinatura_pdf_final) {
+      setDataAssinaturaPdf(String(pedido.data_assinatura_pdf_final).slice(0, 10));
+    } else {
+      const evAssin = saidaFor("revisao", "assinatura pdf final");
+      setDataAssinaturaPdf(evAssin?.created_at ? String(evAssin.created_at).slice(0, 10) : null);
+    }
 
-    const evFab = concluidoFor("fabrica");
-    setDataImplantacaoFabrica(evFab?.created_at ? String(evFab.created_at).slice(0, 10) : null);
+    // Prioriza a coluna data_envio_fabrica (preenchida na implantação da fábrica)
+    if (pedido.data_envio_fabrica) {
+      setDataImplantacaoFabrica(String(pedido.data_envio_fabrica).slice(0, 10));
+    } else {
+      const evFab = concluidoFor("fabrica");
+      setDataImplantacaoFabrica(evFab?.created_at ? String(evFab.created_at).slice(0, 10) : null);
+    }
 
     // Linha 2 — pipeline montagem
     const evChegada = movFor("montagem", "agendamento entrega") ?? movFor("montagem", "depósito");
