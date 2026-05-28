@@ -288,6 +288,31 @@ export function MinhasTarefasNativasPanel() {
         </div>
       </div>
 
+      {/* Filtros por tipo de tarefa nativa (chaves técnicas fixas) */}
+      <div className="-mx-1 overflow-x-auto">
+        <div className="flex items-center gap-2 px-1 py-1 min-w-max">
+          {[{ key: "todos", label: "Todos" }, ...TASK_FILTERS.map((f) => ({ key: f.key, label: f.label }))].map((b) => {
+            const ativo = taskKey === b.key;
+            const c = taskCounts[b.key] ?? 0;
+            return (
+              <button
+                key={b.key}
+                onClick={() => setTaskKey(b.key)}
+                title={b.label}
+                className={`text-[11px] whitespace-nowrap px-2.5 py-1 rounded-full border transition ${
+                  ativo
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border"
+                }`}
+              >
+                {b.label} <span className={ativo ? "opacity-90" : "text-muted-foreground"}>({c})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
       {loading ? (
         <div className="text-[12px] text-muted-foreground py-6 text-center">Carregando…</div>
       ) : filtrada.length === 0 ? (
