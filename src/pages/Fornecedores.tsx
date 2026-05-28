@@ -192,6 +192,10 @@ export default function Fornecedores() {
               <Label>Documento</Label>
               <Input value={form.documento} onChange={(e) => setForm({ ...form, documento: maskDoc(e.target.value, form.tipo_documento) })} />
             </div>
+            <div className="col-span-2">
+              <Label>Inscrição Estadual</Label>
+              <Input value={form.inscricao_estadual} onChange={(e) => setForm({ ...form, inscricao_estadual: e.target.value })} />
+            </div>
             <div>
               <Label>Contato</Label>
               <Input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} />
@@ -207,6 +211,14 @@ export default function Fornecedores() {
             <div className="col-span-2">
               <Label>Endereço</Label>
               <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço de cobrança</Label>
+              <Input value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço de entrega</Label>
+              <Input value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
             </div>
             <div>
               <Label>Cidade</Label>
