@@ -142,22 +142,27 @@ function SenhaAdminDialog({
 /* ========================== RESUMO FINANCEIRO ========================== */
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, jurosCliente,
+  totalContrato,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  jurosAbsorvido, jurosRepassado,
   config, usarMarkup,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
+  totalContrato: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
-  jurosCliente: number;
+  jurosAbsorvido: number;
+  jurosRepassado: number;
   config: any; usarMarkup: boolean;
 }) {
   const { can } = usePermissions();
   const podeVerCusto = can("itens", "view_custo");
   const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
+  const jurosCliente = jurosAbsorvido + jurosRepassado;
   // Indicador incide sobre o Valor Total da Venda (recalcula a partir do %)
   const parceiroValorReal = totalProposta * (parceiroPerc / 100);
-  const valorSemJuros = totalProposta - jurosCliente;
+  const valorSemJuros = totalProposta - jurosAbsorvido;
   const totalVPL = valorSemJuros - parceiroValorReal;
 
   // Itens fixos da Formação de Preço (alinhado com Configurações)
