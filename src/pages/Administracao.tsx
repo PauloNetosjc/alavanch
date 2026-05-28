@@ -402,6 +402,13 @@ function Usuarios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TransferirResponsabilidadesDialog
+        open={!!transferUser}
+        onOpenChange={(v) => { if (!v) setTransferUser(null); }}
+        usuarioAntigo={transferUser ? { user_id: transferUser.user_id, nome_completo: transferUser.nome_completo } : null}
+        onDone={load}
+      />
     </div>
   );
 }
