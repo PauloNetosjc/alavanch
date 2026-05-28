@@ -2540,11 +2540,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
 /* ============================================================== */
 function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
   const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
-  const previsaoMedicao = pedido.data_medicao_tecnica;
+  const previsaoMedicao = pedido.previsao_medicao;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
   const [editingCF, setEditingCF] = useState(false);
   const [cfDraft, setCfDraft] = useState<string>(pedido?.cliente_final || "");
   useEffect(() => { setCfDraft(pedido?.cliente_final || ""); }, [pedido?.cliente_final]);
+  const [editingPrev, setEditingPrev] = useState(false);
+  const [prevDraft, setPrevDraft] = useState<string>(pedido?.previsao_medicao || "");
+  useEffect(() => { setPrevDraft(pedido?.previsao_medicao || ""); }, [pedido?.previsao_medicao]);
 
   const Field = ({ label, children }: any) => (
     <div className="min-w-0">
@@ -2610,7 +2613,34 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
             {pedido.receita_codigo ? `#${pedido.receita_codigo}` : fmtBrl(Number(pedido.valor_total) || 0)}
           </Link>
         </Field>
-        <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
+        <Field label="Previsão de medição">
+          {salvarPedido ? (
+            editingPrev ? (
+              <input
+                autoFocus
+                type="date"
+                value={prevDraft}
+                onChange={(e) => setPrevDraft(e.target.value)}
+                onBlur={async () => {
+                  setEditingPrev(false);
+                  const novo = prevDraft || null;
+                  if ((novo || "") !== (pedido?.previsao_medicao || "")) {
+                    await salvarPedido({ previsao_medicao: novo });
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  if (e.key === "Escape") { setPrevDraft(pedido?.previsao_medicao || ""); setEditingPrev(false); }
+                }}
+                className="w-full text-[13px] border border-border rounded px-1.5 py-0.5 bg-background"
+              />
+            ) : (
+              <button onClick={() => setEditingPrev(true)} className="text-left hover:bg-muted/60 rounded px-1 -mx-1 w-full truncate">
+                {previsaoMedicao ? fmtDate(previsaoMedicao) : <span className="text-muted-foreground">—</span>}
+              </button>
+            )
+          ) : fmtDate(previsaoMedicao)}
+        </Field>
       </div>
 
       {/* PARA / DE */}

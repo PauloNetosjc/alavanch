@@ -3492,6 +3492,7 @@ export type Database = {
           orcamento_id: string | null
           pedido_origem_complemento_id: string | null
           pedido_pai_id: string | null
+          previsao_medicao: string | null
           projetista_id: string | null
           receita_codigo: string | null
           rt_repassado: number
@@ -3541,6 +3542,7 @@ export type Database = {
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
+          previsao_medicao?: string | null
           projetista_id?: string | null
           receita_codigo?: string | null
           rt_repassado?: number
@@ -3590,6 +3592,7 @@ export type Database = {
           orcamento_id?: string | null
           pedido_origem_complemento_id?: string | null
           pedido_pai_id?: string | null
+          previsao_medicao?: string | null
           projetista_id?: string | null
           receita_codigo?: string | null
           rt_repassado?: number
