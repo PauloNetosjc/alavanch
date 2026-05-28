@@ -190,7 +190,7 @@ export default function WorkflowOperacionalDashboard() {
       let qPed = supabase
         .from("pedidos")
         .select(
-          "id, codigo, status, valor_total, loja_id, cliente_id, created_at, is_adendo, is_complemento, status_fabrica, data_assinatura_pdf_final, data_medicao_tecnica, data_entrega, data_montagem, data_vistoria, data_limite_finalizacao, cliente:clientes(nome), loja:lojas(nome)",
+          "id, codigo, status, valor_total, loja_id, cliente_id, created_at, is_adendo, is_complemento, status_fabrica, data_assinatura_pdf_final, data_medicao_tecnica, data_entrega, data_montagem, data_vistoria, data_limite_finalizacao, data_limite_entrega, data_limite_inicio_montagem, cliente:clientes(nome), loja:lojas(nome)",
         );
       if (selectedLojaId) qPed = qPed.eq("loja_id", selectedLojaId);
       const { data: pedsRaw } = await qPed;
