@@ -83,10 +83,12 @@ export default function CargosAdmin() {
       />
       <Tabs defaultValue="cargos">
         <TabsList>
-          <TabsTrigger value="cargos"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Cargos</TabsTrigger>
+          <TabsTrigger value="cargos"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Cargos do sistema</TabsTrigger>
+          <TabsTrigger value="operacionais"><Briefcase className="w-3.5 h-3.5 mr-1.5" />Cargos operacionais</TabsTrigger>
           <TabsTrigger value="autorizacoes"><Layers className="w-3.5 h-3.5 mr-1.5" />Autorizações</TabsTrigger>
         </TabsList>
         <TabsContent value="cargos" className="mt-4"><CargosTab /></TabsContent>
+        <TabsContent value="operacionais" className="mt-4"><CargosOperacionaisAdmin /></TabsContent>
         <TabsContent value="autorizacoes" className="mt-4"><AutorizacoesTab /></TabsContent>
       </Tabs>
     </div>
