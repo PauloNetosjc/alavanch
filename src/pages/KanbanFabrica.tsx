@@ -84,19 +84,19 @@ function ListaLiberadosFabrica() {
       vendedorMap[p.user_id] = p.nome_completo || "";
     });
 
-    // Defesa em profundidade: só lista pedidos com as duas condições reais
-    const result: Linha[] = (pedidos || [])
-      .filter((p: any) => !!p.data_assinatura_pdf_final && !!datasUpload[p.id])
-      .map((p: any) => ({
-        id: p.id,
-        codigo: p.codigo,
-        data_assinatura_pdf_final: p.data_assinatura_pdf_final,
-        data_upload_projeto_producao: datasUpload[p.id] || null,
-        status_fabrica: p.status_fabrica,
-        cliente_nome: p.cliente?.nome || null,
-        loja_nome: p.loja?.nome || null,
-        vendedor_nome: p.vendedor_id ? vendedorMap[p.vendedor_id] || null : null,
-      }));
+    // Fonte de verdade: status_fabrica = 'liberado_para_lote'.
+    // Não filtramos por data_assinatura_pdf_final/projeto_para_producao aqui —
+    // apenas enriquecemos a linha quando esses dados existirem.
+    const result: Linha[] = (pedidos || []).map((p: any) => ({
+      id: p.id,
+      codigo: p.codigo,
+      data_assinatura_pdf_final: p.data_assinatura_pdf_final,
+      data_upload_projeto_producao: datasUpload[p.id] || null,
+      status_fabrica: p.status_fabrica,
+      cliente_nome: p.cliente?.nome || null,
+      loja_nome: p.loja?.nome || null,
+      vendedor_nome: p.vendedor_id ? vendedorMap[p.vendedor_id] || null : null,
+    }));
 
     setLinhas(result);
     setLoading(false);
