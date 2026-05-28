@@ -567,7 +567,7 @@ export default function MedicoesPrevistasDialog({
   );
 }
 
-function TopCard({ icon: Icon, tone, label, value }: { icon: any; tone: "blue" | "red" | "emerald" | "slate"; label: string; value: string | number }) {
+function TopCard({ icon: Icon, tone, label, value, money }: { icon: any; tone: "blue" | "red" | "emerald" | "slate"; label: string; value: string | number; money?: boolean }) {
   const tones: Record<string, string> = {
     blue: "bg-[#E7EEF2] text-[#1f4f6b]",
     red: "bg-red-50 text-red-700",
@@ -582,7 +582,7 @@ function TopCard({ icon: Icon, tone, label, value }: { icon: any; tone: "blue" |
         </div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>
-      <div className="text-lg font-semibold">{value}</div>
+      <div className={`text-lg font-semibold ${money ? "text-slate-900" : ""}`}>{value}</div>
     </div>
   );
 }
