@@ -618,6 +618,7 @@ export default function PedidoReceita() {
           data_pagamento: editAlvo.data_pagamento,
           valor: Number(editAlvo.valor || 0),
           forma_pagamento: editAlvo.forma_pagamento,
+          forma_pagamento_prevista: (editAlvo as any).forma_pagamento_prevista ?? null,
           notas: editAlvo.notas,
           status: editAlvo.status,
         } : null}
