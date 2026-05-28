@@ -6,7 +6,7 @@ import { Target, BarChart3, TrendingUp, TrendingDown, Clock, Ruler, Pencil, Fact
 import { BRL } from "@/lib/financeiro";
 import { PageFilters, defaultPeriodoMes, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 import { useLoja } from "@/contexts/LojaContext";
-import RadarPrazos from "@/pages/RadarPrazos";
+import WorkflowOperacionalDashboard from "@/components/dashboard/WorkflowOperacionalDashboard";
 
 
 type Pedido = {
