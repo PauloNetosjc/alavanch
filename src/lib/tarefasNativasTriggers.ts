@@ -79,3 +79,36 @@ export async function dispararTarefasNativas(
     return 0;
   }
 }
+
+/**
+ * Garante as tarefas obrigatórias do cronograma do pedido:
+ *  - "Fazer medição técnica" (chave técnica: fazer_medicao_tecnica) quando
+ *    existir Medição Técnica agendada na agenda do pedido.
+ *  - "Preparo projeto revisão" (chave técnica: preparo_projeto_revisao)
+ *    quando existir Revisão (tipo revisao_final) agendada.
+ *
+ * Idempotente: a RPC SQL `ensure_tarefas_cronograma_pedido` evita duplicar
+ * tarefa ativa (pendente/em_andamento/atrasada) e recalcula os prazos com
+ * base nas datas reais agendadas — medição = data da medição;
+ * preparo projeto revisão = 1 dia útil antes da data da revisão.
+ *
+ * Tolerante a falhas: nunca lança exceção. Chame após
+ * salvar/agendar Medição ou Revisão, ao salvar o pedido, e como fallback
+ * no carregamento do painel de tarefas do pedido.
+ */
+export async function ensureTarefasCronogramaPedido(
+  pedido_id: string
+): Promise<void> {
+  try {
+    if (!pedido_id) return;
+    const { error } = await (supabase as any).rpc(
+      "ensure_tarefas_cronograma_pedido",
+      { p_pedido_id: pedido_id }
+    );
+    if (error) {
+      console.error("[ensureTarefasCronograma] RPC erro", error);
+    }
+  } catch (e) {
+    console.error("[ensureTarefasCronograma] exceção", e);
+  }
+}
