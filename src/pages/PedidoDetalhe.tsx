@@ -2188,14 +2188,14 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
       const env = parsed.environments[0] || { items: [] };
       const diff = diffPromobItems(subs || [], env.items, "clientPrice");
       const versaoAtual = revisoes.filter((r: any) => r.ambiente_id === ambiente.id).length + 1;
-      const { error: revErr } = await supabase.from("pedido_revisoes").insert({
+      const { data: novaRev, error: revErr } = await supabase.from("pedido_revisoes").insert({
         pedido_id: pedido.id, ambiente_id: ambiente.id, versao: versaoAtual,
         raw_content: text, parsed_data: env as any, diff: diff as any,
         valor_original: diff.totals.valorOriginal,
         valor_revisado: diff.totals.valorRevisado,
         variacao_perc: diff.totals.variacaoPerc,
         created_by: user?.id,
-      });
+      }).select("id").single();
       if (revErr) throw revErr;
 
       // Espelhar o arquivo importado em Central de Documentos > Documentos.
