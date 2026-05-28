@@ -428,7 +428,28 @@ export default function ContasAReceber() {
                     </td>
                     <td>{catName(l.categoria_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
-                    <td className="text-right font-semibold whitespace-nowrap text-emerald-700">{BRL(Number(l.valor || 0))}</td>
+                    <td className="text-right font-semibold whitespace-nowrap text-emerald-700">
+                      {BRL(Number(l.valor || 0))}
+                      {l.agrupado && (
+                        <div className="mt-1 inline-flex items-center text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">
+                          Agrupado{l.total_parcelas ? ` ${l.total_parcelas}x` : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-right whitespace-nowrap text-amber-700">
+                      {Number(l.juros_previsto || 0) > 0 ? BRL(Number(l.juros_previsto || 0)) : "—"}
+                      {l.taxa_perc != null && Number(l.taxa_perc) > 0 && (
+                        <div className="text-[10px] text-muted-foreground">{Number(l.taxa_perc).toFixed(2)}%</div>
+                      )}
+                    </td>
+                    <td className="text-right font-medium whitespace-nowrap">
+                      {(() => {
+                        const valor = Number(l.valor || 0);
+                        const juros = Number(l.juros_previsto || 0);
+                        const recebido = pago ? valor : 0;
+                        return BRL(valor - juros - recebido);
+                      })()}
+                    </td>
                     <td className="text-center">
                       <div className="inline-flex items-center">
                         {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
