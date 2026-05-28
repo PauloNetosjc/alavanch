@@ -462,10 +462,12 @@ export default function PedidoReceita() {
         tipo="entrada"
         descricao={baixaAlvo?.descricao ?? null}
         valorOriginal={Number(baixaAlvo?.valor || 0)}
+        jurosPrevisto={Number(baixaAlvo?.juros_previsto || 0)}
         contaIdAtual={baixaAlvo?.conta_id ?? null}
         contas={contas}
         onConfirm={confirmarBaixa}
       />
+
 
       <EditarLancamentoDialog
         open={editOpen}
