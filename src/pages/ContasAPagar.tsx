@@ -37,7 +37,8 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
-type Pedido = { id: string; codigo: string; created_at: string | null };
+type Pedido = { id: string; codigo: string; created_at: string | null; cliente_id: string | null };
+type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
@@ -76,12 +77,15 @@ export default function ContasAPagar() {
     if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
   }, [selectedLojaId]);
 
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
-      supabase.from("pedidos").select("id,codigo,created_at").limit(500),
+      supabase.from("pedidos").select("id,codigo,created_at,cliente_id").limit(2000),
+      supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
@@ -89,6 +93,7 @@ export default function ContasAPagar() {
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
+    setClientes((cl as Cliente[]) || []);
     setProfiles((pf as Profile[]) || []);
     setFornecedores((fr as any[]) || []);
   }
@@ -112,6 +117,13 @@ export default function ContasAPagar() {
     try { return new Date(p.created_at).toLocaleDateString("pt-BR"); } catch { return "—"; }
   };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
+  const clienteName = (pedidoId: string | null, fornecedorId: string | null) => {
+    const p = pedidos.find((x) => x.id === pedidoId);
+    const cli = p ? clientes.find((c) => c.id === p.cliente_id)?.nome : null;
+    if (cli) return cli;
+    const f = fornecedores.find((x) => x.id === fornecedorId)?.nome;
+    return f || "—";
+  };
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
@@ -135,14 +147,16 @@ export default function ContasAPagar() {
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
         const t = busca.toLowerCase();
+        const cli = clienteName(l.pedido_id, l.fornecedor_id);
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
-          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t);
+          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
+          || cli.toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, clientes, fornecedores, lojasFiltro]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -238,6 +252,7 @@ export default function ContasAPagar() {
   const toRows = (): LancRow[] => filtrados.map((l) => ({
     data: l.data_pagamento || l.data_vencimento || "",
     descricao: l.descricao || "",
+    cliente: clienteName(l.pedido_id, l.fornecedor_id),
     categoria: catName(l.categoria_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
@@ -303,7 +318,8 @@ export default function ContasAPagar() {
 
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-                <th className="text-left py-3 px-5 font-medium">Data Contrato</th>
+                <th className="text-left py-3 px-5 font-medium">Cliente</th>
+                <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
@@ -335,7 +351,10 @@ export default function ContasAPagar() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
+                    <td className="py-4 px-5 whitespace-nowrap max-w-[200px] truncate" title={clienteName(l.pedido_id, l.fornecedor_id)}>
+                      {clienteName(l.pedido_id, l.fornecedor_id)}
+                    </td>
+                    <td className="whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
                       <div className="font-medium">{l.descricao || "—"}</div>
@@ -382,7 +401,7 @@ export default function ContasAPagar() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a pagar
                 </td></tr>
@@ -391,7 +410,7 @@ export default function ContasAPagar() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={5} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={6} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-rose-700 whitespace-nowrap">

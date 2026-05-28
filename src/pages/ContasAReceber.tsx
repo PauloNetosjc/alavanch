@@ -314,6 +314,7 @@ export default function ContasAReceber() {
   const toRows = (): LancRow[] => filtrados.map((l) => ({
     data: l.data_pagamento || l.data_vencimento || "",
     descricao: l.descricao || "",
+    cliente: pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "",
     categoria: catName(l.categoria_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
@@ -378,6 +379,7 @@ export default function ContasAReceber() {
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Código</th>
+                <th className="text-left py-3 font-medium">Cliente</th>
                 <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
@@ -427,6 +429,9 @@ export default function ContasAReceber() {
                         }
                         return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
                       })()}
+                    </td>
+                    <td className="py-4 whitespace-nowrap max-w-[200px] truncate" title={pedidoFamilia.get(l.pedido_id || "")?.clienteNome || ""}>
+                      {pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "—"}
                     </td>
                     <td className="py-4 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
@@ -525,7 +530,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={14} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={15} className="text-center py-12 text-muted-foreground">
 
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
@@ -535,7 +540,7 @@ export default function ContasAReceber() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={6} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={7} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
