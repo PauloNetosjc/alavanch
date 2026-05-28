@@ -2914,13 +2914,21 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
         <Field label="Prazo máximo de entrega">
           <PrazoLimite
             data={pedido.data_limite_entrega}
-            placeholder={pedido.data_assinatura_pdf_final ? "Aguardando cálculo" : "Aguardando assinatura"}
+            placeholder={
+              prazoConfig?.entrega_inicio === "assinatura_pdf_final"
+                ? (pedido.data_assinatura_pdf_final ? "Aguardando cálculo" : "Aguardando assinatura do PDF Final")
+                : "Aguardando assinatura do contrato"
+            }
           />
         </Field>
         <Field label="Prazo máximo de montagem">
           <PrazoLimite
             data={pedido.data_limite_inicio_montagem}
-            placeholder={pedido.data_entrega ? "Aguardando cálculo" : "Aguardando entrega realizada"}
+            placeholder={
+              prazoConfig?.montagem_inicio === "fim_prazo_entrega"
+                ? (pedido.data_limite_entrega ? "Aguardando cálculo" : "Aguardando prazo de entrega")
+                : (pedido.data_entrega ? "Aguardando cálculo" : "Aguardando entrega realizada")
+            }
           />
         </Field>
       </div>
