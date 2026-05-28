@@ -537,6 +537,10 @@ export default function ComercialNegociacao() {
 
   // dialogs
   const [openSenha, setOpenSenha] = useState(false);
+  const [openSolicitarDesc, setOpenSolicitarDesc] = useState(false);
+  const [motivoDesc, setMotivoDesc] = useState("");
+  const [enviandoDesc, setEnviandoDesc] = useState(false);
+  const [aprovacaoDescPendente, setAprovacaoDescPendente] = useState(false);
   const [openResumo, setOpenResumo] = useState(false);
   const [openValidar, setOpenValidar] = useState(false);
   const [openClienteEdit, setOpenClienteEdit] = useState(false);
