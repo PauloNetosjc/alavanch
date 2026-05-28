@@ -110,6 +110,7 @@ export default function PedidoDetalhe() {
   const [itensAvulsos, setItensAvulsos] = useState<any[]>([]);
   const [subItens, setSubItens] = useState<any[]>([]);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [prazoConfig, setPrazoConfig] = useState<{ entrega_inicio?: string; montagem_inicio?: string } | null>(null);
 
   const totalProjeto = useMemo(() => {
     // Valor final negociado do pedido (com descontos aplicados); fallback à soma original.
