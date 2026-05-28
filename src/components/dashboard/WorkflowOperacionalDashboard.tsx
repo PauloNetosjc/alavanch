@@ -58,6 +58,8 @@ type PedidoLite = {
   data_montagem: string | null;
   data_vistoria: string | null;
   data_limite_finalizacao: string | null;
+  data_limite_entrega: string | null;
+  data_limite_inicio_montagem: string | null;
   cliente_nome?: string | null;
   loja_nome?: string | null;
 };
