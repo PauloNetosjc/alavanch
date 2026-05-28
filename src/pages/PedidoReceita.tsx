@@ -342,9 +342,10 @@ export default function PedidoReceita() {
       data_pagamento: p.data_pagamento,
       valor: p.valor,
       forma_pagamento: p.forma_pagamento,
+      forma_pagamento_prevista: p.forma_pagamento_prevista,
       notas: p.notas,
       ...reapprovalPatch(),
-    }).eq("id", editAlvo.id);
+    } as any).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação");
     carregar();
