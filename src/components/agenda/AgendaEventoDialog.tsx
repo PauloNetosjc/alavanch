@@ -419,14 +419,17 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
       }
 
       // Gatilhos de criação automática de card em estágios
-      try {
-        const pedTrigger = pedidoSelId || pedidoId || null;
-        if (pedTrigger) {
-          const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
-          if (tipo === "entrega") await dispatchKanbanTrigger("entrega_agendada", { pedidoId: pedTrigger });
-          if (tipo === "montagem") await dispatchKanbanTrigger("montagem_agendada", { pedidoId: pedTrigger });
-        }
-      } catch {}
+      // Em caso de exceção pendente, só dispara após aprovação (não roda aqui)
+      if (!usaExcecao) {
+        try {
+          const pedTrigger = pedidoSelId || pedidoId || null;
+          if (pedTrigger) {
+            const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
+            if (tipo === "entrega") await dispatchKanbanTrigger("entrega_agendada", { pedidoId: pedTrigger });
+            if (tipo === "montagem") await dispatchKanbanTrigger("montagem_agendada", { pedidoId: pedTrigger });
+          }
+        } catch {}
+      }
 
 
       // CRM: ao agendar uma Apresentação, registra um Lead Agendado no CRM Comercial
