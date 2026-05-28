@@ -156,16 +156,20 @@ export default function PedidoReceita() {
       const total = lancamentos.length;
       return lancamentos.map((l, idx) => {
         const valor = Number(l.valor) || 0;
+        const juros = Number(l.juros_previsto || 0);
         const recebido = isPago(l.status) ? valor : 0;
         const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
         return {
-          numero: m ? parseInt(m[1], 10) : idx + 1,
-          total: m ? parseInt(m[2], 10) : total,
+          numero: l.numero_parcela ?? (m ? parseInt(m[1], 10) : idx + 1),
+          total: l.total_parcelas ?? (m ? parseInt(m[2], 10) : total),
           valor,
+          juros,
+          taxa_perc: Number(l.taxa_perc || 0),
           recebido,
-          saldo: valor - recebido,
+          saldo: valor - juros - recebido,
           vencimento: l.data_vencimento || null,
           forma: l.forma_pagamento || "—",
+          agrupado: !!l.agrupado,
           status: l.status,
           data_pagamento: l.data_pagamento || null,
           lanc: l,
@@ -187,7 +191,7 @@ export default function PedidoReceita() {
           const valor = isObj ? Number(d.valor) || 0 : Number(d) || 0;
           const venc = (isObj ? (d.data_vencimento || d.data) : null) || vencs[k] || null;
           const forma = (isObj ? (d.forma_pagamento || d.forma) : null) || formas[k] || formaDefault;
-          out.push({ numero: i++, total: 0, valor, recebido: 0, saldo: valor, vencimento: venc, forma, status: "pendente", origemReal: false });
+          out.push({ numero: i++, total: 0, valor, juros: 0, taxa_perc: 0, recebido: 0, saldo: valor, vencimento: venc, forma, agrupado: false, status: "pendente", origemReal: false });
         });
       } else {
         const qtd = Number(p.parcelas) || 1;
@@ -200,7 +204,7 @@ export default function PedidoReceita() {
             const d = new Date(baseDate); d.setMonth(d.getMonth() + k);
             dataStr = d.toISOString().slice(0, 10);
           }
-          out.push({ numero: i++, total: 0, valor: valorParcela, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, status: "pendente", origemReal: false });
+          out.push({ numero: i++, total: 0, valor: valorParcela, juros: 0, taxa_perc: 0, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, agrupado: false, status: "pendente", origemReal: false });
         }
       }
     }
@@ -209,12 +213,13 @@ export default function PedidoReceita() {
 
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
+    const juros = parcelas.reduce((s, p) => s + (p.juros || 0), 0);
     const recebido = parcelas.reduce((s, p) => s + (p.recebido || 0), 0);
     const saldo = parcelas.reduce((s, p) => s + (p.saldo || 0), 0);
     const pendentes = parcelas.filter((p) => !isPago(p.status) && !isVencido(p)).length;
     const liquidadas = parcelas.filter((p) => isPago(p.status)).length;
     const vencidas = parcelas.filter((p) => isVencido(p)).length;
-    return { valor, recebido, saldo, pendentes, liquidadas, vencidas };
+    return { valor, juros, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
   const gerarReceber = async () => {
