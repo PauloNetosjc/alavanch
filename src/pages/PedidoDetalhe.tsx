@@ -110,6 +110,7 @@ export default function PedidoDetalhe() {
   const [itensAvulsos, setItensAvulsos] = useState<any[]>([]);
   const [subItens, setSubItens] = useState<any[]>([]);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [prazoConfig, setPrazoConfig] = useState<{ entrega_inicio?: string; montagem_inicio?: string } | null>(null);
 
   const totalProjeto = useMemo(() => {
     // Valor final negociado do pedido (com descontos aplicados); fallback à soma original.
@@ -123,9 +124,24 @@ export default function PedidoDetalhe() {
 
   const carregar = async () => {
     if (!id) return;
+    // Recalcula prazos operacionais como fallback antes de carregar
+    try { await (supabase.rpc as any)("recalcular_prazos_operacionais_pedido", { p_pedido_id: id }); } catch {}
     const { data: ped } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
     if (!ped) { setLoading(false); return; }
     setPedido(ped);
+    // Carrega configuração de prazos da loja (sem bloquear)
+    (async () => {
+      const lojaId = (ped as any).loja_id;
+      const q = lojaId
+        ? supabase.from("configuracoes_empresa" as any).select("prazo_entrega_inicio_contagem,prazo_montagem_inicio_contagem").eq("loja_id", lojaId).maybeSingle()
+        : supabase.from("configuracoes_empresa" as any).select("prazo_entrega_inicio_contagem,prazo_montagem_inicio_contagem").limit(1).maybeSingle();
+      const { data: cfg } = await q;
+      setPrazoConfig({
+        entrega_inicio: (cfg as any)?.prazo_entrega_inicio_contagem || "assinatura_contrato",
+        montagem_inicio: (cfg as any)?.prazo_montagem_inicio_contagem || "entrega_realizada",
+      });
+    })();
+
 
     const orcId = ped.orcamento_id;
     const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
@@ -668,6 +684,7 @@ export default function PedidoDetalhe() {
         adendos={adendos}
         usuarios={usuarios}
         salvarPedido={salvarPedido}
+        prazoConfig={prazoConfig}
       />
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
@@ -2750,7 +2767,7 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
 /* ============================================================== */
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
-function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
+function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido, prazoConfig }: any) {
   const ETAPA_LABEL: Record<string, string> = {
     contrato_assinado: "Contrato assinado",
     projeto_inicial: "Projeto inicial",
@@ -2898,13 +2915,21 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
         <Field label="Prazo máximo de entrega">
           <PrazoLimite
             data={pedido.data_limite_entrega}
-            placeholder={pedido.data_assinatura_pdf_final ? "Aguardando cálculo" : "Aguardando assinatura"}
+            placeholder={
+              prazoConfig?.entrega_inicio === "assinatura_pdf_final"
+                ? (pedido.data_assinatura_pdf_final ? "Aguardando cálculo" : "Aguardando assinatura do PDF Final")
+                : "Aguardando assinatura do contrato"
+            }
           />
         </Field>
         <Field label="Prazo máximo de montagem">
           <PrazoLimite
             data={pedido.data_limite_inicio_montagem}
-            placeholder={pedido.data_entrega ? "Aguardando cálculo" : "Aguardando entrega realizada"}
+            placeholder={
+              prazoConfig?.montagem_inicio === "fim_prazo_entrega"
+                ? (pedido.data_limite_entrega ? "Aguardando cálculo" : "Aguardando prazo de entrega")
+                : (pedido.data_entrega ? "Aguardando cálculo" : "Aguardando entrega realizada")
+            }
           />
         </Field>
       </div>
