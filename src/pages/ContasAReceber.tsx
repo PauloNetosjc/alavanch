@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil, Layers } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
