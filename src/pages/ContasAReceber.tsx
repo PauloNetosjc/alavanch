@@ -525,7 +525,8 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={12} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={14} className="text-center py-12 text-muted-foreground">
+
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
