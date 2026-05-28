@@ -14,6 +14,7 @@ import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 import { RequirePermission } from "@/components/RequirePermission";
+import KanbanGuard from "@/components/KanbanGuard";
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
@@ -142,13 +143,13 @@ const App = () => (
                 <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
                 <Route path="/pedidos/:id/receita" element={<PedidoReceita />} />
                 <Route path="/radar" element={<RadarPrazos />} />
-                <Route path="/kanbans" element={<Kanbans />} />
-                <Route path="/kanban-comercial" element={<KanbanComercial />} />
+                <Route path="/kanbans" element={<KanbanGuard chave="crm_comercial"><Kanbans /></KanbanGuard>} />
+                <Route path="/kanban-comercial" element={<KanbanGuard chave="crm_comercial"><KanbanComercial /></KanbanGuard>} />
                 <Route path="/kanban-operacional" element={<Navigate to="/kanbans" replace />} />
-                <Route path="/kanban-pos-venda" element={<KanbanPosVenda />} />
-                <Route path="/kanban-revisao" element={<KanbanRevisao />} />
-                <Route path="/kanban-montagem" element={<KanbanMontagem />} />
-                <Route path="/kanban-fabrica" element={<KanbanFabrica />} />
+                <Route path="/kanban-pos-venda" element={<KanbanGuard chave="pos_venda"><KanbanPosVenda /></KanbanGuard>} />
+                <Route path="/kanban-revisao" element={<KanbanGuard chave="revisao"><KanbanRevisao /></KanbanGuard>} />
+                <Route path="/kanban-montagem" element={<KanbanGuard chave="montagem"><KanbanMontagem /></KanbanGuard>} />
+                <Route path="/kanban-fabrica" element={<KanbanGuard chave="fabrica"><KanbanFabrica /></KanbanGuard>} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
