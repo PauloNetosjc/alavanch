@@ -650,6 +650,21 @@ export default function ComercialNegociacao() {
         setUsarMarkup(!!(cfg as any)?.usar_markup);
       }
 
+      // Estado de aprovação de desconto (Central de Autorizações)
+      try {
+        const { data: autExist } = await (supabase as any)
+          .from("autorizacoes")
+          .select("status")
+          .eq("origem_modulo", "negociacao")
+          .eq("origem_id", id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const st = (autExist as any)?.status;
+        if (st === "aprovada") setAutorizadoPorGestor(true);
+        if (st === "pendente") setAprovacaoDescPendente(true);
+      } catch {}
+
       setLoading(false);
     })();
   }, [id]);
