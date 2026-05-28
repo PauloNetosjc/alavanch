@@ -284,6 +284,8 @@ export default function Comercial() {
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
       if (revisaoFilter === "revisado" && !r.revisado) return false;
       if (revisaoFilter === "nao_revisado" && r.revisado) return false;
+      if (assinaturaFilter === "pendente" && r.contrato_status !== "aguardando_assinatura") return false;
+      if (assinaturaFilter === "assinado" && r.contrato_status !== "assinado") return false;
 
       if (monthFilter !== "todos") {
         const [y, m] = monthFilter.split("-").map(Number);
