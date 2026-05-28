@@ -5498,7 +5498,12 @@ export type Database = {
       }
     }
     Enums: {
-      agenda_status: "agendado" | "concluido" | "cancelado" | "reagendado"
+      agenda_status:
+        | "agendado"
+        | "concluido"
+        | "cancelado"
+        | "reagendado"
+        | "pendente_aprovacao"
       agenda_tipo:
         | "medicao_tecnica"
         | "revisao_final"
@@ -5674,7 +5679,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      agenda_status: ["agendado", "concluido", "cancelado", "reagendado"],
+      agenda_status: [
+        "agendado",
+        "concluido",
+        "cancelado",
+        "reagendado",
+        "pendente_aprovacao",
+      ],
       agenda_tipo: [
         "medicao_tecnica",
         "revisao_final",
