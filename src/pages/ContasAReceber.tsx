@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil, Layers } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
@@ -137,6 +137,37 @@ export default function ContasAReceber() {
     }
     return map;
   }, [pedidos, clientes]);
+
+  // Mapa lancamento.id -> { numero, total, receitaCodigo } para identificação da parcela
+  const parcelaInfo = useMemo(() => {
+    const map = new Map<string, { numero: number; total: number; receitaCodigo: string | null }>();
+    // Agrupa por pedido_id (entradas reais geradas pelo backend)
+    const porPedido = new Map<string, Lanc[]>();
+    for (const l of lancs) {
+      if (!l.pedido_id) continue;
+      if (!porPedido.has(l.pedido_id)) porPedido.set(l.pedido_id, []);
+      porPedido.get(l.pedido_id)!.push(l);
+    }
+    for (const [pid, arr] of porPedido) {
+      const ordenado = [...arr].sort((a, b) => {
+        const da = a.data_vencimento || "";
+        const db = b.data_vencimento || "";
+        if (da !== db) return da < db ? -1 : 1;
+        return a.id < b.id ? -1 : 1;
+      });
+      const total = ordenado.length;
+      const ped = pedidos.find((p) => p.id === pid);
+      const receitaCodigo = ped?.receita_codigo || ped?.codigo || null;
+      ordenado.forEach((l, idx) => {
+        // Tenta extrair "Parcela X/Y" da descrição (fallback) — caso contrário usa idx
+        const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
+        const numero = m ? parseInt(m[1], 10) : idx + 1;
+        const tot = m ? parseInt(m[2], 10) : total;
+        map.set(l.id, { numero, total: tot, receitaCodigo });
+      });
+    }
+    return map;
+  }, [lancs, pedidos]);
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
@@ -332,7 +363,8 @@ export default function ContasAReceber() {
 
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-                <th className="text-left py-3 px-5 font-medium">Data Contrato</th>
+                <th className="text-left py-3 px-5 font-medium">Código</th>
+                <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
@@ -364,7 +396,20 @@ export default function ContasAReceber() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
+                    <td className="py-4 px-5 whitespace-nowrap">
+                      {(() => {
+                        const info = parcelaInfo.get(l.id);
+                        if (info && info.receitaCodigo) {
+                          return (
+                            <Link to={`/pedidos/${l.pedido_id}/receita`} className="font-mono text-[12px] text-primary hover:underline" title="Ver receita agrupada">
+                              #{info.receitaCodigo}-{info.numero}/{info.total}
+                            </Link>
+                          );
+                        }
+                        return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
+                      })()}
+                    </td>
+                    <td className="py-4 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
                       <div className="font-medium">{l.descricao || "—"}</div>
@@ -390,6 +435,13 @@ export default function ContasAReceber() {
                     </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
+                        {l.pedido_id && (
+                          <Button size="icon" variant="ghost" title="Ver receita agrupada" asChild>
+                            <Link to={`/pedidos/${l.pedido_id}/receita`}>
+                              <Layers className="w-4 h-4 text-primary" />
+                            </Link>
+                          </Button>
+                        )}
                         {!pago && !cancelado && (
                           <>
                             <Button size="icon" variant="ghost" title="Receber" onClick={() => abrirBaixa(l)}>
@@ -399,6 +451,11 @@ export default function ContasAReceber() {
                               <X className="w-4 h-4 text-rose-500" />
                             </Button>
                           </>
+                        )}
+                        {pago && !cancelado && podeEditar && (
+                          <Button size="icon" variant="ghost" title="Estornar recebimento" onClick={() => estornar(l)}>
+                            <RotateCcw className="w-4 h-4 text-amber-600" />
+                          </Button>
                         )}
                         {podeEditar && !cancelado && (
                           <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
@@ -411,7 +468,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
@@ -420,7 +477,7 @@ export default function ContasAReceber() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={5} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={6} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">

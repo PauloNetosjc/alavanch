@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw, Check, Pencil, RotateCcw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 
 const fmtBrl = (v: number) =>
   (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -16,40 +20,78 @@ const fmtDateTime = (d: any) => {
   try { return new Date(d).toLocaleString("pt-BR"); } catch { return "—"; }
 };
 
+type Lanc = {
+  id: string;
+  tipo: string;
+  descricao: string | null;
+  valor: number;
+  data_vencimento: string | null;
+  data_pagamento: string | null;
+  categoria_id: string | null;
+  conta_id: string | null;
+  pedido_id: string | null;
+  status: string | null;
+  aprovacao_status: string | null;
+  forma_pagamento: string | null;
+  notas: string | null;
+  loja_id: string | null;
+  baixado_por: string | null;
+  baixado_em: string | null;
+};
+
 type Parcela = {
   numero: number;
+  total: number;
   valor: number;
-  acrescimo: number;
-  desconto: number;
   recebido: number;
   saldo: number;
   vencimento: string | null;
   forma: string;
   status?: string | null;
   data_pagamento?: string | null;
+  lanc?: Lanc;
+  origemReal: boolean;
 };
 
-const statusBadge = (status?: string | null) => {
-  const s = (status || "").toLowerCase();
-  if (s === "pago" || s === "recebido" || s === "baixado")
+const isPago = (s?: string | null) =>
+  ["pago", "recebido", "conciliado", "baixado"].includes((s || "").toLowerCase());
+const isVencido = (p: Parcela) => {
+  if (isPago(p.status)) return false;
+  if (!p.vencimento) return false;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const v = new Date(p.vencimento + "T00:00");
+  return v < hoje;
+};
+
+const statusBadge = (p: Parcela) => {
+  if (isPago(p.status))
     return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Recebido</span>;
-  if (s === "vencido" || s === "atrasado")
+  if (isVencido(p))
     return <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700">Vencido</span>;
-  if (s === "pendente" || s === "aberto" || s === "a_receber")
-    return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pendente</span>;
-  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{status || "—"}</span>;
+  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pendente</span>;
 };
 
 export default function PedidoReceita() {
   const { id } = useParams<{ id: string }>();
+  const { user, role } = useAuth();
+  const { can } = usePermissions();
+  const podeEditar = can("lancamentos", "edit");
+
   const [loading, setLoading] = useState(true);
   const [gerando, setGerando] = useState(false);
   const [pedido, setPedido] = useState<any>(null);
   const [cliente, setCliente] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
-  const [lancamentos, setLancamentos] = useState<any[]>([]);
+  const [lancamentos, setLancamentos] = useState<Lanc[]>([]);
+  const [contas, setContas] = useState<{ id: string; nome: string; banco: string | null }[]>([]);
   const [criador, setCriador] = useState<any>(null);
+  const [souAprovador, setSouAprovador] = useState(false);
+
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -75,8 +117,10 @@ export default function PedidoReceita() {
         .eq("tipo", "entrada")
         .eq("pedido_id", ped.id)
         .order("data_vencimento", { ascending: true });
-      setLancamentos(lanc || []);
+      setLancamentos((lanc as Lanc[]) || []);
     }
+    const { data: ct } = await supabase.from("contas_bancarias").select("id,nome,banco").order("nome");
+    setContas((ct as any[]) || []);
     if (ped?.estagio_responsavel_id) {
       const { data: prof } = await supabase.from("profiles").select("nome_completo, email").eq("user_id", ped.estagio_responsavel_id).maybeSingle();
       setCriador(prof);
@@ -86,30 +130,42 @@ export default function PedidoReceita() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      if (role === "admin") { setSouAprovador(true); return; }
+      const { data } = await supabase.from("aprovadores_financeiros" as any)
+        .select("aprova_receber").eq("user_id", user.id);
+      setSouAprovador(((data as any[]) || []).some((r) => r.aprova_receber));
+    })();
+  }, [user, role]);
+
   const integrado = lancamentos.length > 0;
+  const reapprovalPatch = () => souAprovador ? {} : { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null };
 
   const parcelas: Parcela[] = useMemo(() => {
-    // Fonte primária: lancamentos_financeiros
     if (integrado) {
+      const total = lancamentos.length;
       return lancamentos.map((l, idx) => {
         const valor = Number(l.valor) || 0;
-        const recebido = l.data_pagamento ? valor : 0;
+        const recebido = isPago(l.status) ? valor : 0;
+        const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
         return {
-          numero: idx + 1,
+          numero: m ? parseInt(m[1], 10) : idx + 1,
+          total: m ? parseInt(m[2], 10) : total,
           valor,
-          acrescimo: 0,
-          desconto: 0,
           recebido,
           saldo: valor - recebido,
           vencimento: l.data_vencimento || null,
           forma: l.forma_pagamento || "—",
           status: l.status,
           data_pagamento: l.data_pagamento || null,
+          lanc: l,
+          origemReal: true,
         };
       });
     }
-
-    // Fallback: pagamentos_orcamento (suporta array de objetos OU array de números)
+    // Fallback: pagamentos_orcamento
     const out: Parcela[] = [];
     let i = 1;
     for (const p of pagamentos) {
@@ -117,24 +173,13 @@ export default function PedidoReceita() {
       const vencs = (p.parcelas_vencimentos as any[]) || [];
       const formas = (p.parcelas_formas as any[]) || [];
       const formaDefault = p.forma_pagamento || p.metodo || "—";
-
       if (Array.isArray(detalhe) && detalhe.length) {
         detalhe.forEach((d: any, k: number) => {
           const isObj = d && typeof d === "object" && !Array.isArray(d);
           const valor = isObj ? Number(d.valor) || 0 : Number(d) || 0;
           const venc = (isObj ? (d.data_vencimento || d.data) : null) || vencs[k] || null;
           const forma = (isObj ? (d.forma_pagamento || d.forma) : null) || formas[k] || formaDefault;
-          out.push({
-            numero: i++,
-            valor,
-            acrescimo: 0,
-            desconto: 0,
-            recebido: 0,
-            saldo: valor,
-            vencimento: venc,
-            forma,
-            status: "pendente",
-          });
+          out.push({ numero: i++, total: 0, valor, recebido: 0, saldo: valor, vencimento: venc, forma, status: "pendente", origemReal: false });
         });
       } else {
         const qtd = Number(p.parcelas) || 1;
@@ -144,34 +189,24 @@ export default function PedidoReceita() {
         for (let k = 0; k < qtd; k++) {
           let dataStr: string | null = vencs[k] || null;
           if (!dataStr && baseDate) {
-            const d = new Date(baseDate);
-            d.setMonth(d.getMonth() + k);
+            const d = new Date(baseDate); d.setMonth(d.getMonth() + k);
             dataStr = d.toISOString().slice(0, 10);
           }
-          out.push({
-            numero: i++,
-            valor: valorParcela,
-            acrescimo: 0,
-            desconto: 0,
-            recebido: 0,
-            saldo: valorParcela,
-            vencimento: dataStr,
-            forma: formas[k] || formaDefault,
-            status: "pendente",
-          });
+          out.push({ numero: i++, total: 0, valor: valorParcela, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, status: "pendente", origemReal: false });
         }
       }
     }
-    return out;
+    return out.map((p) => ({ ...p, total: out.length }));
   }, [integrado, lancamentos, pagamentos]);
 
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
-    const acrescimo = parcelas.reduce((s, p) => s + (p.acrescimo || 0), 0);
-    const desconto = parcelas.reduce((s, p) => s + (p.desconto || 0), 0);
     const recebido = parcelas.reduce((s, p) => s + (p.recebido || 0), 0);
     const saldo = parcelas.reduce((s, p) => s + (p.saldo || 0), 0);
-    return { valor, acrescimo, desconto, recebido, saldo };
+    const pendentes = parcelas.filter((p) => !isPago(p.status) && !isVencido(p)).length;
+    const liquidadas = parcelas.filter((p) => isPago(p.status)).length;
+    const vencidas = parcelas.filter((p) => isVencido(p)).length;
+    return { valor, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
   const gerarReceber = async () => {
@@ -189,10 +224,52 @@ export default function PedidoReceita() {
     }
   };
 
+  async function salvarEdicao(p: EditarPayload) {
+    if (!editAlvo) return;
+    const { error } = await supabase.from("lancamentos_financeiros").update({
+      data_vencimento: p.data_vencimento,
+      data_pagamento: p.data_pagamento,
+      valor: p.valor,
+      forma_pagamento: p.forma_pagamento,
+      notas: p.notas,
+      ...reapprovalPatch(),
+    }).eq("id", editAlvo.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação");
+    carregar();
+  }
+
+  async function confirmarBaixa(p: BaixaPayload) {
+    if (!baixaAlvo) return;
+    const agora = new Date();
+    const { error } = await supabase.from("lancamentos_financeiros").update({
+      status: "recebido",
+      data_pagamento: p.data_pagamento,
+      conta_id: p.conta_id,
+      forma_pagamento: p.forma_pagamento,
+      valor: Number(p.valor) || 0,
+      baixado_por: user?.id ?? null,
+      baixado_em: agora.toISOString(),
+    }).eq("id", baixaAlvo.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Recebido");
+    carregar();
+  }
+
+  async function estornar(l: Lanc) {
+    if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
+    const { error } = await supabase.from("lancamentos_financeiros")
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
+      .eq("id", l.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação");
+    carregar();
+  }
+
   if (loading) return <div className="p-6 text-muted-foreground">Carregando…</div>;
   if (!pedido) return <div className="p-6 text-muted-foreground">Pedido não encontrado.</div>;
 
-  const codigo = pedido.receita_codigo || "—";
+  const codigo = pedido.receita_codigo || pedido.codigo || "—";
   const competencia = pedido.created_at;
 
   return (
@@ -219,9 +296,7 @@ export default function PedidoReceita() {
             </span>
           )}
         </div>
-        <div className="text-[12px] text-muted-foreground">
-          Criado em {fmtDateTime(competencia)}
-        </div>
+        <div className="text-[12px] text-muted-foreground">Criado em {fmtDateTime(competencia)}</div>
         {criador?.email && (
           <div className="text-[12px] text-muted-foreground">Por {criador.nome_completo || criador.email}</div>
         )}
@@ -231,14 +306,14 @@ export default function PedidoReceita() {
         <section className="surface-card p-4 border border-amber-200 bg-amber-50/50 flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-start gap-2 text-[13px] text-amber-900">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>
-              Esta receita ainda não foi integrada ao A Receber. Os valores exibidos abaixo vêm da negociação do orçamento.
-            </div>
+            <div>Esta receita ainda não foi integrada ao A Receber. Os valores exibidos abaixo vêm da negociação do orçamento.</div>
           </div>
-          <Button onClick={gerarReceber} disabled={gerando} size="sm">
-            <RefreshCw className={`w-4 h-4 mr-1.5 ${gerando ? "animate-spin" : ""}`} />
-            {gerando ? "Gerando…" : "Gerar contas a receber"}
-          </Button>
+          {podeEditar && (
+            <Button onClick={gerarReceber} disabled={gerando} size="sm">
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${gerando ? "animate-spin" : ""}`} />
+              {gerando ? "Gerando…" : "Gerar contas a receber"}
+            </Button>
+          )}
         </section>
       )}
 
@@ -253,14 +328,13 @@ export default function PedidoReceita() {
         <Field label="Nro. documento">{pedido.receita_codigo || "—"}</Field>
       </section>
 
-      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-5 gap-5 text-[13px]">
-        <Field label="Valor base">{fmtBrl(totais.valor)}</Field>
-        <Field label="Impostos">{fmtBrl(0)}</Field>
-        <Field label="Valor">{fmtBrl(totais.valor + totais.acrescimo - totais.desconto)}</Field>
-        <Field label="Acréscimo">{fmtBrl(totais.acrescimo)}</Field>
-        <Field label="Desconto">{fmtBrl(totais.desconto)}</Field>
+      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-6 gap-5 text-[13px]">
+        <Field label="Valor total">{fmtBrl(totais.valor)}</Field>
         <Field label="Recebido">{fmtBrl(totais.recebido)}</Field>
         <Field label="Saldo">{fmtBrl(totais.saldo)}</Field>
+        <Field label="Pendentes">{totais.pendentes}</Field>
+        <Field label="Liquidadas">{totais.liquidadas}</Field>
+        <Field label="Vencidas"><span className={totais.vencidas > 0 ? "text-red-600" : ""}>{totais.vencidas}</span></Field>
       </section>
 
       <section className="surface-card p-0 overflow-hidden">
@@ -276,51 +350,101 @@ export default function PedidoReceita() {
           <table className="w-full text-[13px]">
             <thead className="bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="text-left p-3">#</th>
+                <th className="text-left p-3">Código</th>
                 <th className="text-left p-3">Vencimento</th>
-                <th className="text-left p-3">Forma de pagamento</th>
+                <th className="text-left p-3">Forma</th>
                 <th className="text-right p-3">Valor</th>
-                <th className="text-right p-3">Acréscimo</th>
-                <th className="text-right p-3">Desconto</th>
                 <th className="text-right p-3">Recebido</th>
                 <th className="text-right p-3">Saldo</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Pago em</th>
+                <th className="text-right p-3">Ações</th>
               </tr>
             </thead>
             <tbody>
               {parcelas.length === 0 && (
-                <tr><td className="p-4 text-center text-muted-foreground" colSpan={10}>Nenhuma parcela cadastrada.</td></tr>
+                <tr><td className="p-4 text-center text-muted-foreground" colSpan={9}>Nenhuma parcela cadastrada.</td></tr>
               )}
-              {parcelas.map((p) => (
-                <tr key={p.numero} className="border-t">
-                  <td className="p-3">{p.numero}/{parcelas.length}</td>
-                  <td className="p-3">{fmtDate(p.vencimento)}</td>
-                  <td className="p-3">{p.forma}</td>
-                  <td className="p-3 text-right">{fmtBrl(p.valor)}</td>
-                  <td className="p-3 text-right">{fmtBrl(p.acrescimo)}</td>
-                  <td className="p-3 text-right">{fmtBrl(p.desconto)}</td>
-                  <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
-                  <td className="p-3 text-right">{fmtBrl(p.saldo)}</td>
-                  <td className="p-3">{statusBadge(p.status)}</td>
-                  <td className="p-3">{fmtDate(p.data_pagamento)}</td>
-                </tr>
-              ))}
+              {parcelas.map((p) => {
+                const pago = isPago(p.status);
+                return (
+                  <tr key={p.lanc?.id || p.numero} className="border-t">
+                    <td className="p-3 font-mono text-[12px]">#{codigo}-{p.numero}/{p.total}</td>
+                    <td className="p-3">{fmtDate(p.vencimento)}</td>
+                    <td className="p-3">{p.forma}</td>
+                    <td className="p-3 text-right">{fmtBrl(p.valor)}</td>
+                    <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
+                    <td className="p-3 text-right">{fmtBrl(p.saldo)}</td>
+                    <td className="p-3">{statusBadge(p)}</td>
+                    <td className="p-3">{fmtDate(p.data_pagamento)}</td>
+                    <td className="p-3 text-right">
+                      {p.origemReal && p.lanc ? (
+                        <div className="inline-flex justify-end gap-1">
+                          {!pago && (
+                            <Button size="icon" variant="ghost" title="Receber" onClick={() => { setBaixaAlvo(p.lanc!); setBaixaOpen(true); }}>
+                              <Check className="w-4 h-4 text-emerald-600" />
+                            </Button>
+                          )}
+                          {pago && podeEditar && (
+                            <Button size="icon" variant="ghost" title="Estornar recebimento" onClick={() => estornar(p.lanc!)}>
+                              <RotateCcw className="w-4 h-4 text-amber-600" />
+                            </Button>
+                          )}
+                          {podeEditar && (
+                            <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => { setEditAlvo(p.lanc!); setEditOpen(true); }}>
+                              <Pencil className="w-4 h-4 text-primary" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {parcelas.length > 0 && (
                 <tr className="border-t bg-muted/30 font-semibold">
                   <td className="p-3" colSpan={3}>Total</td>
                   <td className="p-3 text-right">{fmtBrl(totais.valor)}</td>
-                  <td className="p-3 text-right">{fmtBrl(totais.acrescimo)}</td>
-                  <td className="p-3 text-right">{fmtBrl(totais.desconto)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.recebido)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.saldo)}</td>
-                  <td className="p-3" colSpan={2}></td>
+                  <td className="p-3" colSpan={3}></td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
+
+      <BaixaLancamentoDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        tipo="entrada"
+        descricao={baixaAlvo?.descricao ?? null}
+        valorOriginal={Number(baixaAlvo?.valor || 0)}
+        contaIdAtual={baixaAlvo?.conta_id ?? null}
+        contas={contas}
+        onConfirm={confirmarBaixa}
+      />
+
+      <EditarLancamentoDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        tipo="entrada"
+        lanc={editAlvo ? {
+          id: editAlvo.id,
+          descricao: editAlvo.descricao,
+          data_vencimento: editAlvo.data_vencimento,
+          data_pagamento: editAlvo.data_pagamento,
+          valor: Number(editAlvo.valor || 0),
+          forma_pagamento: editAlvo.forma_pagamento,
+          notas: editAlvo.notas,
+          status: editAlvo.status,
+        } : null}
+        onSave={salvarEdicao}
+        onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
+      />
     </div>
   );
 }
