@@ -47,10 +47,9 @@ function ListaLiberadosFabrica() {
     let query = (supabase as any)
       .from("pedidos")
       .select(
-        "id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, arquivado, cliente:clientes(nome), loja:lojas(nome)"
+        "id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)"
       )
       .eq("status_fabrica", "liberado_para_lote")
-      .or("arquivado.is.null,arquivado.eq.false")
       .order("created_at", { ascending: false });
 
     if (selectedLojaId) query = query.eq("loja_id", selectedLojaId);
@@ -81,8 +80,8 @@ function ListaLiberadosFabrica() {
       console.debug("[FabricaDebug] Lista", {
         lojaAtual: selectedLojaId,
         quantidadeRetornada: result.length,
-        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual + arquivado != true",
-        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId, arquivado: false },
+        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual",
+        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId },
         pedidosRetornados: result.map((p) => ({ codigo: p.codigo, loja_id: p.loja_id, status_fabrica: p.status_fabrica })),
       });
     }
@@ -195,9 +194,8 @@ function KanbanLiberadosFabrica() {
     setLoading(true);
     let query = (supabase as any)
       .from("pedidos")
-      .select("id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, arquivado, cliente:clientes(nome), loja:lojas(nome)")
+      .select("id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)")
       .eq("status_fabrica", "liberado_para_lote")
-      .or("arquivado.is.null,arquivado.eq.false")
       .order("created_at", { ascending: false });
 
     if (selectedLojaId) query = query.eq("loja_id", selectedLojaId);
@@ -226,8 +224,8 @@ function KanbanLiberadosFabrica() {
       console.debug("[FabricaDebug] Kanban", {
         lojaAtual: selectedLojaId,
         quantidadeRetornada: result.length,
-        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual + arquivado != true",
-        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId, arquivado: false },
+        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual",
+        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId },
         pedidosRetornados: result.map((p) => ({ codigo: p.codigo, loja_id: p.loja_id, status_fabrica: p.status_fabrica })),
       });
     }
