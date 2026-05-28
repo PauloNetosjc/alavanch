@@ -150,12 +150,11 @@ export default function TarefasNativasAdmin() {
 
   async function load() {
     setLoading(true);
-    const [m, c, p, l, pl] = await Promise.all([
+    const [m, c, p, l] = await Promise.all([
       (supabase as any).from("tarefas_nativas_modelos").select("*").order("ordem", { ascending: true }).order("nome"),
       supabase.from("rh_cargos").select("id,nome").order("nome"),
       supabase.from("profiles").select("id,nome_completo").eq("ativo", true).order("nome_completo"),
       supabase.from("lojas").select("id,nome").order("nome"),
-      (supabase as any).from("kanbans").select("id,nome").order("nome"),
     ]);
     if (m.error) toast.error("Erro ao carregar modelos: " + m.error.message);
     const modelos = (m.data || []) as Modelo[];
@@ -163,7 +162,14 @@ export default function TarefasNativasAdmin() {
     setCargos((c.data as any) || []);
     setProfiles((p.data as any) || []);
     setLojas((l.data as any) || []);
-    setPipelines(((pl as any).data as any) || []);
+    // Pipelines: usar os kanbans fixos do sistema (até existir tabela própria)
+    setPipelines([
+      { id: "comercial", nome: "Comercial" },
+      { id: "fabrica", nome: "Fábrica" },
+      { id: "revisao", nome: "Revisão" },
+      { id: "montagem", nome: "Montagem" },
+      { id: "pos_venda", nome: "Pós-venda" },
+    ]);
 
     // count tarefas por modelo
     if (modelos.length) {
