@@ -317,7 +317,8 @@ export default function ContasAPagar() {
 
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-                <th className="text-left py-3 px-5 font-medium">Data Contrato</th>
+                <th className="text-left py-3 px-5 font-medium">Cliente</th>
+                <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
@@ -349,7 +350,10 @@ export default function ContasAPagar() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
+                    <td className="py-4 px-5 whitespace-nowrap max-w-[200px] truncate" title={clienteName(l.pedido_id, l.fornecedor_id)}>
+                      {clienteName(l.pedido_id, l.fornecedor_id)}
+                    </td>
+                    <td className="whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
                       <div className="font-medium">{l.descricao || "—"}</div>
