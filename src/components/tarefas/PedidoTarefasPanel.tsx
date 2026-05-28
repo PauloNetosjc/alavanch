@@ -149,6 +149,9 @@ export function PedidoTarefasPanel({
 
   async function load() {
     setLoading(true);
+    // Fallback de segurança: garante tarefas obrigatórias do cronograma
+    // (fazer_medicao_tecnica + preparo_projeto_revisao) antes de listar.
+    try { await ensureTarefasCronogramaPedido(pedidoId); } catch {}
     const [t, c, p, me] = await Promise.all([
       (supabase as any).from("tarefas_pedido")
         .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")
