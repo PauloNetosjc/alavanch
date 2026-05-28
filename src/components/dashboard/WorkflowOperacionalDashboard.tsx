@@ -445,7 +445,7 @@ export default function WorkflowOperacionalDashboard() {
         <ResumoBox label="Valor em atraso" value={BRL(resumoGeral.valorVencido)} tone="danger" />
         <ResumoBox
           label="Maior gargalo"
-          value={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? etapaLabel(resumoGeral.maiorGargalo.etapa) : "—"}
+          value={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? grupoLabel(resumoGeral.maiorGargalo.grupo) : "—"}
           hint={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? `${resumoGeral.maiorGargalo.qtd} pedidos` : undefined}
         />
       </div>
