@@ -1310,6 +1310,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
               .map((s: any) => s.id),
           );
           const docsFiltrados = docsDaPasta.filter((d: any) => {
+            // Esconde contratos contratados arquivados (rodadas antigas de assinatura)
+            if (d.ativo === false) return false;
             if (!d.solicitacao_id || !solicsManual.has(d.solicitacao_id)) return true;
             const ehManual = d.bucket_name === "assinaturas-evidencias"
               || /assinado manualmente|documento do cliente/i.test(d.nome || "");
@@ -1366,7 +1368,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
           const docFinal = sol ? finalDocBySol[sol.id] : null;
           const codigoPedido = (d.nome || "").match(/PV-[A-Z0-9-]+/i)?.[0];
           const nomeExibido = sanitizeNome(
-            assinaturaCompleta && codigoPedido ? `Contrato assinado - ${codigoPedido}.pdf` : d.nome,
+            assinaturaCompleta && codigoPedido ? `Contrato contratado - ${codigoPedido}.pdf` : d.nome,
           );
           return (
             <div key={d.id} className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border bg-card">

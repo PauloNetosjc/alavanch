@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const codigoPedido = (s as any).pedidos?.codigo ?? "pedido";
-    const nomeArquivo = `Contrato assinado - ${codigoPedido}.pdf`;
+    const nomeArquivo = `Contrato contratado - ${codigoPedido}.pdf`;
     const docPayload = {
       pedido_id: s.pedido_id,
       solicitacao_id: s.id,
@@ -258,6 +258,7 @@ Deno.serve(async (req) => {
       tamanho: finalBytes.length,
       mime_type: "application/pdf",
       enviado_para_assinatura: true,
+      ativo: true,
       assinado_em: s.cliente_assinado_em ?? s.concluido_em ?? new Date().toISOString(),
       assinatura_nome: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.nome ?? null,
       assinatura_cpf: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.documento ?? null,
