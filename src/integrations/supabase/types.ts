@@ -4617,6 +4617,8 @@ export type Database = {
       }
       solicitacoes_assinatura: {
         Row: {
+          assinado_manual_em: string | null
+          assinado_manual_por: string | null
           assinatura_cliente_url: string | null
           assinatura_loja_url: string | null
           cancelado_em: string | null
@@ -4647,6 +4649,7 @@ export type Database = {
           loja_id: string | null
           loja_ip: string | null
           loja_user_agent: string | null
+          metodo_assinatura: string | null
           motivo_recusa: string | null
           observacao: string | null
           observacao_manual: string | null
@@ -4662,6 +4665,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinado_manual_em?: string | null
+          assinado_manual_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
@@ -4692,6 +4697,7 @@ export type Database = {
           loja_id?: string | null
           loja_ip?: string | null
           loja_user_agent?: string | null
+          metodo_assinatura?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           observacao_manual?: string | null
@@ -4707,6 +4713,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinado_manual_em?: string | null
+          assinado_manual_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
@@ -4737,6 +4745,7 @@ export type Database = {
           loja_id?: string | null
           loja_ip?: string | null
           loja_user_agent?: string | null
+          metodo_assinatura?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           observacao_manual?: string | null
