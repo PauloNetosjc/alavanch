@@ -788,7 +788,8 @@ export default function ComercialNegociacao() {
       toast.success("Desconto aplicado");
       return;
     }
-    setOpenSenha(true);
+    setMotivoDesc("");
+    setOpenSolicitarDesc(true);
   };
   const cancelarDesconto = () => {
     setDescPerc(0); setDescValor(0);
