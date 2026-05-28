@@ -1532,8 +1532,6 @@ export default function ComercialNegociacao() {
           </div>
           )}
 
-          <p className="text-[12px] text-muted-foreground">*Após assinatura do caderno técnico</p>
-
           <div className="border-t border-border pt-4">
             <div className="flex items-start justify-between">
               <div>
