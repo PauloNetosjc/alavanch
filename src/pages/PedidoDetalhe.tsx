@@ -2299,6 +2299,10 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
     const novoValor = Number(rev.valor_revisado || 0);
     await supabase.from("ambientes").update({ preco_sugerido: novoValor }).eq("id", rev.ambiente_id);
     await supabase.from("pedido_revisoes").update({ aprovada: true, aprovada_em: new Date().toISOString() }).eq("id", rev.id);
+    try {
+      const { marcarAutorizacaoAprovadaPorOrigem } = await import("@/lib/autorizacoes");
+      await marcarAutorizacaoAprovadaPorOrigem("revisao", rev.id, "Aprovada na tela do pedido");
+    } catch {}
     toast.success("Revisão aprovada — valor do ambiente atualizado");
     onChange();
   };
