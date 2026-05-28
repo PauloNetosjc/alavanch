@@ -175,9 +175,18 @@ export default function PedidoDetalhe() {
       setSubItens([]);
     }
 
-    // Pastas padrão — cria as faltantes
+    // Pastas padrão — cria as faltantes (ordem preferencial da Central de Documentos)
     let pst = pstRes.data || [];
-    const padroes = ["Projetos/PDF", "Documentos", "Check-in Obra", "Fotos/Entrega"];
+    const padroes = [
+      "Documentos",
+      "Projeto Inicial",
+      "Projeto Final",
+      "Medição Técnica",
+      "Vistoria Técnico",
+      "Vistoria Cliente",
+      "Check-in Obra",
+      "Fotos/Entrega",
+    ];
     const faltando = padroes.filter((nome) => !pst!.some((p: any) => p.nome.toLowerCase() === nome.toLowerCase()));
     if (faltando.length) {
       const baseOrdem = pst.length;
@@ -185,7 +194,17 @@ export default function PedidoDetalhe() {
       const { data: criadas } = await supabase.from("pedido_pastas").insert(novas).select("*");
       pst = [...pst, ...(criadas || [])];
     }
-    setPastas([{ id: PROJ_VIRTUAL_ID, nome: "Projetos Importados", _virtual: true }, ...pst]);
+    // Ordena pelas pastas padrão; pastas customizadas (criadas pelo usuário) vão depois
+    const ordemPadrao = new Map(padroes.map((nome, i) => [nome.toLowerCase(), i]));
+    pst = [...pst].sort((a: any, b: any) => {
+      const ia = ordemPadrao.has(a.nome.toLowerCase()) ? ordemPadrao.get(a.nome.toLowerCase())! : 999 + (a.ordem || 0);
+      const ib = ordemPadrao.has(b.nome.toLowerCase()) ? ordemPadrao.get(b.nome.toLowerCase())! : 999 + (b.ordem || 0);
+      return ia - ib;
+    });
+    // Pastas a ocultar na Central (legadas/exclusivas do bloco "Arquivos do Projeto")
+    const PASTAS_OCULTAS_CENTRAL = new Set(["projetos/pdf", "projeto", "projetos"]);
+    const pstVisiveis = pst.filter((p: any) => !PASTAS_OCULTAS_CENTRAL.has((p.nome || "").toLowerCase()));
+    setPastas([{ id: PROJ_VIRTUAL_ID, nome: "Projetos Importados", _virtual: true }, ...pstVisiveis]);
 
     // Documentos (combina orcamento + pedido)
     const orcDocsMapped = (orcDocsRes.data || []).map((d: any) => ({
@@ -195,7 +214,18 @@ export default function PedidoDetalhe() {
       _readonly: true,
       nome: d.origem === "promob_import" ? `[Promob] ${d.nome}` : d.origem === "xml_import" ? `[XML] ${d.nome}` : d.origem === "excel_import" ? `[Excel] ${d.nome}` : d.nome,
     }));
-    setDocs([...orcDocsMapped, ...(dcsRes.data || [])]);
+    // Exclui da Central os arquivos do fluxo operacional "Arquivos do Projeto"
+    const CATEGORIAS_PROJETO_OPERACIONAL = new Set([
+      "projeto_vendido",
+      "projeto_para_revisao",
+      "projeto_revisado",
+    ]);
+    const pedidoDocsCentral = (dcsRes.data || []).filter((d: any) =>
+      !CATEGORIAS_PROJETO_OPERACIONAL.has(d.categoria_projeto) &&
+      !CATEGORIAS_PROJETO_OPERACIONAL.has(d.tipo_documento_slug),
+    );
+    setDocs([...orcDocsMapped, ...pedidoDocsCentral]);
+
 
     // Solicitação de assinatura mais recente — prepara contrato se necessário (não bloqueia render)
     const sa = saRes.data;
@@ -242,10 +272,13 @@ export default function PedidoDetalhe() {
       supabase.from("solicitacoes_assinatura").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setContrato(ctRes.data);
-    // Preserva docs virtuais (orçamento) e substitui docs do pedido
+    // Preserva docs virtuais (orçamento) e substitui docs do pedido — exclui categoria_projeto operacional
+    const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
+    const filtrarCentral = (rows: any[]) =>
+      rows.filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
     setDocs((prev) => {
       const virtuais = (prev || []).filter((d: any) => d._readonly);
-      return [...virtuais, ...((dcsRes.data as any[]) || [])];
+      return [...virtuais, ...filtrarCentral((dcsRes.data as any[]) || [])];
     });
     setSolicitacoes(solsRes.data || []);
     setSolicAssin(saRes.data || null);
@@ -256,13 +289,21 @@ export default function PedidoDetalhe() {
   // Realtime subscriptions
   useEffect(() => {
     if (!id) return;
+    const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
     const ch = supabase.channel(`pedido_${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_chat", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at").then(({ data }) => setChat(data || []));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
-        supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => setDocs(data || []));
+        supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => {
+          const rows = (data || []).filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+          setDocs((prev) => {
+            const virtuais = (prev || []).filter((d: any) => d._readonly);
+            return [...virtuais, ...rows];
+          });
+        });
       })
+
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${id}` }, (payload) => {
         // Sincroniza alterações vindas dos kanbans (estagio_*) ou outros pontos
         if (payload.new) setPedido((prev: any) => ({ ...(prev || {}), ...(payload.new as any) }));
