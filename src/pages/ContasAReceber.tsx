@@ -210,7 +210,8 @@ export default function ContasAReceber() {
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
-          || (fam?.clienteNome || "").toLowerCase().includes(t);
+          || (fam?.clienteNome || "").toLowerCase().includes(t)
+          || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
