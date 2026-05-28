@@ -177,3 +177,13 @@
     }
   }
 }
+
+/* Workflow Operacional - impressão */
+@media print {
+  body * { visibility: hidden !important; }
+  .workflow-print-root, .workflow-print-root * { visibility: visible !important; }
+  .workflow-print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 16px; }
+  .no-print { display: none !important; }
+  .workflow-arrows { overflow: visible !important; flex-wrap: wrap !important; gap: 6px !important; }
+  .workflow-arrows button { clip-path: none !important; -webkit-clip-path: none !important; border: 1px solid #ccc !important; padding: 8px !important; margin: 0 !important; }
+}
