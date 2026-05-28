@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2, AlertCircle, Loader2, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import JSZip from "jszip";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
