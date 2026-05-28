@@ -544,15 +544,33 @@ export default function ContasAReceber() {
                   <td className="py-3 text-right text-amber-700 whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => s + Number(l.juros_previsto || 0), 0))}
                   </td>
+                  <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      if (!pago) return s;
+                      const v = Number(l.valor || 0);
+                      const jr = Number(l.juros_real || 0);
+                      return s + (v - jr);
+                    }, 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      return pago ? s + Number(l.juros_real || 0) : s;
+                    }, 0))}
+                  </td>
                   <td className="py-3 text-right whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      const cancel = l.status === "cancelado";
+                      if (pago || cancel) return s;
                       const v = Number(l.valor || 0);
                       const j = Number(l.juros_previsto || 0);
-                      const r = ["pago","recebido","conciliado"].includes(l.status||"") ? v : 0;
-                      return s + (v - j - r);
+                      return s + Math.max(v - j, 0);
                     }, 0))}
                   </td>
                   <td colSpan={3} />
+
                 </tr>
               </tfoot>
             )}
