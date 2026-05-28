@@ -485,10 +485,12 @@ export default function PedidoReceita() {
                   <td className="p-3 text-right">{fmtBrl(totais.valor)}</td>
                   <td className="p-3 text-right text-amber-700">{fmtBrl(totais.juros)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.recebido)}</td>
+                  <td className="p-3 text-right">{Math.abs(totais.jurosReal) < 0.005 ? "R$ 0,00" : totais.jurosReal < 0 ? `+${fmtBrl(Math.abs(totais.jurosReal))}` : fmtBrl(totais.jurosReal)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.saldo)}</td>
                   <td className="p-3" colSpan={3}></td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>
