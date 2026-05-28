@@ -61,7 +61,7 @@ type Pagamento = {
   parcelas_locked?: boolean[];
 };
 type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
-type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[] };
+type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[]; juros_modo?: "absorver" | "repassar" | string };
 type Regra = { role: string; desconto_max_perc: number };
 
 /* ========================== SENHA ADMIN DIALOG ========================== */
@@ -142,22 +142,27 @@ function SenhaAdminDialog({
 /* ========================== RESUMO FINANCEIRO ========================== */
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, jurosCliente,
+  totalContrato,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  jurosAbsorvido, jurosRepassado,
   config, usarMarkup,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
+  totalContrato: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
-  jurosCliente: number;
+  jurosAbsorvido: number;
+  jurosRepassado: number;
   config: any; usarMarkup: boolean;
 }) {
   const { can } = usePermissions();
   const podeVerCusto = can("itens", "view_custo");
   const podeVerMarkup = can("itens", "view_markup") && usarMarkup;
   const podeVerComissao = can("parceiros", "view_comissao");
+  const jurosCliente = jurosAbsorvido + jurosRepassado;
   // Indicador incide sobre o Valor Total da Venda (recalcula a partir do %)
   const parceiroValorReal = totalProposta * (parceiroPerc / 100);
-  const valorSemJuros = totalProposta - jurosCliente;
+  const valorSemJuros = totalProposta - jurosAbsorvido;
   const totalVPL = valorSemJuros - parceiroValorReal;
 
   // Itens fixos da Formação de Preço (alinhado com Configurações)
@@ -279,9 +284,19 @@ function ResumoFinanceiroDialog({
                 <Field label="Desconto Forma Pagamento" color="#B83232" value={<>-{fmtBrl(descMetodo)} <span className="text-[12px] text-muted-foreground">({descMetodoPerc.toFixed(2)}%)</span></>} />
               );
             })()}
-            <Field label="Valor Total da Proposta" value={fmtBrl(totalProposta)} />
-            <Field label="Juros do Cliente" color="#B83232" value={<>-{fmtBrl(jurosCliente)}</>} />
-            <Field label="Valor sem Juros do Cliente" value={fmtBrl(valorSemJuros)} />
+            <Field label="Valor da Proposta (sem juros)" value={fmtBrl(totalProposta)} />
+            {jurosRepassado > 0.01 && (
+              <>
+                <Field label="Juros repassado ao cliente" color="#B83232" value={<>+{fmtBrl(jurosRepassado)}</>} />
+                <Field label="Valor final com juros (contrato)" color="#1F5235" value={fmtBrl(totalContrato)} />
+              </>
+            )}
+            {jurosAbsorvido > 0.01 && (
+              <>
+                <Field label="Juros absorvido pela loja" color="#B83232" value={<>-{fmtBrl(jurosAbsorvido)}</>} />
+                <Field label="Valor do contrato sem acréscimo" value={fmtBrl(totalProposta)} />
+              </>
+            )}
             {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
                 value={<>-{fmtBrl(parceiroValorReal)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
@@ -546,7 +561,7 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config, juros_modo").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
           .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe, parcelas_vencimentos, parcelas_formas")
           .eq("orcamento_id", id),
@@ -677,27 +692,51 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
-  // Juros do cliente embutidos: usa taxa configurada do método (ao mês), simples por parcela
-  const jurosCliente = useMemo(() => {
-    return pagamentos.reduce((s, p) => {
-      const n = Number(p.parcelas) || 1;
-      if (n <= 1) return s;
-      const met = metodos.find((m) => m.nome === p.metodo);
-      const cfg = Array.isArray((met as any)?.parcelas_config)
-        ? (met as any).parcelas_config.find((c: any) => Number(c?.numero) === n)
-        : null;
-      const jurosPerc = Number(cfg?.juros_perc) || 0;
-      if (jurosPerc > 0) {
-        return s + (Number(p.valor || 0) * jurosPerc) / 100;
-      }
+  // Calcula juros por pagamento, separando por modo (absorver x repassar).
+  // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
+  // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
+  const calcJurosDoPagamento = (p: Pagamento) => {
+    const n = Number(p.parcelas) || 1;
+    const met = metodos.find((m) => m.nome === p.metodo);
+    const cfg = Array.isArray((met as any)?.parcelas_config)
+      ? (met as any).parcelas_config.find((c: any) => Number(c?.numero) === n)
+      : null;
+    let jurosPerc = Number(cfg?.juros_perc) || 0;
+    let valor = 0;
+    if (jurosPerc > 0) {
+      valor = (Number(p.valor || 0) * jurosPerc) / 100;
+    } else if (n > 1) {
       const taxa = (Number((met as any)?.taxa_perc_parcela) || 0) / 100;
-      if (!taxa) return s;
-      const principal = p.valor / n;
-      let total = 0;
-      for (let i = 1; i < n; i++) total += principal * taxa * i;
-      return s + total;
-    }, 0);
+      if (taxa) {
+        const principal = (Number(p.valor) || 0) / n;
+        let total = 0;
+        for (let i = 1; i < n; i++) total += principal * taxa * i;
+        valor = total;
+        jurosPerc = (Number(p.valor) || 0) > 0 ? (valor / Number(p.valor)) * 100 : 0;
+      }
+    }
+    const modo = ((met as any)?.juros_modo || "repassar") as string;
+    return { valor, jurosPerc, repassar: modo !== "absorver" };
+  };
+
+  const jurosBreakdown = useMemo(() => {
+    let absorvido = 0;
+    let repassado = 0;
+    pagamentos.forEach((p) => {
+      const j = calcJurosDoPagamento(p);
+      if (j.repassar) repassado += j.valor;
+      else absorvido += j.valor;
+    });
+    return { absorvido, repassado };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagamentos, metodos]);
+
+  const jurosAbsorvido = jurosBreakdown.absorvido;
+  const jurosRepassado = jurosBreakdown.repassado;
+  // Total exibido no contrato/PDF/orcamentos.total: base + juros repassados ao cliente.
+  const totalContrato = totalProposta + jurosRepassado;
+  // Compatibilidade com chamadas existentes (ResumoFinanceiroDialog soma os dois)
+  const jurosCliente = jurosAbsorvido + jurosRepassado;
 
   /* ------------------------- handlers ------------------------- */
   // Desconto incide APENAS sobre os ambientes marcados com "Aplicar desconto"
@@ -931,7 +970,8 @@ export default function ComercialNegociacao() {
     const updates: any = {
       desconto_perc: descPercAplicado,
       desconto_valor: descValorAplicado,
-      total: totalProposta,
+      // total do contrato já com juros repassados (loja absorvendo não acresce).
+      total: totalContrato,
     };
     if (newStatus) updates.status = newStatus;
 
@@ -945,13 +985,28 @@ export default function ComercialNegociacao() {
           // Garante que parcelas_detalhe/vencimentos/formas sejam sempre persistidos,
           // mesmo quando o usuário não abrir o editor de parcelas.
           const { det, vencs, formas } = ensureArrays(p);
+          // Se método repassa juros ao cliente, acresce o percentual no valor final
+          // do pagamento e escala parcelas_detalhe proporcionalmente. Se absorve,
+          // mantém o valor base (o juros entra como juros_previsto no financeiro).
+          const j = calcJurosDoPagamento(p);
+          const fator = j.repassar && Number(p.valor) > 0
+            ? (Number(p.valor) + j.valor) / Number(p.valor)
+            : 1;
+          const valorFinal = Number((Number(p.valor) * fator).toFixed(2));
+          const detFinal = det.map((v) => Number((Number(v) * fator).toFixed(2)));
+          // Ajuste de arredondamento na última parcela
+          if (detFinal.length > 0) {
+            const soma = detFinal.reduce((s, v) => s + v, 0);
+            const diff = Number((valorFinal - soma).toFixed(2));
+            if (Math.abs(diff) >= 0.01) detFinal[detFinal.length - 1] = Number((detFinal[detFinal.length - 1] + diff).toFixed(2));
+          }
           return {
             orcamento_id: id,
             metodo: p.metodo,
-            valor: p.valor,
+            valor: valorFinal,
             parcelas: p.parcelas,
             data_vencimento: p.data_vencimento || vencs[0] || null,
-            parcelas_detalhe: det,
+            parcelas_detalhe: detFinal,
             parcelas_vencimentos: vencs,
             parcelas_formas: formas,
           };
@@ -1033,7 +1088,7 @@ export default function ComercialNegociacao() {
       ? `Complemento ao pedido ${pedidoOrigemComp.codigo} — refere-se ao mesmo ambiente.\n\n${observacoes || ""}`.trim()
       : observacoes;
 
-    // Snapshot dos ambientes com preços com desconto
+    // Snapshot dos ambientes com preços com desconto (proporcional ao total do contrato)
     const ambientesSnap = ambientes.map((a) => {
       const precoBase = Number(a.preco_sugerido) || 0;
       const fator = subtotalAmbientes > 0 ? precoBase / subtotalAmbientes : 0;
@@ -1041,7 +1096,21 @@ export default function ComercialNegociacao() {
         nome: a.nome,
         descricao: a.descricao,
         preco_base: precoBase,
-        preco_final: totalProposta * fator,
+        preco_final: totalContrato * fator,
+      };
+    });
+
+    // Pagamentos do snapshot já com juros repassado embutido no valor
+    const pagamentosSnap = pagamentos.map((p) => {
+      const j = calcJurosDoPagamento(p);
+      const fator = j.repassar && Number(p.valor) > 0
+        ? (Number(p.valor) + j.valor) / Number(p.valor)
+        : 1;
+      return {
+        ...p,
+        valor: Number((Number(p.valor) * fator).toFixed(2)),
+        acrescimo_repassado: j.repassar ? Number(j.valor.toFixed(2)) : 0,
+        juros_perc_aplicado: j.repassar ? j.jurosPerc : 0,
       };
     });
 
@@ -1055,7 +1124,7 @@ export default function ComercialNegociacao() {
         loja_id: orc.loja_id,
         template_id: tplContrato?.id,
         observacoes_adicionais: obsFinal,
-        valor_total: totalProposta,
+        valor_total: totalContrato,
         conteudo_snapshot: {
           numero,
           emitido_em: new Date().toISOString(),
@@ -1065,8 +1134,11 @@ export default function ComercialNegociacao() {
           subtotal: subtotalAmbientes,
           desconto_perc: descPercAplicado,
           desconto_valor: descValorAplicado,
-          total: totalProposta,
-          pagamentos,
+          total: totalContrato,
+          total_sem_juros: totalProposta,
+          juros_repassado: Number(jurosRepassado.toFixed(2)),
+          juros_absorvido: Number(jurosAbsorvido.toFixed(2)),
+          pagamentos: pagamentosSnap,
           observacoes_adicionais: obsFinal,
           pedido_origem_codigo: pedidoOrigemComp?.codigo || null,
         } as any,
@@ -1267,14 +1339,19 @@ export default function ComercialNegociacao() {
     <div class="totais">
       <div class="row"><span>Subtotal</span><b>${fmtBrl(subtotalAmbientes)}</b></div>
       ${descValorAplicado ? `<div class="row" style="color:#7A2222"><span>Desconto (${descPercAplicado.toFixed(2)}%)</span><b>-${fmtBrl(descValorAplicado)}</b></div>` : ""}
-      <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalProposta)}</span></div>
+      ${jurosRepassado > 0.01 ? `<div class="row"><span>Juros repassado ao cliente</span><b>+${fmtBrl(jurosRepassado)}</b></div>` : ""}
+      <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalContrato)}</span></div>
     </div>
 
     <h2>Forma de Pagamento</h2>
-    ${pagamentos.length ? pagamentos.map((p) => `<div class="pag">
-      <span><b>${p.metodo}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
-      <b>${fmtBrl(p.valor)}</b>
-    </div>`).join("") : `<div class="muted">A definir</div>`}
+    ${pagamentos.length ? pagamentos.map((p) => {
+      const j = calcJurosDoPagamento(p);
+      const valorFinal = j.repassar && Number(p.valor) > 0 ? Number(p.valor) + j.valor : Number(p.valor);
+      return `<div class="pag">
+        <span><b>${p.metodo}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
+        <b>${fmtBrl(valorFinal)}</b>
+      </div>`;
+    }).join("") : `<div class="muted">A definir</div>`}
 
     <h2>Condições Gerais</h2>
     <div class="muted">
@@ -1459,11 +1536,21 @@ export default function ComercialNegociacao() {
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total da Proposta</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-[34px] font-semibold text-mono leading-tight">{fmtBrl(totalProposta)}</div>
+                  <div className="text-[34px] font-semibold text-mono leading-tight">{fmtBrl(totalContrato)}</div>
                   <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
                     <Eye className="w-4 h-4" />
                   </button>
                 </div>
+                {jurosRepassado > 0.01 && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
+                  </div>
+                )}
+                {jurosAbsorvido > 0.01 && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Loja absorve <b>{fmtBrl(jurosAbsorvido)}</b> em juros.
+                  </div>
+                )}
               </div>
               {descValorAplicado > 0 && (
                 <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-right">
@@ -1782,9 +1869,11 @@ export default function ComercialNegociacao() {
         open={openResumo} onOpenChange={setOpenResumo}
         valorInicial={valorInicial} descPerc={descPercAplicado} descValor={descValorAplicado}
         totalProposta={totalProposta}
+        totalContrato={totalContrato}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
-        jurosCliente={jurosCliente}
+        jurosAbsorvido={jurosAbsorvido}
+        jurosRepassado={jurosRepassado}
         config={config} usarMarkup={usarMarkup}
       />
       <ValidarClienteDialog
