@@ -697,16 +697,22 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             </div>
           )}
 
-          <div className="rounded-md border p-2">
-            <label className="flex items-center gap-2 text-[12px]">
+          <div className="rounded-md border p-2 bg-amber-50/40">
+            <label className="flex items-center gap-2 text-[12px] font-medium">
               <input type="checkbox" checked={excecao} onChange={(e) => setExcecao(e.target.checked)} />
-              Agendar com exceção (fora da regra)
+              Solicitar exceção (fora da regra)
             </label>
             {excecao && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Input placeholder="E-mail do autorizador" value={autorizadorEmail} onChange={(e) => setAutorizadorEmail(e.target.value)} />
-                <Input type="password" placeholder="Senha" value={autorizadorSenha} onChange={(e) => setAutorizadorSenha(e.target.value)} />
-                <Input className="col-span-2" placeholder="Motivo da exceção" value={excecaoMotivo} onChange={(e) => setExcecaoMotivo(e.target.value)} />
+              <div className="mt-2 space-y-2">
+                <div className="text-[11px] text-muted-foreground">
+                  O evento ficará <strong>pendente de aprovação</strong> na Central de Autorizações. Ao aprovar, o agendamento é liberado automaticamente.
+                </div>
+                <Textarea
+                  placeholder="Motivo da solicitação (obrigatório)"
+                  rows={2}
+                  value={excecaoMotivo}
+                  onChange={(e) => setExcecaoMotivo(e.target.value)}
+                />
               </div>
             )}
           </div>
