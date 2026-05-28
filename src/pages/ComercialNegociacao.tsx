@@ -1854,9 +1854,11 @@ export default function ComercialNegociacao() {
         open={openResumo} onOpenChange={setOpenResumo}
         valorInicial={valorInicial} descPerc={descPercAplicado} descValor={descValorAplicado}
         totalProposta={totalProposta}
+        totalContrato={totalContrato}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
-        jurosCliente={jurosCliente}
+        jurosAbsorvido={jurosAbsorvido}
+        jurosRepassado={jurosRepassado}
         config={config} usarMarkup={usarMarkup}
       />
       <ValidarClienteDialog
