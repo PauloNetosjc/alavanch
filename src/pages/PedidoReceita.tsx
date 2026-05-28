@@ -369,13 +369,19 @@ export default function PedidoReceita() {
 
       <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
         <Field label="Valor bruto">{fmtBrl(totais.valor)}</Field>
-        <Field label="Juros / Taxa"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
+        <Field label="Juros / Taxa previsto"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
+        <Field label="Juros Real">
+          {Math.abs(totais.jurosReal) < 0.005 ? <span>R$ 0,00</span>
+            : totais.jurosReal < 0 ? <span className="text-emerald-700">+{fmtBrl(Math.abs(totais.jurosReal))} (ganho)</span>
+            : <span className="text-amber-700">{fmtBrl(totais.jurosReal)}</span>}
+        </Field>
         <Field label="Recebido">{fmtBrl(totais.recebido)}</Field>
         <Field label="Saldo líquido"><span className="font-semibold">{fmtBrl(totais.saldo)}</span></Field>
         <Field label="Pendentes">{totais.pendentes}</Field>
         <Field label="Liquidadas">{totais.liquidadas}</Field>
         <Field label="Vencidas"><span className={totais.vencidas > 0 ? "text-red-600" : ""}>{totais.vencidas}</span></Field>
       </section>
+
 
       <section className="surface-card p-0 overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
