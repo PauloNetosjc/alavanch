@@ -537,6 +537,10 @@ export default function ComercialNegociacao() {
 
   // dialogs
   const [openSenha, setOpenSenha] = useState(false);
+  const [openSolicitarDesc, setOpenSolicitarDesc] = useState(false);
+  const [motivoDesc, setMotivoDesc] = useState("");
+  const [enviandoDesc, setEnviandoDesc] = useState(false);
+  const [aprovacaoDescPendente, setAprovacaoDescPendente] = useState(false);
   const [openResumo, setOpenResumo] = useState(false);
   const [openValidar, setOpenValidar] = useState(false);
   const [openClienteEdit, setOpenClienteEdit] = useState(false);
@@ -645,6 +649,21 @@ export default function ComercialNegociacao() {
         setConfig(cfg || null);
         setUsarMarkup(!!(cfg as any)?.usar_markup);
       }
+
+      // Estado de aprovação de desconto (Central de Autorizações)
+      try {
+        const { data: autExist } = await (supabase as any)
+          .from("autorizacoes")
+          .select("status")
+          .eq("origem_modulo", "negociacao")
+          .eq("origem_id", id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const st = (autExist as any)?.status;
+        if (st === "aprovada") setAutorizadoPorGestor(true);
+        if (st === "pendente") setAprovacaoDescPendente(true);
+      } catch {}
 
       setLoading(false);
     })();
@@ -784,7 +803,8 @@ export default function ComercialNegociacao() {
       toast.success("Desconto aplicado");
       return;
     }
-    setOpenSenha(true);
+    setMotivoDesc("");
+    setOpenSolicitarDesc(true);
   };
   const cancelarDesconto = () => {
     setDescPerc(0); setDescValor(0);
@@ -1854,6 +1874,72 @@ export default function ComercialNegociacao() {
       </div>
 
       {/* dialogs */}
+      {/* Solicitação de aprovação de desconto via Central de Autorizações */}
+      <Dialog open={openSolicitarDesc} onOpenChange={setOpenSolicitarDesc}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar aprovação de desconto</DialogTitle>
+          </DialogHeader>
+          <p className="text-[13px] text-muted-foreground">
+            Desconto de <b>{descPerc.toFixed(2)}%</b> ultrapassa seu limite de <b>{meuLimite.toFixed(2)}%</b>.
+            A solicitação ficará pendente na <b>Central de Autorizações</b> até que um aprovador decida.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Motivo da solicitação</Label>
+            <Textarea
+              rows={3}
+              placeholder="Justifique o desconto adicional…"
+              value={motivoDesc}
+              onChange={(e) => setMotivoDesc(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenSolicitarDesc(false)}>Cancelar</Button>
+            <Button
+              disabled={!motivoDesc.trim() || enviandoDesc}
+              onClick={async () => {
+                if (!id) return;
+                setEnviandoDesc(true);
+                try {
+                  const { solicitarAutorizacao } = await import("@/lib/autorizacoes");
+                  await solicitarAutorizacao({
+                    categoria: "desconto",
+                    tipo: "desconto_acima_limite",
+                    titulo: `Desconto ${descPerc.toFixed(2)}% acima do limite (${meuLimite.toFixed(2)}%)`,
+                    descricao: `Orçamento ${(orc as any)?.codigo || ""}`.trim(),
+                    motivo_solicitacao: motivoDesc,
+                    origem_modulo: "negociacao",
+                    origem_id: id,
+                    loja_id: (orc as any)?.loja_id || null,
+                    orcamento_id: id,
+                    cliente_id: (orc?.cliente as any)?.id || null,
+                    valor_solicitado: descPerc,
+                    limite_padrao: meuLimite,
+                    dados_contexto: {
+                      cliente: (orc?.cliente as any)?.nome || null,
+                      valor_original: valorInicial,
+                      valor_com_desconto: Math.max(0, valorInicial - descValor),
+                      percentual_desconto: descPerc,
+                      limite_permitido: meuLimite,
+                      diferenca: descValor,
+                    },
+                  });
+                  setAprovacaoDescPendente(true);
+                  setOpenSolicitarDesc(false);
+                  toast.success("Solicitação enviada para a Central de Autorizações");
+                } catch (e: any) {
+                  toast.error(e?.message || "Falha ao enviar solicitação");
+                } finally {
+                  setEnviandoDesc(false);
+                }
+              }}
+            >
+              {enviandoDesc ? "Enviando…" : "Enviar para aprovação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Diálogo legado de senha do gestor: mantido oculto para retrocompatibilidade */}
       <SenhaAdminDialog
         open={openSenha} onOpenChange={setOpenSenha}
         percent={descPerc} limite={meuLimite}
@@ -1862,10 +1948,14 @@ export default function ComercialNegociacao() {
           setAprovadorEmail(adminEmail);
           setDescPercAplicado(descPerc);
           setDescValorAplicado(descValor);
-          // registra na timeline
           registrarAprovacao(adminEmail, descPerc, descValor);
         }}
       />
+      {aprovacaoDescPendente && !autorizadoPorGestor && (
+        <div className="fixed bottom-4 right-4 max-w-sm rounded-md border bg-amber-50 text-amber-900 border-amber-200 px-3 py-2 text-[12px] shadow z-50">
+          Aprovação de desconto <b>pendente</b> na Central de Autorizações. O desconto só será aplicado após aprovação.
+        </div>
+      )}
       <ResumoFinanceiroDialog
         open={openResumo} onOpenChange={setOpenResumo}
         valorInicial={valorInicial} descPerc={descPercAplicado} descValor={descValorAplicado}

@@ -791,6 +791,8 @@ export type Database = {
           agenda_evento_id: string | null
           aprovador_email: string | null
           aprovador_id: string | null
+          categoria: Database["public"]["Enums"]["categoria_autorizacao"] | null
+          cliente_id: string | null
           contexto: Json
           created_at: string
           decidido_em: string | null
@@ -799,8 +801,13 @@ export type Database = {
           id: string
           limite_padrao: number | null
           loja_id: string | null
+          motivo_rejeicao: string | null
+          motivo_solicitacao: string | null
           orcamento_id: string | null
+          origem_id: string | null
+          origem_modulo: string | null
           pedido_id: string | null
+          prioridade: string | null
           solicitante_email: string | null
           solicitante_id: string | null
           status: Database["public"]["Enums"]["autorizacao_status"]
@@ -813,6 +820,10 @@ export type Database = {
           agenda_evento_id?: string | null
           aprovador_email?: string | null
           aprovador_id?: string | null
+          categoria?:
+            | Database["public"]["Enums"]["categoria_autorizacao"]
+            | null
+          cliente_id?: string | null
           contexto?: Json
           created_at?: string
           decidido_em?: string | null
@@ -821,8 +832,13 @@ export type Database = {
           id?: string
           limite_padrao?: number | null
           loja_id?: string | null
+          motivo_rejeicao?: string | null
+          motivo_solicitacao?: string | null
           orcamento_id?: string | null
+          origem_id?: string | null
+          origem_modulo?: string | null
           pedido_id?: string | null
+          prioridade?: string | null
           solicitante_email?: string | null
           solicitante_id?: string | null
           status?: Database["public"]["Enums"]["autorizacao_status"]
@@ -835,6 +851,10 @@ export type Database = {
           agenda_evento_id?: string | null
           aprovador_email?: string | null
           aprovador_id?: string | null
+          categoria?:
+            | Database["public"]["Enums"]["categoria_autorizacao"]
+            | null
+          cliente_id?: string | null
           contexto?: Json
           created_at?: string
           decidido_em?: string | null
@@ -843,8 +863,13 @@ export type Database = {
           id?: string
           limite_padrao?: number | null
           loja_id?: string | null
+          motivo_rejeicao?: string | null
+          motivo_solicitacao?: string | null
           orcamento_id?: string | null
+          origem_id?: string | null
+          origem_modulo?: string | null
           pedido_id?: string | null
+          prioridade?: string | null
           solicitante_email?: string | null
           solicitante_id?: string | null
           status?: Database["public"]["Enums"]["autorizacao_status"]
@@ -5473,7 +5498,12 @@ export type Database = {
       }
     }
     Enums: {
-      agenda_status: "agendado" | "concluido" | "cancelado" | "reagendado"
+      agenda_status:
+        | "agendado"
+        | "concluido"
+        | "cancelado"
+        | "reagendado"
+        | "pendente_aprovacao"
       agenda_tipo:
         | "medicao_tecnica"
         | "revisao_final"
@@ -5513,6 +5543,13 @@ export type Database = {
         | "agenda_fora_dia"
         | "agenda_lead_time"
         | "outro"
+        | "agenda_dia_nao_permitido"
+        | "lead_time_abaixo_minimo"
+        | "revisao_sem_diferenca_aguardando_aprovacao"
+        | "revisao_com_diferenca_positiva"
+        | "revisao_com_diferenca_negativa"
+        | "revisao_adendo_pendente"
+      categoria_autorizacao: "revisao" | "agenda" | "desconto" | "outro"
       documento_origem_tipo: "sistema" | "upload"
       urgencia_nivel: "baixa" | "media" | "alta"
     }
@@ -5642,7 +5679,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      agenda_status: ["agendado", "concluido", "cancelado", "reagendado"],
+      agenda_status: [
+        "agendado",
+        "concluido",
+        "cancelado",
+        "reagendado",
+        "pendente_aprovacao",
+      ],
       agenda_tipo: [
         "medicao_tecnica",
         "revisao_final",
@@ -5685,7 +5728,14 @@ export const Constants = {
         "agenda_fora_dia",
         "agenda_lead_time",
         "outro",
+        "agenda_dia_nao_permitido",
+        "lead_time_abaixo_minimo",
+        "revisao_sem_diferenca_aguardando_aprovacao",
+        "revisao_com_diferenca_positiva",
+        "revisao_com_diferenca_negativa",
+        "revisao_adendo_pendente",
       ],
+      categoria_autorizacao: ["revisao", "agenda", "desconto", "outro"],
       documento_origem_tipo: ["sistema", "upload"],
       urgencia_nivel: ["baixa", "media", "alta"],
     },

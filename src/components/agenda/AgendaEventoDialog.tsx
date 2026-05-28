@@ -309,29 +309,13 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
     try {
       const err = await validar();
       let usaExcecao = false;
-      let autorizadorId: string | null = null;
       if (err) {
         if (!excecao) {
-          setValidacaoErr(err + " Para liberar, marque 'Agendar com exceção' e informe um autorizador.");
+          setValidacaoErr(err + " Para liberar, marque 'Solicitar exceção' e informe o motivo.");
           setSaving(false); return;
         }
-        if (!autorizadorEmail || !autorizadorSenha) {
-          setValidacaoErr("Informe e-mail e senha do autorizador para liberar a exceção.");
-          setSaving(false); return;
-        }
-        const { data: vp, error: vpErr } = await supabase.functions.invoke("verify-user-password", {
-          body: { email: autorizadorEmail, password: autorizadorSenha },
-        });
-        if (vpErr || !(vp as any)?.ok) {
-          setValidacaoErr("Senha do autorizador inválida.");
-          setSaving(false); return;
-        }
-        autorizadorId = (vp as any)?.user_id || null;
-        const { data: pode } = await supabase.rpc("pode_autorizar_excecao_agenda" as any, {
-          _user_id: autorizadorId, _loja: lojaEventoId,
-        });
-        if (!pode) {
-          setValidacaoErr("Esse usuário não está autorizado a liberar exceções na agenda.");
+        if (!excecaoMotivo.trim()) {
+          setValidacaoErr("Informe o motivo da solicitação de exceção.");
           setSaving(false); return;
         }
         usaExcecao = true;
@@ -380,22 +364,72 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         endereco: endereco || null,
         responsavel_id: responsavelId,
         excecao: usaExcecao,
-        excecao_autorizador_id: autorizadorId,
+        excecao_autorizador_id: null,
         excecao_motivo: usaExcecao ? excecaoMotivo || null : null,
         created_by: user?.id || null,
       };
-      const { error } = await supabase.from("agenda_eventos" as any).insert(payload);
+      // Quando exceção: evento entra pendente de aprovação e não é confirmado ainda
+      if (usaExcecao) payload.status = "pendente_aprovacao";
+
+      const { data: novoEvento, error } = await supabase
+        .from("agenda_eventos" as any)
+        .insert(payload)
+        .select("id")
+        .single();
       if (error) throw error;
 
-      // Gatilhos de criação automática de card em estágios
-      try {
-        const pedTrigger = pedidoSelId || pedidoId || null;
-        if (pedTrigger) {
-          const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
-          if (tipo === "entrega") await dispatchKanbanTrigger("entrega_agendada", { pedidoId: pedTrigger });
-          if (tipo === "montagem") await dispatchKanbanTrigger("montagem_agendada", { pedidoId: pedTrigger });
+      // Cria solicitação na Central de Autorizações para a exceção
+      if (usaExcecao) {
+        try {
+          const { solicitarAutorizacao } = await import("@/lib/autorizacoes");
+          // Deriva tipo técnico a partir da mensagem de validação
+          let tipoTec = "agenda_fora_horario";
+          const msg = (err || "").toLowerCase();
+          if (msg.includes("dia da semana")) tipoTec = "agenda_dia_nao_permitido";
+          else if (msg.includes("prazo")) tipoTec = "lead_time_abaixo_minimo";
+          else if (msg.includes("horário") || msg.includes("horario")) tipoTec = "agenda_fora_horario";
+
+          const responsavelNome = (await supabase.from("profiles").select("nome_completo").eq("user_id", responsavelId).maybeSingle()).data?.nome_completo || null;
+          await solicitarAutorizacao({
+            categoria: "agenda",
+            tipo: tipoTec,
+            titulo: `Agendamento ${TIPO_LABEL[tipo]} fora da regra`,
+            descricao: tituloFinal,
+            motivo_solicitacao: excecaoMotivo,
+            origem_modulo: "agenda",
+            origem_id: (novoEvento as any).id,
+            loja_id: lojaEventoId,
+            pedido_id: pedidoSelId || pedidoId || null,
+            orcamento_id: orcamentoSelId || orcamentoId || null,
+            cliente_id: cliId,
+            agenda_evento_id: (novoEvento as any).id,
+            dados_contexto: {
+              data, hora_inicio: hora, hora_fim: horaFim || null,
+              endereco: endereco || null,
+              tipo_evento: TIPO_LABEL[tipo],
+              responsavel: responsavelNome,
+              regra_violada: err,
+            },
+          });
+          toast.info("Exceção enviada para aprovação na Central de Autorizações.");
+        } catch (e: any) {
+          console.warn("[agenda] falha ao criar autorização:", e?.message || e);
+          toast.warning("Evento criado, mas falhou ao registrar na Central de Autorizações.");
         }
-      } catch {}
+      }
+
+      // Gatilhos de criação automática de card em estágios
+      // Em caso de exceção pendente, só dispara após aprovação (não roda aqui)
+      if (!usaExcecao) {
+        try {
+          const pedTrigger = pedidoSelId || pedidoId || null;
+          if (pedTrigger) {
+            const { dispatchKanbanTrigger } = await import("@/lib/kanbanTriggers");
+            if (tipo === "entrega") await dispatchKanbanTrigger("entrega_agendada", { pedidoId: pedTrigger });
+            if (tipo === "montagem") await dispatchKanbanTrigger("montagem_agendada", { pedidoId: pedTrigger });
+          }
+        } catch {}
+      }
 
 
       // CRM: ao agendar uma Apresentação, registra um Lead Agendado no CRM Comercial
@@ -697,16 +731,22 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
             </div>
           )}
 
-          <div className="rounded-md border p-2">
-            <label className="flex items-center gap-2 text-[12px]">
+          <div className="rounded-md border p-2 bg-amber-50/40">
+            <label className="flex items-center gap-2 text-[12px] font-medium">
               <input type="checkbox" checked={excecao} onChange={(e) => setExcecao(e.target.checked)} />
-              Agendar com exceção (fora da regra)
+              Solicitar exceção (fora da regra)
             </label>
             {excecao && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Input placeholder="E-mail do autorizador" value={autorizadorEmail} onChange={(e) => setAutorizadorEmail(e.target.value)} />
-                <Input type="password" placeholder="Senha" value={autorizadorSenha} onChange={(e) => setAutorizadorSenha(e.target.value)} />
-                <Input className="col-span-2" placeholder="Motivo da exceção" value={excecaoMotivo} onChange={(e) => setExcecaoMotivo(e.target.value)} />
+              <div className="mt-2 space-y-2">
+                <div className="text-[11px] text-muted-foreground">
+                  O evento ficará <strong>pendente de aprovação</strong> na Central de Autorizações. Ao aprovar, o agendamento é liberado automaticamente.
+                </div>
+                <Textarea
+                  placeholder="Motivo da solicitação (obrigatório)"
+                  rows={2}
+                  value={excecaoMotivo}
+                  onChange={(e) => setExcecaoMotivo(e.target.value)}
+                />
               </div>
             )}
           </div>

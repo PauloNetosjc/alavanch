@@ -2188,14 +2188,14 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
       const env = parsed.environments[0] || { items: [] };
       const diff = diffPromobItems(subs || [], env.items, "clientPrice");
       const versaoAtual = revisoes.filter((r: any) => r.ambiente_id === ambiente.id).length + 1;
-      const { error: revErr } = await supabase.from("pedido_revisoes").insert({
+      const { data: novaRev, error: revErr } = await supabase.from("pedido_revisoes").insert({
         pedido_id: pedido.id, ambiente_id: ambiente.id, versao: versaoAtual,
         raw_content: text, parsed_data: env as any, diff: diff as any,
         valor_original: diff.totals.valorOriginal,
         valor_revisado: diff.totals.valorRevisado,
         variacao_perc: diff.totals.variacaoPerc,
         created_by: user?.id,
-      });
+      }).select("id").single();
       if (revErr) throw revErr;
 
       // Espelhar o arquivo importado em Central de Documentos > Documentos.
@@ -2251,7 +2251,45 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
         console.warn("[enviarRevisao] erro ao espelhar em Documentos:", e);
       }
 
-      toast.success(`Revisão v${versaoAtual} enviada`);
+      // Cria solicitação na Central de Autorizações (uma por revisão, sem duplicar)
+      try {
+        const { solicitarAutorizacao } = await import("@/lib/autorizacoes");
+        const variacao = Number(diff.totals.variacaoPerc) || 0;
+        const diferenca = Number(diff.totals.valorRevisado) - Number(diff.totals.valorOriginal);
+        let tipoTec = "revisao_sem_diferenca_aguardando_aprovacao";
+        if (Math.abs(variacao) < 0.01 && Math.abs(diferenca) < 0.01) {
+          tipoTec = "revisao_sem_diferenca_aguardando_aprovacao";
+        } else if (diferenca > 0) {
+          tipoTec = "revisao_com_diferenca_positiva";
+        } else if (diferenca < 0) {
+          tipoTec = "revisao_com_diferenca_negativa";
+        }
+        await solicitarAutorizacao({
+          categoria: "revisao",
+          tipo: tipoTec,
+          titulo: `Revisão v${versaoAtual} — ${ambiente.nome || "Ambiente"}`,
+          descricao: `Pedido ${pedido.codigo || ""}`.trim(),
+          origem_modulo: "revisao",
+          origem_id: (novaRev as any).id,
+          loja_id: (pedido as any).loja_id || null,
+          pedido_id: pedido.id,
+          cliente_id: (pedido as any).cliente_id || null,
+          dados_contexto: {
+            ambiente: ambiente.nome || null,
+            versao: versaoAtual,
+            valor_original: diff.totals.valorOriginal,
+            valor_revisado: diff.totals.valorRevisado,
+            diferenca,
+            variacao_perc: variacao,
+            arquivo_importado: file.name,
+            data_revisao: new Date().toISOString(),
+          },
+        });
+      } catch (e: any) {
+        console.warn("[enviarRevisao] falha ao criar autorização:", e?.message || e);
+      }
+
+      toast.success(`Revisão v${versaoAtual} enviada — aguardando aprovação`);
       onChange();
     } catch (e: any) { toast.error(e.message || "Erro"); }
     finally { setEnviando(null); }
@@ -2261,6 +2299,10 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
     const novoValor = Number(rev.valor_revisado || 0);
     await supabase.from("ambientes").update({ preco_sugerido: novoValor }).eq("id", rev.ambiente_id);
     await supabase.from("pedido_revisoes").update({ aprovada: true, aprovada_em: new Date().toISOString() }).eq("id", rev.id);
+    try {
+      const { marcarAutorizacaoAprovadaPorOrigem } = await import("@/lib/autorizacoes");
+      await marcarAutorizacaoAprovadaPorOrigem("revisao", rev.id, "Aprovada na tela do pedido");
+    } catch {}
     toast.success("Revisão aprovada — valor do ambiente atualizado");
     onChange();
   };
