@@ -2876,7 +2876,20 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
             )
           ) : fmtDate(previsaoMedicao)}
         </Field>
+        <Field label="Prazo máximo de entrega">
+          <PrazoLimite
+            data={pedido.data_limite_entrega}
+            placeholder={pedido.data_assinatura_pdf_final ? "Aguardando cálculo" : "Aguardando assinatura"}
+          />
+        </Field>
+        <Field label="Prazo máximo de montagem">
+          <PrazoLimite
+            data={pedido.data_limite_inicio_montagem}
+            placeholder={pedido.data_entrega ? "Aguardando cálculo" : "Aguardando entrega realizada"}
+          />
+        </Field>
       </div>
+
 
       {/* PARA / DE */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t">
