@@ -34,6 +34,11 @@ type Lanc = {
   forma_pagamento: string | null;
   notas: string | null;
   loja_id: string | null;
+  juros_previsto?: number | null;
+  taxa_perc?: number | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  agrupado?: boolean | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
