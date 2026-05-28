@@ -756,6 +756,36 @@ export type Database = {
           },
         ]
       }
+      auditoria_transferencias_usuario: {
+        Row: {
+          contadores: Json
+          created_at: string
+          executado_por: string | null
+          id: string
+          motivo: string
+          usuario_antigo: string
+          usuario_novo: string
+        }
+        Insert: {
+          contadores?: Json
+          created_at?: string
+          executado_por?: string | null
+          id?: string
+          motivo: string
+          usuario_antigo: string
+          usuario_novo: string
+        }
+        Update: {
+          contadores?: Json
+          created_at?: string
+          executado_por?: string | null
+          id?: string
+          motivo?: string
+          usuario_antigo?: string
+          usuario_novo?: string
+        }
+        Relationships: []
+      }
       autorizacoes: {
         Row: {
           agenda_evento_id: string | null
@@ -4088,22 +4118,43 @@ export type Database = {
       }
       rh_cargos: {
         Row: {
+          ativo: boolean
           created_at: string
+          descricao: string | null
           id: string
           nome: string
+          ordem: number
+          pode_receber_tarefas: boolean
+          pode_ser_responsavel_pedido: boolean
+          protegido_sistema: boolean
           setor_id: string | null
+          updated_at: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
+          descricao?: string | null
           id?: string
           nome: string
+          ordem?: number
+          pode_receber_tarefas?: boolean
+          pode_ser_responsavel_pedido?: boolean
+          protegido_sistema?: boolean
           setor_id?: string | null
+          updated_at?: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
+          descricao?: string | null
           id?: string
           nome?: string
+          ordem?: number
+          pode_receber_tarefas?: boolean
+          pode_ser_responsavel_pedido?: boolean
+          protegido_sistema?: boolean
           setor_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -5356,6 +5407,7 @@ export type Database = {
         Args: { _pedido_id: string; _revisao_data: string }
         Returns: undefined
       }
+      rh_cargo_em_uso: { Args: { p_cargo_id: string }; Returns: boolean }
       solic_anon_writeable: { Args: { _solic_id: string }; Returns: boolean }
       solic_belongs_to_validated_contrato: {
         Args: { _solic_id: string }
@@ -5368,6 +5420,20 @@ export type Database = {
       sync_pedido_para_kanban_card: {
         Args: { _estagio_id: string; _pedido_id: string; _pipeline: string }
         Returns: undefined
+      }
+      transferir_responsabilidades_usuario: {
+        Args: {
+          p_motivo?: string
+          p_transferir_agenda?: boolean
+          p_transferir_chamados?: boolean
+          p_transferir_clientes?: boolean
+          p_transferir_kanban?: boolean
+          p_transferir_pedidos?: boolean
+          p_transferir_tarefas?: boolean
+          p_usuario_antigo: string
+          p_usuario_novo: string
+        }
+        Returns: Json
       }
       user_has_perm: {
         Args: { _acao: string; _modulo: string; _user_id: string }

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings, Percent, ShieldCheck, Save, Building2, Users, Banknote,
-  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays,
+  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays, UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -30,6 +30,7 @@ import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
+import { TransferirResponsabilidadesDialog } from "@/components/TransferirResponsabilidadesDialog";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -216,6 +217,7 @@ function Usuarios() {
   const [userLojas, setUserLojas] = useState<{ user_id: string; loja_id: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [transferUser, setTransferUser] = useState<Profile | null>(null);
   const [form, setForm] = useState<{ email: string; password: string; nome_completo: string; role: string; loja_id: string; telefone: string; lojas_ids: string[]; data_nascimento: string }>({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [], data_nascimento: "" });
 
   const load = async () => {
@@ -336,6 +338,11 @@ function Usuarios() {
                 <td className="px-3 py-2">{p.ativo ? "Ativo" : "Inativo"}</td>
                 <td className="px-3 py-2 text-right">
                   <Button size="sm" variant="ghost" onClick={() => onEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  {p.ativo && (
+                    <Button size="sm" variant="ghost" title="Desativar e transferir responsabilidades" onClick={() => setTransferUser(p)}>
+                      <UserX className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -395,6 +402,13 @@ function Usuarios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TransferirResponsabilidadesDialog
+        open={!!transferUser}
+        onOpenChange={(v) => { if (!v) setTransferUser(null); }}
+        usuarioAntigo={transferUser ? { user_id: transferUser.user_id, nome_completo: transferUser.nome_completo } : null}
+        onDone={load}
+      />
     </div>
   );
 }

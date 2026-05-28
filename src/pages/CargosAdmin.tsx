@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Shield, Save, Copy, Plus, Trash2, Pencil, ShieldCheck, Layers,
+  Shield, Save, Copy, Plus, Trash2, Pencil, ShieldCheck, Layers, Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CargosOperacionaisAdmin } from "@/components/CargosOperacionaisAdmin";
 
 const ROLES = [
   { value: "admin",       label: "Administrador",         desc: "Acesso total ao sistema. Não editável." },
@@ -82,10 +83,12 @@ export default function CargosAdmin() {
       />
       <Tabs defaultValue="cargos">
         <TabsList>
-          <TabsTrigger value="cargos"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Cargos</TabsTrigger>
+          <TabsTrigger value="cargos"><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Cargos do sistema</TabsTrigger>
+          <TabsTrigger value="operacionais"><Briefcase className="w-3.5 h-3.5 mr-1.5" />Cargos operacionais</TabsTrigger>
           <TabsTrigger value="autorizacoes"><Layers className="w-3.5 h-3.5 mr-1.5" />Autorizações</TabsTrigger>
         </TabsList>
         <TabsContent value="cargos" className="mt-4"><CargosTab /></TabsContent>
+        <TabsContent value="operacionais" className="mt-4"><CargosOperacionaisAdmin /></TabsContent>
         <TabsContent value="autorizacoes" className="mt-4"><AutorizacoesTab /></TabsContent>
       </Tabs>
     </div>
