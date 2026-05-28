@@ -113,7 +113,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         .from("pedido_documentos")
         .select("*")
         .eq("pedido_id", pedido.id)
-        .not("categoria_projeto", "is", null)
+        .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado"])
         .order("created_at", { ascending: false }),
       supabase
         .from("solicitacoes_assinatura")
