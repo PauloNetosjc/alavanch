@@ -106,6 +106,43 @@ export default function PedidoReceita() {
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
+  const [novaOpen, setNovaOpen] = useState(false);
+  const [novaForm, setNovaForm] = useState({ vencimento: "", forma: "PIX", valor: 0, juros: 0, conta_id: "", notas: "" });
+  const [novaSaving, setNovaSaving] = useState(false);
+
+  async function salvarNovaParcela() {
+    if (!pedido?.id) return;
+    if (!novaForm.vencimento || !novaForm.valor) { toast.error("Informe vencimento e valor."); return; }
+    setNovaSaving(true);
+    try {
+      const total = lancamentos.length + 1;
+      const nota = `Parcela adicionada manualmente por admin em ${new Date().toLocaleString("pt-BR")}.${novaForm.notas ? "\n" + novaForm.notas : ""}`;
+      const { error } = await supabase.from("lancamentos_financeiros").insert({
+        tipo: "entrada",
+        descricao: `Parcela ${total}/${total} — adicional`,
+        valor: Number(novaForm.valor),
+        juros_previsto: Number(novaForm.juros || 0),
+        data_vencimento: novaForm.vencimento,
+        conta_id: novaForm.conta_id || null,
+        forma_pagamento: novaForm.forma,
+        pedido_id: pedido.id,
+        loja_id: pedido.loja_id ?? null,
+        status: "pendente",
+        aprovacao_status: "aprovado",
+        notas: nota,
+      });
+      if (error) throw error;
+      toast.success("Parcela adicionada.");
+      setNovaOpen(false);
+      setNovaForm({ vencimento: "", forma: "PIX", valor: 0, juros: 0, conta_id: "", notas: "" });
+      carregar();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao adicionar parcela.");
+    } finally {
+      setNovaSaving(false);
+    }
+  }
+
 
   const carregar = useCallback(async () => {
     if (!id) return;
