@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import JSZip from "jszip";
 import { sanitizeStorageFileName } from "@/lib/storagePath";
-import { ensureFluxoRevisaoEPdfFinal } from "@/lib/tarefasNativasTriggers";
+import { ensureFluxoRevisaoEPdfFinal, ensureFluxoProjetoFinalProducaoEFabrica } from "@/lib/tarefasNativasTriggers";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
@@ -22,7 +22,7 @@ import { ensureFluxoRevisaoEPdfFinal } from "@/lib/tarefasNativasTriggers";
  * nativas correspondentes é feita por trigger AFTER INSERT.
  * ============================================================ */
 
-type Categoria = "projeto_vendido" | "projeto_para_revisao" | "projeto_revisado";
+type Categoria = "projeto_vendido" | "projeto_para_revisao" | "projeto_revisado" | "projeto_para_producao";
 
 type Doc = {
   id: string;
@@ -56,12 +56,19 @@ const SECOES: { key: Categoria; titulo: string; descricao: string; cor: string }
     descricao: "Projeto final revisado pela loja.",
     cor: "bg-blue-100 text-blue-700",
   },
+  {
+    key: "projeto_para_producao",
+    titulo: "Projeto para Produção",
+    descricao: "Arquivo final liberado para produção/fábrica após revisão e aprovação do Projeto Final.",
+    cor: "bg-violet-100 text-violet-700",
+  },
 ];
 
 const PRE_REQUISITO_MSG: Record<Categoria, string | null> = {
   projeto_vendido: null,
   projeto_para_revisao: "Envie primeiro o Projeto Vendido.",
   projeto_revisado: "Envie primeiro o Projeto para Revisão.",
+  projeto_para_producao: "Envie primeiro o Projeto Revisado.",
 };
 
 function fmtBytes(b: number | null): string {
@@ -100,6 +107,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     projeto_vendido: null,
     projeto_para_revisao: null,
     projeto_revisado: null,
+    projeto_para_producao: null,
   });
 
   const podeVer = isAdmin || can("arquivos_projeto", "visualizar");
@@ -114,7 +122,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         .from("pedido_documentos")
         .select("*")
         .eq("pedido_id", pedido.id)
-        .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado"])
+        .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado", "projeto_para_producao"])
         .order("created_at", { ascending: false }),
       supabase
         .from("solicitacoes_assinatura")
@@ -159,7 +167,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   }, [pedido?.id]);
 
   const docsPor = useMemo(() => {
-    const r: Record<Categoria, Doc[]> = { projeto_vendido: [], projeto_para_revisao: [], projeto_revisado: [] };
+    const r: Record<Categoria, Doc[]> = { projeto_vendido: [], projeto_para_revisao: [], projeto_revisado: [], projeto_para_producao: [] };
     docs.forEach((d) => {
       const cat = d.categoria_projeto as Categoria | null;
       if (cat && r[cat]) r[cat].push(d);
@@ -176,6 +184,9 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     }
     if (cat === "projeto_revisado" && docsPor.projeto_para_revisao.length === 0) {
       return { ok: false, motivo: PRE_REQUISITO_MSG.projeto_revisado! };
+    }
+    if (cat === "projeto_para_producao" && docsPor.projeto_revisado.length === 0) {
+      return { ok: false, motivo: PRE_REQUISITO_MSG.projeto_para_producao! };
     }
     return { ok: true };
   }
@@ -270,6 +281,10 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     if (sucesso > 0 && (cat === "projeto_para_revisao" || cat === "projeto_revisado")) {
       await ensureFluxoRevisaoEPdfFinal(pedido.id);
     }
+    // Blindagem: garante fluxo PDF Final + Projeto para Produção → Fábrica
+    if (sucesso > 0 && cat === "projeto_para_producao") {
+      await ensureFluxoProjetoFinalProducaoEFabrica(pedido.id);
+    }
 
     if (falhas.length > 0) {
       // toast detalhado com nomes
@@ -361,6 +376,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         projeto_vendido: "projeto-vendido",
         projeto_para_revisao: "projeto-para-revisao",
         projeto_revisado: "projeto-revisado",
+        projeto_para_producao: "projeto-para-producao",
       };
       const filename = `${prefixoZip[cat]}-${codigo}.zip`;
       const url = URL.createObjectURL(blob);
@@ -393,12 +409,12 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         <div>
           <h3 className="font-playfair text-[18px] font-semibold leading-none">Arquivos do Projeto</h3>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Fluxo sequencial: Vendido → Para Revisão → Revisado. Uploads concluem automaticamente a tarefa nativa correspondente.
+            Fluxo sequencial: Vendido → Para Revisão → Revisado → Para Produção. Uploads concluem automaticamente as tarefas nativas correspondentes.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         {SECOES.map((s) => {
           const arquivos = docsPor[s.key];
           const lib = categoriaLiberada(s.key);

@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { ensureTarefasCronogramaPedido, ensureFluxoRevisaoEPdfFinal } from "@/lib/tarefasNativasTriggers";
+import { ensureTarefasCronogramaPedido, ensureFluxoRevisaoEPdfFinal, ensureFluxoProjetoFinalProducaoEFabrica } from "@/lib/tarefasNativasTriggers";
 
 /* ============================================================
  * Fase 3 — Painel de Tarefas Nativas dentro do Pedido
@@ -154,6 +154,7 @@ export function PedidoTarefasPanel({
     // → Preparo e envio de PDF Projeto Final antes de listar.
     try { await ensureTarefasCronogramaPedido(pedidoId); } catch {}
     try { await ensureFluxoRevisaoEPdfFinal(pedidoId); } catch {}
+    try { await ensureFluxoProjetoFinalProducaoEFabrica(pedidoId); } catch {}
     const [t, c, p, me] = await Promise.all([
       (supabase as any).from("tarefas_pedido")
         .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")

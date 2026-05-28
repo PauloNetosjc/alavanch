@@ -3526,6 +3526,7 @@ export type Database = {
           receita_codigo: string | null
           rt_repassado: number
           status: string
+          status_fabrica: string | null
           updated_at: string
           urgencia: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido: number | null
@@ -3577,6 +3578,7 @@ export type Database = {
           receita_codigo?: string | null
           rt_repassado?: number
           status?: string
+          status_fabrica?: string | null
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido?: number | null
@@ -3628,6 +3630,7 @@ export type Database = {
           receita_codigo?: string | null
           rt_repassado?: number
           status?: string
+          status_fabrica?: string | null
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido?: number | null
@@ -5347,6 +5350,10 @@ export type Database = {
         Returns: string
       }
       current_loja_id: { Args: never; Returns: string }
+      ensure_fluxo_projeto_final_producao_e_fabrica: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       ensure_fluxo_revisao_e_pdf_final: {
         Args: { p_pedido_id: string }
         Returns: Json

@@ -147,3 +147,33 @@ export async function ensureFluxoRevisaoEPdfFinal(
   }
 }
 
+/**
+ * Garante o fluxo: PDF Projeto Final assinado + arquivo de Projeto para
+ * Produção enviado. Só com as DUAS condições a tarefa
+ * "Preparo e envio de PDF Projeto Final" é concluída, o pedido é liberado
+ * para a Fábrica (status_fabrica = 'liberado_para_lote') e a tarefa
+ * "Implantação Fábrica" é criada.
+ *
+ * Idempotente. Chame após:
+ *  - upload em Arquivos do Projeto > Projeto para Produção
+ *  - upload/assinatura do PDF Projeto Final na Central de Documentos
+ *  - como fallback no carregamento do painel de tarefas do pedido
+ */
+export async function ensureFluxoProjetoFinalProducaoEFabrica(
+  pedido_id: string
+): Promise<void> {
+  try {
+    if (!pedido_id) return;
+    const { error } = await (supabase as any).rpc(
+      "ensure_fluxo_projeto_final_producao_e_fabrica",
+      { p_pedido_id: pedido_id }
+    );
+    if (error) {
+      console.error("[ensureFluxoProjetoFinalProducao] RPC erro", error);
+    }
+  } catch (e) {
+    console.error("[ensureFluxoProjetoFinalProducao] exceção", e);
+  }
+}
+
+
