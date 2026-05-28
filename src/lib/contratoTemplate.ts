@@ -265,22 +265,27 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
     <thead><tr>
       <th style="width:50px;text-align:center">ITEM</th>
       <th>DESCRIÇÃO AMBIENTE/PRODUTO</th>
-      <th style="text-align:right;width:130px">VALOR</th>
-      <th style="text-align:right;width:140px">COM DESCONTO</th>
+      ${showDisc ? `<th style="text-align:right;width:130px">VALOR</th>` : ""}
+      <th style="text-align:right;width:140px">${showDisc ? "COM DESCONTO" : "VALOR"}</th>
     </tr></thead>
     <tbody>${itensHtml}</tbody>
   </table>
 
   <div class="totais">
-    <div class="row"><span>Valor total:</span><b>${fmtBrl(ctx.subtotal)}</b></div>
     ${
-      ctx.desconto_valor > 0
-        ? `<div class="row discount"><span>Total do desconto (${ctx.desconto_perc.toFixed(2)}%):</span><b>-${fmtBrl(ctx.desconto_valor)}</b></div>`
-        : ""
+      showDisc
+        ? `<div class="row"><span>Valor total:</span><b>${fmtBrl(ctx.subtotal)}</b></div>
+           ${
+             ctx.desconto_valor > 0
+               ? `<div class="row discount"><span>Total do desconto (${ctx.desconto_perc.toFixed(2)}%):</span><b>-${fmtBrl(ctx.desconto_valor)}</b></div>`
+               : ""
+           }
+           <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>`
+        : `<div class="row grand"><span>Valor total:</span><span>${fmtBrl(ctx.total)}</span></div>`
     }
-    <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>
     <div style="font-size:10px;color:#6B6760;margin-top:6px">*Após assinatura do caderno técnico</div>
   </div>
+
 
   <h2>CONDIÇÃO DE PAGAMENTO</h2>
   <table class="pags">
