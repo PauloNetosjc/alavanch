@@ -2540,11 +2540,14 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
 /* ============================================================== */
 function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
   const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
-  const previsaoMedicao = pedido.data_medicao_tecnica;
+  const previsaoMedicao = pedido.previsao_medicao;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
   const [editingCF, setEditingCF] = useState(false);
   const [cfDraft, setCfDraft] = useState<string>(pedido?.cliente_final || "");
   useEffect(() => { setCfDraft(pedido?.cliente_final || ""); }, [pedido?.cliente_final]);
+  const [editingPrev, setEditingPrev] = useState(false);
+  const [prevDraft, setPrevDraft] = useState<string>(pedido?.previsao_medicao || "");
+  useEffect(() => { setPrevDraft(pedido?.previsao_medicao || ""); }, [pedido?.previsao_medicao]);
 
   const Field = ({ label, children }: any) => (
     <div className="min-w-0">
