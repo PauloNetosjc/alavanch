@@ -411,7 +411,7 @@ export default function WorkflowOperacionalDashboard() {
 
       {/* Esteira de etapas em formato de setas */}
       <div className="relative no-print-scroll">
-        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows">
+        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-2">
           {ETAPAS.map((e, idx) => {
             const r = resumos.get(e.key)!;
             const Icon = e.icon;
@@ -433,13 +433,13 @@ export default function WorkflowOperacionalDashboard() {
             return (
               <div
                 key={e.key}
-                className="shrink-0"
-                style={{ marginLeft: isFirst ? 0 : -tip + 2 }}
+                className={`shrink-0 transition-all duration-200 ${active ? "drop-shadow-lg" : "drop-shadow-sm"}`}
+                style={{ marginLeft: isFirst ? 0 : -tip + 8 }}
               >
                 <button
                   type="button"
                   onClick={() => setEtapaSelecionada(active ? null : e.key)}
-                  className={`relative text-left transition-all ${active ? "scale-[1.03] z-10" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-2 ring-primary" : ""}`}
+                  className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-[3px] ring-primary/80" : ""}`}
                   style={{
                     clipPath: clip,
                     WebkitClipPath: clip,
@@ -474,17 +474,17 @@ export default function WorkflowOperacionalDashboard() {
                   {(r.vencidos > 0 || r.preAlerta > 0 || r.hoje > 0) && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {r.vencidos > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-100 text-red-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-200/80 text-red-800">
                           {r.vencidos} venc
                         </span>
                       )}
                       {r.hoje > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-orange-100 text-orange-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-orange-200/80 text-orange-800">
                           {r.hoje} hoje
                         </span>
                       )}
                       {r.preAlerta > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-200/80 text-amber-800">
                           {r.preAlerta} alerta
                         </span>
                       )}
@@ -627,34 +627,34 @@ function fmtDateBR(iso: string | null) {
 }
 
 const ICON_BG: Record<string, string> = {
-  danger: "bg-red-100", warning: "bg-orange-100", alert: "bg-amber-100", ok: "bg-emerald-100", muted: "bg-muted",
+  danger: "bg-red-200", warning: "bg-orange-200", alert: "bg-amber-200", ok: "bg-emerald-200", muted: "bg-slate-200",
 };
 const ICON_FG: Record<string, string> = {
-  danger: "text-red-700", warning: "text-orange-700", alert: "text-amber-700", ok: "text-emerald-700", muted: "text-muted-foreground",
+  danger: "text-red-800", warning: "text-orange-800", alert: "text-amber-800", ok: "text-emerald-800", muted: "text-slate-600",
 };
 const DOT_CHIP: Record<string, string> = {
-  danger: "bg-red-100 text-red-700",
-  warning: "bg-orange-100 text-orange-700",
-  alert: "bg-amber-100 text-amber-700",
-  ok: "bg-emerald-100 text-emerald-700",
-  muted: "bg-muted text-muted-foreground",
+  danger: "bg-red-200 text-red-800",
+  warning: "bg-orange-200 text-orange-800",
+  alert: "bg-amber-200 text-amber-800",
+  ok: "bg-emerald-200 text-emerald-800",
+  muted: "bg-slate-200 text-slate-600",
 };
 const RISCO_LABEL: Record<string, string> = {
   danger: "Crítico", warning: "Hoje", alert: "Alerta", ok: "Ok", muted: "—",
 };
 const ARROW_BG: Record<string, string> = {
-  danger: "bg-red-50 hover:bg-red-100",
-  warning: "bg-orange-50 hover:bg-orange-100",
-  alert: "bg-amber-50 hover:bg-amber-100",
-  ok: "bg-primary/5 hover:bg-primary/10",
-  muted: "bg-muted/40 hover:bg-muted/60",
+  danger: "bg-red-100/90 hover:bg-red-200",
+  warning: "bg-orange-100/90 hover:bg-orange-200",
+  alert: "bg-amber-100/90 hover:bg-amber-200",
+  ok: "bg-emerald-100/90 hover:bg-emerald-200",
+  muted: "bg-slate-100/90 hover:bg-slate-200",
 };
 const BADGE_NUM: Record<string, string> = {
   danger: "bg-red-600 text-white",
   warning: "bg-orange-500 text-white",
   alert: "bg-amber-500 text-white",
-  ok: "bg-primary text-primary-foreground",
-  muted: "bg-muted-foreground/20 text-muted-foreground",
+  ok: "bg-emerald-600 text-white",
+  muted: "bg-slate-400 text-white",
 };
 
 export function agruparPedidosPorEtapa(pedidos: PedidoComEtapa[]) {
