@@ -138,6 +138,37 @@ export default function ContasAReceber() {
     return map;
   }, [pedidos, clientes]);
 
+  // Mapa lancamento.id -> { numero, total, receitaCodigo } para identificação da parcela
+  const parcelaInfo = useMemo(() => {
+    const map = new Map<string, { numero: number; total: number; receitaCodigo: string | null }>();
+    // Agrupa por pedido_id (entradas reais geradas pelo backend)
+    const porPedido = new Map<string, Lanc[]>();
+    for (const l of lancs) {
+      if (!l.pedido_id) continue;
+      if (!porPedido.has(l.pedido_id)) porPedido.set(l.pedido_id, []);
+      porPedido.get(l.pedido_id)!.push(l);
+    }
+    for (const [pid, arr] of porPedido) {
+      const ordenado = [...arr].sort((a, b) => {
+        const da = a.data_vencimento || "";
+        const db = b.data_vencimento || "";
+        if (da !== db) return da < db ? -1 : 1;
+        return a.id < b.id ? -1 : 1;
+      });
+      const total = ordenado.length;
+      const ped = pedidos.find((p) => p.id === pid);
+      const receitaCodigo = ped?.receita_codigo || ped?.codigo || null;
+      ordenado.forEach((l, idx) => {
+        // Tenta extrair "Parcela X/Y" da descrição (fallback) — caso contrário usa idx
+        const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
+        const numero = m ? parseInt(m[1], 10) : idx + 1;
+        const tot = m ? parseInt(m[2], 10) : total;
+        map.set(l.id, { numero, total: tot, receitaCodigo });
+      });
+    }
+    return map;
+  }, [lancs, pedidos]);
+
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
       if (lojasFiltro.length > 0 && !lojasFiltro.includes(l.loja_id || "")) return false;
