@@ -373,6 +373,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     }
   }
 
+  if (!podeVer) return null;
 
   return (
     <section className="surface-card p-5">
