@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Shield, Save, Copy, Plus, Trash2, Pencil, ShieldCheck, Layers,
+  Shield, Save, Copy, Plus, Trash2, Pencil, ShieldCheck, Layers, Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CargosOperacionaisAdmin } from "@/components/CargosOperacionaisAdmin";
 
 const ROLES = [
   { value: "admin",       label: "Administrador",         desc: "Acesso total ao sistema. Não editável." },
