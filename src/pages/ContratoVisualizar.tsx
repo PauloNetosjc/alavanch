@@ -36,10 +36,19 @@ export default function ContratoVisualizar() {
     toast.success("Link de assinatura copiado!");
   };
 
-  const imprimir = () => {
+  const imprimir = async () => {
     if (!tpl) return toast.error("Template não encontrado");
     const ctx = (contrato.conteudo_snapshot as any) || {};
     ctx.signing_url = signingUrl;
+    // Respeita o parâmetro "MOSTRAR DESCONTO NO CONTRATO" da loja
+    try {
+      const lojaId = (contrato as any).loja_id || ctx?.empresa?.loja_id || null;
+      const q = supabase.from("configuracoes_empresa" as any).select("mostrar_desconto_contrato,loja_id");
+      const { data: cfg } = lojaId
+        ? await q.eq("loja_id", lojaId).maybeSingle()
+        : await q.limit(1).maybeSingle();
+      ctx.mostrar_desconto = (cfg as any)?.mostrar_desconto_contrato !== false;
+    } catch { ctx.mostrar_desconto = true; }
     const html = renderContratoHtml(tpl, ctx, contrato.assinado_em ? {
       assinado: { nome: contrato.assinatura_nome, cpf: contrato.assinatura_cpf, data: contrato.assinado_em },
     } : undefined);
@@ -48,6 +57,7 @@ export default function ContratoVisualizar() {
     w.document.write(html); w.document.close();
     setTimeout(() => w.print(), 350);
   };
+
 
   return (
     <div className="space-y-4">
