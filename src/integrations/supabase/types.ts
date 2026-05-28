@@ -4617,8 +4617,10 @@ export type Database = {
       }
       solicitacoes_assinatura: {
         Row: {
+          arquivo_contrato_manual_url: string | null
           assinado_manual_em: string | null
           assinado_manual_por: string | null
+          assinado_manualmente_por: string | null
           assinatura_cliente_url: string | null
           assinatura_loja_url: string | null
           cancelado_em: string | null
@@ -4635,7 +4637,9 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           created_by: string | null
+          data_assinatura_manual: string | null
           doc_foto_url: string | null
+          documento_cliente_manual_url: string | null
           expira_em: string
           file_name: string | null
           file_url: string | null
@@ -4665,8 +4669,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivo_contrato_manual_url?: string | null
           assinado_manual_em?: string | null
           assinado_manual_por?: string | null
+          assinado_manualmente_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
@@ -4683,7 +4689,9 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_assinatura_manual?: string | null
           doc_foto_url?: string | null
+          documento_cliente_manual_url?: string | null
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
@@ -4713,8 +4721,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivo_contrato_manual_url?: string | null
           assinado_manual_em?: string | null
           assinado_manual_por?: string | null
+          assinado_manualmente_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
           cancelado_em?: string | null
@@ -4731,7 +4741,9 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_assinatura_manual?: string | null
           doc_foto_url?: string | null
+          documento_cliente_manual_url?: string | null
           expira_em?: string
           file_name?: string | null
           file_url?: string | null
