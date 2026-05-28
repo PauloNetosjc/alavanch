@@ -289,6 +289,7 @@ export default function TarefasNativasAdmin() {
   return (
     <div className="space-y-4">
       <PageHeader
+        icon={ListChecks}
         title="Tarefas Nativas do Pedido"
         subtitle="Configure tarefas que serão criadas automaticamente nos pedidos a partir de eventos operacionais — assinatura, medição técnica, revisão final, entrega, montagem e assistência."
         actions={
