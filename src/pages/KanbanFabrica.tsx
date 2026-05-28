@@ -41,7 +41,7 @@ function ListaLiberadosFabrica() {
     const { data: pedidos, error } = await (supabase as any)
       .from("pedidos")
       .select(
-        "id, codigo, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome), vendedor:profiles!pedidos_vendedor_id_fkey(nome_completo)"
+        "id, codigo, vendedor_id, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)"
       )
       .eq("status_fabrica", "liberado_para_lote")
       .order("data_assinatura_pdf_final", { ascending: false, nullsFirst: false });
@@ -54,28 +54,39 @@ function ListaLiberadosFabrica() {
     }
 
     const ids = (pedidos || []).map((p: any) => p.id);
-    let datasUpload: Record<string, string> = {};
-    if (ids.length > 0) {
-      const { data: docs } = await (supabase as any)
-        .from("pedido_documentos")
-        .select("pedido_id, created_at")
-        .in("pedido_id", ids)
-        .eq("categoria_projeto", "projeto_para_producao")
-        .order("created_at", { ascending: true });
-      (docs || []).forEach((d: any) => {
-        // primeira data de upload por pedido
-        if (!datasUpload[d.pedido_id]) datasUpload[d.pedido_id] = d.created_at;
-      });
-    }
+    const vendedorIds = Array.from(
+      new Set((pedidos || []).map((p: any) => p.vendedor_id).filter(Boolean))
+    );
 
-    // Regra: só listar pedidos que CUMPREM as duas condições
-    // (defesa em profundidade: a coluna status_fabrica já implica isso,
-    // mas filtramos novamente para não exibir dados inconsistentes)
+    const [{ data: docs }, { data: profs }] = await Promise.all([
+      ids.length
+        ? (supabase as any)
+            .from("pedido_documentos")
+            .select("pedido_id, created_at")
+            .in("pedido_id", ids)
+            .eq("categoria_projeto", "projeto_para_producao")
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [] as any[] }),
+      vendedorIds.length
+        ? supabase
+            .from("profiles")
+            .select("user_id, nome_completo")
+            .in("user_id", vendedorIds as string[])
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const datasUpload: Record<string, string> = {};
+    (docs || []).forEach((d: any) => {
+      if (!datasUpload[d.pedido_id]) datasUpload[d.pedido_id] = d.created_at;
+    });
+    const vendedorMap: Record<string, string> = {};
+    (profs || []).forEach((p: any) => {
+      vendedorMap[p.user_id] = p.nome_completo || "";
+    });
+
+    // Defesa em profundidade: só lista pedidos com as duas condições reais
     const result: Linha[] = (pedidos || [])
-      .filter(
-        (p: any) =>
-          !!p.data_assinatura_pdf_final && !!datasUpload[p.id]
-      )
+      .filter((p: any) => !!p.data_assinatura_pdf_final && !!datasUpload[p.id])
       .map((p: any) => ({
         id: p.id,
         codigo: p.codigo,
@@ -84,7 +95,7 @@ function ListaLiberadosFabrica() {
         status_fabrica: p.status_fabrica,
         cliente_nome: p.cliente?.nome || null,
         loja_nome: p.loja?.nome || null,
-        vendedor_nome: p.vendedor?.nome_completo || null,
+        vendedor_nome: p.vendedor_id ? vendedorMap[p.vendedor_id] || null : null,
       }));
 
     setLinhas(result);
