@@ -1863,8 +1863,11 @@ export type Database = {
           documento: string | null
           email: string | null
           endereco: string | null
+          endereco_cobranca: string | null
+          endereco_entrega: string | null
           estado: string | null
           id: string
+          inscricao_estadual: string | null
           loja_id: string | null
           nome: string
           observacoes: string | null
@@ -1886,8 +1889,11 @@ export type Database = {
           documento?: string | null
           email?: string | null
           endereco?: string | null
+          endereco_cobranca?: string | null
+          endereco_entrega?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           loja_id?: string | null
           nome: string
           observacoes?: string | null
@@ -1909,8 +1915,11 @@ export type Database = {
           documento?: string | null
           email?: string | null
           endereco?: string | null
+          endereco_cobranca?: string | null
+          endereco_entrega?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           loja_id?: string | null
           nome?: string
           observacoes?: string | null

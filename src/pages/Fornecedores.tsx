@@ -17,9 +17,12 @@ type Fornecedor = {
   nome: string;
   documento: string | null;
   tipo_documento: string | null;
+  inscricao_estadual: string | null;
   email: string | null;
   telefone: string | null;
   endereco: string | null;
+  endereco_cobranca: string | null;
+  endereco_entrega: string | null;
   cidade: string | null;
   estado: string | null;
   cep: string | null;
@@ -37,9 +40,12 @@ const empty = {
   nome: "",
   documento: "",
   tipo_documento: "CNPJ",
+  inscricao_estadual: "",
   email: "",
   telefone: "",
   endereco: "",
+  endereco_cobranca: "",
+  endereco_entrega: "",
   cidade: "",
   estado: "",
   cep: "",
@@ -80,9 +86,12 @@ export default function Fornecedores() {
       nome: f.nome || "",
       documento: f.documento || "",
       tipo_documento: f.tipo_documento || "CNPJ",
+      inscricao_estadual: f.inscricao_estadual || "",
       email: f.email || "",
       telefone: f.telefone || "",
       endereco: f.endereco || "",
+      endereco_cobranca: f.endereco_cobranca || "",
+      endereco_entrega: f.endereco_entrega || "",
       cidade: f.cidade || "",
       estado: f.estado || "",
       cep: f.cep || "",
@@ -183,6 +192,10 @@ export default function Fornecedores() {
               <Label>Documento</Label>
               <Input value={form.documento} onChange={(e) => setForm({ ...form, documento: maskDoc(e.target.value, form.tipo_documento) })} />
             </div>
+            <div className="col-span-2">
+              <Label>Inscrição Estadual</Label>
+              <Input value={form.inscricao_estadual} onChange={(e) => setForm({ ...form, inscricao_estadual: e.target.value })} />
+            </div>
             <div>
               <Label>Contato</Label>
               <Input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} />
@@ -198,6 +211,14 @@ export default function Fornecedores() {
             <div className="col-span-2">
               <Label>Endereço</Label>
               <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço de cobrança</Label>
+              <Input value={form.endereco_cobranca} onChange={(e) => setForm({ ...form, endereco_cobranca: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço de entrega</Label>
+              <Input value={form.endereco_entrega} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
             </div>
             <div>
               <Label>Cidade</Label>
