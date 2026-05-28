@@ -66,10 +66,13 @@ type Lanc = {
   fornecedor_id: string | null;
   loja_id: string | null;
 };
-type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
+type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null; ativo?: boolean | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string; cliente_id?: string | null; cliente_nome?: string | null };
 type Parceiro = { id: string; nome: string };
+type CentroCusto = { id: string; nome: string; ativo: boolean };
+
+const catTipoFor = (lancTipo: string) => (lancTipo === "entrada" ? "receita" : "despesa");
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
