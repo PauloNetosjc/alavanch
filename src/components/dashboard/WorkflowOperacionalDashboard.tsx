@@ -588,6 +588,7 @@ export default function WorkflowOperacionalDashboard() {
                   <tr className="border-b border-border">
                     <th className="text-left py-2 pr-3">Cliente</th>
                     <th className="text-left py-2 pr-3">PV</th>
+                    <th className="text-left py-2 pr-3">Subetapa</th>
                     <th className="text-right py-2 pr-3">Valor</th>
                     <th className="text-left py-2 pr-3">Início etapa</th>
                     <th className="text-left py-2 pr-3">Prazo</th>
