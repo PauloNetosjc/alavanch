@@ -441,8 +441,16 @@ export default function PedidoReceita() {
                       {p.juros > 0 ? fmtBrl(p.juros) : "—"}
                       {p.taxa_perc > 0 && <div className="text-[10px] text-muted-foreground">{p.taxa_perc.toFixed(2)}%</div>}
                     </td>
-                    <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
+                    <td className="p-3 text-right">{pago ? fmtBrl(p.recebido) : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="p-3 text-right">
+                      {pago ? (
+                        Math.abs(p.juros_real) < 0.005 ? <span className="text-muted-foreground">R$ 0,00</span>
+                        : p.juros_real < 0 ? <span className="text-emerald-700">+{fmtBrl(Math.abs(p.juros_real))}</span>
+                        : <span className="text-amber-700">{fmtBrl(p.juros_real)}</span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="p-3 text-right font-medium">{fmtBrl(p.saldo)}</td>
+
                     <td className="p-3">{statusBadge(p)}</td>
                     <td className="p-3">{fmtDate(p.data_pagamento)}</td>
                     <td className="p-3 text-right">
