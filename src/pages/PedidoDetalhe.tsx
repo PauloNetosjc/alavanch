@@ -2613,7 +2613,34 @@ function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedo
             {pedido.receita_codigo ? `#${pedido.receita_codigo}` : fmtBrl(Number(pedido.valor_total) || 0)}
           </Link>
         </Field>
-        <Field label="Previsão de medição">{fmtDate(previsaoMedicao)}</Field>
+        <Field label="Previsão de medição">
+          {salvarPedido ? (
+            editingPrev ? (
+              <input
+                autoFocus
+                type="date"
+                value={prevDraft}
+                onChange={(e) => setPrevDraft(e.target.value)}
+                onBlur={async () => {
+                  setEditingPrev(false);
+                  const novo = prevDraft || null;
+                  if ((novo || "") !== (pedido?.previsao_medicao || "")) {
+                    await salvarPedido({ previsao_medicao: novo });
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  if (e.key === "Escape") { setPrevDraft(pedido?.previsao_medicao || ""); setEditingPrev(false); }
+                }}
+                className="w-full text-[13px] border border-border rounded px-1.5 py-0.5 bg-background"
+              />
+            ) : (
+              <button onClick={() => setEditingPrev(true)} className="text-left hover:bg-muted/60 rounded px-1 -mx-1 w-full truncate">
+                {previsaoMedicao ? fmtDate(previsaoMedicao) : <span className="text-muted-foreground">—</span>}
+              </button>
+            )
+          ) : fmtDate(previsaoMedicao)}
+        </Field>
       </div>
 
       {/* PARA / DE */}
