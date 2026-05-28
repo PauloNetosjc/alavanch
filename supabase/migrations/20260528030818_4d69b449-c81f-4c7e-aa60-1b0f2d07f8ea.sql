@@ -1,0 +1,1 @@
+ALTER TABLE public.lancamentos_financeiros ADD COLUMN IF NOT EXISTS juros_real numeric NOT NULL DEFAULT 0;

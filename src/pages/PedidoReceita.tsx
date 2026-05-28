@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw, Check, Pencil, RotateCcw, Layers } from "lucide-react";
+import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw, Check, Pencil, RotateCcw, Layers, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
@@ -39,10 +39,12 @@ type Lanc = {
   baixado_por: string | null;
   baixado_em: string | null;
   juros_previsto?: number | null;
+  juros_real?: number | null;
   taxa_perc?: number | null;
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
+
 };
 
 type Parcela = {
@@ -50,6 +52,7 @@ type Parcela = {
   total: number;
   valor: number;
   juros: number;
+  juros_real: number;
   taxa_perc: number;
   recebido: number;
   saldo: number;
@@ -61,6 +64,7 @@ type Parcela = {
   lanc?: Lanc;
   origemReal: boolean;
 };
+
 
 const isPago = (s?: string | null) =>
   ["pago", "recebido", "conciliado", "baixado"].includes((s || "").toLowerCase());
@@ -102,6 +106,43 @@ export default function PedidoReceita() {
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editAlvo, setEditAlvo] = useState<Lanc | null>(null);
+  const [novaOpen, setNovaOpen] = useState(false);
+  const [novaForm, setNovaForm] = useState({ vencimento: "", forma: "PIX", valor: 0, juros: 0, conta_id: "", notas: "" });
+  const [novaSaving, setNovaSaving] = useState(false);
+
+  async function salvarNovaParcela() {
+    if (!pedido?.id) return;
+    if (!novaForm.vencimento || !novaForm.valor) { toast.error("Informe vencimento e valor."); return; }
+    setNovaSaving(true);
+    try {
+      const total = lancamentos.length + 1;
+      const nota = `Parcela adicionada manualmente por admin em ${new Date().toLocaleString("pt-BR")}.${novaForm.notas ? "\n" + novaForm.notas : ""}`;
+      const { error } = await supabase.from("lancamentos_financeiros").insert({
+        tipo: "entrada",
+        descricao: `Parcela ${total}/${total} — adicional`,
+        valor: Number(novaForm.valor),
+        juros_previsto: Number(novaForm.juros || 0),
+        data_vencimento: novaForm.vencimento,
+        conta_id: novaForm.conta_id || null,
+        forma_pagamento: novaForm.forma,
+        pedido_id: pedido.id,
+        loja_id: pedido.loja_id ?? null,
+        status: "pendente",
+        aprovacao_status: "aprovado",
+        notas: nota,
+      });
+      if (error) throw error;
+      toast.success("Parcela adicionada.");
+      setNovaOpen(false);
+      setNovaForm({ vencimento: "", forma: "PIX", valor: 0, juros: 0, conta_id: "", notas: "" });
+      carregar();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao adicionar parcela.");
+    } finally {
+      setNovaSaving(false);
+    }
+  }
+
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -158,19 +199,23 @@ export default function PedidoReceita() {
   const parcelas: Parcela[] = useMemo(() => {
     if (integrado) {
       const total = lancamentos.length;
-      return lancamentos.map((l, idx) => {
+      return lancamentos.map<Parcela>((l, idx) => {
         const valor = Number(l.valor) || 0;
         const juros = Number(l.juros_previsto || 0);
-        const recebido = isPago(l.status) ? valor : 0;
+        const pago = isPago(l.status);
+        const jurosReal = Number(l.juros_real || 0);
+        const recebido = pago ? Math.round((valor - jurosReal) * 100) / 100 : 0;
+        const saldo = pago ? 0 : Math.max(valor - juros, 0);
         const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
         return {
           numero: l.numero_parcela ?? (m ? parseInt(m[1], 10) : idx + 1),
           total: l.total_parcelas ?? (m ? parseInt(m[2], 10) : total),
           valor,
           juros,
+          juros_real: pago ? jurosReal : 0,
           taxa_perc: Number(l.taxa_perc || 0),
           recebido,
-          saldo: valor - juros - recebido,
+          saldo,
           vencimento: l.data_vencimento || null,
           forma: l.forma_pagamento || "—",
           agrupado: !!l.agrupado,
@@ -184,14 +229,15 @@ export default function PedidoReceita() {
     // Fallback (prévia): usa o mesmo cálculo do gerador SQL
     const dataBase = (pedido?.created_at || new Date().toISOString()).slice(0, 10);
     const prev = gerarPreviewReceita(pagamentos as any, metodos, dataBase);
-    return prev.map((p) => ({
+    return prev.map<Parcela>((p) => ({
       numero: p.numero,
       total: p.total,
       valor: p.valor,
       juros: p.juros,
+      juros_real: 0,
       taxa_perc: p.taxa_perc,
       recebido: 0,
-      saldo: p.saldo,
+      saldo: Math.max(p.valor - p.juros, 0),
       vencimento: p.vencimento,
       forma: p.forma,
       agrupado: p.agrupado,
@@ -200,16 +246,19 @@ export default function PedidoReceita() {
     }));
   }, [integrado, lancamentos, pagamentos, metodos, pedido]);
 
+
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
     const juros = parcelas.reduce((s, p) => s + (p.juros || 0), 0);
+    const jurosReal = parcelas.reduce((s, p) => s + (p.juros_real || 0), 0);
     const recebido = parcelas.reduce((s, p) => s + (p.recebido || 0), 0);
     const saldo = parcelas.reduce((s, p) => s + (p.saldo || 0), 0);
     const pendentes = parcelas.filter((p) => !isPago(p.status) && !isVencido(p)).length;
     const liquidadas = parcelas.filter((p) => isPago(p.status)).length;
     const vencidas = parcelas.filter((p) => isVencido(p)).length;
-    return { valor, juros, recebido, saldo, pendentes, liquidadas, vencidas };
+    return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
+
 
   const gerarReceber = async () => {
     if (!pedido?.id) return;
@@ -248,6 +297,7 @@ export default function PedidoReceita() {
     const juros = Number(baixaAlvo.juros_previsto || 0);
     const liquidoPrev = Math.max(0, Math.round((bruto - juros) * 100) / 100);
     const recebido = Number(p.valor) || 0;
+    const jurosReal = Math.round((bruto - recebido) * 100) / 100;
     const diff = Math.round((recebido - liquidoPrev) * 100) / 100;
     const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
     const exigeAprov = !souAprovador && diff < -0.005 && percDiff > TOLERANCIA_PERC;
@@ -257,8 +307,9 @@ export default function PedidoReceita() {
     const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
     const auditoria: string[] = [];
     if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" em ${agora.toLocaleString("pt-BR")}.`);
-    if (diff > 0.005) auditoria.push(`Recebido maior que previsto. Diferença positiva: ${fmtBrl(diff)}.`);
-    else if (diff < -0.005) auditoria.push(`Recebido menor que previsto. Diferença: ${fmtBrl(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    auditoria.push(`Recebido ${fmtBrl(recebido)} sobre bruto ${fmtBrl(bruto)} (juros previsto ${fmtBrl(juros)}, juros real ${fmtBrl(jurosReal)}).`);
+    if (diff > 0.005) auditoria.push(`Diferença positiva: ${fmtBrl(diff)}.`);
+    else if (diff < -0.005) auditoria.push(`Diferença negativa: ${fmtBrl(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
     const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
 
     const { error } = await supabase.from("lancamentos_financeiros").update({
@@ -266,7 +317,7 @@ export default function PedidoReceita() {
       data_pagamento: p.data_pagamento,
       conta_id: p.conta_id,
       forma_pagamento: p.forma_pagamento,
-      valor: recebido,
+      juros_real: jurosReal,
       baixado_por: user?.id ?? null,
       baixado_em: agora.toISOString(),
       notas: notasNovas,
@@ -283,8 +334,9 @@ export default function PedidoReceita() {
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, juros_real: 0, ...reapprovalPatch() })
       .eq("id", l.id);
+
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação");
     carregar();
@@ -354,7 +406,12 @@ export default function PedidoReceita() {
 
       <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
         <Field label="Valor bruto">{fmtBrl(totais.valor)}</Field>
-        <Field label="Juros / Taxa"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
+        <Field label="Juros / Taxa previsto"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
+        <Field label="Juros Real">
+          {Math.abs(totais.jurosReal) < 0.005 ? <span>R$ 0,00</span>
+            : totais.jurosReal < 0 ? <span className="text-emerald-700">+{fmtBrl(Math.abs(totais.jurosReal))} (ganho)</span>
+            : <span className="text-amber-700">{fmtBrl(totais.jurosReal)}</span>}
+        </Field>
         <Field label="Recebido">{fmtBrl(totais.recebido)}</Field>
         <Field label="Saldo líquido"><span className="font-semibold">{fmtBrl(totais.saldo)}</span></Field>
         <Field label="Pendentes">{totais.pendentes}</Field>
@@ -362,14 +419,22 @@ export default function PedidoReceita() {
         <Field label="Vencidas"><span className={totais.vencidas > 0 ? "text-red-600" : ""}>{totais.vencidas}</span></Field>
       </section>
 
+
       <section className="surface-card p-0 overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
           <h3 className="font-playfair text-[18px] font-semibold">Parcelas</h3>
-          {integrado && (
-            <Link to="/financeiro/a-receber" className="text-[12px] text-primary hover:underline">
-              Ver no A Receber →
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {integrado && (role === "admin" || role === "diretor") && (
+              <Button size="sm" variant="outline" onClick={() => setNovaOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Adicionar parcela
+              </Button>
+            )}
+            {integrado && (
+              <Link to="/financeiro/a-receber" className="text-[12px] text-primary hover:underline">
+                Ver no A Receber →
+              </Link>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
@@ -378,9 +443,10 @@ export default function PedidoReceita() {
                 <th className="text-left p-3">Código</th>
                 <th className="text-left p-3">Vencimento</th>
                 <th className="text-left p-3">Forma</th>
-                <th className="text-right p-3">Valor</th>
+                <th className="text-right p-3">Valor bruto</th>
                 <th className="text-right p-3">Juros / Taxa</th>
                 <th className="text-right p-3">Recebido</th>
+                <th className="text-right p-3">Juros Real</th>
                 <th className="text-right p-3">Saldo líquido</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Pago em</th>
@@ -389,8 +455,9 @@ export default function PedidoReceita() {
             </thead>
             <tbody>
               {parcelas.length === 0 && (
-                <tr><td className="p-4 text-center text-muted-foreground" colSpan={10}>Nenhuma parcela cadastrada.</td></tr>
+                <tr><td className="p-4 text-center text-muted-foreground" colSpan={11}>Nenhuma parcela cadastrada.</td></tr>
               )}
+
               {parcelas.map((p) => {
                 const pago = isPago(p.status);
                 return (
@@ -411,8 +478,16 @@ export default function PedidoReceita() {
                       {p.juros > 0 ? fmtBrl(p.juros) : "—"}
                       {p.taxa_perc > 0 && <div className="text-[10px] text-muted-foreground">{p.taxa_perc.toFixed(2)}%</div>}
                     </td>
-                    <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
+                    <td className="p-3 text-right">{pago ? fmtBrl(p.recebido) : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="p-3 text-right">
+                      {pago ? (
+                        Math.abs(p.juros_real) < 0.005 ? <span className="text-muted-foreground">R$ 0,00</span>
+                        : p.juros_real < 0 ? <span className="text-emerald-700">+{fmtBrl(Math.abs(p.juros_real))}</span>
+                        : <span className="text-amber-700">{fmtBrl(p.juros_real)}</span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="p-3 text-right font-medium">{fmtBrl(p.saldo)}</td>
+
                     <td className="p-3">{statusBadge(p)}</td>
                     <td className="p-3">{fmtDate(p.data_pagamento)}</td>
                     <td className="p-3 text-right">
@@ -447,10 +522,12 @@ export default function PedidoReceita() {
                   <td className="p-3 text-right">{fmtBrl(totais.valor)}</td>
                   <td className="p-3 text-right text-amber-700">{fmtBrl(totais.juros)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.recebido)}</td>
+                  <td className="p-3 text-right">{Math.abs(totais.jurosReal) < 0.005 ? "R$ 0,00" : totais.jurosReal < 0 ? `+${fmtBrl(Math.abs(totais.jurosReal))}` : fmtBrl(totais.jurosReal)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.saldo)}</td>
                   <td className="p-3" colSpan={3}></td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>
@@ -486,7 +563,37 @@ export default function PedidoReceita() {
         onSave={salvarEdicao}
         onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
       />
+
+      {novaOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !novaSaving && setNovaOpen(false)}>
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-playfair text-[18px] font-semibold">Adicionar parcela</h3>
+            <div className="grid grid-cols-2 gap-3 text-[13px]">
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Vencimento</div>
+                <input type="date" className="w-full border rounded px-2 py-1.5" value={novaForm.vencimento} onChange={(e) => setNovaForm({ ...novaForm, vencimento: e.target.value })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Forma</div>
+                <input className="w-full border rounded px-2 py-1.5" value={novaForm.forma} onChange={(e) => setNovaForm({ ...novaForm, forma: e.target.value })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Valor bruto</div>
+                <input type="number" step="0.01" className="w-full border rounded px-2 py-1.5" value={novaForm.valor} onChange={(e) => setNovaForm({ ...novaForm, valor: Number(e.target.value) })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Juros previsto</div>
+                <input type="number" step="0.01" className="w-full border rounded px-2 py-1.5" value={novaForm.juros} onChange={(e) => setNovaForm({ ...novaForm, juros: Number(e.target.value) })} /></label>
+              <label className="space-y-1 col-span-2"><div className="text-[11px] text-muted-foreground">Conta</div>
+                <select className="w-full border rounded px-2 py-1.5" value={novaForm.conta_id} onChange={(e) => setNovaForm({ ...novaForm, conta_id: e.target.value })}>
+                  <option value="">—</option>
+                  {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.banco ? ` — ${c.banco}` : ""}</option>)}
+                </select></label>
+              <label className="space-y-1 col-span-2"><div className="text-[11px] text-muted-foreground">Observação</div>
+                <textarea rows={2} className="w-full border rounded px-2 py-1.5" value={novaForm.notas} onChange={(e) => setNovaForm({ ...novaForm, notas: e.target.value })} /></label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setNovaOpen(false)} disabled={novaSaving}>Cancelar</Button>
+              <Button size="sm" onClick={salvarNovaParcela} disabled={novaSaving}>{novaSaving ? "Salvando…" : "Adicionar"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 

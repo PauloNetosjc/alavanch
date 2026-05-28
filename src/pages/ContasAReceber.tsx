@@ -35,10 +35,12 @@ type Lanc = {
   notas: string | null;
   loja_id: string | null;
   juros_previsto?: number | null;
+  juros_real?: number | null;
   taxa_perc?: number | null;
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
+
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -245,6 +247,7 @@ export default function ContasAReceber() {
     const juros = Number(baixaAlvo.juros_previsto || 0);
     const liquidoPrev = Math.max(0, Math.round((bruto - juros) * 100) / 100);
     const recebido = Number(p.valor) || 0;
+    const jurosReal = Math.round((bruto - recebido) * 100) / 100; // pode ser negativo se recebido > bruto
     const diff = Math.round((recebido - liquidoPrev) * 100) / 100; // >0 maior, <0 menor
     const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
 
@@ -257,8 +260,9 @@ export default function ContasAReceber() {
     const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
     const auditoria: string[] = [];
     if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" por ${userName(user?.id ?? null)} em ${agora.toLocaleString("pt-BR")}.`);
-    if (diff > 0.005) auditoria.push(`Recebido maior que previsto. Diferença positiva: ${BRL(diff)}.`);
-    else if (diff < -0.005) auditoria.push(`Recebido menor que previsto. Diferença: ${BRL(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    auditoria.push(`Recebido ${BRL(recebido)} sobre bruto ${BRL(bruto)} (juros previsto ${BRL(juros)}, juros real ${BRL(jurosReal)}).`);
+    if (diff > 0.005) auditoria.push(`Diferença positiva: ${BRL(diff)}.`);
+    else if (diff < -0.005) auditoria.push(`Diferença negativa: ${BRL(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
     const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
 
     const { error } = await supabase.from("lancamentos_financeiros")
@@ -267,7 +271,7 @@ export default function ContasAReceber() {
         data_pagamento: p.data_pagamento,
         conta_id: p.conta_id,
         forma_pagamento: p.forma_pagamento,
-        valor: recebido,
+        juros_real: jurosReal,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
         notas: notasNovas,
@@ -287,11 +291,12 @@ export default function ContasAReceber() {
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, juros_real: 0, ...reapprovalPatch() })
       .eq("id", l.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação"); load();
   }
+
 
   async function cancelar(l: Lanc) {
     if (!confirm("Cancelar este lançamento?")) return;
@@ -378,14 +383,17 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
                 <th className="text-left py-3 font-medium">Conta</th>
-                <th className="text-right py-3 font-medium">Valor</th>
+                <th className="text-right py-3 font-medium">Valor bruto</th>
                 <th className="text-right py-3 font-medium">Juros / Taxa</th>
+                <th className="text-right py-3 font-medium">Recebido</th>
+                <th className="text-right py-3 font-medium">Juros Real</th>
                 <th className="text-right py-3 font-medium">Saldo líquido</th>
                 <th className="text-center py-3 font-medium">Status</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
               </tr>
             </thead>
+
             <tbody>
               {filtrados.map((l) => {
                 const cod = pedidoCod(l.pedido_id);
@@ -446,14 +454,31 @@ export default function ContasAReceber() {
                         <div className="text-[10px] text-muted-foreground">{Number(l.taxa_perc).toFixed(2)}%</div>
                       )}
                     </td>
-                    <td className="text-right font-medium whitespace-nowrap">
+                    <td className="text-right whitespace-nowrap">
                       {(() => {
                         const valor = Number(l.valor || 0);
-                        const juros = Number(l.juros_previsto || 0);
-                        const recebido = pago ? valor : 0;
-                        return BRL(valor - juros - recebido);
+                        const jr = Number(l.juros_real || 0);
+                        const recebido = pago ? Math.round((valor - jr) * 100) / 100 : 0;
+                        return pago ? <span className="font-medium text-emerald-700">{BRL(recebido)}</span> : <span className="text-muted-foreground">—</span>;
                       })()}
                     </td>
+                    <td className="text-right whitespace-nowrap">
+                      {pago ? (() => {
+                        const jr = Number(l.juros_real || 0);
+                        if (Math.abs(jr) < 0.005) return <span className="text-muted-foreground">R$ 0,00</span>;
+                        if (jr < 0) return <span className="text-emerald-700" title="Recebido acima do bruto">+{BRL(Math.abs(jr))}</span>;
+                        return <span className="text-amber-700">{BRL(jr)}</span>;
+                      })() : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="text-right font-medium whitespace-nowrap">
+                      {(() => {
+                        if (pago || cancelado) return BRL(0);
+                        const valor = Number(l.valor || 0);
+                        const juros = Number(l.juros_previsto || 0);
+                        return BRL(Math.max(valor - juros, 0));
+                      })()}
+                    </td>
+
                     <td className="text-center">
                       <div className="inline-flex items-center">
                         {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
@@ -500,7 +525,8 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={12} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={14} className="text-center py-12 text-muted-foreground">
+
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
@@ -518,15 +544,33 @@ export default function ContasAReceber() {
                   <td className="py-3 text-right text-amber-700 whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => s + Number(l.juros_previsto || 0), 0))}
                   </td>
+                  <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      if (!pago) return s;
+                      const v = Number(l.valor || 0);
+                      const jr = Number(l.juros_real || 0);
+                      return s + (v - jr);
+                    }, 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      return pago ? s + Number(l.juros_real || 0) : s;
+                    }, 0))}
+                  </td>
                   <td className="py-3 text-right whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => {
+                      const pago = ["pago","recebido","conciliado"].includes(l.status||"");
+                      const cancel = l.status === "cancelado";
+                      if (pago || cancel) return s;
                       const v = Number(l.valor || 0);
                       const j = Number(l.juros_previsto || 0);
-                      const r = ["pago","recebido","conciliado"].includes(l.status||"") ? v : 0;
-                      return s + (v - j - r);
+                      return s + Math.max(v - j, 0);
                     }, 0))}
                   </td>
                   <td colSpan={3} />
+
                 </tr>
               </tfoot>
             )}
