@@ -338,6 +338,11 @@ function Usuarios() {
                 <td className="px-3 py-2">{p.ativo ? "Ativo" : "Inativo"}</td>
                 <td className="px-3 py-2 text-right">
                   <Button size="sm" variant="ghost" onClick={() => onEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  {p.ativo && (
+                    <Button size="sm" variant="ghost" title="Desativar e transferir responsabilidades" onClick={() => setTransferUser(p)}>
+                      <UserX className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
