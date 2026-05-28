@@ -454,14 +454,31 @@ export default function ContasAReceber() {
                         <div className="text-[10px] text-muted-foreground">{Number(l.taxa_perc).toFixed(2)}%</div>
                       )}
                     </td>
-                    <td className="text-right font-medium whitespace-nowrap">
+                    <td className="text-right whitespace-nowrap">
                       {(() => {
                         const valor = Number(l.valor || 0);
-                        const juros = Number(l.juros_previsto || 0);
-                        const recebido = pago ? valor : 0;
-                        return BRL(valor - juros - recebido);
+                        const jr = Number(l.juros_real || 0);
+                        const recebido = pago ? Math.round((valor - jr) * 100) / 100 : 0;
+                        return pago ? <span className="font-medium text-emerald-700">{BRL(recebido)}</span> : <span className="text-muted-foreground">—</span>;
                       })()}
                     </td>
+                    <td className="text-right whitespace-nowrap">
+                      {pago ? (() => {
+                        const jr = Number(l.juros_real || 0);
+                        if (Math.abs(jr) < 0.005) return <span className="text-muted-foreground">R$ 0,00</span>;
+                        if (jr < 0) return <span className="text-emerald-700" title="Recebido acima do bruto">+{BRL(Math.abs(jr))}</span>;
+                        return <span className="text-amber-700">{BRL(jr)}</span>;
+                      })() : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="text-right font-medium whitespace-nowrap">
+                      {(() => {
+                        if (pago || cancelado) return BRL(0);
+                        const valor = Number(l.valor || 0);
+                        const juros = Number(l.juros_previsto || 0);
+                        return BRL(Math.max(valor - juros, 0));
+                      })()}
+                    </td>
+
                     <td className="text-center">
                       <div className="inline-flex items-center">
                         {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
