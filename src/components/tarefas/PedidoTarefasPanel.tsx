@@ -569,7 +569,7 @@ export function AnexoDialog({
   );
 }
 
-function HistoricoDialog({
+export function HistoricoDialog({
   open, setOpen, tarefa, profiles,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; profiles: any[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
