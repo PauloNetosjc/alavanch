@@ -292,16 +292,35 @@ export default function Financeiro() {
   async function criarFornecedorRapido() {
     const nome = novoFornNome.trim();
     if (!nome) return toast.error("Informe o nome do fornecedor");
+    const email = novoFornEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return toast.error("E-mail inválido");
+    }
+    const doc = novoFornDoc.trim();
+    const onlyDigits = doc.replace(/\D/g, "");
+    const tipo_documento = onlyDigits.length === 11 ? "CPF" : onlyDigits.length === 14 ? "CNPJ" : null;
     const { data, error } = await supabase
       .from("fornecedores")
-      .insert({ nome, documento: novoFornDoc.trim() || null, ativo: true })
+      .insert({
+        nome,
+        documento: doc || null,
+        tipo_documento,
+        inscricao_estadual: novoFornIE.trim() || null,
+        telefone: novoFornTel.trim() || null,
+        email: email || null,
+        endereco_cobranca: novoFornEndCob.trim() || null,
+        endereco_entrega: novoFornEndEnt.trim() || null,
+        observacoes: novoFornObs.trim() || null,
+        ativo: true,
+      } as any)
       .select("id,nome")
       .single();
     if (error) return toast.error(error.message);
     setFornecedores((prev) => [...prev, { id: data!.id, nome: data!.nome }].sort((a, b) => a.nome.localeCompare(b.nome)));
     setEditLanc((prev: any) => ({ ...prev, fornecedor_id: data!.id }));
-    setNovoFornNome("");
-    setNovoFornDoc("");
+    setNovoFornNome(""); setNovoFornDoc(""); setNovoFornIE("");
+    setNovoFornTel(""); setNovoFornEmail("");
+    setNovoFornEndCob(""); setNovoFornEndEnt(""); setNovoFornObs("");
     setNovoFornOpen(false);
     toast.success("Fornecedor cadastrado");
   }
