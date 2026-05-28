@@ -341,10 +341,11 @@ export default function PedidoReceita() {
         <Field label="Nro. documento">{pedido.receita_codigo || "—"}</Field>
       </section>
 
-      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-6 gap-5 text-[13px]">
-        <Field label="Valor total">{fmtBrl(totais.valor)}</Field>
+      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
+        <Field label="Valor bruto">{fmtBrl(totais.valor)}</Field>
+        <Field label="Juros / Taxa"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
         <Field label="Recebido">{fmtBrl(totais.recebido)}</Field>
-        <Field label="Saldo">{fmtBrl(totais.saldo)}</Field>
+        <Field label="Saldo líquido"><span className="font-semibold">{fmtBrl(totais.saldo)}</span></Field>
         <Field label="Pendentes">{totais.pendentes}</Field>
         <Field label="Liquidadas">{totais.liquidadas}</Field>
         <Field label="Vencidas"><span className={totais.vencidas > 0 ? "text-red-600" : ""}>{totais.vencidas}</span></Field>
