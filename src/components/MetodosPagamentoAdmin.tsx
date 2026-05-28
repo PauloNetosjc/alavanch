@@ -244,6 +244,21 @@ export function MetodosPagamentoAdmin() {
                 </div>
               </div>
 
+              {editing.agrupado && (
+                <div className="p-3 rounded-md border border-border bg-muted/30">
+                  <Label className="text-[13px] font-medium">Prazo de recebimento agrupado (dias)</Label>
+                  <div className="text-[11px] text-muted-foreground mb-2">
+                    Quantidade de dias após a venda/assinatura em que o valor agrupado cairá no financeiro.
+                  </div>
+                  <Input
+                    type="number" min={0} step={1}
+                    className="h-9 max-w-[160px]"
+                    value={editing.prazo_recebimento_dias ?? 0}
+                    onChange={(e) => setEditing({ ...editing, prazo_recebimento_dias: Math.max(0, parseInt(e.target.value || "0", 10) || 0) })}
+                  />
+                </div>
+              )}
+
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Configuração por parcela</Label>
