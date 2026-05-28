@@ -47,6 +47,8 @@ type CardRow = {
     urgencia: UrgenciaNivel | null;
     arquivado: boolean | null;
     created_at: string | null;
+    data_limite_entrega: string | null;
+    data_limite_inicio_montagem: string | null;
     cliente: { nome: string } | null;
   } | null;
   etiquetas?: { id: string; nome: string; cor: string }[];
