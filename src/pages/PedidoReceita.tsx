@@ -213,13 +213,15 @@ export default function PedidoReceita() {
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
     const juros = parcelas.reduce((s, p) => s + (p.juros || 0), 0);
+    const jurosReal = parcelas.reduce((s, p) => s + (p.juros_real || 0), 0);
     const recebido = parcelas.reduce((s, p) => s + (p.recebido || 0), 0);
     const saldo = parcelas.reduce((s, p) => s + (p.saldo || 0), 0);
     const pendentes = parcelas.filter((p) => !isPago(p.status) && !isVencido(p)).length;
     const liquidadas = parcelas.filter((p) => isPago(p.status)).length;
     const vencidas = parcelas.filter((p) => isVencido(p)).length;
-    return { valor, juros, recebido, saldo, pendentes, liquidadas, vencidas };
+    return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
+
 
   const gerarReceber = async () => {
     if (!pedido?.id) return;
