@@ -411,7 +411,7 @@ export default function WorkflowOperacionalDashboard() {
 
       {/* Esteira de etapas em formato de setas */}
       <div className="relative no-print-scroll">
-        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows">
+        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-2">
           {ETAPAS.map((e, idx) => {
             const r = resumos.get(e.key)!;
             const Icon = e.icon;
@@ -433,8 +433,8 @@ export default function WorkflowOperacionalDashboard() {
             return (
               <div
                 key={e.key}
-                className="shrink-0"
-                style={{ marginLeft: isFirst ? 0 : -tip + 2 }}
+                className={`shrink-0 transition-all duration-200 ${active ? "drop-shadow-lg" : "drop-shadow-sm"}`}
+                style={{ marginLeft: isFirst ? 0 : -tip + 8 }}
               >
                 <button
                   type="button"
