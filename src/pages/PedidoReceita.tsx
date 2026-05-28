@@ -563,7 +563,37 @@ export default function PedidoReceita() {
         onSave={salvarEdicao}
         onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
       />
+
+      {novaOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !novaSaving && setNovaOpen(false)}>
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-playfair text-[18px] font-semibold">Adicionar parcela</h3>
+            <div className="grid grid-cols-2 gap-3 text-[13px]">
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Vencimento</div>
+                <input type="date" className="w-full border rounded px-2 py-1.5" value={novaForm.vencimento} onChange={(e) => setNovaForm({ ...novaForm, vencimento: e.target.value })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Forma</div>
+                <input className="w-full border rounded px-2 py-1.5" value={novaForm.forma} onChange={(e) => setNovaForm({ ...novaForm, forma: e.target.value })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Valor bruto</div>
+                <input type="number" step="0.01" className="w-full border rounded px-2 py-1.5" value={novaForm.valor} onChange={(e) => setNovaForm({ ...novaForm, valor: Number(e.target.value) })} /></label>
+              <label className="space-y-1"><div className="text-[11px] text-muted-foreground">Juros previsto</div>
+                <input type="number" step="0.01" className="w-full border rounded px-2 py-1.5" value={novaForm.juros} onChange={(e) => setNovaForm({ ...novaForm, juros: Number(e.target.value) })} /></label>
+              <label className="space-y-1 col-span-2"><div className="text-[11px] text-muted-foreground">Conta</div>
+                <select className="w-full border rounded px-2 py-1.5" value={novaForm.conta_id} onChange={(e) => setNovaForm({ ...novaForm, conta_id: e.target.value })}>
+                  <option value="">—</option>
+                  {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.banco ? ` — ${c.banco}` : ""}</option>)}
+                </select></label>
+              <label className="space-y-1 col-span-2"><div className="text-[11px] text-muted-foreground">Observação</div>
+                <textarea rows={2} className="w-full border rounded px-2 py-1.5" value={novaForm.notas} onChange={(e) => setNovaForm({ ...novaForm, notas: e.target.value })} /></label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setNovaOpen(false)} disabled={novaSaving}>Cancelar</Button>
+              <Button size="sm" onClick={salvarNovaParcela} disabled={novaSaving}>{novaSaving ? "Salvando…" : "Adicionar"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
