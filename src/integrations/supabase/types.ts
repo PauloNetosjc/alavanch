@@ -3098,6 +3098,7 @@ export type Database = {
           assinatura_cpf: string | null
           assinatura_data_url: string | null
           assinatura_nome: string | null
+          ativo: boolean
           bucket_name: string
           categoria_projeto: string | null
           created_at: string
@@ -3118,6 +3119,7 @@ export type Database = {
           assinatura_cpf?: string | null
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
+          ativo?: boolean
           bucket_name?: string
           categoria_projeto?: string | null
           created_at?: string
@@ -3138,6 +3140,7 @@ export type Database = {
           assinatura_cpf?: string | null
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
+          ativo?: boolean
           bucket_name?: string
           categoria_projeto?: string | null
           created_at?: string
