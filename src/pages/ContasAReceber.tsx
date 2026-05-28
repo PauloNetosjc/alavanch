@@ -396,7 +396,20 @@ export default function ContasAReceber() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
+                    <td className="py-4 px-5 whitespace-nowrap">
+                      {(() => {
+                        const info = parcelaInfo.get(l.id);
+                        if (info && info.receitaCodigo) {
+                          return (
+                            <Link to={`/pedidos/${l.pedido_id}/receita`} className="font-mono text-[12px] text-primary hover:underline" title="Ver receita agrupada">
+                              #{info.receitaCodigo}-{info.numero}/{info.total}
+                            </Link>
+                          );
+                        }
+                        return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
+                      })()}
+                    </td>
+                    <td className="py-4 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
                       <div className="font-medium">{l.descricao || "—"}</div>
@@ -422,6 +435,13 @@ export default function ContasAReceber() {
                     </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
+                        {l.pedido_id && (
+                          <Button size="icon" variant="ghost" title="Ver receita agrupada" asChild>
+                            <Link to={`/pedidos/${l.pedido_id}/receita`}>
+                              <Layers className="w-4 h-4 text-primary" />
+                            </Link>
+                          </Button>
+                        )}
                         {!pago && !cancelado && (
                           <>
                             <Button size="icon" variant="ghost" title="Receber" onClick={() => abrirBaixa(l)}>
@@ -431,6 +451,11 @@ export default function ContasAReceber() {
                               <X className="w-4 h-4 text-rose-500" />
                             </Button>
                           </>
+                        )}
+                        {pago && !cancelado && podeEditar && (
+                          <Button size="icon" variant="ghost" title="Estornar recebimento" onClick={() => estornar(l)}>
+                            <RotateCcw className="w-4 h-4 text-amber-600" />
+                          </Button>
                         )}
                         {podeEditar && !cancelado && (
                           <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
