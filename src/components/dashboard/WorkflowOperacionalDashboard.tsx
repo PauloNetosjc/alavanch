@@ -487,6 +487,8 @@ export default function WorkflowOperacionalDashboard() {
                     <th className="text-right py-2 pr-3">Valor</th>
                     <th className="text-left py-2 pr-3">Início etapa</th>
                     <th className="text-left py-2 pr-3">Prazo</th>
+                    <th className="text-left py-2 pr-3">Lim. entrega</th>
+                    <th className="text-left py-2 pr-3">Lim. montagem</th>
                     <th className="text-left py-2 pr-3">Status</th>
                     <th className="text-left py-2 pr-3">Responsável</th>
                     <th className="text-left py-2 pr-3">Loja</th>
@@ -501,6 +503,8 @@ export default function WorkflowOperacionalDashboard() {
                       <td className="py-2 pr-3 text-right">{BRL(Number(p.valor_total || 0))}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_inicio_etapa)}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.prazo)}</td>
+                      <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_limite_entrega)}</td>
+                      <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_limite_inicio_montagem)}</td>
                       <td className="py-2 pr-3">
                         <StatusBadge status={p.statusPrazo} dias={p.diasRestantes} />
                       </td>
