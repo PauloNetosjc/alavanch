@@ -246,7 +246,8 @@ Deno.serve(async (req) => {
       .ilike("nome", "Documentos")
       .maybeSingle();
 
-    const nomeArquivo = `Assinatura final - ${(s as any).pedidos?.codigo ?? "pedido"} - ${s.file_name ?? (s as any).tipos_documento?.nome ?? "documento"}.pdf`;
+    const codigoPedido = (s as any).pedidos?.codigo ?? "pedido";
+    const nomeArquivo = `Contrato assinado - ${codigoPedido}.pdf`;
     const docPayload = {
       pedido_id: s.pedido_id,
       solicitacao_id: s.id,
@@ -256,6 +257,7 @@ Deno.serve(async (req) => {
       bucket_name: "assinaturas-finais",
       tamanho: finalBytes.length,
       mime_type: "application/pdf",
+      enviado_para_assinatura: true,
       assinado_em: s.cliente_assinado_em ?? s.concluido_em ?? new Date().toISOString(),
       assinatura_nome: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.nome ?? null,
       assinatura_cpf: (parts ?? []).find((p) => p.tipo === "cliente" && p.status === "assinado")?.documento ?? null,
@@ -271,8 +273,10 @@ Deno.serve(async (req) => {
       .or(`solicitacao_id.eq.${s.id},storage_path.eq.${path}`)
       .order("created_at", { ascending: false });
 
+    let docFinalId: string | null = null;
     if (existentes && existentes.length > 0) {
       const [keep, ...extras] = existentes;
+      docFinalId = keep.id;
       const { error: errUpd } = await sb
         .from("pedido_documentos")
         .update(docPayload)
@@ -287,7 +291,11 @@ Deno.serve(async (req) => {
           .in("id", extras.map((e: any) => e.id));
       }
     } else {
-      const { error: errIns } = await sb.from("pedido_documentos").insert(docPayload);
+      const { data: inserted, error: errIns } = await sb
+        .from("pedido_documentos")
+        .insert(docPayload)
+        .select("id")
+        .maybeSingle();
       if (errIns) {
         // Conflito por índice único parcial uq_pedido_doc_assinatura_final → atualizar o existente.
         const { data: dup } = await sb
@@ -298,12 +306,40 @@ Deno.serve(async (req) => {
           .eq("bucket_name", "assinaturas-finais")
           .maybeSingle();
         if (dup?.id) {
+          docFinalId = dup.id;
           await sb.from("pedido_documentos").update(docPayload).eq("id", dup.id);
         } else {
           console.error("[assinatura-pdf-final] insert pedido_documentos falhou", errIns);
         }
+      } else {
+        docFinalId = inserted?.id ?? null;
       }
     }
+
+    // Deduplicação cross-bucket: remove o rascunho do contrato (bucket contratos-assinatura
+    // ou qualquer outro registro da mesma solicitação) que tenha sido criado pelo fluxo
+    // de envio. A versão assinada substitui o rascunho na Central de Documentos.
+    {
+      let delQuery = sb
+        .from("pedido_documentos")
+        .delete()
+        .eq("pedido_id", s.pedido_id)
+        .eq("solicitacao_id", s.id)
+        .neq("bucket_name", "assinaturas-finais");
+      if (docFinalId) delQuery = delQuery.neq("id", docFinalId);
+      const { error: errDelDraft } = await delQuery;
+      if (errDelDraft) {
+        console.error("[assinatura-pdf-final] limpeza de rascunho falhou", errDelDraft);
+      }
+      // Atualiza referência em solicitacoes_assinatura para apontar para o registro final
+      if (docFinalId) {
+        await sb
+          .from("solicitacoes_assinatura")
+          .update({ pedido_documento_id: docFinalId })
+          .eq("id", s.id);
+      }
+    }
+
 
     return new Response(JSON.stringify({ url, path }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
