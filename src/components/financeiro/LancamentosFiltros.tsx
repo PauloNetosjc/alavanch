@@ -23,6 +23,10 @@ interface Props {
   fornecedores?: Fornecedor[];
   fornecedorFiltro?: string;
   setFornecedorFiltro?: (v: string) => void;
+  // forma de pagamento prevista
+  formaPrevFiltro?: string;
+  setFormaPrevFiltro?: (v: string) => void;
+  formasPrevistas?: string[];
   // opções
   incluirPendentes: boolean;
   setIncluirPendentes: (v: boolean) => void;
@@ -138,6 +142,24 @@ export default function LancamentosFiltros(p: Props) {
                   <SelectItem value="all">Todos os fornecedores</SelectItem>
                   {(p.fornecedores || []).map((f) => (
                     <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          {p.setFormaPrevFiltro && (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground pt-1">Forma de pagamento prevista</div>
+              <Select
+                value={p.formaPrevFiltro || "all"}
+                onValueChange={(v) => p.setFormaPrevFiltro?.(v === "all" ? "" : v)}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas as formas" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as formas</SelectItem>
+                  <SelectItem value="__none">Não informado</SelectItem>
+                  {(p.formasPrevistas || []).map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

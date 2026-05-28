@@ -14,6 +14,7 @@ export type EditarLancamentoData = {
   data_pagamento: string | null;
   valor: number;
   forma_pagamento: string | null;
+  forma_pagamento_prevista: string | null;
   notas: string | null;
   status: string | null;
 };
@@ -23,6 +24,7 @@ export type EditarPayload = {
   data_pagamento: string | null;
   valor: number;
   forma_pagamento: string | null;
+  forma_pagamento_prevista: string | null;
   notas: string | null;
 };
 
@@ -36,12 +38,14 @@ type Props = {
 };
 
 const FORMAS = ["PIX", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Boleto", "Transferência", "Cheque", "Outro"];
+export const FORMAS_PREVISTAS = ["PIX", "Boleto", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Transferência Bancária", "Cheque", "Permuta", "Outro"];
 
 export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc, onSave, onEstornar }: Props) {
   const [dataVenc, setDataVenc] = useState("");
   const [dataPag, setDataPag] = useState("");
   const [valor, setValor] = useState<number>(0);
   const [forma, setForma] = useState<string>("PIX");
+  const [formaPrev, setFormaPrev] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -51,6 +55,7 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
       setDataPag(lanc.data_pagamento || "");
       setValor(Number(lanc.valor || 0));
       setForma(lanc.forma_pagamento || "PIX");
+      setFormaPrev(lanc.forma_pagamento_prevista || "");
       setNotas(lanc.notas || "");
     }
   }, [open, lanc]);
@@ -65,6 +70,7 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
         data_pagamento: dataPag || null,
         valor: Number(valor) || 0,
         forma_pagamento: forma || null,
+        forma_pagamento_prevista: formaPrev || null,
         notas: notas || null,
       });
       onOpenChange(false);
@@ -113,14 +119,24 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
               <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(Number(e.target.value))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Forma de pagamento</Label>
-              <Select value={forma} onValueChange={setForma}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Forma de pagamento prevista</Label>
+              <Select value={formaPrev || "__none"} onValueChange={(v) => setFormaPrev(v === "__none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Não informado" /></SelectTrigger>
                 <SelectContent>
-                  {FORMAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  <SelectItem value="__none">Não informado</SelectItem>
+                  {FORMAS_PREVISTAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Forma de pagamento {pago ? "(real)" : ""}</Label>
+            <Select value={forma} onValueChange={setForma}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FORMAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Notas</Label>

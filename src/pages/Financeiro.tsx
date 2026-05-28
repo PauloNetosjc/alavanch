@@ -282,6 +282,7 @@ export default function Financeiro() {
       pedido_id: "",
       parceiro_id: "",
       fornecedor_id: "",
+      forma_pagamento_prevista: "",
       parcelas: 2,
       vincular_contrato: false,
       informar_parceiro: false,
@@ -343,13 +344,14 @@ export default function Financeiro() {
       );
     }
 
-    const base = {
+    const base: any = {
       tipo: editLanc.tipo,
       descricao: editLanc.descricao,
       categoria_id: editLanc.categoria_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
       fornecedor_id: editLanc.fornecedor_id || null,
+      forma_pagamento_prevista: editLanc.forma_pagamento_prevista || null,
       status: "pendente",
     };
 
@@ -750,14 +752,31 @@ export default function Financeiro() {
                     <Input type="number" min={2} value={editLanc.parcelas} onChange={(e) => setEditLanc({ ...editLanc, parcelas: Number(e.target.value) })} />
                   </div>
                 )}
-                <div>
-                  <Label className="text-xs">Conta</Label>
-                  <Select value={editLanc.conta_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, conta_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-                    <SelectContent>
-                      {contas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Conta</Label>
+                    <Select value={editLanc.conta_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, conta_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {contas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Forma de pagamento prevista</Label>
+                    <Select
+                      value={editLanc.forma_pagamento_prevista || "__none"}
+                      onValueChange={(v) => setEditLanc({ ...editLanc, forma_pagamento_prevista: v === "__none" ? "" : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Não informado" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Não informado</SelectItem>
+                        {["PIX","Boleto","Dinheiro","Cartão de Crédito","Cartão de Débito","Transferência Bancária","Cheque","Permuta","Outro"].map((f) => (
+                          <SelectItem key={f} value={f}>{f}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

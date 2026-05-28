@@ -10,7 +10,7 @@ import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
-import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload, FORMAS_PREVISTAS } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 import { useLoja } from "@/contexts/LojaContext";
@@ -32,6 +32,7 @@ type Lanc = {
   baixado_em: string | null;
   fornecedor_id: string | null;
   forma_pagamento: string | null;
+  forma_pagamento_prevista: string | null;
   notas: string | null;
   loja_id: string | null;
   juros_previsto?: number | null;
@@ -73,6 +74,7 @@ export default function ContasAReceber() {
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
+  const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -190,6 +192,10 @@ export default function ContasAReceber() {
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
+      if (formaPrevFiltro) {
+        if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
+        else if ((l.forma_pagamento_prevista || "") !== formaPrevFiltro) return false;
+      }
       const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
@@ -204,12 +210,13 @@ export default function ContasAReceber() {
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
-          || (fam?.clienteNome || "").toLowerCase().includes(t);
+          || (fam?.clienteNome || "").toLowerCase().includes(t)
+          || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
 
 
   const [baixaOpen, setBaixaOpen] = useState(false);
@@ -227,9 +234,10 @@ export default function ContasAReceber() {
       data_pagamento: p.data_pagamento,
       valor: p.valor,
       forma_pagamento: p.forma_pagamento,
+      forma_pagamento_prevista: p.forma_pagamento_prevista,
       notas: p.notas,
       ...reapprovalPatch(),
-    }).eq("id", editAlvo.id);
+    } as any).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
@@ -320,6 +328,7 @@ export default function ContasAReceber() {
     tipo: l.tipo,
     status: l.status || "",
     valor: Number(l.valor || 0),
+    forma_pagamento_prevista: l.forma_pagamento_prevista,
   }));
 
   return (
@@ -364,6 +373,8 @@ export default function ContasAReceber() {
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
         fornecedores={fornecedores}
         fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
+        formaPrevFiltro={formaPrevFiltro} setFormaPrevFiltro={setFormaPrevFiltro}
+        formasPrevistas={FORMAS_PREVISTAS}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
@@ -391,6 +402,7 @@ export default function ContasAReceber() {
                 <th className="text-right py-3 font-medium">Juros Real</th>
                 <th className="text-right py-3 font-medium">Saldo líquido</th>
                 <th className="text-center py-3 font-medium">Status</th>
+                <th className="text-left py-3 font-medium">Forma Pgto. Prevista</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
               </tr>
@@ -492,6 +504,9 @@ export default function ContasAReceber() {
                         {baixaInfo}
                       </div>
                     </td>
+                    <td className="text-xs text-muted-foreground whitespace-nowrap">
+                      {l.forma_pagamento_prevista || "—"}
+                    </td>
                     <td className="max-w-[180px] text-xs text-muted-foreground truncate" title={l.notas || ""}>
                       {l.notas || "—"}
                     </td>
@@ -530,7 +545,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={15} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={16} className="text-center py-12 text-muted-foreground">
 
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
@@ -574,7 +589,7 @@ export default function ContasAReceber() {
                       return s + Math.max(v - j, 0);
                     }, 0))}
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={4} />
 
                 </tr>
               </tfoot>
@@ -608,6 +623,7 @@ export default function ContasAReceber() {
           data_pagamento: editAlvo.data_pagamento,
           valor: Number(editAlvo.valor || 0),
           forma_pagamento: editAlvo.forma_pagamento,
+          forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
         } : null}

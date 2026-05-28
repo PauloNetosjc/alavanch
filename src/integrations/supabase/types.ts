@@ -2040,6 +2040,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           forma_pagamento: string | null
+          forma_pagamento_prevista: string | null
           fornecedor_id: string | null
           id: string
           juros_previsto: number
@@ -2077,6 +2078,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento?: string | null
+          forma_pagamento_prevista?: string | null
           fornecedor_id?: string | null
           id?: string
           juros_previsto?: number
@@ -2114,6 +2116,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento?: string | null
+          forma_pagamento_prevista?: string | null
           fornecedor_id?: string | null
           id?: string
           juros_previsto?: number
