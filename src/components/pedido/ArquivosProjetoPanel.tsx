@@ -113,7 +113,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         .from("pedido_documentos")
         .select("*")
         .eq("pedido_id", pedido.id)
-        .not("categoria_projeto", "is", null)
+        .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado"])
         .order("created_at", { ascending: false }),
       supabase
         .from("solicitacoes_assinatura")
@@ -160,7 +160,8 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const docsPor = useMemo(() => {
     const r: Record<Categoria, Doc[]> = { projeto_vendido: [], projeto_para_revisao: [], projeto_revisado: [] };
     docs.forEach((d) => {
-      if (d.categoria_projeto) r[d.categoria_projeto].push(d);
+      const cat = d.categoria_projeto as Categoria | null;
+      if (cat && r[cat]) r[cat].push(d);
     });
     return r;
   }, [docs]);
