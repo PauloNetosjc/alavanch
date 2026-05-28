@@ -6,7 +6,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { ArrowLeft, Wallet, CheckCircle2, AlertTriangle, RefreshCw, Check, Pencil, RotateCcw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { gerarPreviewReceita, type MetodoPagamento } from "@/lib/receitaPreview";
 
