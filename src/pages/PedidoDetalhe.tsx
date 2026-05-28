@@ -652,8 +652,8 @@ export default function PedidoDetalhe() {
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
-      {/* CRONOGRAMA E DATAS */}
-      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
+      {/* ARQUIVOS DO PROJETO — sobe para posição anterior do Cronograma */}
+      <ArquivosProjetoPanel pedido={pedido} />
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
       <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
@@ -686,21 +686,17 @@ export default function PedidoDetalhe() {
         />
       )}
 
-      {/* ARQUIVOS DO PROJETO — separado, com suas próprias regras */}
-      <ArquivosProjetoPanel pedido={pedido} />
+      {/* CRONOGRAMA E DATAS — desce para posição anterior dos Arquivos do Projeto */}
+      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
 
       {/* TAREFAS ASSOCIADAS AO PEDIDO (legado: agenda/tarefa_interna) */}
       <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" />
 
-      {/* PRODUTOS + PARCELAS — penúltimo bloco, lado a lado no desktop */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-        <div className="min-w-0">
-          <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
-        </div>
-        <div className="min-w-0">
-          <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
-        </div>
-      </div>
+      {/* PRODUTOS — antepenúltimo bloco, largura total */}
+      <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
+
+      {/* PARCELAS — penúltimo bloco, largura total */}
+      <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
 
       {/* NOTAS + CHAT INTERNO — último bloco */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
