@@ -2198,42 +2198,57 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
       });
       if (revErr) throw revErr;
 
-      // Gatilho B: espelhar o arquivo em Arquivos do Projeto > Projeto Revisado.
-      // O insert em pedido_documentos com categoria_projeto='projeto_revisado'
-      // dispara o trigger que conclui automaticamente a tarefa nativa "Revisão loja".
+      // Espelhar o arquivo importado em Central de Documentos > Documentos.
+      // IMPORTANTE: não usar categoria_projeto='projeto_revisado' para não
+      // disparar o gatilho que conclui automaticamente a tarefa "Revisão loja".
+      // A tarefa só deve concluir por upload real em Arquivos do Projeto > Projeto Revisado
+      // ou pelo fechamento efetivo do fluxo de revisão.
       try {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_");
-        const path = `${pedido.id}/projeto_revisado/${Date.now()}-${safeName}`;
+        const path = `${pedido.id}/documentos/${Date.now()}-${safeName}`;
         const blob = new Blob([text], { type: file.type || "text/plain" });
         const { error: upErr } = await supabase.storage
           .from("pedido-docs")
           .upload(path, blob, { upsert: false });
         if (!upErr) {
+          // Garante a pasta "Documentos" da Central de Documentos
           let pastaId: string | null = null;
-          try {
-            const { data: pId } = await (supabase as any).rpc("fn_garantir_pasta_projeto", { p_pedido_id: pedido.id });
-            pastaId = pId || null;
-          } catch {}
+          const { data: pastaExistente } = await supabase
+            .from("pedido_pastas")
+            .select("id")
+            .eq("pedido_id", pedido.id)
+            .ilike("nome", "documentos")
+            .maybeSingle();
+          if (pastaExistente?.id) {
+            pastaId = pastaExistente.id;
+          } else {
+            const { data: criada } = await supabase
+              .from("pedido_pastas")
+              .insert({ pedido_id: pedido.id, nome: "Documentos", ordem: 99 })
+              .select("id")
+              .single();
+            pastaId = criada?.id || null;
+          }
           const { error: insErr } = await supabase.from("pedido_documentos").insert({
             pedido_id: pedido.id,
             pasta_id: pastaId,
-            nome: `Revisão v${versaoAtual} — ${ambiente.nome || "Ambiente"} — ${file.name}`,
+            nome: `Revisão importada - v${versaoAtual} - ${ambiente.nome || "Ambiente"} - ${file.name}`,
             storage_path: path,
             tamanho: file.size,
             mime_type: file.type || "text/plain",
-            categoria_projeto: "projeto_revisado",
+            categoria_projeto: null,
             created_by: user?.id || null,
             bucket_name: "pedido-docs",
           } as any);
           if (insErr) {
             await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
-            console.warn("[enviarRevisao] falha ao registrar projeto_revisado:", insErr);
+            console.warn("[enviarRevisao] falha ao registrar em Documentos:", insErr);
           }
         } else {
-          console.warn("[enviarRevisao] falha no upload projeto_revisado:", upErr);
+          console.warn("[enviarRevisao] falha no upload Documentos:", upErr);
         }
       } catch (e) {
-        console.warn("[enviarRevisao] erro ao espelhar em Projeto Revisado:", e);
+        console.warn("[enviarRevisao] erro ao espelhar em Documentos:", e);
       }
 
       toast.success(`Revisão v${versaoAtual} enviada`);
