@@ -1234,6 +1234,11 @@ export type Database = {
           nome_empresa: string | null
           nome_fantasia: string | null
           outros_perc: number | null
+          prazo_entrega_inicio_contagem: string
+          prazo_entrega_tipo_dias: string
+          prazo_montagem_dias: number
+          prazo_montagem_inicio_contagem: string
+          prazo_montagem_tipo_dias: string
           prazo_padrao_dias: number | null
           taxa_fixa_perc: number | null
           taxa_modo: string | null
@@ -1272,6 +1277,11 @@ export type Database = {
           nome_empresa?: string | null
           nome_fantasia?: string | null
           outros_perc?: number | null
+          prazo_entrega_inicio_contagem?: string
+          prazo_entrega_tipo_dias?: string
+          prazo_montagem_dias?: number
+          prazo_montagem_inicio_contagem?: string
+          prazo_montagem_tipo_dias?: string
           prazo_padrao_dias?: number | null
           taxa_fixa_perc?: number | null
           taxa_modo?: string | null
@@ -1310,6 +1320,11 @@ export type Database = {
           nome_empresa?: string | null
           nome_fantasia?: string | null
           outros_perc?: number | null
+          prazo_entrega_inicio_contagem?: string
+          prazo_entrega_tipo_dias?: string
+          prazo_montagem_dias?: number
+          prazo_montagem_inicio_contagem?: string
+          prazo_montagem_tipo_dias?: string
           prazo_padrao_dias?: number | null
           taxa_fixa_perc?: number | null
           taxa_modo?: string | null
@@ -3496,7 +3511,9 @@ export type Database = {
           data_chegada_material: string | null
           data_entrega: string | null
           data_envio_fabrica: string | null
+          data_limite_entrega: string | null
           data_limite_finalizacao: string | null
+          data_limite_inicio_montagem: string | null
           data_medicao_tecnica: string | null
           data_montagem: string | null
           data_pagamento_fabrica: string | null
@@ -3549,7 +3566,9 @@ export type Database = {
           data_chegada_material?: string | null
           data_entrega?: string | null
           data_envio_fabrica?: string | null
+          data_limite_entrega?: string | null
           data_limite_finalizacao?: string | null
+          data_limite_inicio_montagem?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_pagamento_fabrica?: string | null
@@ -3602,7 +3621,9 @@ export type Database = {
           data_chegada_material?: string | null
           data_entrega?: string | null
           data_envio_fabrica?: string | null
+          data_limite_entrega?: string | null
           data_limite_finalizacao?: string | null
+          data_limite_inicio_montagem?: string | null
           data_medicao_tecnica?: string | null
           data_montagem?: string | null
           data_pagamento_fabrica?: string | null
@@ -5317,6 +5338,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_business_days: {
+        Args: { p_base: string; p_days: number }
+        Returns: string
+      }
       add_dias_uteis: {
         Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
@@ -5497,6 +5522,10 @@ export type Database = {
       pode_autorizar_excecao_agenda: {
         Args: { _loja: string; _user_id: string }
         Returns: boolean
+      }
+      recalcular_prazos_operacionais_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
       }
       recalcular_status_solicitacao: {
         Args: { p_solic: string }
