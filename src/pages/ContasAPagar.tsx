@@ -252,6 +252,7 @@ export default function ContasAPagar() {
   const toRows = (): LancRow[] => filtrados.map((l) => ({
     data: l.data_pagamento || l.data_vencimento || "",
     descricao: l.descricao || "",
+    cliente: clienteName(l.pedido_id, l.fornecedor_id),
     categoria: catName(l.categoria_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,

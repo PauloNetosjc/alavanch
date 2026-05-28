@@ -314,6 +314,7 @@ export default function ContasAReceber() {
   const toRows = (): LancRow[] => filtrados.map((l) => ({
     data: l.data_pagamento || l.data_vencimento || "",
     descricao: l.descricao || "",
+    cliente: pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "",
     categoria: catName(l.categoria_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
