@@ -24,6 +24,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -81,6 +82,8 @@ export default function ContasAPagar() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
+  const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
+  const [centros, setCentros] = useState<{ id: string; nome: string }[]>([]);
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -94,7 +97,7 @@ export default function ContasAPagar() {
   }, [selectedLojaId]);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
@@ -104,6 +107,7 @@ export default function ContasAPagar() {
       supabase.from("fornecedores").select("id,nome").order("nome"),
       supabase.from("orcamentos").select("id,parceiro_id").limit(5000),
       supabase.from("parceiros").select("id,nome").limit(2000),
+      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -114,6 +118,7 @@ export default function ContasAPagar() {
     setFornecedores((fr as any[]) || []);
     setOrcamentos((oc as Orc[]) || []);
     setParceiros((pa as Parceiro[]) || []);
+    setCentros(((cc as any[]) || []));
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
