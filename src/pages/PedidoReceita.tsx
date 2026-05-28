@@ -259,6 +259,18 @@ export default function PedidoReceita() {
     return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
+  const resumoPagamento = useMemo(() => {
+    if (parcelas.length === 0) return "—";
+    const grupos = new Map<string, number>();
+    for (const p of parcelas) {
+      const f = (p.forma || "—").trim();
+      grupos.set(f, (grupos.get(f) || 0) + 1);
+    }
+    return Array.from(grupos.entries())
+      .map(([forma, qtd]) => `${qtd}x ${forma}`)
+      .join(" + ");
+  }, [parcelas]);
+
 
   const gerarReceber = async () => {
     if (!pedido?.id) return;
@@ -402,6 +414,7 @@ export default function PedidoReceita() {
           <Link to={`/pedidos/${pedido.id}`} className="text-primary hover:underline">{pedido.codigo}</Link>
         </Field>
         <Field label="Nro. documento">{pedido.receita_codigo || "—"}</Field>
+        <Field label="Forma de pagamento"><span className="font-medium">{resumoPagamento}</span></Field>
       </section>
 
       <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
