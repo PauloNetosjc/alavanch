@@ -82,11 +82,9 @@ const queryClient = new QueryClient({
   },
 });
 
-const PageFallback = () => (
-  <div className="min-h-[40vh] flex items-center justify-center text-[12px] text-muted-foreground animate-pulse">
-    Carregando…
-  </div>
-);
+// Fallback vazio para evitar flash de "Carregando…" em cada navegação lazy.
+// O conteúdo da rota anterior permanece visível até o próximo chunk resolver.
+const PageFallback = () => null;
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
