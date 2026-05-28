@@ -1882,6 +1882,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           juros_previsto: number
+          juros_real: number
           loja_id: string | null
           notas: string | null
           numero_parcela: number | null
@@ -1918,6 +1919,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           juros_previsto?: number
+          juros_real?: number
           loja_id?: string | null
           notas?: string | null
           numero_parcela?: number | null
@@ -1954,6 +1956,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           juros_previsto?: number
+          juros_real?: number
           loja_id?: string | null
           notas?: string | null
           numero_parcela?: number | null
