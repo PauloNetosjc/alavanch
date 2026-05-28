@@ -46,8 +46,20 @@ type TarefaNativa = {
   rh_cargos?: { nome: string | null } | null;
   profiles?: { nome_completo: string | null } | null;
   conclui_por_upload_categoria?: string | null;
-  tarefas_nativas_modelos?: { exibir_meus_chamados: boolean; conclui_por_upload_categoria: string | null } | null;
+  tarefas_nativas_modelos?: { nome?: string | null; exibir_meus_chamados: boolean; conclui_por_upload_categoria: string | null } | null;
 };
+
+/* Filtros por tarefa nativa (chaves técnicas fixas → nome do modelo no banco).
+ * Centralizado para não duplicar regra e evitar regressão. */
+export const TASK_FILTERS: ReadonlyArray<{ key: string; label: string; modelo: string }> = [
+  { key: "acompanhar_assinatura_contrato",   label: "Acompanhar assinatura do contrato",     modelo: "Acompanhar assinatura do contrato" },
+  { key: "enviar_projeto_inicial",           label: "Enviar projeto inicial para o cliente", modelo: "Enviar projeto inicial para o cliente" },
+  { key: "subir_arquivo_3d_vendido",         label: "Subir arquivo 3D vendido",              modelo: "Subir arquivo 3D vendido" },
+  { key: "fazer_medicao_tecnica",            label: "Fazer medição técnica",                 modelo: "Fazer medição técnica" },
+  { key: "preparo_projeto_revisao",          label: "Preparo projeto revisão",               modelo: "Preparo projeto revisão" },
+  { key: "revisao_loja",                     label: "Revisão loja",                          modelo: "Revisão loja" },
+  { key: "preparo_envio_pdf_projeto_final",  label: "Preparo e envio de PDF Projeto Final",  modelo: "Preparo e envio de PDF Projeto Final" },
+];
 
 
 const STATUS_BADGE: Record<string, string> = {
