@@ -6,7 +6,7 @@ import { Target, BarChart3, TrendingUp, TrendingDown, Clock, Ruler, Pencil, Fact
 import { BRL } from "@/lib/financeiro";
 import { PageFilters, defaultPeriodoMes, resolvePeriodo, PeriodoState } from "@/components/PageFilters";
 import { useLoja } from "@/contexts/LojaContext";
-import RadarPrazos from "@/pages/RadarPrazos";
+import WorkflowOperacionalDashboard from "@/components/dashboard/WorkflowOperacionalDashboard";
 
 
 type Pedido = {
@@ -297,19 +297,8 @@ export default function Dashboard() {
 
 
 
-      {/* Controle de Prazos (Radar) – mesmos estágios dos Kanbans */}
-      <div className="surface-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-rose-700" />
-          </div>
-          <div>
-            <h2 className="text-xl font-display">Controle de Prazos</h2>
-            <p className="text-xs text-muted-foreground">Etapas com prazo definidas nos Kanbans</p>
-          </div>
-        </div>
-        <RadarPrazos embedded />
-      </div>
+      {/* Workflow Operacional dos Pedidos (substitui o Radar de Prazos) */}
+      <WorkflowOperacionalDashboard />
     </div>
   );
 }
