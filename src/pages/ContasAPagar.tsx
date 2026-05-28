@@ -242,6 +242,8 @@ export default function ContasAPagar() {
           || (fam?.clienteNome || "").toLowerCase().includes(t)
           || (fam?.parceiroNome || "").toLowerCase().includes(t)
           || parceiroFornecedor(l).toLowerCase().includes(t)
+          || (l.entidade_nome || "").toLowerCase().includes(t)
+          || (entidadeTipoLabel(l.entidade_tipo) || "").toLowerCase().includes(t)
           || (l.status || "").toLowerCase().includes(t)
           || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
