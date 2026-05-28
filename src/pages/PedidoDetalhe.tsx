@@ -1203,16 +1203,25 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
 
   const uploadDoc = async () => {
     if (!arquivoFile) return toast.error("Selecione um arquivo");
-    const path = `${pedidoId}/${Date.now()}_${arquivoFile.name}`;
-    const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, arquivoFile);
+    const safeName = sanitizeStorageFileName(arquivoFile.name);
+    const path = `${pedidoId}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, arquivoFile, {
+      contentType: arquivoFile.type || undefined,
+      upsert: false,
+    });
     if (upErr) return toast.error(upErr.message);
-    await supabase.from("pedido_documentos").insert({
+    const { error: insErr } = await supabase.from("pedido_documentos").insert({
       pedido_id: pedidoId, pasta_id: pastaAtiva, nome: arquivoNome || arquivoFile.name,
       storage_path: path, tamanho: arquivoFile.size, mime_type: arquivoFile.type,
     });
+    if (insErr) {
+      await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
+      return toast.error(insErr.message);
+    }
     toast.success("Arquivo enviado");
     setUploadOpen(false); setArquivoNome(""); setArquivoFile(null); onChange();
   };
+
 
   const enviarParaAssinatura = async (doc: any) => {
     const tipoSlug = (doc.tipo_documento_slug as string) || "projeto_inicial";
