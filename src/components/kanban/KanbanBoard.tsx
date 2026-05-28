@@ -475,6 +475,28 @@ export default function KanbanBoard({
                               {d == null ? "—" : d < 0 ? `${Math.abs(d)}d atraso` : d === 0 ? "vence hoje" : `${d}d restantes`}
                             </div>
                           )}
+                          {(ped.data_limite_entrega || ped.data_limite_inicio_montagem) && (
+                            <div className="mt-1.5 grid grid-cols-1 gap-0.5 text-[10px]">
+                              {ped.data_limite_entrega && (() => {
+                                const dd = diffDays(ped.data_limite_entrega);
+                                const cls = dd == null ? "text-muted-foreground"
+                                  : dd < 0 ? "text-red-600 font-medium"
+                                  : dd === 0 ? "text-amber-600 font-medium"
+                                  : dd <= 7 ? "text-amber-600" : "text-emerald-700";
+                                const sufix = dd == null ? "" : dd < 0 ? ` (vencido ${Math.abs(dd)}d)` : dd === 0 ? " (hoje)" : "";
+                                return <div className={cls}>📦 Entrega: {new Date(ped.data_limite_entrega + "T00:00:00").toLocaleDateString("pt-BR")}{sufix}</div>;
+                              })()}
+                              {ped.data_limite_inicio_montagem && (() => {
+                                const dd = diffDays(ped.data_limite_inicio_montagem);
+                                const cls = dd == null ? "text-muted-foreground"
+                                  : dd < 0 ? "text-red-600 font-medium"
+                                  : dd === 0 ? "text-amber-600 font-medium"
+                                  : dd <= 7 ? "text-amber-600" : "text-emerald-700";
+                                const sufix = dd == null ? "" : dd < 0 ? ` (vencido ${Math.abs(dd)}d)` : dd === 0 ? " (hoje)" : "";
+                                return <div className={cls}>🔧 Montagem: {new Date(ped.data_limite_inicio_montagem + "T00:00:00").toLocaleDateString("pt-BR")}{sufix}</div>;
+                              })()}
+                            </div>
+                          )}
                           {ped.critico && (
                             <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-medium">
                               <AlertTriangle className="w-3 h-3" /> Crítico
