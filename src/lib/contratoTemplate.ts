@@ -418,19 +418,13 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
   </div>
 
 
-  <h2>CONDIÇÃO DE PAGAMENTO</h2>
-  <table class="pags">
-    <thead><tr>
-      <th>PARCELA</th>
-      <th style="text-align:center;width:160px">VENCIMENTO</th>
-      <th style="text-align:right;width:160px">VALOR</th>
-    </tr></thead>
-    <tbody>${pagsHtml}</tbody>
-  </table>
+  ${usaPagsNasClausulas ? "" : `<h2>CONDIÇÃO DE PAGAMENTO</h2>
+  ${pagsTableHtml}`}
 
   <h2>${tpl.titulo}</h2>
   ${tpl.subtitulo ? `<div style="background:#FAFAFA;padding:8px 14px;border:1px solid #EEE;border-top:none;font-size:12px">${tpl.subtitulo}</div>` : ""}
-  <div class="clausulas">${applyVariables(tpl.clausulas || "", ctx)}</div>
+  <div class="clausulas">${applyVariables(clausulasSemDup, ctx)}</div>
+
 
   ${obsHtml}
 
