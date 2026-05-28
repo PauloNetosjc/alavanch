@@ -314,7 +314,7 @@ export function PedidoTarefasPanel({
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[13px] font-medium">{t.titulo}</span>
+                          <span className="task-title text-[14px] font-semibold text-foreground leading-snug tracking-tight">{t.titulo}</span>
                           <Badge variant="secondary" className={STATUS_BADGE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
                           <Badge variant="secondary" className={PRIO_BADGE[t.prioridade]}>{t.prioridade}</Badge>
                           {atrasada && (
@@ -331,7 +331,7 @@ export function PedidoTarefasPanel({
                           {t.bloqueio_proxima && <span className="text-[10px] text-orange-700">bloqueia próxima</span>}
                           {t.exige_anexo && <span className="text-[10px] text-muted-foreground">exige anexo</span>}
                         </div>
-                        {t.descricao && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{t.descricao}</p>}
+                        {t.descricao && <p className="text-[12px] text-muted-foreground mt-1 line-clamp-2">{t.descricao}</p>}
                         <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground mt-1.5">
                           {t.setor && <span>Setor: <b className="text-foreground">{t.setor}</b></span>}
                           {t.rh_cargos?.nome && <span>Cargo: <b className="text-foreground">{t.rh_cargos.nome}</b></span>}
@@ -343,7 +343,12 @@ export function PedidoTarefasPanel({
                         {t.status !== "concluida" && t.status !== "cancelada" && t.status !== "em_andamento" && podeOperar(t) && (
                           <Button size="sm" variant="outline" onClick={() => iniciar(t)}><Play className="h-3.5 w-3.5 mr-1" />Iniciar</Button>
                         )}
-                        {t.status !== "concluida" && t.status !== "cancelada" && podeOperar(t) && (t.origem === "manual" || isAdmin) && (
+                        {/* Botão Concluir: tarefas NATIVAS (origem != manual) só podem
+                            ser concluídas manualmente por admin ou usuário com
+                            permissão administrativa (exceção). Usuários comuns
+                            concluem nativas apenas pelas ações reais do sistema
+                            (assinatura, upload, agendamento, aprovação, etc.). */}
+                        {t.status !== "concluida" && t.status !== "cancelada" && podeOperar(t) && (t.origem === "manual" || isAdmin || podeAdministrar) && (
                           <Button size="sm" onClick={() => { setTaSelecionada(t); setOpenConcluir(true); }}>
                             <Check className="h-3.5 w-3.5 mr-1" />Concluir
                           </Button>
