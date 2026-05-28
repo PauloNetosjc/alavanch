@@ -35,7 +35,7 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar onOpenMobileMenu={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 lg:p-8">
-          <ErrorBoundary key={location.pathname}>
+          <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
