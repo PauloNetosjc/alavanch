@@ -7,6 +7,7 @@ import {
   FileSignature, FileText, Ruler, Pencil, ClipboardCheck,
   FilePlus2, Factory, Truck, Wrench, ShieldCheck, Workflow, AlertTriangle,
   Search, ArrowRight, FileSpreadsheet, Printer, CheckCircle2, Sparkles, FileX2, CalendarRange,
+  PackageCheck,
 } from "lucide-react";
 import MedicoesPrevistasDialog from "./MedicoesPrevistasDialog";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ export type EtapaKey =
   | "montagem"
   | "vistoria_finalizacao"
   | "vistoria"
+  | "pos_montagem"
   | "concluido"
   | "finalizado";
 
@@ -81,7 +83,8 @@ type GroupKey =
   | "fabrica_lote"
   | "entrega"
   | "montagem"
-  | "vistoria_finalizacao";
+  | "vistoria_finalizacao"
+  | "pos_montagem";
 
 const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
   { visualKey: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature, internalKeys: ["contrato_assinado"] },
@@ -94,6 +97,7 @@ const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; in
   { visualKey: "entrega", label: "Entrega", icon: Truck, internalKeys: ["entrega"] },
   { visualKey: "montagem", label: "Montagem", icon: Wrench, internalKeys: ["montagem"] },
   { visualKey: "vistoria_finalizacao", label: "Vistoria / Finalização", icon: ShieldCheck, internalKeys: ["vistoria_finalizacao", "vistoria"] },
+  { visualKey: "pos_montagem", label: "Pós-Montagem", icon: PackageCheck, internalKeys: ["pos_montagem"] },
 ];
 
 const ETAPA_TO_GROUP: Record<string, GroupKey> = (() => {
@@ -121,6 +125,7 @@ const ETAPA_LABEL: Record<string, string> = {
   montagem: "Montagem",
   vistoria_finalizacao: "Vistoria / Finalização",
   vistoria: "Vistoria / Finalização",
+  pos_montagem: "Pós-Montagem",
   concluido: "Concluído",
   finalizado: "Concluído",
 };

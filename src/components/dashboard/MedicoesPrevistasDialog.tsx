@@ -17,6 +17,7 @@ type PedidoRow = {
   codigo: string;
   status: string | null;
   valor_total: number | null;
+  custo: number;
   loja_id: string | null;
   loja_nome: string | null;
   cliente_nome: string | null;
@@ -154,6 +155,19 @@ export default function MedicoesPrevistasDialog({
       const orcVend: Record<string, string | null> = {};
       ((orcs as any[]) || []).forEach((o) => { orcVend[o.id] = o.vendedor_id || null; });
 
+      // Custo de fábrica por orçamento (soma dos ambientes.custo_fabrica)
+      const custoPorOrc: Record<string, number> = {};
+      if (orcIds.length) {
+        const { data: ambs } = await supabase
+          .from("ambientes")
+          .select("orcamento_id, custo_fabrica")
+          .in("orcamento_id", orcIds);
+        ((ambs as any[]) || []).forEach((a) => {
+          if (!a.orcamento_id) return;
+          custoPorOrc[a.orcamento_id] = (custoPorOrc[a.orcamento_id] || 0) + Number(a.custo_fabrica || 0);
+        });
+      }
+
       const rows: PedidoRow[] = raw.map((p) => {
         const vendId = p.orcamento_id ? orcVend[p.orcamento_id] || null : null;
         return {
@@ -161,6 +175,7 @@ export default function MedicoesPrevistasDialog({
           codigo: p.codigo,
           status: p.status,
           valor_total: p.valor_total,
+          custo: p.orcamento_id ? Number(custoPorOrc[p.orcamento_id] || 0) : 0,
           loja_id: p.loja_id,
           loja_nome: p.loja?.nome ?? null,
           cliente_nome: p.cliente?.nome ?? null,
@@ -248,12 +263,14 @@ export default function MedicoesPrevistasDialog({
       return d.getMonth() === m && d.getFullYear() === y;
     });
     const valorMes = desteMes.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+    const custoMes = desteMes.reduce((s, p) => s + Number(p.custo || 0), 0);
     const vencidas = comPrev.filter((p) => getPrevStatus(p) === "vencida").length;
     const agendadas = baseParaCards.filter((p) => p.data_medicao_tecnica).length;
     return {
       totalPrev: comPrev.length,
       qtdMes: desteMes.length,
       valorMes,
+      custoMes,
       vencidas,
       agendadas,
     };
@@ -262,7 +279,7 @@ export default function MedicoesPrevistasDialog({
   // Agrupamento mensal a partir de pedidosFiltrados (somente com previsão)
   const meses = useMemo(() => {
     const map = new Map<string, {
-      key: string; label: string; qtd: number; valor: number;
+      key: string; label: string; qtd: number; valor: number; custo: number;
       porLoja: Map<string, number>; porResp: Map<string, number>;
       vencidas: number; agendadas: number;
     }>();
@@ -271,11 +288,12 @@ export default function MedicoesPrevistasDialog({
       const k = monthKey(p.previsao_medicao);
       let r = map.get(k);
       if (!r) {
-        r = { key: k, label: monthLabel(k), qtd: 0, valor: 0, porLoja: new Map(), porResp: new Map(), vencidas: 0, agendadas: 0 };
+        r = { key: k, label: monthLabel(k), qtd: 0, valor: 0, custo: 0, porLoja: new Map(), porResp: new Map(), vencidas: 0, agendadas: 0 };
         map.set(k, r);
       }
       r.qtd++;
       r.valor += Number(p.valor_total || 0);
+      r.custo += Number(p.custo || 0);
       const ln = p.loja_nome || "—"; r.porLoja.set(ln, (r.porLoja.get(ln) || 0) + 1);
       const rn = p.responsavel_nome || p.vendedor_nome || "—"; r.porResp.set(rn, (r.porResp.get(rn) || 0) + 1);
       const st = getPrevStatus(p);
@@ -306,6 +324,7 @@ export default function MedicoesPrevistasDialog({
         "Responsável": p.responsavel_nome || "—",
         "Vendedor": p.vendedor_nome || "—",
         "Valor": Number(p.valor_total || 0),
+        "Custo de mercadoria/fábrica": Number(p.custo || 0),
         "Data da venda": fmtDate(p.created_at),
         "Previsão de medição": fmtDate(p.previsao_medicao),
         "Status da previsão": STATUS_LABEL[st],
@@ -349,10 +368,11 @@ export default function MedicoesPrevistasDialog({
           </div>
 
           {/* Top Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <TopCard icon={CalendarRange} tone="slate" label="Total com previsão" value={topCards.totalPrev} />
             <TopCard icon={CalendarClock} tone="blue" label="Previstas este mês" value={topCards.qtdMes} />
-            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL(topCards.valorMes)} />
+            <TopCard icon={CalendarCheck2} tone="blue" label="Valor previsto este mês" value={BRL(topCards.valorMes)} money />
+            <TopCard icon={CalendarCheck2} tone="slate" label="Custo (mês)" value={BRL(topCards.custoMes)} money />
             <TopCard icon={CalendarX2} tone="red" label="Previsões vencidas" value={topCards.vencidas} />
             <TopCard icon={CheckCircle2} tone="emerald" label="Medições já agendadas" value={topCards.agendadas} />
           </div>
@@ -439,8 +459,10 @@ export default function MedicoesPrevistasDialog({
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E7EEF2] text-[#3F7898]">{m.qtd} pedidos</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Valor total</div>
-                      <div className="text-base font-semibold">{BRL(m.valor)}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1">Ticket médio: {BRL(ticket(m.qtd, m.valor))}</div>
+                      <div className="text-base font-semibold text-slate-900">{BRL(m.valor)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-2">Custo</div>
+                      <div className="text-sm font-semibold text-slate-900">{BRL(m.custo)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-2">Ticket médio: <span className="font-semibold text-slate-900">{BRL(ticket(m.qtd, m.valor))}</span></div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                         <div className="rounded-md bg-red-50 text-red-700 px-2 py-1 flex items-center gap-1">
@@ -496,6 +518,7 @@ export default function MedicoesPrevistasDialog({
                     <th className="p-2">Responsável</th>
                     <th className="p-2">Vendedor</th>
                     <th className="p-2 text-right">Valor</th>
+                    <th className="p-2 text-right">Custo</th>
                     <th className="p-2">Venda</th>
                     <th className="p-2">Previsão</th>
                     <th className="p-2">Status</th>
@@ -507,9 +530,9 @@ export default function MedicoesPrevistasDialog({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={13}>Carregando…</td></tr>
+                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={14}>Carregando…</td></tr>
                   ) : lista.length === 0 ? (
-                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={13}>Nenhum pedido para os filtros.</td></tr>
+                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={14}>Nenhum pedido para os filtros.</td></tr>
                   ) : lista.map((p) => {
                     const st = getPrevStatus(p);
                     const dias = p.previsao_medicao ? diffDays(p.previsao_medicao) : null;
@@ -520,7 +543,8 @@ export default function MedicoesPrevistasDialog({
                         <td className="p-2">{p.loja_nome || "—"}</td>
                         <td className="p-2">{p.responsavel_nome || "—"}</td>
                         <td className="p-2">{p.vendedor_nome || "—"}</td>
-                        <td className="p-2 text-right">{BRL(Number(p.valor_total || 0))}</td>
+                        <td className="p-2 text-right font-semibold text-slate-900">{BRL(Number(p.valor_total || 0))}</td>
+                        <td className="p-2 text-right font-semibold text-slate-900">{BRL(Number(p.custo || 0))}</td>
                         <td className="p-2">{fmtDate(p.created_at)}</td>
                         <td className="p-2">{fmtDate(p.previsao_medicao)}</td>
                         <td className="p-2">
@@ -547,7 +571,7 @@ export default function MedicoesPrevistasDialog({
   );
 }
 
-function TopCard({ icon: Icon, tone, label, value }: { icon: any; tone: "blue" | "red" | "emerald" | "slate"; label: string; value: string | number }) {
+function TopCard({ icon: Icon, tone, label, value, money }: { icon: any; tone: "blue" | "red" | "emerald" | "slate"; label: string; value: string | number; money?: boolean }) {
   const tones: Record<string, string> = {
     blue: "bg-[#E7EEF2] text-[#1f4f6b]",
     red: "bg-red-50 text-red-700",
@@ -562,7 +586,7 @@ function TopCard({ icon: Icon, tone, label, value }: { icon: any; tone: "blue" |
         </div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>
-      <div className="text-lg font-semibold">{value}</div>
+      <div className={`text-lg font-semibold ${money ? "text-slate-900" : ""}`}>{value}</div>
     </div>
   );
 }
