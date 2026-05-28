@@ -265,6 +265,12 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
       toast.error(`Falha no upload de ${falha} arquivo${falha > 1 ? "s" : ""}.`);
     }
 
+    // Blindagem: garante fluxo Revisão Loja → PDF Final após upload em
+    // Projeto para Revisão ou Projeto Revisado.
+    if (sucesso > 0 && (cat === "projeto_para_revisao" || cat === "projeto_revisado")) {
+      await ensureFluxoRevisaoEPdfFinal(pedido.id);
+    }
+
     if (falhas.length > 0) {
       // toast detalhado com nomes
       falhas.forEach((f) => toast.error(f, { duration: 5000 }));
