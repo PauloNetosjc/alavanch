@@ -1324,14 +1324,19 @@ export default function ComercialNegociacao() {
     <div class="totais">
       <div class="row"><span>Subtotal</span><b>${fmtBrl(subtotalAmbientes)}</b></div>
       ${descValorAplicado ? `<div class="row" style="color:#7A2222"><span>Desconto (${descPercAplicado.toFixed(2)}%)</span><b>-${fmtBrl(descValorAplicado)}</b></div>` : ""}
-      <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalProposta)}</span></div>
+      ${jurosRepassado > 0.01 ? `<div class="row"><span>Juros repassado ao cliente</span><b>+${fmtBrl(jurosRepassado)}</b></div>` : ""}
+      <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalContrato)}</span></div>
     </div>
 
     <h2>Forma de Pagamento</h2>
-    ${pagamentos.length ? pagamentos.map((p) => `<div class="pag">
-      <span><b>${p.metodo}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
-      <b>${fmtBrl(p.valor)}</b>
-    </div>`).join("") : `<div class="muted">A definir</div>`}
+    ${pagamentos.length ? pagamentos.map((p) => {
+      const j = calcJurosDoPagamento(p);
+      const valorFinal = j.repassar && Number(p.valor) > 0 ? Number(p.valor) + j.valor : Number(p.valor);
+      return `<div class="pag">
+        <span><b>${p.metodo}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
+        <b>${fmtBrl(valorFinal)}</b>
+      </div>`;
+    }).join("") : `<div class="muted">A definir</div>`}
 
     <h2>Condições Gerais</h2>
     <div class="muted">
