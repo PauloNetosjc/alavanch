@@ -605,6 +605,7 @@ export default function WorkflowOperacionalDashboard() {
                     <tr key={p.id} className="border-b border-border/60 hover:bg-muted/30">
                       <td className="py-2 pr-3 font-medium">{p.cliente_nome || "—"}</td>
                       <td className="py-2 pr-3 font-mono text-xs">{p.codigo}</td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">{etapaLabel(p.etapa)}</td>
                       <td className="py-2 pr-3 text-right">{BRL(Number(p.valor_total || 0))}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_inicio_etapa)}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.prazo)}</td>
