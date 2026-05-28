@@ -107,6 +107,7 @@ export function MetodosPagamentoAdmin() {
       taxa_perc_parcela: editing.taxa_perc_parcela || 0,
       max_parcelas: editing.parcelas_config.length || 1,
       parcelas_config: editing.parcelas_config as any,
+      prazo_recebimento_dias: editing.agrupado ? (Number(editing.prazo_recebimento_dias) || 0) : 0,
     };
     const q = editing.id
       ? supabase.from("metodos_pagamento").update(payload).eq("id", editing.id)
