@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { ensureTarefasCronogramaPedido } from "@/lib/tarefasNativasTriggers";
 
 /* ============================================================
  * Fase 3 — Painel de Tarefas Nativas dentro do Pedido
