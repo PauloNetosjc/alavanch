@@ -394,7 +394,7 @@ export default function ContasAReceber() {
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Código</th>
-                <th className="text-left py-3 font-medium">Cliente</th>
+                <th className="text-left py-3 font-medium">Receber de</th>
                 <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
