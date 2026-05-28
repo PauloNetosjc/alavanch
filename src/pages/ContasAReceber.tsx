@@ -24,6 +24,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -50,6 +51,7 @@ type Conta = { id: string; nome: string; banco: string | null };
 type Pedido = { id: string; codigo: string; created_at: string | null; receita_codigo: string | null; pedido_pai_id: string | null; pedido_origem_complemento_id: string | null; cliente_id: string | null };
 type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
+type CentroCusto = { id: string; nome: string };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -68,6 +70,7 @@ export default function ContasAReceber() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
+  const [centros, setCentros] = useState<CentroCusto[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -77,6 +80,7 @@ export default function ContasAReceber() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
+  const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -90,7 +94,7 @@ export default function ContasAReceber() {
   }, [selectedLojaId]);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
@@ -98,6 +102,7 @@ export default function ContasAReceber() {
       supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
+      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -106,6 +111,7 @@ export default function ContasAReceber() {
     setClientes((cl as Cliente[]) || []);
     setProfiles((pf as Profile[]) || []);
     setFornecedores((fr as any[]) || []);
+    setCentros(((cc as any[]) || []) as CentroCusto[]);
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -119,6 +125,7 @@ export default function ContasAReceber() {
   }, [user, role]);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
+  const ccName = (id: string | null) => centros.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
   const pedidoData = (id: string | null) => {
