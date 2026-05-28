@@ -9,7 +9,7 @@ import { ArrowLeft, ArrowUpCircle, AlertTriangle, Check, X, Info, RotateCcw, Pri
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
-import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
