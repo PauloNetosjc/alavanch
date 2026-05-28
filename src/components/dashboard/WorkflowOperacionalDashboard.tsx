@@ -58,6 +58,8 @@ type PedidoLite = {
   data_montagem: string | null;
   data_vistoria: string | null;
   data_limite_finalizacao: string | null;
+  data_limite_entrega: string | null;
+  data_limite_inicio_montagem: string | null;
   cliente_nome?: string | null;
   loja_nome?: string | null;
 };
@@ -188,7 +190,7 @@ export default function WorkflowOperacionalDashboard() {
       let qPed = supabase
         .from("pedidos")
         .select(
-          "id, codigo, status, valor_total, loja_id, cliente_id, created_at, is_adendo, is_complemento, status_fabrica, data_assinatura_pdf_final, data_medicao_tecnica, data_entrega, data_montagem, data_vistoria, data_limite_finalizacao, cliente:clientes(nome), loja:lojas(nome)",
+          "id, codigo, status, valor_total, loja_id, cliente_id, created_at, is_adendo, is_complemento, status_fabrica, data_assinatura_pdf_final, data_medicao_tecnica, data_entrega, data_montagem, data_vistoria, data_limite_finalizacao, data_limite_entrega, data_limite_inicio_montagem, cliente:clientes(nome), loja:lojas(nome)",
         );
       if (selectedLojaId) qPed = qPed.eq("loja_id", selectedLojaId);
       const { data: pedsRaw } = await qPed;
@@ -485,6 +487,8 @@ export default function WorkflowOperacionalDashboard() {
                     <th className="text-right py-2 pr-3">Valor</th>
                     <th className="text-left py-2 pr-3">Início etapa</th>
                     <th className="text-left py-2 pr-3">Prazo</th>
+                    <th className="text-left py-2 pr-3">Lim. entrega</th>
+                    <th className="text-left py-2 pr-3">Lim. montagem</th>
                     <th className="text-left py-2 pr-3">Status</th>
                     <th className="text-left py-2 pr-3">Responsável</th>
                     <th className="text-left py-2 pr-3">Loja</th>
@@ -499,6 +503,8 @@ export default function WorkflowOperacionalDashboard() {
                       <td className="py-2 pr-3 text-right">{BRL(Number(p.valor_total || 0))}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_inicio_etapa)}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.prazo)}</td>
+                      <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_limite_entrega)}</td>
+                      <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_limite_inicio_montagem)}</td>
                       <td className="py-2 pr-3">
                         <StatusBadge status={p.statusPrazo} dias={p.diasRestantes} />
                       </td>

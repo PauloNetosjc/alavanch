@@ -47,6 +47,8 @@ type CardRow = {
     urgencia: UrgenciaNivel | null;
     arquivado: boolean | null;
     created_at: string | null;
+    data_limite_entrega: string | null;
+    data_limite_inicio_montagem: string | null;
     cliente: { nome: string } | null;
   } | null;
   etiquetas?: { id: string; nome: string; cor: string }[];
@@ -108,7 +110,7 @@ export default function KanbanBoard({
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
           .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
-                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,created_at,cliente:clientes(nome))`)
+                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,created_at,data_limite_entrega,data_limite_inicio_montagem,cliente:clientes(nome))`)
           .eq("pipeline", pipeline)
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("user_id,nome_completo"),
@@ -471,6 +473,28 @@ export default function KanbanBoard({
                             <div className={`mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${prazoColor}`}>
                               {atrasado ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                               {d == null ? "—" : d < 0 ? `${Math.abs(d)}d atraso` : d === 0 ? "vence hoje" : `${d}d restantes`}
+                            </div>
+                          )}
+                          {(ped.data_limite_entrega || ped.data_limite_inicio_montagem) && (
+                            <div className="mt-1.5 grid grid-cols-1 gap-0.5 text-[10px]">
+                              {ped.data_limite_entrega && (() => {
+                                const dd = diffDays(ped.data_limite_entrega);
+                                const cls = dd == null ? "text-muted-foreground"
+                                  : dd < 0 ? "text-red-600 font-medium"
+                                  : dd === 0 ? "text-amber-600 font-medium"
+                                  : dd <= 7 ? "text-amber-600" : "text-emerald-700";
+                                const sufix = dd == null ? "" : dd < 0 ? ` (vencido ${Math.abs(dd)}d)` : dd === 0 ? " (hoje)" : "";
+                                return <div className={cls}>📦 Entrega: {new Date(ped.data_limite_entrega + "T00:00:00").toLocaleDateString("pt-BR")}{sufix}</div>;
+                              })()}
+                              {ped.data_limite_inicio_montagem && (() => {
+                                const dd = diffDays(ped.data_limite_inicio_montagem);
+                                const cls = dd == null ? "text-muted-foreground"
+                                  : dd < 0 ? "text-red-600 font-medium"
+                                  : dd === 0 ? "text-amber-600 font-medium"
+                                  : dd <= 7 ? "text-amber-600" : "text-emerald-700";
+                                const sufix = dd == null ? "" : dd < 0 ? ` (vencido ${Math.abs(dd)}d)` : dd === 0 ? " (hoje)" : "";
+                                return <div className={cls}>🔧 Montagem: {new Date(ped.data_limite_inicio_montagem + "T00:00:00").toLocaleDateString("pt-BR")}{sufix}</div>;
+                              })()}
                             </div>
                           )}
                           {ped.critico && (
