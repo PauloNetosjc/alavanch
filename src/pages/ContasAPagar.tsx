@@ -37,7 +37,8 @@ type Lanc = {
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
-type Pedido = { id: string; codigo: string; created_at: string | null };
+type Pedido = { id: string; codigo: string; created_at: string | null; cliente_id: string | null };
+type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
 
 function fmt(d?: string | null) {
@@ -76,12 +77,15 @@ export default function ContasAPagar() {
     if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
   }, [selectedLojaId]);
 
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pf }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
-      supabase.from("pedidos").select("id,codigo,created_at").limit(500),
+      supabase.from("pedidos").select("id,codigo,created_at,cliente_id").limit(2000),
+      supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
     ]);
@@ -89,6 +93,7 @@ export default function ContasAPagar() {
     setCats((c as Cat[]) || []);
     setContas((ct as Conta[]) || []);
     setPedidos((pd as Pedido[]) || []);
+    setClientes((cl as Cliente[]) || []);
     setProfiles((pf as Profile[]) || []);
     setFornecedores((fr as any[]) || []);
   }
