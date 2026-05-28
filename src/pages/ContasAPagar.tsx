@@ -343,6 +343,7 @@ export default function ContasAPagar() {
     tipo: l.tipo,
     status: l.status || "",
     valor: Number(l.valor || 0),
+    forma_pagamento_prevista: l.forma_pagamento_prevista,
   }));
 
   return (
@@ -387,6 +388,8 @@ export default function ContasAPagar() {
         categoriaFiltro={categoriaFiltro} setCategoriaFiltro={setCategoriaFiltro}
         fornecedores={fornecedores}
         fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
+        formaPrevFiltro={formaPrevFiltro} setFormaPrevFiltro={setFormaPrevFiltro}
+        formasPrevistas={FORMAS_PREVISTAS}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
         mostrarCancelados={mostrarCancelados} setMostrarCancelados={setMostrarCancelados}
@@ -414,6 +417,7 @@ export default function ContasAPagar() {
                 <th className="text-right py-3 font-medium">Juros Real</th>
                 <th className="text-right py-3 font-medium">Saldo</th>
                 <th className="text-center py-3 font-medium">Status</th>
+                <th className="text-left py-3 font-medium">Forma Pgto. Prevista</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
               </tr>
@@ -513,6 +517,9 @@ export default function ContasAPagar() {
                         {baixaInfo}
                       </div>
                     </td>
+                    <td className="text-xs text-muted-foreground whitespace-nowrap">
+                      {l.forma_pagamento_prevista || "—"}
+                    </td>
                     <td className="max-w-[180px] text-xs text-muted-foreground truncate" title={l.notas || ""}>
                       {l.notas || "—"}
                     </td>
@@ -551,7 +558,7 @@ export default function ContasAPagar() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={16} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={17} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a pagar
                 </td></tr>
@@ -590,7 +597,7 @@ export default function ContasAPagar() {
                       return s + Number(l.valor || 0) + Number(l.juros_previsto || 0);
                     }, 0))}
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={4} />
                 </tr>
               </tfoot>
             )}
@@ -622,6 +629,7 @@ export default function ContasAPagar() {
           data_pagamento: editAlvo.data_pagamento,
           valor: Number(editAlvo.valor || 0),
           forma_pagamento: editAlvo.forma_pagamento,
+          forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
         } : null}
