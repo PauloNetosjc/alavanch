@@ -12,6 +12,7 @@ export type LancRow = {
   tipo: "entrada" | "saida" | string;
   status: string;
   valor: number;
+  forma_pagamento_prevista?: string | null;
 };
 
 export interface ExportFilters {
@@ -91,6 +92,7 @@ export function exportarExcel(rows: LancRow[], filename = "extrato.xlsx") {
     Conta: r.conta || "",
     Tipo: r.tipo,
     Status: r.status,
+    "Forma de pagamento prevista": r.forma_pagamento_prevista || "",
     Valor: Number(r.valor || 0),
   }));
   const ws = XLSX.utils.json_to_sheet(data);
@@ -114,7 +116,7 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
   </style></head><body>
   <h1>${titulo}</h1>
   <table>
-    <thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th class="right">Valor</th></tr></thead>
+    <thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th>Forma Pgto. Prevista</th><th class="right">Valor</th></tr></thead>
     <tbody>
       ${rows.map((r) => `<tr>
         <td>${fmtData(r.data)}</td>
@@ -124,6 +126,7 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
         <td>${(r.conta || "—").replace(/</g, "&lt;")}</td>
         <td>${r.tipo}</td>
         <td>${r.status}</td>
+        <td>${(r.forma_pagamento_prevista || "—").replace(/</g, "&lt;")}</td>
         <td class="right">${BRL(Number(r.valor || 0))}</td>
       </tr>`).join("")}
     </tbody>
