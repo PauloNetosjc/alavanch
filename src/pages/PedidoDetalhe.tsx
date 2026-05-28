@@ -684,6 +684,7 @@ export default function PedidoDetalhe() {
         adendos={adendos}
         usuarios={usuarios}
         salvarPedido={salvarPedido}
+        prazoConfig={prazoConfig}
       />
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
