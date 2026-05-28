@@ -339,6 +339,8 @@ export default function Financeiro() {
     if (!editLanc?.descricao) return toast.error("Descrição obrigatória");
     const v = Number(editLanc.valor);
     if (!v || v <= 0) return toast.error("Informe um valor válido");
+    if (!editLanc.categoria_id) return toast.error("Selecione a categoria");
+    if (!editLanc.centro_custo_id) return toast.error("Selecione o centro de custo");
 
     // Entidade obrigatória:
     // - Toda despesa precisa de entidade (pagar para…)
@@ -358,6 +360,7 @@ export default function Financeiro() {
       tipo: editLanc.tipo,
       descricao: editLanc.descricao,
       categoria_id: editLanc.categoria_id || null,
+      centro_custo_id: editLanc.centro_custo_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
       // compatibilidade: ainda preenchemos fornecedor_id quando a entidade for fornecedor
@@ -700,18 +703,34 @@ export default function Financeiro() {
               <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Informações Básicas</div>
                 <Input placeholder="Descrição" value={editLanc.descricao} onChange={(e) => setEditLanc({ ...editLanc, descricao: e.target.value })} />
-                <Select value={editLanc.categoria_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, categoria_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma categoria…" /></SelectTrigger>
-                  <SelectContent>
-                    {cats
-                      .filter((c) => !editLanc.tipo || !c.tipo || c.tipo === editLanc.tipo)
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {catParent(c.id) ? `${catParent(c.id)} > ${c.nome}` : c.nome}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoria *</Label>
+                    <Select value={editLanc.categoria_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, categoria_id: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {cats
+                          .filter((c) => c.ativo !== false && (!c.tipo || c.tipo === catTipoFor(editLanc.tipo)))
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {catParent(c.id) ? `${catParent(c.id)} > ${c.nome}` : c.nome}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Centro de Custo *</Label>
+                    <Select value={editLanc.centro_custo_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, centro_custo_id: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {centrosCusto.filter((cc) => cc.ativo).map((cc) => (
+                          <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Entidade: Receber de / Pagar para */}
