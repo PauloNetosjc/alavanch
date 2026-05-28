@@ -852,6 +852,9 @@ function Cronograma({ pedido, salvarPedido }: any) {
       await salvarPedido({ data_medicao_tecnica: dataStr });
       toast.success("Medição técnica agendada");
     }
+    // Blindagem: garante tarefas obrigatórias do cronograma
+    // (fazer_medicao_tecnica + preparo_projeto_revisao)
+    await ensureTarefasCronogramaPedido(pedido.id);
     await carregar();
   };
 
