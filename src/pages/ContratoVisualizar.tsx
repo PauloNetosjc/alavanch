@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { renderContratoHtml, enrichContratoCtxWithLive, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 
 export default function ContratoVisualizar() {
