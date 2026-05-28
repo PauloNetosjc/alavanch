@@ -642,6 +642,20 @@ const DOT_CHIP: Record<string, string> = {
 const RISCO_LABEL: Record<string, string> = {
   danger: "Crítico", warning: "Hoje", alert: "Alerta", ok: "Ok", muted: "—",
 };
+const ARROW_BG: Record<string, string> = {
+  danger: "bg-red-50 hover:bg-red-100",
+  warning: "bg-orange-50 hover:bg-orange-100",
+  alert: "bg-amber-50 hover:bg-amber-100",
+  ok: "bg-primary/5 hover:bg-primary/10",
+  muted: "bg-muted/40 hover:bg-muted/60",
+};
+const BADGE_NUM: Record<string, string> = {
+  danger: "bg-red-600 text-white",
+  warning: "bg-orange-500 text-white",
+  alert: "bg-amber-500 text-white",
+  ok: "bg-primary text-primary-foreground",
+  muted: "bg-muted-foreground/20 text-muted-foreground",
+};
 
 export function agruparPedidosPorEtapa(pedidos: PedidoComEtapa[]) {
   const m = new Map<EtapaKey, PedidoComEtapa[]>();
