@@ -110,7 +110,7 @@ export default function KanbanBoard({
           .eq("pipeline", pipeline).eq("ativo", true).order("ordem"),
         (supabase as any).from("kanban_cards")
           .select(`id,pedido_id,estagio_id,responsavel_id,prazo,iniciado_em,created_at,
-                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,created_at,cliente:clientes(nome))`)
+                   pedido:pedidos(id,codigo,valor_total,vip,critico,loja_id,urgencia,arquivado,created_at,data_limite_entrega,data_limite_inicio_montagem,cliente:clientes(nome))`)
           .eq("pipeline", pipeline)
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("user_id,nome_completo"),
