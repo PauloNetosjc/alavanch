@@ -344,7 +344,7 @@ export default function WorkflowOperacionalDashboard() {
   return (
     <div className="surface-card p-5 space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-3 no-print">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <Workflow className="w-5 h-5 text-primary" />
@@ -355,6 +355,14 @@ export default function WorkflowOperacionalDashboard() {
               Acompanhe contratos por etapa, valores em produção e prazos críticos.
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportarExcel}>
+            <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="w-4 h-4" /> Imprimir
+          </Button>
         </div>
       </div>
 
@@ -371,9 +379,9 @@ export default function WorkflowOperacionalDashboard() {
         />
       </div>
 
-      {/* Esteira de etapas */}
-      <div className="relative">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+      {/* Esteira de etapas em formato de setas */}
+      <div className="relative no-print-scroll">
+        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows">
           {ETAPAS.map((e, idx) => {
             const r = resumos.get(e.key)!;
             const Icon = e.icon;
@@ -383,52 +391,76 @@ export default function WorkflowOperacionalDashboard() {
               r.hoje > 0 ? "warning" :
               r.preAlerta > 0 ? "alert" :
               r.qtd > 0 ? "ok" : "muted";
+            const isFirst = idx === 0;
+            const isLast = idx === ETAPAS.length - 1;
+            // Arrow shape via clip-path
+            const tip = 14;
+            const clip = isLast
+              ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${tip}px 50%)`
+              : isFirst
+              ? `polygon(0 0, calc(100% - ${tip}px) 0, 100% 50%, calc(100% - ${tip}px) 100%, 0 100%)`
+              : `polygon(0 0, calc(100% - ${tip}px) 0, 100% 50%, calc(100% - ${tip}px) 100%, 0 100%, ${tip}px 50%)`;
             return (
-              <div key={e.key} className="flex items-stretch shrink-0">
+              <div
+                key={e.key}
+                className="shrink-0"
+                style={{ marginLeft: isFirst ? 0 : -tip + 2 }}
+              >
                 <button
+                  type="button"
                   onClick={() => setEtapaSelecionada(active ? null : e.key)}
-                  className={`min-w-[180px] text-left rounded-xl p-3 border transition-all ${
-                    active ? "border-primary shadow-md bg-primary/5" : "border-border hover:border-foreground/30 bg-card"
-                  }`}
+                  className={`relative text-left transition-all ${active ? "scale-[1.03] z-10" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-2 ring-primary" : ""}`}
+                  style={{
+                    clipPath: clip,
+                    WebkitClipPath: clip,
+                    minWidth: 210,
+                    paddingLeft: isFirst ? 14 : tip + 10,
+                    paddingRight: isLast ? 14 : tip + 10,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    minHeight: 110,
+                  }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ICON_BG[risco]}`}>
-                      <Icon className={`w-4 h-4 ${ICON_FG[risco]}`} />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${BADGE_NUM[risco]}`}>
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center ${ICON_BG[risco]}`}>
+                        <Icon className={`w-3.5 h-3.5 ${ICON_FG[risco]}`} />
+                      </div>
                     </div>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${DOT_CHIP[risco]}`}>
+                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${DOT_CHIP[risco]}`}>
                       {RISCO_LABEL[risco]}
                     </span>
                   </div>
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">
+                  <div className="text-[11px] font-semibold text-foreground leading-tight line-clamp-2">
                     {e.label}
                   </div>
-                  <div className="text-2xl font-display mt-1 leading-none">{r.qtd}</div>
-                  <div className="text-[11px] text-muted-foreground mt-1">{BRL(r.valor)}</div>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-xl font-display leading-none">{r.qtd}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">{BRL(r.valor)}</span>
+                  </div>
                   {(r.vencidos > 0 || r.preAlerta > 0 || r.hoje > 0) && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1 mt-1.5">
                       {r.vencidos > 0 && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
-                          {r.vencidos} vencido{r.vencidos > 1 ? "s" : ""}
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-100 text-red-700">
+                          {r.vencidos} venc
                         </span>
                       )}
                       {r.hoje > 0 && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-orange-100 text-orange-700">
                           {r.hoje} hoje
                         </span>
                       )}
                       {r.preAlerta > 0 && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700">
                           {r.preAlerta} alerta
                         </span>
                       )}
                     </div>
                   )}
                 </button>
-                {idx < ETAPAS.length - 1 && (
-                  <div className="flex items-center px-1 text-muted-foreground/40">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                )}
               </div>
             );
           })}
