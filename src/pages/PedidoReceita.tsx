@@ -386,11 +386,18 @@ export default function PedidoReceita() {
       <section className="surface-card p-0 overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
           <h3 className="font-playfair text-[18px] font-semibold">Parcelas</h3>
-          {integrado && (
-            <Link to="/financeiro/a-receber" className="text-[12px] text-primary hover:underline">
-              Ver no A Receber →
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {integrado && (role === "admin" || role === "diretor") && (
+              <Button size="sm" variant="outline" onClick={() => setNovaOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Adicionar parcela
+              </Button>
+            )}
+            {integrado && (
+              <Link to="/financeiro/a-receber" className="text-[12px] text-primary hover:underline">
+                Ver no A Receber →
+              </Link>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
@@ -399,9 +406,10 @@ export default function PedidoReceita() {
                 <th className="text-left p-3">Código</th>
                 <th className="text-left p-3">Vencimento</th>
                 <th className="text-left p-3">Forma</th>
-                <th className="text-right p-3">Valor</th>
+                <th className="text-right p-3">Valor bruto</th>
                 <th className="text-right p-3">Juros / Taxa</th>
                 <th className="text-right p-3">Recebido</th>
+                <th className="text-right p-3">Juros Real</th>
                 <th className="text-right p-3">Saldo líquido</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Pago em</th>
@@ -410,8 +418,9 @@ export default function PedidoReceita() {
             </thead>
             <tbody>
               {parcelas.length === 0 && (
-                <tr><td className="p-4 text-center text-muted-foreground" colSpan={10}>Nenhuma parcela cadastrada.</td></tr>
+                <tr><td className="p-4 text-center text-muted-foreground" colSpan={11}>Nenhuma parcela cadastrada.</td></tr>
               )}
+
               {parcelas.map((p) => {
                 const pago = isPago(p.status);
                 return (
