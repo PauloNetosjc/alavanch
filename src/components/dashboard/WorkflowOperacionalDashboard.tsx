@@ -575,7 +575,7 @@ export default function WorkflowOperacionalDashboard() {
                   </button>
                 ))}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setEtapaSelecionada(null)}>Fechar</Button>
+              <Button variant="ghost" size="sm" onClick={() => setGrupoSelecionado(null)}>Fechar</Button>
             </div>
           </div>
 
