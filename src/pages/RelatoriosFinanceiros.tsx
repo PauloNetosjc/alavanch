@@ -11,8 +11,8 @@ import { LojasFilter } from "@/components/financeiro/LojasFilter";
 import { useLoja } from "@/contexts/LojaContext";
 import { BRL } from "@/lib/financeiro";
 import {
-  enrich, groupBy, totalize, monthKey, monthLabel,
-  type LancRaw, type Cat, type CC, type Conta, type LancEnriched,
+  enrich, groupBy, totalize,
+  type LancRaw, type Cat, type CC, type Conta,
 } from "@/lib/relatoriosFinanceiros";
 import GroupedReport from "@/components/relatorios/GroupedReport";
 import DespesasMesAMes from "@/components/relatorios/DespesasMesAMes";
