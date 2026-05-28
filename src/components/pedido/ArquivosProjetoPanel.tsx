@@ -309,7 +309,70 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     toast.success("Arquivo excluído.");
   }
 
-  if (!podeVer) return null;
+  async function handleBaixarTodos(cat: Categoria) {
+    const arquivos = docsPor[cat];
+    if (arquivos.length === 0) return;
+    setZipKey(cat);
+    const zip = new JSZip();
+    const usados: Record<string, number> = {};
+    let ok = 0;
+    let falha = 0;
+    try {
+      for (const d of arquivos) {
+        try {
+          const { data, error } = await supabase.storage.from("pedido-docs").download(d.storage_path);
+          if (error || !data) throw error || new Error("download vazio");
+          // evita colisão de nomes dentro do zip
+          let nome = d.nome;
+          if (usados[nome] !== undefined) {
+            usados[nome] += 1;
+            const dot = nome.lastIndexOf(".");
+            nome = dot > 0
+              ? `${nome.slice(0, dot)} (${usados[nome]})${nome.slice(dot)}`
+              : `${nome} (${usados[nome]})`;
+          } else {
+            usados[d.nome] = 0;
+          }
+          zip.file(nome, data);
+          ok++;
+        } catch (e) {
+          console.error("[baixarTodos] falha", d.nome, e);
+          falha++;
+        }
+      }
+
+      if (ok === 0) {
+        toast.error("Não foi possível baixar os arquivos.");
+        return;
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const codigo = (pedido?.codigo || pedido?.id || "pedido").toString().toLowerCase().replace(/[^a-z0-9\-]+/g, "-");
+      const prefixoZip: Record<Categoria, string> = {
+        projeto_vendido: "projeto-vendido",
+        projeto_para_revisao: "projeto-para-revisao",
+        projeto_revisado: "projeto-revisado",
+      };
+      const filename = `${prefixoZip[cat]}-${codigo}.zip`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+      if (falha > 0) {
+        toast.warning(`Alguns arquivos não puderam ser baixados (${falha} de ${arquivos.length}).`);
+      } else {
+        toast.success(`Download iniciado (${ok} arquivo${ok > 1 ? "s" : ""}).`);
+      }
+    } finally {
+      setZipKey(null);
+    }
+  }
+
 
   return (
     <section className="surface-card p-5">
