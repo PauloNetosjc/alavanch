@@ -45,9 +45,13 @@ type Tarefa = {
   concluido_por: string | null;
   observacao_conclusao: string | null;
   created_at: string;
+  loja_id?: string | null;
+  conclui_por_upload_categoria?: string | null;
   rh_cargos?: { nome: string } | null;
   profiles?: { nome_completo: string | null } | null;
+  tarefas_nativas_modelos?: { conclui_por_upload_categoria: string | null } | null;
 };
+
 
 type Evento = {
   id: string;
@@ -146,9 +150,10 @@ export function PedidoTarefasPanel({
     setLoading(true);
     const [t, c, p, me] = await Promise.all([
       (supabase as any).from("tarefas_pedido")
-        .select("*, rh_cargos(nome), profiles(nome_completo)")
+        .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")
         .eq("pedido_id", pedidoId)
         .order("prazo", { ascending: true, nullsFirst: false }),
+
       supabase.from("rh_cargos").select("id,nome").order("nome"),
       supabase.from("profiles").select("id,nome_completo,user_id").eq("ativo", true).order("nome_completo"),
       user ? supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
@@ -395,8 +400,17 @@ export function ConcluirDialog({
 
   useEffect(() => { if (open) { setObs(""); setFile(null); } }, [open]);
 
+  const concluiPorUpload =
+    tarefa?.conclui_por_upload_categoria ??
+    tarefa?.tarefas_nativas_modelos?.conclui_por_upload_categoria ?? null;
+
   async function confirmar() {
     if (!tarefa) return;
+    if (concluiPorUpload) {
+      return toast.error(
+        "Envie as fotos da medição técnica pelo ícone de anexo (📎) antes de concluir esta tarefa. A conclusão será automática após o upload."
+      );
+    }
     if (tarefa.exige_anexo && !file) return toast.error("Esta tarefa exige anexo para concluir.");
     setSaving(true);
     let anexoPath: string | null = null;
@@ -421,6 +435,7 @@ export function ConcluirDialog({
     setSaving(false); setOpen(false); onDone();
   }
 
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
@@ -429,17 +444,27 @@ export function ConcluirDialog({
           <DialogDescription>{tarefa?.titulo}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {concluiPorUpload && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
+              Esta tarefa é concluída automaticamente quando você envia as fotos/arquivos pelo
+              ícone de <b>anexo (📎)</b>. Os arquivos vão direto para a Central de Documentos &gt;
+              {" "}<b>Medição Técnica</b>.
+            </div>
+          )}
           <div>
             <Label className="text-[11px]">Observação de conclusão</Label>
             <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Descreva como foi concluída…" />
           </div>
-          <div>
-            <Label className="text-[11px]">
-              Anexo {tarefa?.exige_anexo && <span className="text-red-600">*obrigatório</span>}
-            </Label>
-            <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          </div>
+          {!concluiPorUpload && (
+            <div>
+              <Label className="text-[11px]">
+                Anexo {tarefa?.exige_anexo && <span className="text-red-600">*obrigatório</span>}
+              </Label>
+              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={confirmar} disabled={saving}>{saving ? "Salvando…" : "Confirmar conclusão"}</Button>
@@ -529,27 +554,118 @@ export function ComentarDialog({
   );
 }
 
+/** Mapeia uma `conclui_por_upload_categoria` para o nome da pasta na Central de Documentos. */
+const CATEGORIA_TO_PASTA: Record<string, string> = {
+  medicao_tecnica: "Medição Técnica",
+  projeto_inicial: "Projeto Inicial",
+  projeto_final: "Projeto Final",
+  vistoria_tecnico: "Vistoria Técnico",
+  vistoria_cliente: "Vistoria Cliente",
+  checkin_obra: "Check-in Obra",
+};
+
+async function ensurePastaCentral(pedidoId: string, nome: string): Promise<string | null> {
+  const { data: existente } = await supabase
+    .from("pedido_pastas")
+    .select("id")
+    .eq("pedido_id", pedidoId)
+    .ilike("nome", nome)
+    .maybeSingle();
+  if ((existente as any)?.id) return (existente as any).id;
+  const { data: criada, error } = await supabase
+    .from("pedido_pastas")
+    .insert({ pedido_id: pedidoId, nome, ordem: 50 } as any)
+    .select("id")
+    .single();
+  if (error) {
+    console.error("[ensurePastaCentral]", error);
+    return null;
+  }
+  return (criada as any)?.id ?? null;
+}
+
+const sanitizeFileName = (n: string) =>
+  n.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+
 export function AnexoDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<FileList | null>(null);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (open) setFile(null); }, [open]);
+  useEffect(() => { if (open) setFiles(null); }, [open]);
+
+  const categoria =
+    tarefa?.conclui_por_upload_categoria ??
+    tarefa?.tarefas_nativas_modelos?.conclui_por_upload_categoria ?? null;
+  const pastaNome = categoria ? CATEGORIA_TO_PASTA[categoria] ?? null : null;
 
   async function enviar() {
-    if (!tarefa || !file) return;
+    if (!tarefa || !files || files.length === 0) return;
     setSaving(true);
-    const key = `${tarefa.pedido_id}/${tarefa.id}/${Date.now()}-${file.name}`;
-    const up = await supabase.storage.from("tarefas-anexos").upload(key, file);
-    if (up.error) { setSaving(false); return toast.error(up.error.message); }
-    await (supabase as any).from("eventos_tarefa").insert({
-      tarefa_id: tarefa.id, tipo: "anexo", usuario_id: userId,
-      anexo_url: up.data?.path || key,
-      payload: { nome: file.name, tipo: file.type, tamanho: file.size },
-    });
-    setSaving(false);
-    toast.success("Anexo enviado.");
-    setOpen(false); onDone();
+
+    try {
+      if (categoria && pastaNome) {
+        // Fluxo Central de Documentos: cada arquivo vai para pedido_documentos,
+        // pasta correspondente. O trigger fn_concluir_tarefa_por_upload conclui a tarefa.
+        const pastaId = await ensurePastaCentral(tarefa.pedido_id, pastaNome);
+        if (!pastaId) {
+          setSaving(false);
+          return toast.error("Falha ao localizar/criar a pasta na Central de Documentos.");
+        }
+
+        for (const file of Array.from(files)) {
+          const safe = sanitizeFileName(file.name);
+          const key = `${tarefa.pedido_id}/${categoria}/${Date.now()}-${safe}`;
+          const up = await supabase.storage.from("pedido-docs").upload(key, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: false,
+          });
+          if (up.error) {
+            setSaving(false);
+            return toast.error("Falha no upload do arquivo: " + up.error.message);
+          }
+          const { error: insErr } = await (supabase as any)
+            .from("pedido_documentos")
+            .insert({
+              pedido_id: tarefa.pedido_id,
+              pasta_id: pastaId,
+              nome: file.name,
+              storage_path: up.data?.path || key,
+              bucket_name: "pedido-docs",
+              tamanho: file.size,
+              mime_type: file.type || "application/octet-stream",
+              categoria_projeto: categoria,
+              created_by: userId,
+            });
+          if (insErr) {
+            setSaving(false);
+            return toast.error("Arquivo enviado, mas falhou ao registrar na Central: " + insErr.message);
+          }
+        }
+
+        toast.success(
+          `${files.length} arquivo(s) enviado(s) à Central de Documentos — ${pastaNome}. Tarefa concluída automaticamente.`
+        );
+        setSaving(false); setOpen(false); onDone();
+        return;
+      }
+
+      // Fluxo genérico (mantém comportamento anterior para outras tarefas)
+      const file = files[0];
+      const key = `${tarefa.pedido_id}/${tarefa.id}/${Date.now()}-${file.name}`;
+      const up = await supabase.storage.from("tarefas-anexos").upload(key, file);
+      if (up.error) { setSaving(false); return toast.error(up.error.message); }
+      await (supabase as any).from("eventos_tarefa").insert({
+        tarefa_id: tarefa.id, tipo: "anexo", usuario_id: userId,
+        anexo_url: up.data?.path || key,
+        payload: { nome: file.name, tipo: file.type, tamanho: file.size },
+      });
+      toast.success("Anexo enviado.");
+      setSaving(false); setOpen(false); onDone();
+    } catch (e: any) {
+      setSaving(false);
+      toast.error(e?.message || "Erro ao enviar anexo.");
+    }
   }
 
   return (
@@ -559,15 +675,29 @@ export function AnexoDialog({
           <DialogTitle>Anexar arquivo</DialogTitle>
           <DialogDescription>{tarefa?.titulo}</DialogDescription>
         </DialogHeader>
-        <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        {categoria && pastaNome && (
+          <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-[12px] text-emerald-900">
+            Os arquivos enviados aqui vão para a <b>Central de Documentos &gt; {pastaNome}</b>.
+            Após o upload, esta tarefa será <b>concluída automaticamente</b>.
+          </div>
+        )}
+        <Input
+          type="file"
+          multiple={!!categoria}
+          accept={categoria ? "image/*,application/pdf" : undefined}
+          onChange={(e) => setFiles(e.target.files)}
+        />
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={enviar} disabled={saving || !file}>Enviar</Button>
+          <Button onClick={enviar} disabled={saving || !files || files.length === 0}>
+            {saving ? "Enviando…" : "Enviar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 export function HistoricoDialog({
   open, setOpen, tarefa, profiles,
