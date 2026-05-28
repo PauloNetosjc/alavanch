@@ -39,6 +39,8 @@ export type ContratoCtx = {
   validation_url?: string | null;
   /** Data URL (PNG) do QR Code apontando para validation_url */
   qr_data_url?: string | null;
+  /** Quando false, oculta toda referência a desconto (coluna, totais, variáveis) */
+  mostrar_desconto?: boolean;
 };
 
 
