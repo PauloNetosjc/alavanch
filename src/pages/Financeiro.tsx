@@ -707,11 +707,14 @@ export default function Financeiro() {
                 </Select>
               </div>
 
-              {/* Fornecedor / Pagador */}
+              {/* Entidade: Receber de / Pagar para */}
               {(() => {
                 const isEntrada = editLanc.tipo === "entrada";
-                const labelTitle = isEntrada ? "Receber de (fornecedor/pagador) *" : "Pagar a (fornecedor) *";
-                const placeholder = isEntrada ? "Selecione o pagador…" : "Selecione o fornecedor…";
+                const labelTitle = isEntrada ? "Receber de *" : "Pagar para *";
+                const placeholder = isEntrada ? "Buscar cliente, fornecedor ou parceiro…" : "Buscar fornecedor, cliente ou parceiro…";
+                const tiposOrdem: ("cliente" | "fornecedor" | "parceiro")[] = isEntrada
+                  ? ["cliente", "parceiro", "fornecedor"]
+                  : ["fornecedor", "parceiro", "cliente"];
                 const pedidoSel = editLanc.vincular_contrato && editLanc.pedido_id
                   ? pedidos.find((p) => p.id === editLanc.pedido_id) : null;
                 if (isEntrada && pedidoSel) {
@@ -727,15 +730,13 @@ export default function Financeiro() {
                 return (
                   <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelTitle}</Label>
-                    <div className="flex gap-2">
-                      <Select value={editLanc.fornecedor_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, fornecedor_id: v })}>
-                        <SelectTrigger className="flex-1"><SelectValue placeholder={placeholder} /></SelectTrigger>
-                        <SelectContent>
-                          {fornecedores.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="outline" onClick={() => setNovoFornOpen(true)}>+ Novo</Button>
-                    </div>
+                    <EntidadeSelector
+                      value={editLanc.entidade || null}
+                      onChange={(v) => setEditLanc({ ...editLanc, entidade: v })}
+                      tipos={tiposOrdem}
+                      placeholder={placeholder}
+                      lojaId={selectedLojaId}
+                    />
                   </div>
                 );
               })()}
