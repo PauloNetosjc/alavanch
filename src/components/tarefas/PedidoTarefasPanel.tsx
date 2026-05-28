@@ -45,9 +45,13 @@ type Tarefa = {
   concluido_por: string | null;
   observacao_conclusao: string | null;
   created_at: string;
+  loja_id?: string | null;
+  conclui_por_upload_categoria?: string | null;
   rh_cargos?: { nome: string } | null;
   profiles?: { nome_completo: string | null } | null;
+  tarefas_nativas_modelos?: { conclui_por_upload_categoria: string | null } | null;
 };
+
 
 type Evento = {
   id: string;
