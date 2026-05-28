@@ -273,7 +273,7 @@ export default function ContasAPagar() {
 
   async function salvarEdicao(p: EditarPayload) {
     if (!editAlvo) return;
-    const { error } = await supabase.from("lancamentos_financeiros").update({
+    const patch: any = {
       data_vencimento: p.data_vencimento,
       data_pagamento: p.data_pagamento,
       valor: p.valor,
@@ -281,7 +281,10 @@ export default function ContasAPagar() {
       forma_pagamento_prevista: p.forma_pagamento_prevista,
       notas: p.notas,
       ...reapprovalPatch(),
-    } as any).eq("id", editAlvo.id);
+    };
+    if (p.categoria_id !== undefined) patch.categoria_id = p.categoria_id;
+    if (p.centro_custo_id !== undefined) patch.centro_custo_id = p.centro_custo_id;
+    const { error } = await supabase.from("lancamentos_financeiros").update(patch).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
