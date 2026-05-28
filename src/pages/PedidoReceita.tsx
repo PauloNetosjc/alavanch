@@ -368,8 +368,9 @@ export default function PedidoReceita() {
                 <th className="text-left p-3">Vencimento</th>
                 <th className="text-left p-3">Forma</th>
                 <th className="text-right p-3">Valor</th>
+                <th className="text-right p-3">Juros / Taxa</th>
                 <th className="text-right p-3">Recebido</th>
-                <th className="text-right p-3">Saldo</th>
+                <th className="text-right p-3">Saldo líquido</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Pago em</th>
                 <th className="text-right p-3">Ações</th>
@@ -377,7 +378,7 @@ export default function PedidoReceita() {
             </thead>
             <tbody>
               {parcelas.length === 0 && (
-                <tr><td className="p-4 text-center text-muted-foreground" colSpan={9}>Nenhuma parcela cadastrada.</td></tr>
+                <tr><td className="p-4 text-center text-muted-foreground" colSpan={10}>Nenhuma parcela cadastrada.</td></tr>
               )}
               {parcelas.map((p) => {
                 const pago = isPago(p.status);
