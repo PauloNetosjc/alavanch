@@ -23,6 +23,7 @@ import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { PedidoTarefasPanel } from "@/components/tarefas/PedidoTarefasPanel";
+import { ArquivosProjetoPanel } from "@/components/pedido/ArquivosProjetoPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
@@ -601,13 +602,13 @@ export default function PedidoDetalhe() {
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
-      {/* PIPELINES & ESTÁGIOS */}
-      {/* REVISÃO PRECEDE OS PIPELINES enquanto não estiver aprovada */}
+      {/* REVISÃO (precede os arquivos de projeto enquanto não estiver aprovada) */}
       {revisaoPendente && (
         <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
       )}
 
-      <PipelinesPanel pedido={pedido} />
+      {/* ARQUIVOS DO PROJETO — substitui "Pipelines & Estágios" */}
+      <ArquivosProjetoPanel pedido={pedido} />
 
       {/* CRONOGRAMA E DATAS */}
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
