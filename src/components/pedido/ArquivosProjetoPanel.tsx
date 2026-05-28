@@ -91,6 +91,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const [loading, setLoading] = useState(true);
   const [uploadingKey, setUploadingKey] = useState<Categoria | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [zipKey, setZipKey] = useState<Categoria | null>(null);
   const [contratoAssinado, setContratoAssinado] = useState<boolean>(false);
   const [usuarios, setUsuarios] = useState<Record<string, string>>({});
   const fileRefs = useRef<Record<Categoria, HTMLInputElement | null>>({
