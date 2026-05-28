@@ -386,7 +386,7 @@ export function PedidoTarefasPanel({
  * DIALOGS
  * ============================================================ */
 
-function ConcluirDialog({
+export function ConcluirDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [obs, setObs] = useState("");
