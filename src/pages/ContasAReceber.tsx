@@ -496,7 +496,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={12} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
@@ -510,6 +510,17 @@ export default function ContasAReceber() {
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => s + Number(l.valor || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => s + Number(l.juros_previsto || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const v = Number(l.valor || 0);
+                      const j = Number(l.juros_previsto || 0);
+                      const r = ["pago","recebido","conciliado"].includes(l.status||"") ? v : 0;
+                      return s + (v - j - r);
+                    }, 0))}
                   </td>
                   <td colSpan={3} />
                 </tr>
