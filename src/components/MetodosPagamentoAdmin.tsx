@@ -58,7 +58,7 @@ export function MetodosPagamentoAdmin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("metodos_pagamento")
-      .select("id, nome, ativo, agrupado, juros_modo, taxa_perc_parcela, max_parcelas, parcelas_config")
+      .select("id, nome, ativo, agrupado, juros_modo, taxa_perc_parcela, max_parcelas, parcelas_config, prazo_recebimento_dias")
       .order("nome");
     if (error) toast.error(error.message);
     setRows(((data ?? []) as any[]).map((r) => ({
@@ -66,6 +66,7 @@ export function MetodosPagamentoAdmin() {
       agrupado: !!r.agrupado,
       juros_modo: (r.juros_modo === "absorver" ? "absorver" : "repassar") as Metodo["juros_modo"],
       parcelas_config: Array.isArray(r.parcelas_config) ? r.parcelas_config : [],
+      prazo_recebimento_dias: Number(r.prazo_recebimento_dias) || 0,
     })) as Metodo[]);
     setLoading(false);
   };
