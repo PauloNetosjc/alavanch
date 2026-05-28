@@ -195,8 +195,20 @@ export function MinhasTarefasNativasPanel() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
+  // Helper: nome do modelo associado à chave técnica
+  const modeloDaChave = (key: string): string | null =>
+    TASK_FILTERS.find((f) => f.key === key)?.modelo ?? null;
+
+  // Aplica primeiro o filtro de tipo de tarefa (chave técnica), depois o filtro existente
+  const aposTaskKey = useMemo(() => {
+    if (taskKey === "todos") return list;
+    const modelo = modeloDaChave(taskKey);
+    if (!modelo) return list;
+    return list.filter((t) => (t.tarefas_nativas_modelos?.nome || "") === modelo);
+  }, [list, taskKey]);
+
   const filtrada = useMemo(() => {
-    return list.filter((t) => {
+    return aposTaskKey.filter((t) => {
       if (filtro === "minhas") {
         return myProfileId && t.responsavel_id === myProfileId;
       }
@@ -205,15 +217,25 @@ export function MinhasTarefasNativasPanel() {
       if (filtro === "prealerta") return isPreAlerta(t) && !isAtrasada(t);
       return true; // todas
     });
-  }, [list, filtro, myProfileId]);
+  }, [aposTaskKey, filtro, myProfileId]);
 
   const counts = {
-    minhas: list.filter((t) => myProfileId && t.responsavel_id === myProfileId).length,
-    todas: list.length,
-    atrasadas: list.filter(isAtrasada).length,
-    hoje: list.filter(isHoje).length,
-    prealerta: list.filter((t) => isPreAlerta(t) && !isAtrasada(t)).length,
+    minhas: aposTaskKey.filter((t) => myProfileId && t.responsavel_id === myProfileId).length,
+    todas: aposTaskKey.length,
+    atrasadas: aposTaskKey.filter(isAtrasada).length,
+    hoje: aposTaskKey.filter(isHoje).length,
+    prealerta: aposTaskKey.filter((t) => isPreAlerta(t) && !isAtrasada(t)).length,
   };
+
+  // Contadores por tipo de tarefa nativa (respeitam o escopo de visibilidade do usuário,
+  // pois `list` já foi filtrada por responsabilidade/cargo/loja).
+  const taskCounts = useMemo(() => {
+    const map: Record<string, number> = { todos: list.length };
+    for (const f of TASK_FILTERS) {
+      map[f.key] = list.filter((t) => (t.tarefas_nativas_modelos?.nome || "") === f.modelo).length;
+    }
+    return map;
+  }, [list]);
 
   function podeOperar(t: TarefaNativa): boolean {
     if (podeVerTodas) return true;
