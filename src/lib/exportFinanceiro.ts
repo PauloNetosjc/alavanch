@@ -13,6 +13,7 @@ export type LancRow = {
   status: string;
   valor: number;
   forma_pagamento_prevista?: string | null;
+  centro_custo?: string | null;
 };
 
 export interface ExportFilters {
@@ -89,6 +90,7 @@ export function exportarExcel(rows: LancRow[], filename = "extrato.xlsx") {
     Cliente: r.cliente || "",
     Descrição: r.descricao || "",
     Categoria: r.categoria || "",
+    "Centro de Custo": r.centro_custo || "",
     Conta: r.conta || "",
     Tipo: r.tipo,
     Status: r.status,
@@ -116,13 +118,14 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
   </style></head><body>
   <h1>${titulo}</h1>
   <table>
-    <thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th>Forma Pgto. Prevista</th><th class="right">Valor</th></tr></thead>
+    <thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Categoria</th><th>Centro de Custo</th><th>Conta</th><th>Tipo</th><th>Status</th><th>Forma Pgto. Prevista</th><th class="right">Valor</th></tr></thead>
     <tbody>
       ${rows.map((r) => `<tr>
         <td>${fmtData(r.data)}</td>
         <td>${(r.cliente || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.descricao || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.categoria || "—").replace(/</g, "&lt;")}</td>
+        <td>${(r.centro_custo || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.conta || "—").replace(/</g, "&lt;")}</td>
         <td>${r.tipo}</td>
         <td>${r.status}</td>
@@ -131,8 +134,8 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
       </tr>`).join("")}
     </tbody>
     <tfoot>
-      <tr><td colspan="8" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
-      <tr><td colspan="8" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
+      <tr><td colspan="9" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
+      <tr><td colspan="9" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
     </tfoot>
   </table>
   <script>window.onload=()=>{window.print();}</script>
