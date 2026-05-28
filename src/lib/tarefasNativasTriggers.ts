@@ -13,6 +13,7 @@ export type TarefaNativaGatilho =
   | "revisao_final_agendada"
   | "revisao_final_concluida"
   | "revisao_projeto_concluida"
+  | "upload_projeto_revisado"
   | "pdf_projeto_final_assinado"
   | "implantacao_fabrica_concluida"
   | "entrega_agendada"

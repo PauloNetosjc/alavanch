@@ -65,7 +65,7 @@ type Evento = {
 
 const GATILHOS_TESTE = [
   "pedido_criado", "contrato_criado", "pedido_assinado",
-  "pdf_projeto_final_assinado", "revisao_projeto_concluida",
+  "pdf_projeto_final_assinado", "revisao_projeto_concluida", "upload_projeto_revisado",
   "implantacao_fabrica_concluida", "projeto_final_concluido",
   "medicao_tecnica_agendada", "medicao_tecnica_concluida",
   "revisao_final_agendada", "revisao_final_concluida",
