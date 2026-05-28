@@ -33,6 +33,7 @@ const GATILHOS: { value: string; label: string }[] = [
   { value: "tarefa_anterior_concluida", label: "Tarefa anterior concluída" },
   { value: "pdf_projeto_final_assinado", label: "PDF do projeto final assinado" },
   { value: "revisao_projeto_concluida", label: "Revisão do projeto concluída" },
+  { value: "upload_projeto_revisado", label: "Upload em Projeto Revisado" },
   { value: "implantacao_fabrica_concluida", label: "Implantação na fábrica concluída" },
   { value: "projeto_final_concluido", label: "Projeto final concluído" },
   { value: "medicao_tecnica_agendada", label: "Medição técnica agendada" },

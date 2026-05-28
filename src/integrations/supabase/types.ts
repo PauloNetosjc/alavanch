@@ -3492,6 +3492,7 @@ export type Database = {
           codigo: string
           created_at: string
           critico: boolean | null
+          data_assinatura_pdf_final: string | null
           data_chegada_material: string | null
           data_entrega: string | null
           data_envio_fabrica: string | null
@@ -3542,6 +3543,7 @@ export type Database = {
           codigo: string
           created_at?: string
           critico?: boolean | null
+          data_assinatura_pdf_final?: string | null
           data_chegada_material?: string | null
           data_entrega?: string | null
           data_envio_fabrica?: string | null
@@ -3592,6 +3594,7 @@ export type Database = {
           codigo?: string
           created_at?: string
           critico?: boolean | null
+          data_assinatura_pdf_final?: string | null
           data_chegada_material?: string | null
           data_entrega?: string | null
           data_envio_fabrica?: string | null
