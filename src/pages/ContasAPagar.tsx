@@ -188,10 +188,18 @@ export default function ContasAPagar() {
   }, [lancs, pedidos]);
 
   const parceiroFornecedor = (l: Lanc): string => {
+    if (l.entidade_nome) return l.entidade_nome;
     const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
     if (fam?.parceiroNome) return fam.parceiroNome;
     const f = fornecedores.find((x) => x.id === l.fornecedor_id)?.nome;
     return f || "—";
+  };
+  const entidadeTipoLabel = (t: string | null | undefined): string | null => {
+    if (!t) return null;
+    if (t === "cliente") return "Cliente";
+    if (t === "fornecedor") return "Fornecedor";
+    if (t === "parceiro") return "Parceiro";
+    return null;
   };
   const clienteName = (l: Lanc): string => {
     const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
