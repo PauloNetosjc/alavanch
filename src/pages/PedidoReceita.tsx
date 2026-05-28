@@ -52,6 +52,7 @@ type Parcela = {
   total: number;
   valor: number;
   juros: number;
+  juros_real: number;
   taxa_perc: number;
   recebido: number;
   saldo: number;
@@ -63,6 +64,7 @@ type Parcela = {
   lanc?: Lanc;
   origemReal: boolean;
 };
+
 
 const isPago = (s?: string | null) =>
   ["pago", "recebido", "conciliado", "baixado"].includes((s || "").toLowerCase());
