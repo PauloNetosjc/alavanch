@@ -92,6 +92,7 @@ export default function PedidoReceita() {
   const [cliente, setCliente] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [metodos, setMetodos] = useState<MetodoPagamento[]>([]);
   const [lancamentos, setLancamentos] = useState<Lanc[]>([]);
   const [contas, setContas] = useState<{ id: string; nome: string; banco: string | null }[]>([]);
   const [criador, setCriador] = useState<any>(null);
