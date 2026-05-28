@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2, AlertCircle, Loader2, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import JSZip from "jszip";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
@@ -90,6 +91,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const [loading, setLoading] = useState(true);
   const [uploadingKey, setUploadingKey] = useState<Categoria | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [zipKey, setZipKey] = useState<Categoria | null>(null);
   const [contratoAssinado, setContratoAssinado] = useState<boolean>(false);
   const [usuarios, setUsuarios] = useState<Record<string, string>>({});
   const fileRefs = useRef<Record<Categoria, HTMLInputElement | null>>({
@@ -307,6 +309,70 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     toast.success("Arquivo excluído.");
   }
 
+  async function handleBaixarTodos(cat: Categoria) {
+    const arquivos = docsPor[cat];
+    if (arquivos.length === 0) return;
+    setZipKey(cat);
+    const zip = new JSZip();
+    const usados: Record<string, number> = {};
+    let ok = 0;
+    let falha = 0;
+    try {
+      for (const d of arquivos) {
+        try {
+          const { data, error } = await supabase.storage.from("pedido-docs").download(d.storage_path);
+          if (error || !data) throw error || new Error("download vazio");
+          // evita colisão de nomes dentro do zip
+          let nome = d.nome;
+          if (usados[nome] !== undefined) {
+            usados[nome] += 1;
+            const dot = nome.lastIndexOf(".");
+            nome = dot > 0
+              ? `${nome.slice(0, dot)} (${usados[nome]})${nome.slice(dot)}`
+              : `${nome} (${usados[nome]})`;
+          } else {
+            usados[d.nome] = 0;
+          }
+          zip.file(nome, data);
+          ok++;
+        } catch (e) {
+          console.error("[baixarTodos] falha", d.nome, e);
+          falha++;
+        }
+      }
+
+      if (ok === 0) {
+        toast.error("Não foi possível baixar os arquivos.");
+        return;
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const codigo = (pedido?.codigo || pedido?.id || "pedido").toString().toLowerCase().replace(/[^a-z0-9\-]+/g, "-");
+      const prefixoZip: Record<Categoria, string> = {
+        projeto_vendido: "projeto-vendido",
+        projeto_para_revisao: "projeto-para-revisao",
+        projeto_revisado: "projeto-revisado",
+      };
+      const filename = `${prefixoZip[cat]}-${codigo}.zip`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+      if (falha > 0) {
+        toast.warning(`Alguns arquivos não puderam ser baixados (${falha} de ${arquivos.length}).`);
+      } else {
+        toast.success(`Download iniciado (${ok} arquivo${ok > 1 ? "s" : ""}).`);
+      }
+    } finally {
+      setZipKey(null);
+    }
+  }
+
   if (!podeVer) return null;
 
   return (
@@ -399,6 +465,29 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
                       : podeUpload
                         ? "Enviar arquivo(s)"
                         : "Sem permissão"}
+                  </Button>
+                )}
+
+                {arquivos.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-1.5"
+                    disabled={zipKey === s.key}
+                    onClick={() => handleBaixarTodos(s.key)}
+                    title="Baixar todos os arquivos desta seção em um .zip"
+                  >
+                    {zipKey === s.key ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        Preparando arquivos…
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-3.5 h-3.5 mr-1.5" />
+                        Baixar todos ({arquivos.length})
+                      </>
+                    )}
                   </Button>
                 )}
 
