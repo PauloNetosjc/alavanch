@@ -150,9 +150,10 @@ export function PedidoTarefasPanel({
     setLoading(true);
     const [t, c, p, me] = await Promise.all([
       (supabase as any).from("tarefas_pedido")
-        .select("*, rh_cargos(nome), profiles(nome_completo)")
+        .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")
         .eq("pedido_id", pedidoId)
         .order("prazo", { ascending: true, nullsFirst: false }),
+
       supabase.from("rh_cargos").select("id,nome").order("nome"),
       supabase.from("profiles").select("id,nome_completo,user_id").eq("ativo", true).order("nome_completo"),
       user ? supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
