@@ -1336,6 +1336,50 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracoes_kanbans: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          chave_kanban: string
+          criado_em: string
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          nome_kanban: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave_kanban: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          nome_kanban: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave_kanban?: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          nome_kanban?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_kanbans_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
