@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2 } from "lucide-react";
+import { FileUp, Download, Eye, Trash2, Lock, Folder, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 
 /* ============================================================
- * Arquivos do Projeto — 3 seções sequenciais
+ * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
  *  - Projeto Vendido
  *  - Projeto para Revisão (exige Vendido)
  *  - Projeto Revisado (exige para Revisão)
@@ -76,6 +76,12 @@ function fmtData(iso: string): string {
   }
 }
 
+type UploadItem = {
+  nome: string;
+  status: "pending" | "uploading" | "done" | "error";
+  erro?: string;
+};
+
 export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
@@ -83,6 +89,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingKey, setUploadingKey] = useState<Categoria | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [contratoAssinado, setContratoAssinado] = useState<boolean>(false);
   const [usuarios, setUsuarios] = useState<Record<string, string>>({});
   const fileRefs = useRef<Record<Categoria, HTMLInputElement | null>>({
@@ -168,50 +175,101 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     return { ok: true };
   }
 
-  async function handleUpload(cat: Categoria, file: File) {
-    if (!pedido?.id || !file) return;
+  async function handleUpload(cat: Categoria, files: FileList | null) {
+    if (!pedido?.id || !files || files.length === 0) return;
     const lib = categoriaLiberada(cat);
     if (!lib.ok) {
       toast.error(lib.motivo || "Upload bloqueado.");
       return;
     }
+
+    const fileList = Array.from(files);
+    const queue: UploadItem[] = fileList.map((f) => ({ nome: f.name, status: "pending" }));
     setUploadingKey(cat);
+    setUploadQueue(queue);
+
+    let sucesso = 0;
+    let falha = 0;
+    const falhas: string[] = [];
+
+    // Garante pasta "Projeto" uma única vez
+    let pastaId: string | null = null;
     try {
-      // Garante pasta "Projeto"
-      const { data: pastaId } = await (supabase as any).rpc("fn_garantir_pasta_projeto", { p_pedido_id: pedido.id });
-
-      const safe = file.name.replace(/[^\w.\-]+/g, "_");
-      const path = `${pedido.id}/${cat}/${Date.now()}-${safe}`;
-      const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, file, { upsert: false });
-      if (upErr) throw upErr;
-
-      const { error: insErr } = await supabase.from("pedido_documentos").insert({
-        pedido_id: pedido.id,
-        pasta_id: pastaId || null,
-        nome: file.name,
-        storage_path: path,
-        tamanho: file.size,
-        mime_type: file.type || null,
-        categoria_projeto: cat,
-        created_by: user?.id || null,
-        bucket_name: "pedido-docs",
-      } as any);
-      if (insErr) {
-        // remove upload órfão
-        await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
-        throw insErr;
-      }
-
-      toast.success("Arquivo enviado.");
-    } catch (e: any) {
-      const msg = e?.message || String(e);
-      toast.error(msg.includes("Envie primeiro") ? msg : `Falha no upload: ${msg}`);
-    } finally {
-      setUploadingKey(null);
-      // limpa input
-      const ref = fileRefs.current[cat];
-      if (ref) ref.value = "";
+      const { data: pId } = await (supabase as any).rpc("fn_garantir_pasta_projeto", { p_pedido_id: pedido.id });
+      pastaId = pId || null;
+    } catch {
+      // segue sem pasta se falhar; o registro ainda entra
     }
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      setUploadQueue((prev) => {
+        const next = [...prev];
+        if (next[i]) next[i].status = "uploading";
+        return next;
+      });
+
+      try {
+        const safe = file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${pedido.id}/${cat}/${Date.now()}-${safe}`;
+        const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, file, { upsert: false });
+        if (upErr) throw upErr;
+
+        const { error: insErr } = await supabase.from("pedido_documentos").insert({
+          pedido_id: pedido.id,
+          pasta_id: pastaId,
+          nome: file.name,
+          storage_path: path,
+          tamanho: file.size,
+          mime_type: file.type || null,
+          categoria_projeto: cat,
+          created_by: user?.id || null,
+          bucket_name: "pedido-docs",
+        } as any);
+        if (insErr) {
+          await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
+          throw insErr;
+        }
+
+        sucesso++;
+        setUploadQueue((prev) => {
+          const next = [...prev];
+          if (next[i]) next[i].status = "done";
+          return next;
+        });
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        falha++;
+        falhas.push(`${file.name}: ${msg}`);
+        setUploadQueue((prev) => {
+          const next = [...prev];
+          if (next[i]) {
+            next[i].status = "error";
+            next[i].erro = msg;
+          }
+          return next;
+        });
+      }
+    }
+
+    if (sucesso > 0 && falha === 0) {
+      toast.success(`${sucesso} arquivo${sucesso > 1 ? "s" : ""} enviado${sucesso > 1 ? "s" : ""}.`);
+    } else if (sucesso > 0 && falha > 0) {
+      toast.warning(`${sucesso} enviado${sucesso > 1 ? "s" : ""}, ${falha} falha${falha > 1 ? "s" : ""}.`);
+    } else if (falha > 0) {
+      toast.error(`Falha no upload de ${falha} arquivo${falha > 1 ? "s" : ""}.`);
+    }
+
+    if (falhas.length > 0) {
+      // toast detalhado com nomes
+      falhas.forEach((f) => toast.error(f, { duration: 5000 }));
+    }
+
+    setUploadingKey(null);
+    setUploadQueue([]);
+    // limpa input
+    const ref = fileRefs.current[cat];
+    if (ref) ref.value = "";
   }
 
   async function handleVisualizar(d: Doc) {
@@ -270,6 +328,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
           const arquivos = docsPor[s.key];
           const lib = categoriaLiberada(s.key);
           const bloqueado = !lib.ok;
+          const isUploading = uploadingKey === s.key;
           return (
             <div key={s.key} className="border rounded-lg p-3 bg-muted/20 flex flex-col">
               <div className="flex items-center gap-2 mb-1">
@@ -315,10 +374,11 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
                 <input
                   ref={(el) => (fileRefs.current[s.key] = el)}
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleUpload(s.key, f);
+                    const files = e.target.files;
+                    if (files && files.length > 0) handleUpload(s.key, files);
                   }}
                 />
                 {bloqueado ? (
@@ -330,12 +390,37 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
                     size="sm"
                     variant="outline"
                     className="w-full"
-                    disabled={!podeUpload || uploadingKey === s.key}
+                    disabled={!podeUpload || isUploading}
                     onClick={() => fileRefs.current[s.key]?.click()}
                   >
                     <FileUp className="w-3.5 h-3.5 mr-1.5" />
-                    {uploadingKey === s.key ? "Enviando…" : podeUpload ? "Enviar arquivo" : "Sem permissão"}
+                    {isUploading
+                      ? `Enviando ${uploadQueue.filter((u) => u.status === "uploading").length}/${uploadQueue.length}…`
+                      : podeUpload
+                        ? "Enviar arquivo(s)"
+                        : "Sem permissão"}
                   </Button>
+                )}
+
+                {/* Painel de progresso/fila */}
+                {isUploading && uploadQueue.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {uploadQueue.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded border bg-background">
+                        {item.status === "uploading" && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                        {item.status === "done" && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                        {item.status === "error" && <AlertCircle className="w-3 h-3 text-destructive" />}
+                        {item.status === "pending" && <div className="w-3 h-3 rounded-full bg-muted" />}
+                        <span className="truncate flex-1" title={item.nome}>{item.nome}</span>
+                        <span className="shrink-0 text-muted-foreground">
+                          {item.status === "uploading" && "enviando…"}
+                          {item.status === "done" && "ok"}
+                          {item.status === "error" && "erro"}
+                          {item.status === "pending" && "aguardando"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
