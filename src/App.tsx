@@ -56,6 +56,7 @@ const ContasAReceber = lazy(() => import("@/pages/ContasAReceber"));
 const AprovadorFinanceiro = lazy(() => import("@/pages/AprovadorFinanceiro"));
 const ExtratoConta = lazy(() => import("@/pages/ExtratoConta"));
 const CategoriasFinanceiras = lazy(() => import("@/pages/CategoriasFinanceiras"));
+const CentrosCusto = lazy(() => import("@/pages/CentrosCusto"));
 const AuditoriaParceiros = lazy(() => import("@/pages/AuditoriaParceiros"));
 const Parceiros = lazy(() => import("@/pages/Parceiros"));
 const Financeiro = lazy(() => import("@/pages/Financeiro"));
@@ -184,6 +185,7 @@ const App = () => (
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
                 <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
+                <Route path="/centros-custo" element={<RequirePermission modulo="centros_custo"><CentrosCusto /></RequirePermission>} />
                 <Route path="/auditoria-parceiros" element={<RequirePermission modulo="auditoria_parceiros"><AuditoriaParceiros /></RequirePermission>} />
                 <Route path="/parceiros" element={<RequirePermission modulo="parceiros"><Parceiros /></RequirePermission>} />
                 <Route path="/origens" element={<Origens />} />

@@ -24,6 +24,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -50,6 +51,7 @@ type Conta = { id: string; nome: string; banco: string | null };
 type Pedido = { id: string; codigo: string; created_at: string | null; receita_codigo: string | null; pedido_pai_id: string | null; pedido_origem_complemento_id: string | null; cliente_id: string | null };
 type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
+type CentroCusto = { id: string; nome: string };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -68,6 +70,7 @@ export default function ContasAReceber() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
+  const [centros, setCentros] = useState<CentroCusto[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -77,6 +80,7 @@ export default function ContasAReceber() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
+  const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -90,7 +94,7 @@ export default function ContasAReceber() {
   }, [selectedLojaId]);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "entrada").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
@@ -98,6 +102,7 @@ export default function ContasAReceber() {
       supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
+      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -106,6 +111,7 @@ export default function ContasAReceber() {
     setClientes((cl as Cliente[]) || []);
     setProfiles((pf as Profile[]) || []);
     setFornecedores((fr as any[]) || []);
+    setCentros(((cc as any[]) || []) as CentroCusto[]);
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -119,6 +125,7 @@ export default function ContasAReceber() {
   }, [user, role]);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
+  const ccName = (id: string | null) => centros.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
   const pedidoData = (id: string | null) => {
@@ -193,6 +200,10 @@ export default function ContasAReceber() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (centroCustoFiltro) {
+        if (centroCustoFiltro === "__none") { if (l.centro_custo_id) return false; }
+        else if (l.centro_custo_id !== centroCustoFiltro) return false;
+      }
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       if (formaPrevFiltro) {
         if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
@@ -209,6 +220,7 @@ export default function ContasAReceber() {
         const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
+          || ccName(l.centro_custo_id).toLowerCase().includes(t)
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
@@ -220,7 +232,7 @@ export default function ContasAReceber() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, centroCustoFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, centros, pedidos, pedidoFamilia, lojasFiltro]);
 
 
   const [baixaOpen, setBaixaOpen] = useState(false);
@@ -328,6 +340,7 @@ export default function ContasAReceber() {
     descricao: l.descricao || "",
     cliente: pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "",
     categoria: catName(l.categoria_id),
+    centro_custo: ccName(l.centro_custo_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
     status: l.status || "",
@@ -378,6 +391,7 @@ export default function ContasAReceber() {
         fornecedores={fornecedores}
         fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
         formaPrevFiltro={formaPrevFiltro} setFormaPrevFiltro={setFormaPrevFiltro}
+        centrosCusto={centros} centroCustoFiltro={centroCustoFiltro} setCentroCustoFiltro={setCentroCustoFiltro}
         formasPrevistas={FORMAS_PREVISTAS}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
@@ -399,6 +413,7 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
+                <th className="text-left py-3 font-medium">Centro de Custo</th>
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor bruto</th>
                 <th className="text-right py-3 font-medium">Juros / Taxa</th>
@@ -472,6 +487,7 @@ export default function ContasAReceber() {
                       )}
                     </td>
                     <td>{catName(l.categoria_id)}</td>
+                    <td className="text-muted-foreground">{ccName(l.centro_custo_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
                     <td className="text-right font-semibold whitespace-nowrap text-emerald-700">
                       {BRL(Number(l.valor || 0))}
@@ -561,7 +577,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={16} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={17} className="text-center py-12 text-muted-foreground">
 
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
@@ -571,7 +587,7 @@ export default function ContasAReceber() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={7} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={8} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">

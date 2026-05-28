@@ -59,6 +59,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -66,10 +67,13 @@ type Lanc = {
   fornecedor_id: string | null;
   loja_id: string | null;
 };
-type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null };
+type Cat = { id: string; nome: string; tipo: string | null; parent_id: string | null; ativo?: boolean | null };
 type Conta = { id: string; nome: string };
 type Pedido = { id: string; codigo: string; cliente_id?: string | null; cliente_nome?: string | null };
 type Parceiro = { id: string; nome: string };
+type CentroCusto = { id: string; nome: string; ativo: boolean };
+
+const catTipoFor = (lancTipo: string) => (lancTipo === "entrada" ? "receita" : "despesa");
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -90,6 +94,7 @@ export default function Financeiro() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
 
   // Filtros
   const [searchParams] = useSearchParams();
@@ -153,13 +158,14 @@ export default function Financeiro() {
   const [liquidando, setLiquidando] = useState<Lanc | null>(null);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }, { data: fr }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").order("data_vencimento", { ascending: true }).limit(2000),
-      supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id").order("nome"),
+      supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id,ativo").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo,cliente_id, cliente:cliente_id(nome)").order("created_at", { ascending: false }).limit(500),
       supabase.from("parceiros").select("id,nome").order("nome"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
+      supabase.from("centros_custo").select("id,nome,ativo").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -167,6 +173,7 @@ export default function Financeiro() {
     setPedidos(((pd as any[]) || []).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, cliente_nome: p.cliente?.nome ?? null })));
     setParceiros((pa as Parceiro[]) || []);
     setFornecedores((fr as any[]) || []);
+    setCentrosCusto(((cc as any[]) || []) as CentroCusto[]);
   }
   useEffect(() => { load(); }, []);
 
@@ -279,6 +286,7 @@ export default function Financeiro() {
       valor: "",
       data_vencimento: todayISO(),
       categoria_id: "",
+      centro_custo_id: "",
       conta_id: "",
       pedido_id: "",
       parceiro_id: "",
@@ -332,6 +340,8 @@ export default function Financeiro() {
     if (!editLanc?.descricao) return toast.error("Descrição obrigatória");
     const v = Number(editLanc.valor);
     if (!v || v <= 0) return toast.error("Informe um valor válido");
+    if (!editLanc.categoria_id) return toast.error("Selecione a categoria");
+    if (!editLanc.centro_custo_id) return toast.error("Selecione o centro de custo");
 
     // Entidade obrigatória:
     // - Toda despesa precisa de entidade (pagar para…)
@@ -351,6 +361,7 @@ export default function Financeiro() {
       tipo: editLanc.tipo,
       descricao: editLanc.descricao,
       categoria_id: editLanc.categoria_id || null,
+      centro_custo_id: editLanc.centro_custo_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
       // compatibilidade: ainda preenchemos fornecedor_id quando a entidade for fornecedor
@@ -693,18 +704,34 @@ export default function Financeiro() {
               <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Informações Básicas</div>
                 <Input placeholder="Descrição" value={editLanc.descricao} onChange={(e) => setEditLanc({ ...editLanc, descricao: e.target.value })} />
-                <Select value={editLanc.categoria_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, categoria_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma categoria…" /></SelectTrigger>
-                  <SelectContent>
-                    {cats
-                      .filter((c) => !editLanc.tipo || !c.tipo || c.tipo === editLanc.tipo)
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {catParent(c.id) ? `${catParent(c.id)} > ${c.nome}` : c.nome}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoria *</Label>
+                    <Select value={editLanc.categoria_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, categoria_id: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {cats
+                          .filter((c) => c.ativo !== false && (!c.tipo || c.tipo === catTipoFor(editLanc.tipo)))
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {catParent(c.id) ? `${catParent(c.id)} > ${c.nome}` : c.nome}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Centro de Custo *</Label>
+                    <Select value={editLanc.centro_custo_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, centro_custo_id: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {centrosCusto.filter((cc) => cc.ativo).map((cc) => (
+                          <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Entidade: Receber de / Pagar para */}
@@ -978,6 +1005,7 @@ function LiquidarDialog({
         valor: restante,
         data_vencimento: novaData,
         categoria_id: lanc.categoria_id,
+        centro_custo_id: lanc.centro_custo_id,
         conta_id: lanc.conta_id,
         pedido_id: lanc.pedido_id,
         status: "pendente",

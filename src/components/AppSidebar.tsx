@@ -118,10 +118,10 @@ const moreGroups: Group[] = [
     icon: Banknote,
     items: [
       { label: "Descontos", path: "/administracao?tab=descontos", icon: Folder, roles: ["admin"] },
-      
       { label: "Bancos", path: "/administracao?tab=bancos", icon: Banknote, roles: ["admin"] },
       { label: "Pagamentos", path: "/administracao?tab=pagamentos", icon: Wallet, roles: ["admin"] },
-      { label: "Categorias", path: "/administracao?tab=categorias", icon: Folder, roles: ["admin"] },
+      { label: "Categorias Financeiras", path: "/categorias-financeiras", icon: Folder, modulo: "categorias_financeiras" },
+      { label: "Centros de Custo", path: "/centros-custo", icon: Folder, modulo: "centros_custo" },
     ],
   },
   {

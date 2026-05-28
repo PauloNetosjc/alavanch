@@ -24,6 +24,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -81,6 +82,8 @@ export default function ContasAPagar() {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
+  const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
+  const [centros, setCentros] = useState<{ id: string; nome: string }[]>([]);
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -94,7 +97,7 @@ export default function ContasAPagar() {
   }, [selectedLojaId]);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
@@ -104,6 +107,7 @@ export default function ContasAPagar() {
       supabase.from("fornecedores").select("id,nome").order("nome"),
       supabase.from("orcamentos").select("id,parceiro_id").limit(5000),
       supabase.from("parceiros").select("id,nome").limit(2000),
+      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -114,6 +118,7 @@ export default function ContasAPagar() {
     setFornecedores((fr as any[]) || []);
     setOrcamentos((oc as Orc[]) || []);
     setParceiros((pa as Parceiro[]) || []);
+    setCentros(((cc as any[]) || []));
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -127,6 +132,7 @@ export default function ContasAPagar() {
   }, [user, role]);
 
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.nome || "—";
+  const ccName = (id: string | null) => centros.find((c) => c.id === id)?.nome || "—";
   const contaName = (id: string | null) => contas.find((c) => c.id === id)?.nome || "—";
   const pedidoCod = (id: string | null) => pedidos.find((p) => p.id === id)?.codigo || null;
   const pedidoData = (id: string | null) => {
@@ -219,6 +225,10 @@ export default function ContasAPagar() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (centroCustoFiltro) {
+        if (centroCustoFiltro === "__none") { if (l.centro_custo_id) return false; }
+        else if (l.centro_custo_id !== centroCustoFiltro) return false;
+      }
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       if (formaPrevFiltro) {
         if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
@@ -235,6 +245,7 @@ export default function ContasAPagar() {
         const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
+          || ccName(l.centro_custo_id).toLowerCase().includes(t)
           || contaName(l.conta_id).toLowerCase().includes(t)
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
@@ -250,7 +261,7 @@ export default function ContasAPagar() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro, fornecedores]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, centroCustoFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, centros, pedidos, pedidoFamilia, lojasFiltro, fornecedores]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -352,6 +363,7 @@ export default function ContasAPagar() {
     descricao: l.descricao || "",
     cliente: clienteName(l) !== "—" ? clienteName(l) : parceiroFornecedor(l),
     categoria: catName(l.categoria_id),
+    centro_custo: ccName(l.centro_custo_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
     status: l.status || "",
@@ -402,6 +414,7 @@ export default function ContasAPagar() {
         fornecedores={fornecedores}
         fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
         formaPrevFiltro={formaPrevFiltro} setFormaPrevFiltro={setFormaPrevFiltro}
+        centrosCusto={centros} centroCustoFiltro={centroCustoFiltro} setCentroCustoFiltro={setCentroCustoFiltro}
         formasPrevistas={FORMAS_PREVISTAS}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
@@ -423,6 +436,7 @@ export default function ContasAPagar() {
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
+                <th className="text-left py-3 font-medium">Centro de Custo</th>
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor bruto</th>
                 <th className="text-right py-3 font-medium">Juros / Taxa</th>
@@ -490,6 +504,7 @@ export default function ContasAPagar() {
                       )}
                     </td>
                     <td>{catName(l.categoria_id)}</td>
+                    <td className="text-muted-foreground">{ccName(l.centro_custo_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
                     <td className="text-right font-semibold whitespace-nowrap text-rose-700">
                       {BRL(Number(l.valor || 0))}
@@ -574,7 +589,7 @@ export default function ContasAPagar() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={17} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={18} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a pagar
                 </td></tr>
@@ -583,7 +598,7 @@ export default function ContasAPagar() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={8} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={9} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-rose-700 whitespace-nowrap">
