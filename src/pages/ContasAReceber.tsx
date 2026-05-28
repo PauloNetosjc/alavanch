@@ -34,6 +34,11 @@ type Lanc = {
   forma_pagamento: string | null;
   notas: string | null;
   loja_id: string | null;
+  juros_previsto?: number | null;
+  taxa_perc?: number | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  agrupado?: boolean | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -370,6 +375,8 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Categoria</th>
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor</th>
+                <th className="text-right py-3 font-medium">Juros / Taxa</th>
+                <th className="text-right py-3 font-medium">Saldo líquido</th>
                 <th className="text-center py-3 font-medium">Status</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
@@ -421,7 +428,28 @@ export default function ContasAReceber() {
                     </td>
                     <td>{catName(l.categoria_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
-                    <td className="text-right font-semibold whitespace-nowrap text-emerald-700">{BRL(Number(l.valor || 0))}</td>
+                    <td className="text-right font-semibold whitespace-nowrap text-emerald-700">
+                      {BRL(Number(l.valor || 0))}
+                      {l.agrupado && (
+                        <div className="mt-1 inline-flex items-center text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">
+                          Agrupado{l.total_parcelas ? ` ${l.total_parcelas}x` : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-right whitespace-nowrap text-amber-700">
+                      {Number(l.juros_previsto || 0) > 0 ? BRL(Number(l.juros_previsto || 0)) : "—"}
+                      {l.taxa_perc != null && Number(l.taxa_perc) > 0 && (
+                        <div className="text-[10px] text-muted-foreground">{Number(l.taxa_perc).toFixed(2)}%</div>
+                      )}
+                    </td>
+                    <td className="text-right font-medium whitespace-nowrap">
+                      {(() => {
+                        const valor = Number(l.valor || 0);
+                        const juros = Number(l.juros_previsto || 0);
+                        const recebido = pago ? valor : 0;
+                        return BRL(valor - juros - recebido);
+                      })()}
+                    </td>
                     <td className="text-center">
                       <div className="inline-flex items-center">
                         {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
@@ -468,7 +496,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={12} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
                 </td></tr>
@@ -482,6 +510,17 @@ export default function ContasAReceber() {
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => s + Number(l.valor || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => s + Number(l.juros_previsto || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const v = Number(l.valor || 0);
+                      const j = Number(l.juros_previsto || 0);
+                      const r = ["pago","recebido","conciliado"].includes(l.status||"") ? v : 0;
+                      return s + (v - j - r);
+                    }, 0))}
                   </td>
                   <td colSpan={3} />
                 </tr>

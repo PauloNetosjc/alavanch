@@ -31,6 +31,7 @@ type Metodo = {
   taxa_perc_parcela: number;
   max_parcelas: number;
   parcelas_config: ParcelaConfig[];
+  prazo_recebimento_dias: number;
 };
 
 const FORMAS_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
@@ -57,7 +58,7 @@ export function MetodosPagamentoAdmin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("metodos_pagamento")
-      .select("id, nome, ativo, agrupado, juros_modo, taxa_perc_parcela, max_parcelas, parcelas_config")
+      .select("id, nome, ativo, agrupado, juros_modo, taxa_perc_parcela, max_parcelas, parcelas_config, prazo_recebimento_dias")
       .order("nome");
     if (error) toast.error(error.message);
     setRows(((data ?? []) as any[]).map((r) => ({
@@ -65,6 +66,7 @@ export function MetodosPagamentoAdmin() {
       agrupado: !!r.agrupado,
       juros_modo: (r.juros_modo === "absorver" ? "absorver" : "repassar") as Metodo["juros_modo"],
       parcelas_config: Array.isArray(r.parcelas_config) ? r.parcelas_config : [],
+      prazo_recebimento_dias: Number(r.prazo_recebimento_dias) || 0,
     })) as Metodo[]);
     setLoading(false);
   };
@@ -72,7 +74,7 @@ export function MetodosPagamentoAdmin() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => {
-    setEditing({ id: "", nome: "", ativo: true, agrupado: false, juros_modo: "repassar", taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)] });
+    setEditing({ id: "", nome: "", ativo: true, agrupado: false, juros_modo: "repassar", taxa_perc_parcela: 0, max_parcelas: 12, parcelas_config: [blankParcela(1)], prazo_recebimento_dias: 0 });
     setOpen(true);
   };
 
@@ -105,6 +107,7 @@ export function MetodosPagamentoAdmin() {
       taxa_perc_parcela: editing.taxa_perc_parcela || 0,
       max_parcelas: editing.parcelas_config.length || 1,
       parcelas_config: editing.parcelas_config as any,
+      prazo_recebimento_dias: editing.agrupado ? (Number(editing.prazo_recebimento_dias) || 0) : 0,
     };
     const q = editing.id
       ? supabase.from("metodos_pagamento").update(payload).eq("id", editing.id)
@@ -240,6 +243,21 @@ export function MetodosPagamentoAdmin() {
                   </div>
                 </div>
               </div>
+
+              {editing.agrupado && (
+                <div className="p-3 rounded-md border border-border bg-muted/30">
+                  <Label className="text-[13px] font-medium">Prazo de recebimento agrupado (dias)</Label>
+                  <div className="text-[11px] text-muted-foreground mb-2">
+                    Quantidade de dias após a venda/assinatura em que o valor agrupado cairá no financeiro.
+                  </div>
+                  <Input
+                    type="number" min={0} step={1}
+                    className="h-9 max-w-[160px]"
+                    value={editing.prazo_recebimento_dias ?? 0}
+                    onChange={(e) => setEditing({ ...editing, prazo_recebimento_dias: Math.max(0, parseInt(e.target.value || "0", 10) || 0) })}
+                  />
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center justify-between mb-2">

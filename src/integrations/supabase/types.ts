@@ -1861,6 +1861,7 @@ export type Database = {
       lancamentos_financeiros: {
         Row: {
           adendo_pedido_id: string | null
+          agrupado: boolean
           aprovacao_motivo: string | null
           aprovacao_status: string
           aprovado_em: string | null
@@ -1880,17 +1881,23 @@ export type Database = {
           forma_pagamento: string | null
           fornecedor_id: string | null
           id: string
+          juros_previsto: number
           loja_id: string | null
           notas: string | null
+          numero_parcela: number | null
+          origem_pagamento_id: string | null
           pedido_id: string | null
           recorrente: boolean | null
           status: string | null
+          taxa_perc: number | null
           tipo: string
+          total_parcelas: number | null
           updated_at: string
           valor: number
         }
         Insert: {
           adendo_pedido_id?: string | null
+          agrupado?: boolean
           aprovacao_motivo?: string | null
           aprovacao_status?: string
           aprovado_em?: string | null
@@ -1910,17 +1917,23 @@ export type Database = {
           forma_pagamento?: string | null
           fornecedor_id?: string | null
           id?: string
+          juros_previsto?: number
           loja_id?: string | null
           notas?: string | null
+          numero_parcela?: number | null
+          origem_pagamento_id?: string | null
           pedido_id?: string | null
           recorrente?: boolean | null
           status?: string | null
+          taxa_perc?: number | null
           tipo: string
+          total_parcelas?: number | null
           updated_at?: string
           valor: number
         }
         Update: {
           adendo_pedido_id?: string | null
+          agrupado?: boolean
           aprovacao_motivo?: string | null
           aprovacao_status?: string
           aprovado_em?: string | null
@@ -1940,12 +1953,17 @@ export type Database = {
           forma_pagamento?: string | null
           fornecedor_id?: string | null
           id?: string
+          juros_previsto?: number
           loja_id?: string | null
           notas?: string | null
+          numero_parcela?: number | null
+          origem_pagamento_id?: string | null
           pedido_id?: string | null
           recorrente?: boolean | null
           status?: string | null
+          taxa_perc?: number | null
           tipo?: string
+          total_parcelas?: number | null
           updated_at?: string
           valor?: number
         }
@@ -2217,6 +2235,7 @@ export type Database = {
           max_parcelas: number
           nome: string
           parcelas_config: Json
+          prazo_recebimento_dias: number
           taxa_perc_parcela: number
         }
         Insert: {
@@ -2228,6 +2247,7 @@ export type Database = {
           max_parcelas?: number
           nome: string
           parcelas_config?: Json
+          prazo_recebimento_dias?: number
           taxa_perc_parcela?: number
         }
         Update: {
@@ -2239,6 +2259,7 @@ export type Database = {
           max_parcelas?: number
           nome?: string
           parcelas_config?: Json
+          prazo_recebimento_dias?: number
           taxa_perc_parcela?: number
         }
         Relationships: []

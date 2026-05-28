@@ -37,16 +37,24 @@ type Lanc = {
   loja_id: string | null;
   baixado_por: string | null;
   baixado_em: string | null;
+  juros_previsto?: number | null;
+  taxa_perc?: number | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  agrupado?: boolean | null;
 };
 
 type Parcela = {
   numero: number;
   total: number;
   valor: number;
+  juros: number;
+  taxa_perc: number;
   recebido: number;
   saldo: number;
   vencimento: string | null;
   forma: string;
+  agrupado: boolean;
   status?: string | null;
   data_pagamento?: string | null;
   lanc?: Lanc;
@@ -148,16 +156,20 @@ export default function PedidoReceita() {
       const total = lancamentos.length;
       return lancamentos.map((l, idx) => {
         const valor = Number(l.valor) || 0;
+        const juros = Number(l.juros_previsto || 0);
         const recebido = isPago(l.status) ? valor : 0;
         const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
         return {
-          numero: m ? parseInt(m[1], 10) : idx + 1,
-          total: m ? parseInt(m[2], 10) : total,
+          numero: l.numero_parcela ?? (m ? parseInt(m[1], 10) : idx + 1),
+          total: l.total_parcelas ?? (m ? parseInt(m[2], 10) : total),
           valor,
+          juros,
+          taxa_perc: Number(l.taxa_perc || 0),
           recebido,
-          saldo: valor - recebido,
+          saldo: valor - juros - recebido,
           vencimento: l.data_vencimento || null,
           forma: l.forma_pagamento || "—",
+          agrupado: !!l.agrupado,
           status: l.status,
           data_pagamento: l.data_pagamento || null,
           lanc: l,
@@ -179,7 +191,7 @@ export default function PedidoReceita() {
           const valor = isObj ? Number(d.valor) || 0 : Number(d) || 0;
           const venc = (isObj ? (d.data_vencimento || d.data) : null) || vencs[k] || null;
           const forma = (isObj ? (d.forma_pagamento || d.forma) : null) || formas[k] || formaDefault;
-          out.push({ numero: i++, total: 0, valor, recebido: 0, saldo: valor, vencimento: venc, forma, status: "pendente", origemReal: false });
+          out.push({ numero: i++, total: 0, valor, juros: 0, taxa_perc: 0, recebido: 0, saldo: valor, vencimento: venc, forma, agrupado: false, status: "pendente", origemReal: false });
         });
       } else {
         const qtd = Number(p.parcelas) || 1;
@@ -192,7 +204,7 @@ export default function PedidoReceita() {
             const d = new Date(baseDate); d.setMonth(d.getMonth() + k);
             dataStr = d.toISOString().slice(0, 10);
           }
-          out.push({ numero: i++, total: 0, valor: valorParcela, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, status: "pendente", origemReal: false });
+          out.push({ numero: i++, total: 0, valor: valorParcela, juros: 0, taxa_perc: 0, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, agrupado: false, status: "pendente", origemReal: false });
         }
       }
     }
@@ -201,12 +213,13 @@ export default function PedidoReceita() {
 
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
+    const juros = parcelas.reduce((s, p) => s + (p.juros || 0), 0);
     const recebido = parcelas.reduce((s, p) => s + (p.recebido || 0), 0);
     const saldo = parcelas.reduce((s, p) => s + (p.saldo || 0), 0);
     const pendentes = parcelas.filter((p) => !isPago(p.status) && !isVencido(p)).length;
     const liquidadas = parcelas.filter((p) => isPago(p.status)).length;
     const vencidas = parcelas.filter((p) => isVencido(p)).length;
-    return { valor, recebido, saldo, pendentes, liquidadas, vencidas };
+    return { valor, juros, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
   const gerarReceber = async () => {
@@ -328,10 +341,11 @@ export default function PedidoReceita() {
         <Field label="Nro. documento">{pedido.receita_codigo || "—"}</Field>
       </section>
 
-      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-6 gap-5 text-[13px]">
-        <Field label="Valor total">{fmtBrl(totais.valor)}</Field>
+      <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
+        <Field label="Valor bruto">{fmtBrl(totais.valor)}</Field>
+        <Field label="Juros / Taxa"><span className="text-amber-700">{fmtBrl(totais.juros)}</span></Field>
         <Field label="Recebido">{fmtBrl(totais.recebido)}</Field>
-        <Field label="Saldo">{fmtBrl(totais.saldo)}</Field>
+        <Field label="Saldo líquido"><span className="font-semibold">{fmtBrl(totais.saldo)}</span></Field>
         <Field label="Pendentes">{totais.pendentes}</Field>
         <Field label="Liquidadas">{totais.liquidadas}</Field>
         <Field label="Vencidas"><span className={totais.vencidas > 0 ? "text-red-600" : ""}>{totais.vencidas}</span></Field>
@@ -354,8 +368,9 @@ export default function PedidoReceita() {
                 <th className="text-left p-3">Vencimento</th>
                 <th className="text-left p-3">Forma</th>
                 <th className="text-right p-3">Valor</th>
+                <th className="text-right p-3">Juros / Taxa</th>
                 <th className="text-right p-3">Recebido</th>
-                <th className="text-right p-3">Saldo</th>
+                <th className="text-right p-3">Saldo líquido</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Pago em</th>
                 <th className="text-right p-3">Ações</th>
@@ -363,18 +378,30 @@ export default function PedidoReceita() {
             </thead>
             <tbody>
               {parcelas.length === 0 && (
-                <tr><td className="p-4 text-center text-muted-foreground" colSpan={9}>Nenhuma parcela cadastrada.</td></tr>
+                <tr><td className="p-4 text-center text-muted-foreground" colSpan={10}>Nenhuma parcela cadastrada.</td></tr>
               )}
               {parcelas.map((p) => {
                 const pago = isPago(p.status);
                 return (
                   <tr key={p.lanc?.id || p.numero} className="border-t">
-                    <td className="p-3 font-mono text-[12px]">#{codigo}-{p.numero}/{p.total}</td>
+                    <td className="p-3 font-mono text-[12px]">
+                      #{codigo}-{p.numero}/{p.total}
+                      {p.agrupado && (
+                        <span className="ml-1.5 inline-block text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Agrupado</span>
+                      )}
+                    </td>
                     <td className="p-3">{fmtDate(p.vencimento)}</td>
-                    <td className="p-3">{p.forma}</td>
+                    <td className="p-3">
+                      {p.forma}
+                      {p.agrupado && <div className="text-[10px] text-muted-foreground">Recebimento agrupado</div>}
+                    </td>
                     <td className="p-3 text-right">{fmtBrl(p.valor)}</td>
+                    <td className="p-3 text-right text-amber-700">
+                      {p.juros > 0 ? fmtBrl(p.juros) : "—"}
+                      {p.taxa_perc > 0 && <div className="text-[10px] text-muted-foreground">{p.taxa_perc.toFixed(2)}%</div>}
+                    </td>
                     <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
-                    <td className="p-3 text-right">{fmtBrl(p.saldo)}</td>
+                    <td className="p-3 text-right font-medium">{fmtBrl(p.saldo)}</td>
                     <td className="p-3">{statusBadge(p)}</td>
                     <td className="p-3">{fmtDate(p.data_pagamento)}</td>
                     <td className="p-3 text-right">
@@ -407,6 +434,7 @@ export default function PedidoReceita() {
                 <tr className="border-t bg-muted/30 font-semibold">
                   <td className="p-3" colSpan={3}>Total</td>
                   <td className="p-3 text-right">{fmtBrl(totais.valor)}</td>
+                  <td className="p-3 text-right text-amber-700">{fmtBrl(totais.juros)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.recebido)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.saldo)}</td>
                   <td className="p-3" colSpan={3}></td>
