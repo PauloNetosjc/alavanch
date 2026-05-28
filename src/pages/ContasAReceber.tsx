@@ -375,6 +375,8 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Categoria</th>
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor</th>
+                <th className="text-right py-3 font-medium">Juros / Taxa</th>
+                <th className="text-right py-3 font-medium">Saldo líquido</th>
                 <th className="text-center py-3 font-medium">Status</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
