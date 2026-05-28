@@ -77,18 +77,18 @@ export default function EntidadeSelector({
   const [novoTipo, setNovoTipo] = useState<EntidadeTipo | null>(null);
 
   async function loadAll() {
-    const promises: Promise<any>[] = [];
-    if (tipos.includes("cliente"))
-      promises.push(supabase.from("clientes").select("id,nome,cpf_cnpj,email,telefone").eq("ativo", true).order("nome").limit(2000));
-    else promises.push(Promise.resolve({ data: [] }));
-    if (tipos.includes("fornecedor"))
-      promises.push(supabase.from("fornecedores").select("id,nome,documento,email,telefone").eq("ativo", true).order("nome").limit(2000));
-    else promises.push(Promise.resolve({ data: [] }));
-    if (tipos.includes("parceiro"))
-      promises.push(supabase.from("parceiros").select("id,nome,cpf_cnpj,email,telefone").eq("ativo", true).order("nome").limit(2000));
-    else promises.push(Promise.resolve({ data: [] }));
+    const empty = Promise.resolve({ data: [] as any[] });
+    const cliQ = tipos.includes("cliente")
+      ? supabase.from("clientes").select("id,nome,cpf_cnpj,email,telefone").eq("ativo", true).order("nome").limit(2000).then((r) => r)
+      : empty;
+    const fornQ = tipos.includes("fornecedor")
+      ? supabase.from("fornecedores").select("id,nome,documento,email,telefone").eq("ativo", true).order("nome").limit(2000).then((r) => r)
+      : empty;
+    const parcQ = tipos.includes("parceiro")
+      ? supabase.from("parceiros").select("id,nome,cpf_cnpj,email,telefone").eq("ativo", true).order("nome").limit(2000).then((r) => r)
+      : empty;
 
-    const [cli, forn, parc] = await Promise.all(promises);
+    const [cli, forn, parc] = await Promise.all([cliQ, fornQ, parcQ]);
     const all: Item[] = [
       ...((cli.data as any[]) || []).map((c) => ({
         id: c.id, nome: c.nome, tipo: "cliente" as const, doc: c.cpf_cnpj || null, email: c.email || null, telefone: c.telefone || null,
