@@ -85,21 +85,21 @@ export async function solicitarAutorizacao(p: SolicitarParams) {
   };
 
   if (existente?.id) {
-    const { error } = await supabase
-      .from("autorizacoes" as any)
+    const { error } = await (supabase as any)
+      .from("autorizacoes")
       .update(payload)
-      .eq("id", (existente as any).id);
+      .eq("id", existente.id);
     if (error) throw error;
-    return (existente as any).id as string;
+    return existente.id;
   }
 
-  const { data: criado, error } = await supabase
-    .from("autorizacoes" as any)
+  const { data: criadoRaw, error } = await (supabase as any)
+    .from("autorizacoes")
     .insert(payload)
     .select("id")
     .single();
   if (error) throw error;
-  return (criado as any).id as string;
+  return (criadoRaw as { id: string }).id;
 }
 
 /** Atualiza autorização correspondente para "aprovada" (sem disparar fluxo reverso de novo). */
