@@ -83,7 +83,7 @@ export default function ContasAPagar() {
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
   const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
-  const [centros, setCentros] = useState<{ id: string; nome: string }[]>([]);
+  const [centros, setCentros] = useState<{ id: string; nome: string; ativo?: boolean | null }[]>([]);
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
