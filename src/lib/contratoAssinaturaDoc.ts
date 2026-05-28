@@ -760,7 +760,11 @@ export async function prepararContratoParaAssinatura(
   };
 
 
-  const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
+  const ctxEnriched = await enrichContratoCtxWithLive(ctx as any, {
+    orcamento_id: (pedido as any)?.orcamento_id || null,
+    cliente_id: pedido.cliente_id || null,
+  });
+  const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctxEnriched as any);
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
   const fileName = `Contrato ${contrato.numero || solic.id}.pdf`;
   const blob = await htmlToPdfBlob(html, fileName);
