@@ -438,7 +438,10 @@ export default function MeusChamados() {
         return <div className="space-y-3">{filtered.map(renderCard)}</div>;
       })()}
 
-      {/* TAREFAS DO USUÁRIO */}
+      {/* TAREFAS NATIVAS DO PEDIDO */}
+      <MinhasTarefasNativasPanel />
+
+      {/* TAREFAS DO USUÁRIO (manuais/internas) */}
       <TarefasPanel
         scope={isAdmin ? "todas" : "minhas"}
         groupByUser={isAdmin}
