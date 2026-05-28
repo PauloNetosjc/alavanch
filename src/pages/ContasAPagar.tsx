@@ -473,8 +473,11 @@ export default function ContasAPagar() {
                     <td className="py-4 whitespace-nowrap max-w-[180px] truncate" title={clienteName(l)}>
                       {clienteName(l)}
                     </td>
-                    <td className="whitespace-nowrap max-w-[180px] truncate" title={parceiroFornecedor(l)}>
-                      {parceiroFornecedor(l)}
+                    <td className="whitespace-nowrap max-w-[200px] truncate" title={parceiroFornecedor(l)}>
+                      <div className="font-medium truncate">{parceiroFornecedor(l)}</div>
+                      {entidadeTipoLabel(l.entidade_tipo) && (
+                        <div className="text-[10px] text-muted-foreground">{entidadeTipoLabel(l.entidade_tipo)}</div>
+                      )}
                     </td>
                     <td className="whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
