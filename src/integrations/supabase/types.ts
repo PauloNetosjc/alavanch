@@ -3511,6 +3511,7 @@ export type Database = {
           estagio_responsavel_id: string | null
           estagio_revisao_id: string | null
           estrelas: number | null
+          etapa_atual: string | null
           id: string
           is_adendo: boolean | null
           is_complemento: boolean
@@ -3563,6 +3564,7 @@ export type Database = {
           estagio_responsavel_id?: string | null
           estagio_revisao_id?: string | null
           estrelas?: number | null
+          etapa_atual?: string | null
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
@@ -3615,6 +3617,7 @@ export type Database = {
           estagio_responsavel_id?: string | null
           estagio_revisao_id?: string | null
           estrelas?: number | null
+          etapa_atual?: string | null
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
@@ -5318,6 +5321,10 @@ export type Database = {
         Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
       }
+      atualizar_etapa_atual_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: string
+      }
       auto_criar_solic_contrato: {
         Args: { p_contrato_id?: string; p_pedido_id: string }
         Returns: string
@@ -5446,6 +5453,10 @@ export type Database = {
       }
       is_dia_util: { Args: { _data: string; _loja: string }; Returns: boolean }
       kanban_processar_atrasos: { Args: never; Returns: number }
+      liberar_pedido_para_fabrica: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       loja_de_ambiente: { Args: { _ambiente_id: string }; Returns: string }
       loja_de_assistencia: {
         Args: { _assistencia_id: string }
