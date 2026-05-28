@@ -414,6 +414,7 @@ export default function PedidoReceita() {
           <Link to={`/pedidos/${pedido.id}`} className="text-primary hover:underline">{pedido.codigo}</Link>
         </Field>
         <Field label="Nro. documento">{pedido.receita_codigo || "—"}</Field>
+        <Field label="Forma de pagamento"><span className="font-medium">{resumoPagamento}</span></Field>
       </section>
 
       <section className="surface-card p-6 grid grid-cols-2 md:grid-cols-4 gap-5 text-[13px]">
