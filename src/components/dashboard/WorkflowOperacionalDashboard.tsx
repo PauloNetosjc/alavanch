@@ -6,8 +6,9 @@ import { BRL } from "@/lib/financeiro";
 import {
   FileSignature, FileText, Ruler, Pencil, ClipboardCheck,
   FilePlus2, Factory, Truck, Wrench, ShieldCheck, Workflow, AlertTriangle,
-  Search, ArrowRight, FileSpreadsheet, Printer, CheckCircle2, Sparkles, FileX2,
+  Search, ArrowRight, FileSpreadsheet, Printer, CheckCircle2, Sparkles, FileX2, CalendarRange,
 } from "lucide-react";
+import MedicoesPrevistasDialog from "./MedicoesPrevistasDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
@@ -170,6 +171,7 @@ export default function WorkflowOperacionalDashboard() {
   const [statusFiltro, setStatusFiltro] = useState<"todos" | StatusPrazo>("todos");
   const [contratoFiltro, setContratoFiltro] = useState<ContratoFiltro>("assinados");
   const [busca, setBusca] = useState("");
+  const [openMedicoes, setOpenMedicoes] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -387,8 +389,12 @@ export default function WorkflowOperacionalDashboard() {
           <Button variant="outline" size="sm" onClick={() => window.print()}>
             <Printer className="w-4 h-4" /> Imprimir
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setOpenMedicoes(true)}>
+            <CalendarRange className="w-4 h-4" /> Medições Previstas
+          </Button>
         </div>
       </div>
+      <MedicoesPrevistasDialog open={openMedicoes} onOpenChange={setOpenMedicoes} />
 
       {/* Cards de topo: Concluídos e Venda Futura */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
