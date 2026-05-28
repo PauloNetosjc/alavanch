@@ -1258,7 +1258,16 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
 
 
   const enviarParaAssinatura = async (doc: any) => {
-    const tipoSlug = (doc.tipo_documento_slug as string) || "projeto_inicial";
+    // Resolve o tipo correto a partir da pasta do documento:
+    // - "Projeto Final" => pdf_final (assinatura formal do PDF final do projeto)
+    // - demais pastas   => projeto_inicial (padrão histórico)
+    const pastaDoDoc = pastas.find((p: any) => p.id === (doc.pasta_id ?? pastaAtiva));
+    const pastaNome = String(pastaDoDoc?.nome || "").trim().toLowerCase();
+    let tipoSlug = (doc.tipo_documento_slug as string) || "";
+    if (!tipoSlug) {
+      if (pastaNome === "projeto final") tipoSlug = "pdf_final";
+      else tipoSlug = "projeto_inicial";
+    }
     const { data, error } = await supabase.rpc("criar_solic_assinatura_documento", {
       p_pedido_id: pedidoId,
       p_pedido_documento_id: doc.id,
