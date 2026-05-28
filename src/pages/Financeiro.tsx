@@ -93,6 +93,7 @@ export default function Financeiro() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
 
   // Filtros
   const [searchParams] = useSearchParams();
@@ -156,13 +157,14 @@ export default function Financeiro() {
   const [liquidando, setLiquidando] = useState<Lanc | null>(null);
 
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: pa }, { data: fr }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").order("data_vencimento", { ascending: true }).limit(2000),
-      supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id").order("nome"),
+      supabase.from("categorias_financeiras").select("id,nome,tipo,parent_id,ativo").order("nome"),
       supabase.from("contas_bancarias").select("id,nome").order("nome"),
       supabase.from("pedidos").select("id,codigo,cliente_id, cliente:cliente_id(nome)").order("created_at", { ascending: false }).limit(500),
       supabase.from("parceiros").select("id,nome").order("nome"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
+      supabase.from("centros_custo").select("id,nome,ativo").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -170,6 +172,7 @@ export default function Financeiro() {
     setPedidos(((pd as any[]) || []).map((p) => ({ id: p.id, codigo: p.codigo, cliente_id: p.cliente_id, cliente_nome: p.cliente?.nome ?? null })));
     setParceiros((pa as Parceiro[]) || []);
     setFornecedores((fr as any[]) || []);
+    setCentrosCusto(((cc as any[]) || []) as CentroCusto[]);
   }
   useEffect(() => { load(); }, []);
 
@@ -282,6 +285,7 @@ export default function Financeiro() {
       valor: "",
       data_vencimento: todayISO(),
       categoria_id: "",
+      centro_custo_id: "",
       conta_id: "",
       pedido_id: "",
       parceiro_id: "",
