@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Loader2, ShieldCheck, FileText, Upload, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/assinaturas/SignaturePad";
-import { renderContratoHtml, type ContratoTemplate } from "@/lib/contratoTemplate";
+import { renderContratoHtml, enrichContratoCtxWithLive, type ContratoTemplate } from "@/lib/contratoTemplate";
 import { maskCpf, maskCnpj, unmask } from "@/lib/masks";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { arquivarDocumentoAssinado } from "@/lib/arquivarDocAssinado";
