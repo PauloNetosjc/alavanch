@@ -139,9 +139,10 @@ export function MinhasTarefasNativasPanel() {
         pedidos(codigo, cliente_id, clientes(nome)),
         rh_cargos(nome),
         profiles(nome_completo),
-        tarefas_nativas_modelos!inner(exibir_meus_chamados)
+        tarefas_nativas_modelos!inner(exibir_meus_chamados, conclui_por_upload_categoria)
       `)
       .eq("tarefas_nativas_modelos.exibir_meus_chamados", true)
+
       .not("status", "in", "(concluida,cancelada)")
       .order("prazo", { ascending: true, nullsFirst: false });
 
