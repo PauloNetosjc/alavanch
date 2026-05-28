@@ -821,22 +821,68 @@ export default function Financeiro() {
 
       {/* DIALOG NOVO FORNECEDOR (rápido) */}
       <Dialog open={novoFornOpen} onOpenChange={setNovoFornOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="text-lg font-semibold">Incluir novo fornecedor</div>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Nome / Razão social *</Label>
-              <Input value={novoFornNome} onChange={(e) => setNovoFornNome(e.target.value)} placeholder="Nome do fornecedor" autoFocus />
+          <div className="space-y-5">
+            {/* Seção 1: Dados principais */}
+            <div className="space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Dados principais</div>
+              <div>
+                <Label className="text-xs">Nome / Razão social *</Label>
+                <Input value={novoFornNome} onChange={(e) => setNovoFornNome(e.target.value)} placeholder="Nome do fornecedor" autoFocus />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">CPF / CNPJ</Label>
+                  <Input value={novoFornDoc} onChange={(e) => setNovoFornDoc(e.target.value)} placeholder="Documento" />
+                </div>
+                <div>
+                  <Label className="text-xs">Inscrição Estadual</Label>
+                  <Input value={novoFornIE} onChange={(e) => setNovoFornIE(e.target.value)} placeholder="IE" />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label className="text-xs">CPF / CNPJ (opcional)</Label>
-              <Input value={novoFornDoc} onChange={(e) => setNovoFornDoc(e.target.value)} placeholder="Documento" />
+
+            {/* Seção 2: Contato */}
+            <div className="space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Contato</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Telefone</Label>
+                  <Input value={novoFornTel} onChange={(e) => setNovoFornTel(e.target.value)} placeholder="(00) 00000-0000" />
+                </div>
+                <div>
+                  <Label className="text-xs">E-mail</Label>
+                  <Input type="email" value={novoFornEmail} onChange={(e) => setNovoFornEmail(e.target.value)} placeholder="email@dominio.com" />
+                </div>
+              </div>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Você poderá completar os dados do fornecedor depois em Cadastros → Fornecedores.
-            </p>
+
+            {/* Seção 3: Endereços */}
+            <div className="space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Endereços</div>
+              <div>
+                <Label className="text-xs">Endereço de cobrança</Label>
+                <Input value={novoFornEndCob} onChange={(e) => setNovoFornEndCob(e.target.value)} placeholder="Rua, número, bairro, cidade/UF, CEP" />
+              </div>
+              <div>
+                <Label className="text-xs">Endereço de entrega</Label>
+                <Input value={novoFornEndEnt} onChange={(e) => setNovoFornEndEnt(e.target.value)} placeholder="Rua, número, bairro, cidade/UF, CEP" />
+              </div>
+            </div>
+
+            {/* Seção 4: Observações */}
+            <div className="space-y-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Observações</div>
+              <textarea
+                className="w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-[13px]"
+                value={novoFornObs}
+                onChange={(e) => setNovoFornObs(e.target.value)}
+                placeholder="Anotações livres sobre o fornecedor"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNovoFornOpen(false)}>Cancelar</Button>
