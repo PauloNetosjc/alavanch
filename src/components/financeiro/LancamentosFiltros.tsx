@@ -5,6 +5,7 @@ import { Search, CalendarRange } from "lucide-react";
 
 export type Cat = { id: string; nome: string; parent_id?: string | null };
 export type Fornecedor = { id: string; nome: string };
+export type CentroCustoOpt = { id: string; nome: string };
 
 interface Props {
   // busca
@@ -23,6 +24,10 @@ interface Props {
   fornecedores?: Fornecedor[];
   fornecedorFiltro?: string;
   setFornecedorFiltro?: (v: string) => void;
+  // centro de custo
+  centrosCusto?: CentroCustoOpt[];
+  centroCustoFiltro?: string;
+  setCentroCustoFiltro?: (v: string) => void;
   // forma de pagamento prevista
   formaPrevFiltro?: string;
   setFormaPrevFiltro?: (v: string) => void;
@@ -142,6 +147,24 @@ export default function LancamentosFiltros(p: Props) {
                   <SelectItem value="all">Todos os fornecedores</SelectItem>
                   {(p.fornecedores || []).map((f) => (
                     <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          {p.setCentroCustoFiltro && (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground pt-1">Centro de custo</div>
+              <Select
+                value={p.centroCustoFiltro || "all"}
+                onValueChange={(v) => p.setCentroCustoFiltro?.(v === "all" ? "" : v)}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos os centros" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os centros</SelectItem>
+                  <SelectItem value="__none">Sem centro de custo</SelectItem>
+                  {(p.centrosCusto || []).map((cc) => (
+                    <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
