@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useLoja } from "@/contexts/LojaContext";
 import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import EntidadeSelector, { type EntidadeRef } from "@/components/financeiro/EntidadeSelector";
 
 type Lanc = {
   id: string;
@@ -282,6 +283,7 @@ export default function Financeiro() {
       pedido_id: "",
       parceiro_id: "",
       fornecedor_id: "",
+      entidade: null as EntidadeRef | null,
       forma_pagamento_prevista: "",
       parcelas: 2,
       vincular_contrato: false,
@@ -331,16 +333,17 @@ export default function Financeiro() {
     const v = Number(editLanc.valor);
     if (!v || v <= 0) return toast.error("Informe um valor válido");
 
-    // Fornecedor obrigatório:
-    // - Toda despesa precisa de fornecedor
-    // - Receita só dispensa fornecedor quando vinculada a um contrato (o cliente do pedido é o pagador)
+    // Entidade obrigatória:
+    // - Toda despesa precisa de entidade (pagar para…)
+    // - Receita só dispensa entidade quando vinculada a um contrato (o cliente do pedido é o pagador)
     const isReceitaComContrato =
       editLanc.tipo === "entrada" && editLanc.vincular_contrato && editLanc.pedido_id;
-    if (!isReceitaComContrato && !editLanc.fornecedor_id) {
+    const entidade: EntidadeRef | null = editLanc.entidade || null;
+    if (!isReceitaComContrato && !entidade) {
       return toast.error(
         editLanc.tipo === "saida"
-          ? "Selecione ou cadastre o fornecedor da despesa"
-          : "Selecione ou cadastre o pagador (fornecedor) da receita"
+          ? "Selecione ou cadastre quem irá receber este pagamento"
+          : "Selecione ou cadastre o pagador desta receita"
       );
     }
 
@@ -350,7 +353,11 @@ export default function Financeiro() {
       categoria_id: editLanc.categoria_id || null,
       conta_id: editLanc.conta_id || null,
       pedido_id: editLanc.vincular_contrato ? editLanc.pedido_id || null : null,
-      fornecedor_id: editLanc.fornecedor_id || null,
+      // compatibilidade: ainda preenchemos fornecedor_id quando a entidade for fornecedor
+      fornecedor_id: entidade?.tipo === "fornecedor" ? entidade.id : null,
+      entidade_tipo: entidade?.tipo || null,
+      entidade_id: entidade?.id || null,
+      entidade_nome: entidade?.nome || null,
       forma_pagamento_prevista: editLanc.forma_pagamento_prevista || null,
       status: "pendente",
     };
@@ -700,11 +707,14 @@ export default function Financeiro() {
                 </Select>
               </div>
 
-              {/* Fornecedor / Pagador */}
+              {/* Entidade: Receber de / Pagar para */}
               {(() => {
                 const isEntrada = editLanc.tipo === "entrada";
-                const labelTitle = isEntrada ? "Receber de (fornecedor/pagador) *" : "Pagar a (fornecedor) *";
-                const placeholder = isEntrada ? "Selecione o pagador…" : "Selecione o fornecedor…";
+                const labelTitle = isEntrada ? "Receber de *" : "Pagar para *";
+                const placeholder = isEntrada ? "Buscar cliente, fornecedor ou parceiro…" : "Buscar fornecedor, cliente ou parceiro…";
+                const tiposOrdem: ("cliente" | "fornecedor" | "parceiro")[] = isEntrada
+                  ? ["cliente", "parceiro", "fornecedor"]
+                  : ["fornecedor", "parceiro", "cliente"];
                 const pedidoSel = editLanc.vincular_contrato && editLanc.pedido_id
                   ? pedidos.find((p) => p.id === editLanc.pedido_id) : null;
                 if (isEntrada && pedidoSel) {
@@ -720,15 +730,13 @@ export default function Financeiro() {
                 return (
                   <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelTitle}</Label>
-                    <div className="flex gap-2">
-                      <Select value={editLanc.fornecedor_id || ""} onValueChange={(v) => setEditLanc({ ...editLanc, fornecedor_id: v })}>
-                        <SelectTrigger className="flex-1"><SelectValue placeholder={placeholder} /></SelectTrigger>
-                        <SelectContent>
-                          {fornecedores.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="outline" onClick={() => setNovoFornOpen(true)}>+ Novo</Button>
-                    </div>
+                    <EntidadeSelector
+                      value={editLanc.entidade || null}
+                      onChange={(v) => setEditLanc({ ...editLanc, entidade: v })}
+                      tipos={tiposOrdem}
+                      placeholder={placeholder}
+                      lojaId={selectedLojaId}
+                    />
                   </div>
                 );
               })()}

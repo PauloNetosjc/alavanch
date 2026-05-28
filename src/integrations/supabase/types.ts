@@ -2039,6 +2039,9 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
+          entidade_id: string | null
+          entidade_nome: string | null
+          entidade_tipo: string | null
           forma_pagamento: string | null
           forma_pagamento_prevista: string | null
           fornecedor_id: string | null
@@ -2077,6 +2080,9 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          entidade_id?: string | null
+          entidade_nome?: string | null
+          entidade_tipo?: string | null
           forma_pagamento?: string | null
           forma_pagamento_prevista?: string | null
           fornecedor_id?: string | null
@@ -2115,6 +2121,9 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          entidade_id?: string | null
+          entidade_nome?: string | null
+          entidade_tipo?: string | null
           forma_pagamento?: string | null
           forma_pagamento_prevista?: string | null
           fornecedor_id?: string | null

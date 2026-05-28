@@ -41,7 +41,9 @@ type Lanc = {
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
-
+  entidade_tipo?: string | null;
+  entidade_id?: string | null;
+  entidade_nome?: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -211,6 +213,8 @@ export default function ContasAReceber() {
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
           || (fam?.clienteNome || "").toLowerCase().includes(t)
+          || (l.entidade_nome || "").toLowerCase().includes(t)
+          || (l.entidade_tipo || "").toLowerCase().includes(t)
           || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
@@ -390,7 +394,7 @@ export default function ContasAReceber() {
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Código</th>
-                <th className="text-left py-3 font-medium">Cliente</th>
+                <th className="text-left py-3 font-medium">Receber de</th>
                 <th className="text-left py-3 font-medium">Data Contrato</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
@@ -442,9 +446,21 @@ export default function ContasAReceber() {
                         return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
                       })()}
                     </td>
-                    <td className="py-4 whitespace-nowrap max-w-[200px] truncate" title={pedidoFamilia.get(l.pedido_id || "")?.clienteNome || ""}>
-                      {pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "—"}
-                    </td>
+                    {(() => {
+                      const tipoLabel = l.entidade_tipo === "cliente" ? "Cliente"
+                        : l.entidade_tipo === "fornecedor" ? "Fornecedor"
+                        : l.entidade_tipo === "parceiro" ? "Parceiro" : null;
+                      const nome = l.entidade_nome
+                        || pedidoFamilia.get(l.pedido_id || "")?.clienteNome
+                        || "—";
+                      const subLabel = tipoLabel || (pedidoFamilia.get(l.pedido_id || "")?.clienteNome ? "Cliente" : null);
+                      return (
+                        <td className="py-4 whitespace-nowrap max-w-[200px] truncate" title={nome}>
+                          <div className="font-medium truncate">{nome}</div>
+                          {subLabel && <div className="text-[10px] text-muted-foreground">{subLabel}</div>}
+                        </td>
+                      );
+                    })()}
                     <td className="py-4 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>

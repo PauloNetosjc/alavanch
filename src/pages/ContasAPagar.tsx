@@ -41,6 +41,9 @@ type Lanc = {
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
+  entidade_tipo?: string | null;
+  entidade_id?: string | null;
+  entidade_nome?: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
@@ -185,10 +188,18 @@ export default function ContasAPagar() {
   }, [lancs, pedidos]);
 
   const parceiroFornecedor = (l: Lanc): string => {
+    if (l.entidade_nome) return l.entidade_nome;
     const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
     if (fam?.parceiroNome) return fam.parceiroNome;
     const f = fornecedores.find((x) => x.id === l.fornecedor_id)?.nome;
     return f || "—";
+  };
+  const entidadeTipoLabel = (t: string | null | undefined): string | null => {
+    if (!t) return null;
+    if (t === "cliente") return "Cliente";
+    if (t === "fornecedor") return "Fornecedor";
+    if (t === "parceiro") return "Parceiro";
+    return null;
   };
   const clienteName = (l: Lanc): string => {
     const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
@@ -231,6 +242,8 @@ export default function ContasAPagar() {
           || (fam?.clienteNome || "").toLowerCase().includes(t)
           || (fam?.parceiroNome || "").toLowerCase().includes(t)
           || parceiroFornecedor(l).toLowerCase().includes(t)
+          || (l.entidade_nome || "").toLowerCase().includes(t)
+          || (entidadeTipoLabel(l.entidade_tipo) || "").toLowerCase().includes(t)
           || (l.status || "").toLowerCase().includes(t)
           || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
@@ -405,7 +418,7 @@ export default function ContasAPagar() {
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
                 <th className="text-left py-3 px-5 font-medium">Código</th>
                 <th className="text-left py-3 font-medium">Cliente</th>
-                <th className="text-left py-3 font-medium">Parceiro / Fornecedor</th>
+                <th className="text-left py-3 font-medium">Pagar para</th>
                 <th className="text-left py-3 font-medium">Data Origem</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
@@ -460,8 +473,11 @@ export default function ContasAPagar() {
                     <td className="py-4 whitespace-nowrap max-w-[180px] truncate" title={clienteName(l)}>
                       {clienteName(l)}
                     </td>
-                    <td className="whitespace-nowrap max-w-[180px] truncate" title={parceiroFornecedor(l)}>
-                      {parceiroFornecedor(l)}
+                    <td className="whitespace-nowrap max-w-[200px] truncate" title={parceiroFornecedor(l)}>
+                      <div className="font-medium truncate">{parceiroFornecedor(l)}</div>
+                      {entidadeTipoLabel(l.entidade_tipo) && (
+                        <div className="text-[10px] text-muted-foreground">{entidadeTipoLabel(l.entidade_tipo)}</div>
+                      )}
                     </td>
                     <td className="whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
