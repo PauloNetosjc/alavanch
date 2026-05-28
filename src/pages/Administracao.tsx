@@ -30,6 +30,7 @@ import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
+import { TransferirResponsabilidadesDialog } from "@/components/TransferirResponsabilidadesDialog";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
