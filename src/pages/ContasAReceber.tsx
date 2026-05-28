@@ -446,9 +446,21 @@ export default function ContasAReceber() {
                         return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
                       })()}
                     </td>
-                    <td className="py-4 whitespace-nowrap max-w-[200px] truncate" title={pedidoFamilia.get(l.pedido_id || "")?.clienteNome || ""}>
-                      {pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "—"}
-                    </td>
+                    {(() => {
+                      const tipoLabel = l.entidade_tipo === "cliente" ? "Cliente"
+                        : l.entidade_tipo === "fornecedor" ? "Fornecedor"
+                        : l.entidade_tipo === "parceiro" ? "Parceiro" : null;
+                      const nome = l.entidade_nome
+                        || pedidoFamilia.get(l.pedido_id || "")?.clienteNome
+                        || "—";
+                      const subLabel = tipoLabel || (pedidoFamilia.get(l.pedido_id || "")?.clienteNome ? "Cliente" : null);
+                      return (
+                        <td className="py-4 whitespace-nowrap max-w-[200px] truncate" title={nome}>
+                          <div className="font-medium truncate">{nome}</div>
+                          {subLabel && <div className="text-[10px] text-muted-foreground">{subLabel}</div>}
+                        </td>
+                      );
+                    })()}
                     <td className="py-4 whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
                     <td>
