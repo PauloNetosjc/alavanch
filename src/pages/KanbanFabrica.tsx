@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { findKanban } from "@/components/kanban/kanbanRegistry";
 import { supabase } from "@/integrations/supabase/client";
+import { useLoja } from "@/contexts/LojaContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,12 +16,11 @@ type View = "kanban" | "lista";
 type Linha = {
   id: string;
   codigo: string | null;
+  loja_id: string | null;
   data_assinatura_pdf_final: string | null;
-  data_upload_projeto_producao: string | null;
   status_fabrica: string | null;
   cliente_nome: string | null;
   loja_nome: string | null;
-  vendedor_nome: string | null;
 };
 
 function fmtData(iso: string | null): string {
@@ -33,18 +33,24 @@ function fmtData(iso: string | null): string {
 }
 
 function ListaLiberadosFabrica() {
+  const { selectedLojaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [linhas, setLinhas] = useState<Linha[]>([]);
 
   async function carregar() {
     setLoading(true);
-    const { data: pedidos, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("pedidos")
       .select(
-        "id, codigo, vendedor_id, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)"
+        "id, codigo, loja_id, data_assinatura_pdf_final, status_fabrica, arquivado, cliente:clientes(nome), loja:lojas(nome)"
       )
       .eq("status_fabrica", "liberado_para_lote")
-      .order("data_assinatura_pdf_final", { ascending: false, nullsFirst: false });
+      .or("arquivado.is.null,arquivado.eq.false")
+      .order("created_at", { ascending: false });
+
+    if (selectedLojaId) query = query.eq("loja_id", selectedLojaId);
+
+    const { data: pedidos, error } = await query;
 
     if (error) {
       console.error("[ListaLiberadosFabrica] erro", error);
@@ -53,50 +59,26 @@ function ListaLiberadosFabrica() {
       return;
     }
 
-    const ids = (pedidos || []).map((p: any) => p.id);
-    const vendedorIds = Array.from(
-      new Set((pedidos || []).map((p: any) => p.vendedor_id).filter(Boolean))
-    );
-
-    const [{ data: docs }, { data: profs }] = await Promise.all([
-      ids.length
-        ? (supabase as any)
-            .from("pedido_documentos")
-            .select("pedido_id, created_at")
-            .in("pedido_id", ids)
-            .eq("categoria_projeto", "projeto_para_producao")
-            .order("created_at", { ascending: true })
-        : Promise.resolve({ data: [] as any[] }),
-      vendedorIds.length
-        ? supabase
-            .from("profiles")
-            .select("user_id, nome_completo")
-            .in("user_id", vendedorIds as string[])
-        : Promise.resolve({ data: [] as any[] }),
-    ]);
-
-    const datasUpload: Record<string, string> = {};
-    (docs || []).forEach((d: any) => {
-      if (!datasUpload[d.pedido_id]) datasUpload[d.pedido_id] = d.created_at;
-    });
-    const vendedorMap: Record<string, string> = {};
-    (profs || []).forEach((p: any) => {
-      vendedorMap[p.user_id] = p.nome_completo || "";
-    });
-
     // Fonte de verdade: status_fabrica = 'liberado_para_lote'.
-    // Não filtramos por data_assinatura_pdf_final/projeto_para_producao aqui —
-    // apenas enriquecemos a linha quando esses dados existirem.
     const result: Linha[] = (pedidos || []).map((p: any) => ({
       id: p.id,
       codigo: p.codigo,
+      loja_id: p.loja_id,
       data_assinatura_pdf_final: p.data_assinatura_pdf_final,
-      data_upload_projeto_producao: datasUpload[p.id] || null,
       status_fabrica: p.status_fabrica,
       cliente_nome: p.cliente?.nome || null,
       loja_nome: p.loja?.nome || null,
-      vendedor_nome: p.vendedor_id ? vendedorMap[p.vendedor_id] || null : null,
     }));
+
+    if (import.meta.env.DEV) {
+      console.debug("[FabricaDebug] Lista", {
+        lojaAtual: selectedLojaId,
+        quantidadeRetornada: result.length,
+        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual + arquivado != true",
+        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId, arquivado: false },
+        pedidosRetornados: result.map((p) => ({ codigo: p.codigo, loja_id: p.loja_id, status_fabrica: p.status_fabrica })),
+      });
+    }
 
     setLinhas(result);
     setLoading(false);
@@ -115,7 +97,7 @@ function ListaLiberadosFabrica() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [selectedLojaId]);
 
   return (
     <div className="space-y-3">
@@ -123,7 +105,7 @@ function ListaLiberadosFabrica() {
         <div>
           <h2 className="font-playfair text-lg font-semibold">Pedidos liberados para lote</h2>
           <p className="text-xs text-muted-foreground">
-            Pedidos com Projeto para Produção enviado e PDF Projeto Final assinado pelo cliente.
+            Pedidos com status de fábrica liberado para lote na loja atual.
           </p>
         </div>
         <Badge variant="secondary" className="bg-violet-100 text-violet-700">
@@ -148,9 +130,7 @@ function ListaLiberadosFabrica() {
                   <th className="text-left px-3 py-2">PV</th>
                   <th className="text-left px-3 py-2">Cliente</th>
                   <th className="text-left px-3 py-2">Loja</th>
-                  <th className="text-left px-3 py-2">Vendedor</th>
                   <th className="text-left px-3 py-2">Assinatura PDF Final</th>
-                  <th className="text-left px-3 py-2">Projeto p/ Produção</th>
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-right px-3 py-2">Ações</th>
                 </tr>
@@ -161,9 +141,7 @@ function ListaLiberadosFabrica() {
                     <td className="px-3 py-2 font-medium">{l.codigo || "—"}</td>
                     <td className="px-3 py-2">{l.cliente_nome || "—"}</td>
                     <td className="px-3 py-2">{l.loja_nome || "—"}</td>
-                    <td className="px-3 py-2">{l.vendedor_nome || "—"}</td>
                     <td className="px-3 py-2">{fmtData(l.data_assinatura_pdf_final)}</td>
-                    <td className="px-3 py-2">{fmtData(l.data_upload_projeto_producao)}</td>
                     <td className="px-3 py-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">
                         Liberado para lote
