@@ -138,6 +138,14 @@ const REVISAO_PILLS: { id: RevisaoFilter; label: string; activeBg: string; activ
   { id: "nao_revisado", label: "NÃO REVISADOS",  activeBg: "#A8842A", activeFg: "#FFFFFF" },
 ];
 
+type AssinaturaFilter = "todos" | "pendente" | "assinado";
+
+const ASSINATURA_PILLS: { id: AssinaturaFilter; label: string; activeBg: string; activeFg: string }[] = [
+  { id: "todos",    label: "TODAS ASSINATURAS", activeBg: "#1B2240", activeFg: "#FFFFFF" },
+  { id: "pendente", label: "PENDENTE ASSINATURA", activeBg: "#A8842A", activeFg: "#FFFFFF" },
+  { id: "assinado", label: "ASSINADOS",           activeBg: "#3F8B5C", activeFg: "#FFFFFF" },
+];
+
 function tipoFromCodigo(codigo: string): "pedido" | "adendo" | "complemento" {
   const c = (codigo || "").toUpperCase();
   if (c.includes("-ADD") || c.includes("-AD-") || c.startsWith("AD-")) return "adendo";
@@ -175,6 +183,7 @@ export default function Comercial() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
   const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
+  const [assinaturaFilter, setAssinaturaFilter] = useState<AssinaturaFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
   const { selectedLojaId } = useLoja();
   const [lojasFilter, setLojasFilter] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
@@ -275,6 +284,8 @@ export default function Comercial() {
       if (tipoFilter !== "todos" && tipoFromCodigo(r.codigo) !== tipoFilter) return false;
       if (revisaoFilter === "revisado" && !r.revisado) return false;
       if (revisaoFilter === "nao_revisado" && r.revisado) return false;
+      if (assinaturaFilter === "pendente" && r.contrato_status !== "aguardando_assinatura") return false;
+      if (assinaturaFilter === "assinado" && r.contrato_status !== "assinado") return false;
 
       if (monthFilter !== "todos") {
         const [y, m] = monthFilter.split("-").map(Number);
@@ -300,7 +311,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search, lojasFilter]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, assinaturaFilter, monthFilter, search, lojasFilter]);
 
   const stats = useMemo(() => {
     const negociacao = rows
@@ -414,6 +425,27 @@ export default function Comercial() {
               <button
                 key={p.id}
                 onClick={() => setRevisaoFilter(p.id)}
+                className="text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full border transition-colors"
+                style={{
+                  background: active ? p.activeBg : "#FFFFFF",
+                  color: active ? p.activeFg : p.activeBg,
+                  borderColor: active ? p.activeBg : "#E5E7EB",
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Assinatura pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {ASSINATURA_PILLS.map((p) => {
+            const active = assinaturaFilter === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setAssinaturaFilter(p.id)}
                 className="text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full border transition-colors"
                 style={{
                   background: active ? p.activeBg : "#FFFFFF",
