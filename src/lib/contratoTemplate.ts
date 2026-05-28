@@ -22,7 +22,16 @@ export type ContratoCtx = {
   desconto_perc: number;
   desconto_valor: number;
   total: number;
-  pagamentos: { metodo: string; parcelas: number; valor: number; data_vencimento: string | null }[];
+  pagamentos: {
+    metodo: string;
+    parcelas: number;
+    valor: number;
+    data_vencimento: string | null;
+    parcelas_detalhe?: number[] | null;
+    parcelas_vencimentos?: (string | null)[] | null;
+    parcelas_formas?: string[] | null;
+    is_entrada?: boolean;
+  }[];
   observacoes_adicionais: string;
   signing_url: string;
   assinatura_loja_url?: string | null;
