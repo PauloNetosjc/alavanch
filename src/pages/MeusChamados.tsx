@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
+import { MinhasTarefasNativasPanel } from "@/components/tarefas/MinhasTarefasNativasPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
