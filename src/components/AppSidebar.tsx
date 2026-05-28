@@ -85,7 +85,7 @@ const sections: Section[] = [
     ],
   },
   {
-    label: "Financeiro",
+    label: "Administrativo",
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
