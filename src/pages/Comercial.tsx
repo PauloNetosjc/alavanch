@@ -311,7 +311,7 @@ export default function Comercial() {
       }
       return true;
     });
-  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, monthFilter, search, lojasFilter]);
+  }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, assinaturaFilter, monthFilter, search, lojasFilter]);
 
   const stats = useMemo(() => {
     const negociacao = rows
