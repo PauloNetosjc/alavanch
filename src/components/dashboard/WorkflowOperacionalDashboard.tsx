@@ -372,7 +372,7 @@ export default function WorkflowOperacionalDashboard() {
   }
 
   return (
-    <div className="surface-card p-5 space-y-5">
+    <div className="surface-card p-5 space-y-5 workflow-print-root">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 no-print">
         <div className="flex items-center gap-3">
