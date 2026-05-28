@@ -41,7 +41,9 @@ type Lanc = {
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
-
+  entidade_tipo?: string | null;
+  entidade_id?: string | null;
+  entidade_nome?: string | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
