@@ -652,21 +652,11 @@ export default function PedidoDetalhe() {
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
-      {/* PRODUTOS + PARCELAS — lado a lado no desktop */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-        <div className="min-w-0">
-          <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
-        </div>
-        <div className="min-w-0">
-          <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
-        </div>
-      </div>
-
-      {/* TAREFAS NATIVAS DO PEDIDO (sobe acima do Cronograma) */}
-      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
-
       {/* CRONOGRAMA E DATAS */}
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
+
+      {/* TAREFAS NATIVAS DO PEDIDO */}
+      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
 
       {/* CENTRAL DE DOCUMENTOS + IMPORTAR REVISÃO DO PROJETO — lado a lado no desktop */}
       {revisaoPendente ? (
@@ -702,7 +692,17 @@ export default function PedidoDetalhe() {
       {/* TAREFAS ASSOCIADAS AO PEDIDO (legado: agenda/tarefa_interna) */}
       <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" />
 
-      {/* NOTAS + CHAT INTERNO */}
+      {/* PRODUTOS + PARCELAS — penúltimo bloco, lado a lado no desktop */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        <div className="min-w-0">
+          <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
+        </div>
+        <div className="min-w-0">
+          <ParcelasTabela pagamentos={pagamentos} total={totalProjeto} />
+        </div>
+      </div>
+
+      {/* NOTAS + CHAT INTERNO — último bloco */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Observacoes pedido={pedido} />
         <ChatInterno pedidoId={pedido.id} userId={user?.id || ""} chat={chat} usuarios={usuarios} onSent={carregar} />
