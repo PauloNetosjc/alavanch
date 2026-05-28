@@ -259,6 +259,18 @@ export default function PedidoReceita() {
     return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
+  const resumoPagamento = useMemo(() => {
+    if (parcelas.length === 0) return "—";
+    const grupos = new Map<string, number>();
+    for (const p of parcelas) {
+      const f = (p.forma || "—").trim();
+      grupos.set(f, (grupos.get(f) || 0) + 1);
+    }
+    return Array.from(grupos.entries())
+      .map(([forma, qtd]) => `${qtd}x ${forma}`)
+      .join(" + ");
+  }, [parcelas]);
+
 
   const gerarReceber = async () => {
     if (!pedido?.id) return;
