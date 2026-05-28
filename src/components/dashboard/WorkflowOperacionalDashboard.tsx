@@ -74,7 +74,7 @@ type PedidoComEtapa = PedidoLite & {
   diasRestantes: number | null;
 };
 
-// ---------- Etapas ----------
+// ---------- Etapas (internas, para labels/lookup) ----------
 const ETAPAS: { key: EtapaKey; label: string; icon: any }[] = [
   { key: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature },
   { key: "projeto_inicial", label: "Projeto Inicial", icon: FileText },
@@ -90,6 +90,38 @@ const ETAPAS: { key: EtapaKey; label: string; icon: any }[] = [
   { key: "montagem", label: "Montagem", icon: Wrench },
   { key: "vistoria_finalizacao", label: "Vistoria / Finalização", icon: ShieldCheck },
 ];
+
+// ---------- Agrupamentos visuais ----------
+type GroupKey =
+  | "contrato_assinado"
+  | "projeto_inicial"
+  | "medicao_tecnica"
+  | "preparo_projeto_revisao"
+  | "revisao_loja"
+  | "pdf_projeto_final"
+  | "fabrica_lote"
+  | "entrega"
+  | "montagem"
+  | "vistoria_finalizacao";
+
+const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
+  { visualKey: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature, internalKeys: ["contrato_assinado"] },
+  { visualKey: "projeto_inicial", label: "Projeto Inicial", icon: FileText, internalKeys: ["projeto_inicial", "projeto_vendido"] },
+  { visualKey: "medicao_tecnica", label: "Medição Técnica", icon: Ruler, internalKeys: ["medicao_tecnica"] },
+  { visualKey: "preparo_projeto_revisao", label: "Preparo Revisão", icon: Pencil, internalKeys: ["preparo_projeto_revisao"] },
+  { visualKey: "revisao_loja", label: "Revisão Loja", icon: ClipboardCheck, internalKeys: ["revisao_loja"] },
+  { visualKey: "pdf_projeto_final", label: "PDF Projeto Final", icon: FilePlus2, internalKeys: ["projeto_revisado", "pdf_projeto_final"] },
+  { visualKey: "fabrica_lote", label: "Fábrica / Lote", icon: Factory, internalKeys: ["projeto_para_producao", "fabrica_lote"] },
+  { visualKey: "entrega", label: "Entrega", icon: Truck, internalKeys: ["entrega"] },
+  { visualKey: "montagem", label: "Montagem", icon: Wrench, internalKeys: ["montagem"] },
+  { visualKey: "vistoria_finalizacao", label: "Vistoria / Finalização", icon: ShieldCheck, internalKeys: ["vistoria_finalizacao"] },
+];
+
+const ETAPA_TO_GROUP: Record<EtapaKey, GroupKey> = (() => {
+  const m: any = {};
+  WORKFLOW_STAGE_GROUPS.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
+  return m;
+})();
 
 // Mapeia nome do modelo da tarefa nativa -> chave técnica
 const MODELO_PARA_ETAPA: Record<string, EtapaKey> = {
@@ -181,7 +213,7 @@ export default function WorkflowOperacionalDashboard() {
   const [docs, setDocs] = useState<DocLite[]>([]);
   const [profileNomes, setProfileNomes] = useState<Record<string, string>>({});
 
-  const [etapaSelecionada, setEtapaSelecionada] = useState<EtapaKey | null>(null);
+  const [grupoSelecionado, setGrupoSelecionado] = useState<GroupKey | null>(null);
   const [statusFiltro, setStatusFiltro] = useState<"todos" | StatusPrazo>("todos");
   const [busca, setBusca] = useState("");
 
@@ -285,12 +317,13 @@ export default function WorkflowOperacionalDashboard() {
     return out;
   }, [pedidos, tarefas, docs, profileNomes]);
 
-  // Resumos por etapa
+  // Resumos por grupo visual
   const resumos = useMemo(() => {
-    const map = new Map<EtapaKey, { qtd: number; valor: number; vencidos: number; preAlerta: number; hoje: number }>();
-    ETAPAS.forEach((e) => map.set(e.key, { qtd: 0, valor: 0, vencidos: 0, preAlerta: 0, hoje: 0 }));
+    const map = new Map<GroupKey, { qtd: number; valor: number; vencidos: number; preAlerta: number; hoje: number }>();
+    WORKFLOW_STAGE_GROUPS.forEach((g) => map.set(g.visualKey, { qtd: 0, valor: 0, vencidos: 0, preAlerta: 0, hoje: 0 }));
     pedidosComEtapa.forEach((p) => {
-      const r = map.get(p.etapa)!;
+      const gk = ETAPA_TO_GROUP[p.etapa];
+      const r = map.get(gk); if (!r) return;
       r.qtd += 1;
       r.valor += Number(p.valor_total || 0);
       if (p.statusPrazo === "vencido") r.vencidos += 1;
@@ -303,8 +336,8 @@ export default function WorkflowOperacionalDashboard() {
   const resumoGeral = useMemo(() => {
     const totalValor = pedidosComEtapa.reduce((s, p) => s + Number(p.valor_total || 0), 0);
     const vencidos = pedidosComEtapa.filter((p) => p.statusPrazo === "vencido");
-    let maiorGargalo: { etapa: EtapaKey; qtd: number } | null = null;
-    resumos.forEach((v, k) => { if (!maiorGargalo || v.qtd > maiorGargalo.qtd) maiorGargalo = { etapa: k, qtd: v.qtd }; });
+    let maiorGargalo: { grupo: GroupKey; qtd: number } | null = null;
+    resumos.forEach((v, k) => { if (!maiorGargalo || v.qtd > maiorGargalo.qtd) maiorGargalo = { grupo: k, qtd: v.qtd }; });
     return {
       totalAtivos: pedidosComEtapa.length,
       totalValor,
@@ -314,11 +347,13 @@ export default function WorkflowOperacionalDashboard() {
     };
   }, [pedidosComEtapa, resumos]);
 
-  // Lista expandida da etapa selecionada
+  // Lista expandida do grupo selecionado
   const listaExpandida = useMemo(() => {
-    if (!etapaSelecionada) return [];
+    if (!grupoSelecionado) return [];
+    const grupo = WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === grupoSelecionado);
+    const internas = new Set(grupo?.internalKeys || []);
     return pedidosComEtapa
-      .filter((p) => p.etapa === etapaSelecionada)
+      .filter((p) => internas.has(p.etapa))
       .filter((p) => {
         if (statusFiltro !== "todos" && p.statusPrazo !== statusFiltro) return false;
         const b = busca.trim().toLowerCase();
@@ -329,21 +364,27 @@ export default function WorkflowOperacionalDashboard() {
         const order = { vencido: 0, hoje: 1, pre_alerta: 2, no_prazo: 3, sem_prazo: 4 };
         return order[a.statusPrazo] - order[b.statusPrazo];
       });
-  }, [etapaSelecionada, pedidosComEtapa, statusFiltro, busca]);
+  }, [grupoSelecionado, pedidosComEtapa, statusFiltro, busca]);
 
   const etapaLabel = (k: EtapaKey) => ETAPAS.find((e) => e.key === k)?.label || k;
+  const grupoLabel = (k: GroupKey) => WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === k)?.label || k;
 
   function exportarExcel() {
-    const fonte = etapaSelecionada
-      ? pedidosComEtapa.filter((p) => p.etapa === etapaSelecionada)
+    const fonte = grupoSelecionado
+      ? (() => {
+          const internas = new Set(WORKFLOW_STAGE_GROUPS.find((g) => g.visualKey === grupoSelecionado)?.internalKeys || []);
+          return pedidosComEtapa.filter((p) => internas.has(p.etapa));
+        })()
       : pedidosComEtapa;
     const rows = fonte.map((p) => ({
-      Etapa: etapaLabel(p.etapa),
+      "Etapa visual": grupoLabel(ETAPA_TO_GROUP[p.etapa]),
+      "Subetapa": etapaLabel(p.etapa),
       Cliente: p.cliente_nome || "—",
       "PV/Contrato": p.codigo,
       "Valor do contrato": Number(p.valor_total || 0),
       Loja: p.loja_nome || "—",
       Responsável: p.responsavel_nome || "—",
+      "Data de criação": fmtDateBR(p.created_at),
       "Data início etapa": fmtDateBR(p.data_inicio_etapa),
       "Data de vencimento": fmtDateBR(p.prazo),
       "Status do prazo":
@@ -352,7 +393,6 @@ export default function WorkflowOperacionalDashboard() {
         p.statusPrazo === "pre_alerta" ? "Pré-alerta" :
         p.statusPrazo === "no_prazo" ? "No prazo" : "Sem prazo",
       "Dias (- atraso / + restantes)": p.diasRestantes ?? "",
-      "Etapa atual": etapaLabel(p.etapa),
       "Prazo máximo de entrega": fmtDateBR(p.data_limite_entrega),
       "Prazo máximo de montagem": fmtDateBR(p.data_limite_inicio_montagem),
     }));
@@ -361,6 +401,7 @@ export default function WorkflowOperacionalDashboard() {
     XLSX.utils.book_append_sheet(wb, ws, "Workflow");
     XLSX.writeFile(wb, "workflow_operacional_pedidos.xlsx");
   }
+
 
 
   if (loading) {
@@ -404,7 +445,7 @@ export default function WorkflowOperacionalDashboard() {
         <ResumoBox label="Valor em atraso" value={BRL(resumoGeral.valorVencido)} tone="danger" />
         <ResumoBox
           label="Maior gargalo"
-          value={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? etapaLabel(resumoGeral.maiorGargalo.etapa) : "—"}
+          value={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? grupoLabel(resumoGeral.maiorGargalo.grupo) : "—"}
           hint={resumoGeral.maiorGargalo && resumoGeral.maiorGargalo.qtd > 0 ? `${resumoGeral.maiorGargalo.qtd} pedidos` : undefined}
         />
       </div>
@@ -412,17 +453,17 @@ export default function WorkflowOperacionalDashboard() {
       {/* Esteira de etapas em formato de setas */}
       <div className="relative no-print-scroll">
         <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-1">
-          {ETAPAS.map((e, idx) => {
-            const r = resumos.get(e.key)!;
+          {WORKFLOW_STAGE_GROUPS.map((e, idx) => {
+            const r = resumos.get(e.visualKey)!;
             const Icon = e.icon;
-            const active = etapaSelecionada === e.key;
+            const active = grupoSelecionado === e.visualKey;
             const risco =
               r.vencidos > 0 ? "danger" :
               r.hoje > 0 ? "warning" :
               r.preAlerta > 0 ? "alert" :
               r.qtd > 0 ? "ok" : "muted";
             const isFirst = idx === 0;
-            const isLast = idx === ETAPAS.length - 1;
+            const isLast = idx === WORKFLOW_STAGE_GROUPS.length - 1;
             // Arrow shape via clip-path
             const tip = 14;
             const clip = isLast
@@ -432,13 +473,13 @@ export default function WorkflowOperacionalDashboard() {
               : `polygon(0 0, calc(100% - ${tip}px) 0, 100% 50%, calc(100% - ${tip}px) 100%, 0 100%, ${tip}px 50%)`;
             return (
               <div
-                key={e.key}
+                key={e.visualKey}
                 className={`shrink-0 transition-all duration-200 ${active ? "drop-shadow-lg" : "drop-shadow-sm"}`}
                 style={{ marginLeft: isFirst ? 0 : -tip + 8 }}
               >
                 <button
                   type="button"
-                  onClick={() => setEtapaSelecionada(active ? null : e.key)}
+                  onClick={() => setGrupoSelecionado(active ? null : e.visualKey)}
                   className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105 !bg-[#2F6F90] !text-white hover:!bg-[#3F7898]" : `hover:brightness-105 ${ARROW_BG[risco]}`} ${active ? "ring-[3px] ring-primary/80" : ""}`}
                   style={{
                     clipPath: clip,
@@ -498,11 +539,11 @@ export default function WorkflowOperacionalDashboard() {
       </div>
 
       {/* Área expandida */}
-      {etapaSelecionada && (
+      {grupoSelecionado && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm">Pedidos em {etapaLabel(etapaSelecionada)}</h3>
+              <h3 className="font-semibold text-sm">Pedidos em {grupoLabel(grupoSelecionado)}</h3>
               <span className="text-xs text-muted-foreground">({listaExpandida.length})</span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -534,7 +575,7 @@ export default function WorkflowOperacionalDashboard() {
                   </button>
                 ))}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setEtapaSelecionada(null)}>Fechar</Button>
+              <Button variant="ghost" size="sm" onClick={() => setGrupoSelecionado(null)}>Fechar</Button>
             </div>
           </div>
 
@@ -547,6 +588,7 @@ export default function WorkflowOperacionalDashboard() {
                   <tr className="border-b border-border">
                     <th className="text-left py-2 pr-3">Cliente</th>
                     <th className="text-left py-2 pr-3">PV</th>
+                    <th className="text-left py-2 pr-3">Subetapa</th>
                     <th className="text-right py-2 pr-3">Valor</th>
                     <th className="text-left py-2 pr-3">Início etapa</th>
                     <th className="text-left py-2 pr-3">Prazo</th>
@@ -563,6 +605,7 @@ export default function WorkflowOperacionalDashboard() {
                     <tr key={p.id} className="border-b border-border/60 hover:bg-muted/30">
                       <td className="py-2 pr-3 font-medium">{p.cliente_nome || "—"}</td>
                       <td className="py-2 pr-3 font-mono text-xs">{p.codigo}</td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">{etapaLabel(p.etapa)}</td>
                       <td className="py-2 pr-3 text-right">{BRL(Number(p.valor_total || 0))}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.data_inicio_etapa)}</td>
                       <td className="py-2 pr-3 text-xs">{fmtDateBR(p.prazo)}</td>
