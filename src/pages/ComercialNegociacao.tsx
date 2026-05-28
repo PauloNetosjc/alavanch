@@ -955,7 +955,8 @@ export default function ComercialNegociacao() {
     const updates: any = {
       desconto_perc: descPercAplicado,
       desconto_valor: descValorAplicado,
-      total: totalProposta,
+      // total do contrato já com juros repassados (loja absorvendo não acresce).
+      total: totalContrato,
     };
     if (newStatus) updates.status = newStatus;
 
@@ -969,13 +970,28 @@ export default function ComercialNegociacao() {
           // Garante que parcelas_detalhe/vencimentos/formas sejam sempre persistidos,
           // mesmo quando o usuário não abrir o editor de parcelas.
           const { det, vencs, formas } = ensureArrays(p);
+          // Se método repassa juros ao cliente, acresce o percentual no valor final
+          // do pagamento e escala parcelas_detalhe proporcionalmente. Se absorve,
+          // mantém o valor base (o juros entra como juros_previsto no financeiro).
+          const j = calcJurosDoPagamento(p);
+          const fator = j.repassar && Number(p.valor) > 0
+            ? (Number(p.valor) + j.valor) / Number(p.valor)
+            : 1;
+          const valorFinal = Number((Number(p.valor) * fator).toFixed(2));
+          const detFinal = det.map((v) => Number((Number(v) * fator).toFixed(2)));
+          // Ajuste de arredondamento na última parcela
+          if (detFinal.length > 0) {
+            const soma = detFinal.reduce((s, v) => s + v, 0);
+            const diff = Number((valorFinal - soma).toFixed(2));
+            if (Math.abs(diff) >= 0.01) detFinal[detFinal.length - 1] = Number((detFinal[detFinal.length - 1] + diff).toFixed(2));
+          }
           return {
             orcamento_id: id,
             metodo: p.metodo,
-            valor: p.valor,
+            valor: valorFinal,
             parcelas: p.parcelas,
             data_vencimento: p.data_vencimento || vencs[0] || null,
-            parcelas_detalhe: det,
+            parcelas_detalhe: detFinal,
             parcelas_vencimentos: vencs,
             parcelas_formas: formas,
           };
