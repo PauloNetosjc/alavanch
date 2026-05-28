@@ -61,7 +61,7 @@ type Pagamento = {
   parcelas_locked?: boolean[];
 };
 type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
-type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[] };
+type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[]; juros_modo?: "absorver" | "repassar" | string };
 type Regra = { role: string; desconto_max_perc: number };
 
 /* ========================== SENHA ADMIN DIALOG ========================== */
@@ -546,7 +546,7 @@ export default function ComercialNegociacao() {
           .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
-        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config").eq("ativo", true).order("nome"),
+        supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config, juros_modo").eq("ativo", true).order("nome"),
         supabase.from("pagamentos_orcamento")
           .select("id, metodo, valor, parcelas, data_vencimento, parcelas_detalhe, parcelas_vencimentos, parcelas_formas")
           .eq("orcamento_id", id),
