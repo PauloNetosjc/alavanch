@@ -183,6 +183,7 @@ export default function Comercial() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
   const [revisaoFilter, setRevisaoFilter] = useState<RevisaoFilter>("todos");
+  const [assinaturaFilter, setAssinaturaFilter] = useState<AssinaturaFilter>("todos");
   const [showCancelled, setShowCancelled] = useState(false);
   const { selectedLojaId } = useLoja();
   const [lojasFilter, setLojasFilter] = useState<string[]>(selectedLojaId ? [selectedLojaId] : []);
