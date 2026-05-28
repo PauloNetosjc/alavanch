@@ -756,7 +756,9 @@ export async function prepararContratoParaAssinatura(
     cliente_ip: solicCtx.cliente_ip || "",
     validation_url: validationUrl,
     qr_data_url: qrDataUrl,
+    mostrar_desconto: (configEmpresa as any)?.mostrar_desconto_contrato !== false,
   };
+
 
   const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
