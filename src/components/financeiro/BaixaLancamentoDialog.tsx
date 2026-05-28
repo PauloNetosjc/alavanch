@@ -77,9 +77,26 @@ export default function BaixaLancamentoDialog({
             <div className="rounded-lg border bg-muted/40 p-3 text-sm">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Descrição</div>
               <div className="font-medium">{descricao}</div>
-              <div className="text-xs text-muted-foreground mt-1">Valor original: {BRL(valorOriginal)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Valor bruto: {BRL(valorOriginal)}</div>
+              {jurosPrevisto > 0 && (
+                <div className="text-xs text-muted-foreground">Juros/taxa previsto: {BRL(jurosPrevisto)}</div>
+              )}
+              <div className="text-xs mt-1"><span className="text-muted-foreground">Valor líquido previsto:</span> <span className="font-medium">{BRL(liquidoPrev)}</span></div>
             </div>
           )}
+          {(() => {
+            const diff = Math.round((Number(valor || 0) - liquidoPrev) * 100) / 100;
+            if (Math.abs(diff) < 0.005) return null;
+            if (diff > 0) {
+              return <div className="rounded-md border border-emerald-300/50 bg-emerald-50/50 p-2 text-[11px] text-emerald-800">Recebimento maior que o previsto em {BRL(diff)}. Será baixado direto.</div>;
+            }
+            const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 100;
+            if (percDiff <= TOLERANCIA_PERC) {
+              return <div className="rounded-md border border-amber-300/50 bg-amber-50/50 p-2 text-[11px] text-amber-800">Diferença de {BRL(Math.abs(diff))} ({percDiff.toFixed(2)}%) dentro da tolerância de {TOLERANCIA_PERC}%. Baixa direta.</div>;
+            }
+            return <div className="rounded-md border border-red-300/50 bg-red-50/50 p-2 text-[11px] text-red-800">Diferença de {BRL(Math.abs(diff))} ({percDiff.toFixed(2)}%) acima da tolerância de {TOLERANCIA_PERC}%. Será enviada para o Aprovador.</div>;
+          })()}
+
           <div className="space-y-1.5">
             <Label>Conta {contaSel?.banco ? <span className="text-muted-foreground font-normal">— {contaSel.banco}</span> : null}</Label>
             <Select value={contaId} onValueChange={setContaId}>
