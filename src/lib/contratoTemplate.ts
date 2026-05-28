@@ -251,18 +251,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
     .join("");
 
 
-  const pagsHtml = ctx.pagamentos.length
-    ? ctx.pagamentos
-        .map(
-          (p) => `
-        <tr>
-          <td style="font-weight:600">${p.metodo.toUpperCase()} - ${p.parcelas === 1 ? "À VISTA" : `${p.parcelas}X`}</td>
-          <td style="text-align:center">${p.data_vencimento ? fmtDate(p.data_vencimento) : "—"}</td>
-          <td style="text-align:right;font-weight:600">${fmtBrl(p.valor)}</td>
-        </tr>`,
-        )
-        .join("")
-    : `<tr><td colspan="3" style="text-align:center;color:#6B6760;padding:14px">Sem condição de pagamento informada</td></tr>`;
+  const pagsTableHtml = renderPagamentosTableHtml(ctx);
+  const usaPagsNasClausulas = clausulasUsamPagamentos(tpl.clausulas);
+  const clausulasSemDup = stripDuplicatedTitle(tpl.clausulas || "", tpl.titulo || "", tpl.subtitulo || null);
+
 
   const assinadoBlock = opts?.assinado
     ? `<div style="margin-top:6px;padding:10px 14px;background:#E8F4ED;border:1px solid #BBDEC8;border-radius:6px;font-size:12px;color:#1F5235">
