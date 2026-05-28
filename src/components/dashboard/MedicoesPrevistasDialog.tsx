@@ -263,12 +263,14 @@ export default function MedicoesPrevistasDialog({
       return d.getMonth() === m && d.getFullYear() === y;
     });
     const valorMes = desteMes.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+    const custoMes = desteMes.reduce((s, p) => s + Number(p.custo || 0), 0);
     const vencidas = comPrev.filter((p) => getPrevStatus(p) === "vencida").length;
     const agendadas = baseParaCards.filter((p) => p.data_medicao_tecnica).length;
     return {
       totalPrev: comPrev.length,
       qtdMes: desteMes.length,
       valorMes,
+      custoMes,
       vencidas,
       agendadas,
     };
@@ -277,7 +279,7 @@ export default function MedicoesPrevistasDialog({
   // Agrupamento mensal a partir de pedidosFiltrados (somente com previsão)
   const meses = useMemo(() => {
     const map = new Map<string, {
-      key: string; label: string; qtd: number; valor: number;
+      key: string; label: string; qtd: number; valor: number; custo: number;
       porLoja: Map<string, number>; porResp: Map<string, number>;
       vencidas: number; agendadas: number;
     }>();
@@ -286,11 +288,12 @@ export default function MedicoesPrevistasDialog({
       const k = monthKey(p.previsao_medicao);
       let r = map.get(k);
       if (!r) {
-        r = { key: k, label: monthLabel(k), qtd: 0, valor: 0, porLoja: new Map(), porResp: new Map(), vencidas: 0, agendadas: 0 };
+        r = { key: k, label: monthLabel(k), qtd: 0, valor: 0, custo: 0, porLoja: new Map(), porResp: new Map(), vencidas: 0, agendadas: 0 };
         map.set(k, r);
       }
       r.qtd++;
       r.valor += Number(p.valor_total || 0);
+      r.custo += Number(p.custo || 0);
       const ln = p.loja_nome || "—"; r.porLoja.set(ln, (r.porLoja.get(ln) || 0) + 1);
       const rn = p.responsavel_nome || p.vendedor_nome || "—"; r.porResp.set(rn, (r.porResp.get(rn) || 0) + 1);
       const st = getPrevStatus(p);
@@ -321,6 +324,7 @@ export default function MedicoesPrevistasDialog({
         "Responsável": p.responsavel_nome || "—",
         "Vendedor": p.vendedor_nome || "—",
         "Valor": Number(p.valor_total || 0),
+        "Custo de mercadoria/fábrica": Number(p.custo || 0),
         "Data da venda": fmtDate(p.created_at),
         "Previsão de medição": fmtDate(p.previsao_medicao),
         "Status da previsão": STATUS_LABEL[st],
