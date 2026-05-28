@@ -260,6 +260,7 @@ export default function PedidoReceita() {
     const juros = Number(baixaAlvo.juros_previsto || 0);
     const liquidoPrev = Math.max(0, Math.round((bruto - juros) * 100) / 100);
     const recebido = Number(p.valor) || 0;
+    const jurosReal = Math.round((bruto - recebido) * 100) / 100;
     const diff = Math.round((recebido - liquidoPrev) * 100) / 100;
     const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
     const exigeAprov = !souAprovador && diff < -0.005 && percDiff > TOLERANCIA_PERC;
@@ -269,8 +270,9 @@ export default function PedidoReceita() {
     const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
     const auditoria: string[] = [];
     if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" em ${agora.toLocaleString("pt-BR")}.`);
-    if (diff > 0.005) auditoria.push(`Recebido maior que previsto. Diferença positiva: ${fmtBrl(diff)}.`);
-    else if (diff < -0.005) auditoria.push(`Recebido menor que previsto. Diferença: ${fmtBrl(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    auditoria.push(`Recebido ${fmtBrl(recebido)} sobre bruto ${fmtBrl(bruto)} (juros previsto ${fmtBrl(juros)}, juros real ${fmtBrl(jurosReal)}).`);
+    if (diff > 0.005) auditoria.push(`Diferença positiva: ${fmtBrl(diff)}.`);
+    else if (diff < -0.005) auditoria.push(`Diferença negativa: ${fmtBrl(Math.abs(diff))} (${percDiff.toFixed(2)}%)${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
     const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
 
     const { error } = await supabase.from("lancamentos_financeiros").update({
@@ -278,7 +280,7 @@ export default function PedidoReceita() {
       data_pagamento: p.data_pagamento,
       conta_id: p.conta_id,
       forma_pagamento: p.forma_pagamento,
-      valor: recebido,
+      juros_real: jurosReal,
       baixado_por: user?.id ?? null,
       baixado_em: agora.toISOString(),
       notas: notasNovas,
@@ -295,8 +297,9 @@ export default function PedidoReceita() {
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este recebimento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, juros_real: 0, ...reapprovalPatch() })
       .eq("id", l.id);
+
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação");
     carregar();
