@@ -677,27 +677,51 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
-  // Juros do cliente embutidos: usa taxa configurada do método (ao mês), simples por parcela
-  const jurosCliente = useMemo(() => {
-    return pagamentos.reduce((s, p) => {
-      const n = Number(p.parcelas) || 1;
-      if (n <= 1) return s;
-      const met = metodos.find((m) => m.nome === p.metodo);
-      const cfg = Array.isArray((met as any)?.parcelas_config)
-        ? (met as any).parcelas_config.find((c: any) => Number(c?.numero) === n)
-        : null;
-      const jurosPerc = Number(cfg?.juros_perc) || 0;
-      if (jurosPerc > 0) {
-        return s + (Number(p.valor || 0) * jurosPerc) / 100;
-      }
+  // Calcula juros por pagamento, separando por modo (absorver x repassar).
+  // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
+  // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
+  const calcJurosDoPagamento = (p: Pagamento) => {
+    const n = Number(p.parcelas) || 1;
+    const met = metodos.find((m) => m.nome === p.metodo);
+    const cfg = Array.isArray((met as any)?.parcelas_config)
+      ? (met as any).parcelas_config.find((c: any) => Number(c?.numero) === n)
+      : null;
+    let jurosPerc = Number(cfg?.juros_perc) || 0;
+    let valor = 0;
+    if (jurosPerc > 0) {
+      valor = (Number(p.valor || 0) * jurosPerc) / 100;
+    } else if (n > 1) {
       const taxa = (Number((met as any)?.taxa_perc_parcela) || 0) / 100;
-      if (!taxa) return s;
-      const principal = p.valor / n;
-      let total = 0;
-      for (let i = 1; i < n; i++) total += principal * taxa * i;
-      return s + total;
-    }, 0);
+      if (taxa) {
+        const principal = (Number(p.valor) || 0) / n;
+        let total = 0;
+        for (let i = 1; i < n; i++) total += principal * taxa * i;
+        valor = total;
+        jurosPerc = (Number(p.valor) || 0) > 0 ? (valor / Number(p.valor)) * 100 : 0;
+      }
+    }
+    const modo = ((met as any)?.juros_modo || "repassar") as string;
+    return { valor, jurosPerc, repassar: modo !== "absorver" };
+  };
+
+  const jurosBreakdown = useMemo(() => {
+    let absorvido = 0;
+    let repassado = 0;
+    pagamentos.forEach((p) => {
+      const j = calcJurosDoPagamento(p);
+      if (j.repassar) repassado += j.valor;
+      else absorvido += j.valor;
+    });
+    return { absorvido, repassado };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagamentos, metodos]);
+
+  const jurosAbsorvido = jurosBreakdown.absorvido;
+  const jurosRepassado = jurosBreakdown.repassado;
+  // Total exibido no contrato/PDF/orcamentos.total: base + juros repassados ao cliente.
+  const totalContrato = totalProposta + jurosRepassado;
+  // Compatibilidade com chamadas existentes (ResumoFinanceiroDialog soma os dois)
+  const jurosCliente = jurosAbsorvido + jurosRepassado;
 
   /* ------------------------- handlers ------------------------- */
   // Desconto incide APENAS sobre os ambientes marcados com "Aplicar desconto"
