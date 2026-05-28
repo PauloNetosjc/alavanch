@@ -6,6 +6,7 @@ import { BRL } from "./financeiro";
 export type LancRow = {
   data: string;          // ISO
   descricao: string;
+  cliente?: string;
   categoria: string;
   conta: string;
   tipo: "entrada" | "saida" | string;
@@ -84,6 +85,7 @@ export function exportarPDF(rows: LancRow[], titulo: string, filtros: ExportFilt
 export function exportarExcel(rows: LancRow[], filename = "extrato.xlsx") {
   const data = rows.map((r) => ({
     Data: fmtData(r.data),
+    Cliente: r.cliente || "",
     Descrição: r.descricao || "",
     Categoria: r.categoria || "",
     Conta: r.conta || "",
@@ -112,10 +114,11 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
   </style></head><body>
   <h1>${titulo}</h1>
   <table>
-    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th class="right">Valor</th></tr></thead>
+    <thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Status</th><th class="right">Valor</th></tr></thead>
     <tbody>
       ${rows.map((r) => `<tr>
         <td>${fmtData(r.data)}</td>
+        <td>${(r.cliente || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.descricao || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.categoria || "—").replace(/</g, "&lt;")}</td>
         <td>${(r.conta || "—").replace(/</g, "&lt;")}</td>
@@ -125,8 +128,8 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
       </tr>`).join("")}
     </tbody>
     <tfoot>
-      <tr><td colspan="6" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
-      <tr><td colspan="6" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
+      <tr><td colspan="7" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
+      <tr><td colspan="7" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
     </tfoot>
   </table>
   <script>window.onload=()=>{window.print();}</script>
