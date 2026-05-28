@@ -400,8 +400,17 @@ export function ConcluirDialog({
 
   useEffect(() => { if (open) { setObs(""); setFile(null); } }, [open]);
 
+  const concluiPorUpload =
+    tarefa?.conclui_por_upload_categoria ??
+    tarefa?.tarefas_nativas_modelos?.conclui_por_upload_categoria ?? null;
+
   async function confirmar() {
     if (!tarefa) return;
+    if (concluiPorUpload) {
+      return toast.error(
+        "Envie as fotos da medição técnica pelo ícone de anexo (📎) antes de concluir esta tarefa. A conclusão será automática após o upload."
+      );
+    }
     if (tarefa.exige_anexo && !file) return toast.error("Esta tarefa exige anexo para concluir.");
     setSaving(true);
     let anexoPath: string | null = null;
@@ -425,6 +434,7 @@ export function ConcluirDialog({
     toast.success("Tarefa concluída.");
     setSaving(false); setOpen(false); onDone();
   }
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
