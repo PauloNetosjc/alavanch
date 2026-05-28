@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import JSZip from "jszip";
 import { sanitizeStorageFileName } from "@/lib/storagePath";
+import { ensureFluxoRevisaoEPdfFinal } from "@/lib/tarefasNativasTriggers";
 
 /* ============================================================
  * Arquivos do Projeto — 3 seções sequenciais (upload múltiplo)
