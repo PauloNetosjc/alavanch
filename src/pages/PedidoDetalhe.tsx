@@ -124,9 +124,24 @@ export default function PedidoDetalhe() {
 
   const carregar = async () => {
     if (!id) return;
+    // Recalcula prazos operacionais como fallback antes de carregar
+    try { await (supabase.rpc as any)("recalcular_prazos_operacionais_pedido", { p_pedido_id: id }); } catch {}
     const { data: ped } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
     if (!ped) { setLoading(false); return; }
     setPedido(ped);
+    // Carrega configuração de prazos da loja (sem bloquear)
+    (async () => {
+      const lojaId = (ped as any).loja_id;
+      const q = lojaId
+        ? supabase.from("configuracoes_empresa" as any).select("prazo_entrega_inicio_contagem,prazo_montagem_inicio_contagem").eq("loja_id", lojaId).maybeSingle()
+        : supabase.from("configuracoes_empresa" as any).select("prazo_entrega_inicio_contagem,prazo_montagem_inicio_contagem").limit(1).maybeSingle();
+      const { data: cfg } = await q;
+      setPrazoConfig({
+        entrega_inicio: (cfg as any)?.prazo_entrega_inicio_contagem || "assinatura_contrato",
+        montagem_inicio: (cfg as any)?.prazo_montagem_inicio_contagem || "entrega_realizada",
+      });
+    })();
+
 
     const orcId = ped.orcamento_id;
     const raizId = ped.pedido_pai_id || ped.pedido_origem_complemento_id || (id as string);
