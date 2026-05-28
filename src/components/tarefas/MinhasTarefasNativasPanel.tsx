@@ -45,7 +45,10 @@ type TarefaNativa = {
   pedidos?: { codigo: string | null; cliente_id: string | null; clientes?: { nome: string | null } | null } | null;
   rh_cargos?: { nome: string | null } | null;
   profiles?: { nome_completo: string | null } | null;
+  conclui_por_upload_categoria?: string | null;
+  tarefas_nativas_modelos?: { exibir_meus_chamados: boolean; conclui_por_upload_categoria: string | null } | null;
 };
+
 
 const STATUS_BADGE: Record<string, string> = {
   pendente: "bg-slate-100 text-slate-700",
