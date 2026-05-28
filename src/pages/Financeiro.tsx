@@ -454,6 +454,9 @@ export default function Financeiro() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
+                  <Link to="/financeiro/relatorios"><FileBarChart className="w-4 h-4 mr-2" /> Relatórios Financeiros</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/financeiro/analise"><BarChart3 className="w-4 h-4 mr-2" /> Resultado por Contrato</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
