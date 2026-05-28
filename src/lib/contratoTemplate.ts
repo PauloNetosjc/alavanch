@@ -55,6 +55,7 @@ const escapeHtml = (v: string) =>
 
 export function applyVariables(text: string, ctx: ContratoCtx): string {
   const prazo = ctx.prazo_entrega ? fmtDate(ctx.prazo_entrega) : "";
+  const showDisc = ctx.mostrar_desconto !== false;
   const map: Record<string, string> = {
     "{{numero}}": ctx.numero,
     "{{data}}": fmtDate(ctx.emitido_em),
@@ -79,15 +80,17 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{vendedor.email}}": ctx.vendedor?.email || "",
     "{{prazo.entrega}}": prazo,
     "{{prazo_entrega}}": prazo,
-    "{{subtotal}}": fmtBrl(ctx.subtotal),
-    "{{desconto}}": fmtBrl(ctx.desconto_valor),
-    "{{desconto_perc}}": `${(ctx.desconto_perc || 0).toFixed(2)}%`,
+    // Quando desconto está oculto, subtotal/desconto colapsam para o total final líquido
+    "{{subtotal}}": fmtBrl(showDisc ? ctx.subtotal : ctx.total),
+    "{{desconto}}": showDisc ? fmtBrl(ctx.desconto_valor) : fmtBrl(0),
+    "{{desconto_perc}}": showDisc ? `${(ctx.desconto_perc || 0).toFixed(2)}%` : "0%",
     "{{total}}": fmtBrl(ctx.total),
   };
   let out = text;
   for (const [k, v] of Object.entries(map)) out = out.split(k).join(v);
   return out;
 }
+
 
 export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts?: {
   assinado?: { nome: string; cpf?: string; data: string; ip?: string };
