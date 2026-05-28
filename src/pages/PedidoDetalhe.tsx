@@ -1012,26 +1012,29 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
   const [assinarLojaId, setAssinarLojaId] = useState<string | null>(null);
   const [verAssinaturasId, setVerAssinaturasId] = useState<string | null>(null);
   const [partsBySol, setPartsBySol] = useState<Record<string, any[]>>({});
-  const [viewDoc, setViewDoc] = useState<{ url: string; mime: string; nome: string; bucket: string; path: string } | null>(null);
+  const [viewDoc, setViewDoc] = useState<{ url: string | null; mime: string; nome: string; bucket: string; path: string; loading: boolean; error: string | null } | null>(null);
 
   const abrirViewer = async (d: any, bucketOverride?: string) => {
+    const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
+    const path = d.storage_path;
+    const nome = sanitizeNome(d.nome || (path ? path.split("/").pop() : "") || "arquivo");
+    setViewDoc({ url: null, mime: "", nome, bucket, path: path || "", loading: true, error: null });
     try {
-      const bucket = bucketOverride || d._bucket || d.bucket_name || "pedido-docs";
-      const path = d.storage_path;
       if (!path) throw new Error("Arquivo sem caminho");
       const { data: blob, error } = await supabase.storage.from(bucket).download(path);
       if (error || !blob) throw error || new Error("Falha ao baixar arquivo");
       const ext = (path.split(".").pop() || "").toLowerCase();
       let mime = blob.type || "";
-      if (!mime) {
+      if (!mime || mime === "application/octet-stream") {
         if (ext === "pdf") mime = "application/pdf";
         else if (["png","jpg","jpeg","gif","webp","svg"].includes(ext)) mime = `image/${ext === "jpg" ? "jpeg" : ext}`;
       }
       const typed = mime ? new Blob([blob], { type: mime }) : blob;
       const url = URL.createObjectURL(typed);
-      setViewDoc({ url, mime, nome: sanitizeNome(d.nome || path.split("/").pop() || "arquivo"), bucket, path });
+      setViewDoc({ url, mime, nome, bucket, path, loading: false, error: null });
     } catch (e: any) {
-      toast.error("Erro ao abrir visualizador: " + (e?.message || "desconhecido"));
+      console.error("[abrirViewer] erro", e);
+      setViewDoc({ url: null, mime: "", nome, bucket, path: path || "", loading: false, error: e?.message || "Não foi possível carregar a pré-visualização. Tente baixar o arquivo." });
     }
   };
 
