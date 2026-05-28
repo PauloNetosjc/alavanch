@@ -200,6 +200,10 @@ export default function ContasAReceber() {
         if (dtFim && d > dtFim) return false;
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
+      if (centroCustoFiltro) {
+        if (centroCustoFiltro === "__none") { if (l.centro_custo_id) return false; }
+        else if (l.centro_custo_id !== centroCustoFiltro) return false;
+      }
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
       if (formaPrevFiltro) {
         if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
@@ -216,6 +220,7 @@ export default function ContasAReceber() {
         const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
+          || ccName(l.centro_custo_id).toLowerCase().includes(t)
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
@@ -227,7 +232,7 @@ export default function ContasAReceber() {
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, centroCustoFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, centros, pedidos, pedidoFamilia, lojasFiltro]);
 
 
   const [baixaOpen, setBaixaOpen] = useState(false);
@@ -335,6 +340,7 @@ export default function ContasAReceber() {
     descricao: l.descricao || "",
     cliente: pedidoFamilia.get(l.pedido_id || "")?.clienteNome || "",
     categoria: catName(l.categoria_id),
+    centro_custo: ccName(l.centro_custo_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
     status: l.status || "",
@@ -385,6 +391,7 @@ export default function ContasAReceber() {
         fornecedores={fornecedores}
         fornecedorFiltro={fornecedorFiltro} setFornecedorFiltro={setFornecedorFiltro}
         formaPrevFiltro={formaPrevFiltro} setFormaPrevFiltro={setFormaPrevFiltro}
+        centrosCusto={centros} centroCustoFiltro={centroCustoFiltro} setCentroCustoFiltro={setCentroCustoFiltro}
         formasPrevistas={FORMAS_PREVISTAS}
         incluirPendentes={incluirPendentes} setIncluirPendentes={setIncluirPendentes}
         incluirLiquidadas={incluirLiquidadas} setIncluirLiquidadas={setIncluirLiquidadas}
@@ -406,6 +413,7 @@ export default function ContasAReceber() {
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
+                <th className="text-left py-3 font-medium">Centro de Custo</th>
                 <th className="text-left py-3 font-medium">Conta</th>
                 <th className="text-right py-3 font-medium">Valor bruto</th>
                 <th className="text-right py-3 font-medium">Juros / Taxa</th>
@@ -479,6 +487,7 @@ export default function ContasAReceber() {
                       )}
                     </td>
                     <td>{catName(l.categoria_id)}</td>
+                    <td className="text-muted-foreground">{ccName(l.centro_custo_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
                     <td className="text-right font-semibold whitespace-nowrap text-emerald-700">
                       {BRL(Number(l.valor || 0))}
@@ -568,7 +577,7 @@ export default function ContasAReceber() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={16} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={17} className="text-center py-12 text-muted-foreground">
 
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a receber
@@ -578,7 +587,7 @@ export default function ContasAReceber() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={7} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={8} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-emerald-700 whitespace-nowrap">
