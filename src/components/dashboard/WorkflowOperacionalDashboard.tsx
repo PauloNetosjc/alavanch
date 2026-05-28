@@ -6,10 +6,11 @@ import { BRL } from "@/lib/financeiro";
 import {
   FileSignature, FileText, Box, Ruler, Pencil, ClipboardCheck, FileCheck2,
   FilePlus2, Factory, Truck, Wrench, ShieldCheck, Workflow, AlertTriangle,
-  ChevronRight, Search, ArrowRight,
+  Search, ArrowRight, FileSpreadsheet, Printer,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
 
 // ---------- Tipos ----------
 export type EtapaKey =
