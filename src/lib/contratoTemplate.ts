@@ -164,6 +164,8 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{cliente.email}}": ctx.cliente?.email || "",
     "{{cliente.telefone}}": ctx.cliente?.telefone || "",
     "{{cliente.endereco}}": ctx.cliente?.endereco_cobranca || "",
+    "{{cliente.endereco_entrega}}": (ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "",
+    "{{endereco_entrega}}": (ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "—",
     "{{empresa.nome}}": ctx.empresa.nome,
     "{{empresa.cnpj}}": ctx.empresa.cnpj || "",
     "{{empresa.endereco}}": ctx.empresa.endereco || "",
