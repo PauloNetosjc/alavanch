@@ -386,6 +386,9 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
       <td class="lbl">ENDEREÇO</td><td colspan="3">${ctx.cliente?.endereco_cobranca || "—"}</td>
     </tr>
     <tr>
+      <td class="lbl">ENDEREÇO DE ENTREGA</td><td colspan="3">${(ctx.cliente as any)?.endereco_entrega || ctx.cliente?.endereco_cobranca || "—"}</td>
+    </tr>
+    <tr>
       <td class="lbl">E-MAIL</td><td>${ctx.cliente?.email || "—"}</td>
       <td class="lbl">TELEFONE</td><td>${ctx.cliente?.telefone || "—"}</td>
     </tr>
