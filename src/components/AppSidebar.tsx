@@ -134,6 +134,7 @@ const moreGroups: Group[] = [
       { label: "Agenda", path: "/administracao?tab=agenda", icon: CalendarDays, roles: ["admin"] },
       
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
+      { label: "Tarefas Nativas do Pedido", path: "/administracao/tarefas-nativas", icon: ListChecks, roles: ["admin"] },
     ],
   },
   {

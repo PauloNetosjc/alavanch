@@ -32,6 +32,7 @@ const Kanbans = lazy(() => import("@/pages/Kanbans"));
 const ComercialNovo = lazy(() => import("@/pages/ComercialNovo"));
 const ComercialNegociacao = lazy(() => import("@/pages/ComercialNegociacao"));
 const Administracao = lazy(() => import("@/pages/Administracao"));
+const TarefasNativasAdmin = lazy(() => import("@/pages/TarefasNativasAdmin"));
 const RadarPrazos = lazy(() => import("@/pages/RadarPrazos"));
 const Assistencia = lazy(() => import("@/pages/Assistencia"));
 const MeusChamados = lazy(() => import("@/pages/MeusChamados"));
@@ -168,6 +169,7 @@ const App = () => (
                 <Route path="/administracao/checklist-templates" element={<ChecklistTemplates />} />
                 <Route path="/administracao/checklist-assistencia" element={<ChecklistAssistencia />} />
                 <Route path="/administracao/simulador-automacoes" element={<SimuladorAutomacoes />} />
+                <Route path="/administracao/tarefas-nativas" element={<TarefasNativasAdmin />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="/sistema/info" element={<InfoSistema />} />
                 <Route path="/sistema/cargos" element={<RequirePermission modulo="cargos"><CargosAdmin /></RequirePermission>} />
