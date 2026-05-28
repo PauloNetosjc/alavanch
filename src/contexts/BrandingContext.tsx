@@ -19,12 +19,13 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
+  const fallbackLojaId = lojas[0]?.id || null;
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       // Loja alvo: a selecionada, ou a primeira disponível (consolidado/admin)
-      const targetId = selectedLojaId || lojas[0]?.id || null;
+      const targetId = selectedLojaId || fallbackLojaId;
       if (!targetId) {
         setNome(DEFAULT_NAME);
         setLogoUrl(null);
@@ -43,7 +44,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [selectedLojaId, lojas, tick]);
+  }, [selectedLojaId, fallbackLojaId, tick]);
 
   return (
     <Ctx.Provider value={{ nome, logoUrl, loading, refresh: () => setTick((t) => t + 1) }}>
