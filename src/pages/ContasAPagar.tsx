@@ -107,7 +107,7 @@ export default function ContasAPagar() {
       supabase.from("fornecedores").select("id,nome").order("nome"),
       supabase.from("orcamentos").select("id,parceiro_id").limit(5000),
       supabase.from("parceiros").select("id,nome").limit(2000),
-      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
+      supabase.from("centros_custo").select("id,nome,ativo").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
