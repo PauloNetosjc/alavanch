@@ -1521,11 +1521,21 @@ export default function ComercialNegociacao() {
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total da Proposta</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-[34px] font-semibold text-mono leading-tight">{fmtBrl(totalProposta)}</div>
+                  <div className="text-[34px] font-semibold text-mono leading-tight">{fmtBrl(totalContrato)}</div>
                   <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
                     <Eye className="w-4 h-4" />
                   </button>
                 </div>
+                {jurosRepassado > 0.01 && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
+                  </div>
+                )}
+                {jurosAbsorvido > 0.01 && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Loja absorve <b>{fmtBrl(jurosAbsorvido)}</b> em juros.
+                  </div>
+                )}
               </div>
               {descValorAplicado > 0 && (
                 <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-right">
