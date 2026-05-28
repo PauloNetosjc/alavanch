@@ -1073,7 +1073,7 @@ export default function ComercialNegociacao() {
       ? `Complemento ao pedido ${pedidoOrigemComp.codigo} — refere-se ao mesmo ambiente.\n\n${observacoes || ""}`.trim()
       : observacoes;
 
-    // Snapshot dos ambientes com preços com desconto
+    // Snapshot dos ambientes com preços com desconto (proporcional ao total do contrato)
     const ambientesSnap = ambientes.map((a) => {
       const precoBase = Number(a.preco_sugerido) || 0;
       const fator = subtotalAmbientes > 0 ? precoBase / subtotalAmbientes : 0;
@@ -1081,7 +1081,21 @@ export default function ComercialNegociacao() {
         nome: a.nome,
         descricao: a.descricao,
         preco_base: precoBase,
-        preco_final: totalProposta * fator,
+        preco_final: totalContrato * fator,
+      };
+    });
+
+    // Pagamentos do snapshot já com juros repassado embutido no valor
+    const pagamentosSnap = pagamentos.map((p) => {
+      const j = calcJurosDoPagamento(p);
+      const fator = j.repassar && Number(p.valor) > 0
+        ? (Number(p.valor) + j.valor) / Number(p.valor)
+        : 1;
+      return {
+        ...p,
+        valor: Number((Number(p.valor) * fator).toFixed(2)),
+        acrescimo_repassado: j.repassar ? Number(j.valor.toFixed(2)) : 0,
+        juros_perc_aplicado: j.repassar ? j.jurosPerc : 0,
       };
     });
 
@@ -1095,7 +1109,7 @@ export default function ComercialNegociacao() {
         loja_id: orc.loja_id,
         template_id: tplContrato?.id,
         observacoes_adicionais: obsFinal,
-        valor_total: totalProposta,
+        valor_total: totalContrato,
         conteudo_snapshot: {
           numero,
           emitido_em: new Date().toISOString(),
@@ -1105,8 +1119,11 @@ export default function ComercialNegociacao() {
           subtotal: subtotalAmbientes,
           desconto_perc: descPercAplicado,
           desconto_valor: descValorAplicado,
-          total: totalProposta,
-          pagamentos,
+          total: totalContrato,
+          total_sem_juros: totalProposta,
+          juros_repassado: Number(jurosRepassado.toFixed(2)),
+          juros_absorvido: Number(jurosAbsorvido.toFixed(2)),
+          pagamentos: pagamentosSnap,
           observacoes_adicionais: obsFinal,
           pedido_origem_codigo: pedidoOrigemComp?.codigo || null,
         } as any,
