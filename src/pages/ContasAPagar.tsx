@@ -46,7 +46,7 @@ type Lanc = {
   entidade_id?: string | null;
   entidade_nome?: string | null;
 };
-type Cat = { id: string; nome: string; parent_id: string | null };
+type Cat = { id: string; nome: string; parent_id: string | null; tipo?: string | null; ativo?: boolean | null };
 type Conta = { id: string; nome: string; banco: string | null };
 type Pedido = { id: string; codigo: string; created_at: string | null; receita_codigo: string | null; pedido_pai_id: string | null; pedido_origem_complemento_id: string | null; cliente_id: string | null; orcamento_id: string | null };
 type Cliente = { id: string; nome: string };
@@ -83,7 +83,7 @@ export default function ContasAPagar() {
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
   const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
   const [centroCustoFiltro, setCentroCustoFiltro] = useState("");
-  const [centros, setCentros] = useState<{ id: string; nome: string }[]>([]);
+  const [centros, setCentros] = useState<{ id: string; nome: string; ativo?: boolean | null }[]>([]);
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -99,7 +99,7 @@ export default function ContasAPagar() {
   async function load() {
     const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }, { data: cc }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
-      supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
+      supabase.from("categorias_financeiras").select("id,nome,parent_id,tipo,ativo").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
       supabase.from("pedidos").select("id,codigo,created_at,receita_codigo,pedido_pai_id,pedido_origem_complemento_id,cliente_id,orcamento_id").limit(2000),
       supabase.from("clientes").select("id,nome").limit(5000),
@@ -107,7 +107,7 @@ export default function ContasAPagar() {
       supabase.from("fornecedores").select("id,nome").order("nome"),
       supabase.from("orcamentos").select("id,parceiro_id").limit(5000),
       supabase.from("parceiros").select("id,nome").limit(2000),
-      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
+      supabase.from("centros_custo").select("id,nome,ativo").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -273,7 +273,7 @@ export default function ContasAPagar() {
 
   async function salvarEdicao(p: EditarPayload) {
     if (!editAlvo) return;
-    const { error } = await supabase.from("lancamentos_financeiros").update({
+    const patch: any = {
       data_vencimento: p.data_vencimento,
       data_pagamento: p.data_pagamento,
       valor: p.valor,
@@ -281,7 +281,10 @@ export default function ContasAPagar() {
       forma_pagamento_prevista: p.forma_pagamento_prevista,
       notas: p.notas,
       ...reapprovalPatch(),
-    } as any).eq("id", editAlvo.id);
+    };
+    if (p.categoria_id !== undefined) patch.categoria_id = p.categoria_id;
+    if (p.centro_custo_id !== undefined) patch.centro_custo_id = p.centro_custo_id;
+    const { error } = await supabase.from("lancamentos_financeiros").update(patch).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
@@ -653,6 +656,8 @@ export default function ContasAPagar() {
         open={editOpen}
         onOpenChange={setEditOpen}
         tipo="saida"
+        cats={cats}
+        centros={centros}
         lanc={editAlvo ? {
           id: editAlvo.id,
           descricao: editAlvo.descricao,
@@ -663,6 +668,8 @@ export default function ContasAPagar() {
           forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
+          categoria_id: editAlvo.categoria_id,
+          centro_custo_id: editAlvo.centro_custo_id,
         } : null}
         onSave={salvarEdicao}
         onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ export type EditarLancamentoData = {
   forma_pagamento_prevista: string | null;
   notas: string | null;
   status: string | null;
+  categoria_id?: string | null;
+  centro_custo_id?: string | null;
 };
 
 export type EditarPayload = {
@@ -26,7 +28,12 @@ export type EditarPayload = {
   forma_pagamento: string | null;
   forma_pagamento_prevista: string | null;
   notas: string | null;
+  categoria_id?: string | null;
+  centro_custo_id?: string | null;
 };
+
+export type CatOption = { id: string; nome: string; tipo?: string | null; parent_id?: string | null; ativo?: boolean | null };
+export type CentroOption = { id: string; nome: string; ativo?: boolean | null };
 
 type Props = {
   open: boolean;
@@ -35,18 +42,22 @@ type Props = {
   lanc: EditarLancamentoData | null;
   onSave: (p: EditarPayload) => Promise<void> | void;
   onEstornar?: () => Promise<void> | void;
+  cats?: CatOption[];
+  centros?: CentroOption[];
 };
 
 const FORMAS = ["PIX", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Boleto", "Transferência", "Cheque", "Outro"];
 export const FORMAS_PREVISTAS = ["PIX", "Boleto", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Transferência Bancária", "Cheque", "Permuta", "Outro"];
 
-export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc, onSave, onEstornar }: Props) {
+export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc, onSave, onEstornar, cats, centros }: Props) {
   const [dataVenc, setDataVenc] = useState("");
   const [dataPag, setDataPag] = useState("");
   const [valor, setValor] = useState<number>(0);
   const [forma, setForma] = useState<string>("PIX");
   const [formaPrev, setFormaPrev] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
+  const [categoriaId, setCategoriaId] = useState<string>("");
+  const [centroCustoId, setCentroCustoId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,10 +68,40 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
       setForma(lanc.forma_pagamento || "PIX");
       setFormaPrev(lanc.forma_pagamento_prevista || "");
       setNotas(lanc.notas || "");
+      setCategoriaId(lanc.categoria_id || "");
+      setCentroCustoId(lanc.centro_custo_id || "");
     }
   }, [open, lanc]);
 
   const pago = !!lanc && ["pago", "recebido", "conciliado"].includes(lanc.status || "");
+
+  const catTipoEsperado = tipo === "entrada" ? "receita" : "despesa";
+  const catsByParent = useMemo(() => {
+    const map = new Map<string, string>();
+    (cats || []).forEach((c) => map.set(c.id, c.nome));
+    return map;
+  }, [cats]);
+
+  // Categorias ativas do tipo certo + a categoria atual (mesmo inativa) para preservar histórico
+  const catsVisiveis = useMemo(() => {
+    if (!cats) return [] as CatOption[];
+    const filtered = cats.filter((c) => c.ativo !== false && (!c.tipo || c.tipo === catTipoEsperado));
+    if (categoriaId && !filtered.some((c) => c.id === categoriaId)) {
+      const atual = cats.find((c) => c.id === categoriaId);
+      if (atual) return [atual, ...filtered];
+    }
+    return filtered;
+  }, [cats, catTipoEsperado, categoriaId]);
+
+  const centrosVisiveis = useMemo(() => {
+    if (!centros) return [] as CentroOption[];
+    const filtered = centros.filter((c) => c.ativo !== false);
+    if (centroCustoId && !filtered.some((c) => c.id === centroCustoId)) {
+      const atual = centros.find((c) => c.id === centroCustoId);
+      if (atual) return [atual, ...filtered];
+    }
+    return filtered;
+  }, [centros, centroCustoId]);
 
   async function salvar() {
     setSaving(true);
@@ -72,6 +113,8 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
         forma_pagamento: forma || null,
         forma_pagamento_prevista: formaPrev || null,
         notas: notas || null,
+        categoria_id: cats ? (categoriaId || null) : undefined,
+        centro_custo_id: centros ? (centroCustoId || null) : undefined,
       });
       onOpenChange(false);
     } finally {
@@ -92,7 +135,7 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Alterar {tipo === "entrada" ? "recebimento" : "pagamento"}</DialogTitle>
         </DialogHeader>
@@ -101,6 +144,47 @@ export default function EditarLancamentoDialog({ open, onOpenChange, tipo, lanc,
             <div className="rounded-lg border bg-muted/40 p-3 text-sm">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Descrição</div>
               <div className="font-medium">{lanc.descricao}</div>
+            </div>
+          )}
+          {(cats || centros) && (
+            <div className="grid grid-cols-2 gap-3">
+              {cats && (
+                <div className="space-y-1.5">
+                  <Label>Categoria</Label>
+                  <Select value={categoriaId || "__none"} onValueChange={(v) => setCategoriaId(v === "__none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Selecione...</SelectItem>
+                      {catsVisiveis.map((c) => {
+                        const parentNome = c.parent_id ? catsByParent.get(c.parent_id) : null;
+                        const label = parentNome ? `${parentNome} > ${c.nome}` : c.nome;
+                        const inativa = c.ativo === false;
+                        return (
+                          <SelectItem key={c.id} value={c.id}>
+                            {label}{inativa ? " (inativa)" : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {centros && (
+                <div className="space-y-1.5">
+                  <Label>Centro de Custo</Label>
+                  <Select value={centroCustoId || "__none"} onValueChange={(v) => setCentroCustoId(v === "__none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Selecione...</SelectItem>
+                      {centrosVisiveis.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}{c.ativo === false ? " (inativo)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
