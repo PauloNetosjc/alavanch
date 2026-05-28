@@ -39,6 +39,8 @@ export type ContratoCtx = {
   validation_url?: string | null;
   /** Data URL (PNG) do QR Code apontando para validation_url */
   qr_data_url?: string | null;
+  /** Quando false, oculta toda referência a desconto (coluna, totais, variáveis) */
+  mostrar_desconto?: boolean;
 };
 
 
@@ -53,6 +55,7 @@ const escapeHtml = (v: string) =>
 
 export function applyVariables(text: string, ctx: ContratoCtx): string {
   const prazo = ctx.prazo_entrega ? fmtDate(ctx.prazo_entrega) : "";
+  const showDisc = ctx.mostrar_desconto !== false;
   const map: Record<string, string> = {
     "{{numero}}": ctx.numero,
     "{{data}}": fmtDate(ctx.emitido_em),
@@ -77,9 +80,10 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{vendedor.email}}": ctx.vendedor?.email || "",
     "{{prazo.entrega}}": prazo,
     "{{prazo_entrega}}": prazo,
-    "{{subtotal}}": fmtBrl(ctx.subtotal),
-    "{{desconto}}": fmtBrl(ctx.desconto_valor),
-    "{{desconto_perc}}": `${(ctx.desconto_perc || 0).toFixed(2)}%`,
+    // Quando desconto está oculto, subtotal/desconto colapsam para o total final líquido
+    "{{subtotal}}": fmtBrl(showDisc ? ctx.subtotal : ctx.total),
+    "{{desconto}}": showDisc ? fmtBrl(ctx.desconto_valor) : fmtBrl(0),
+    "{{desconto_perc}}": showDisc ? `${(ctx.desconto_perc || 0).toFixed(2)}%` : "0%",
     "{{total}}": fmtBrl(ctx.total),
   };
   let out = text;
@@ -87,9 +91,11 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
   return out;
 }
 
+
 export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts?: {
   assinado?: { nome: string; cpf?: string; data: string; ip?: string };
 }): string {
+  const showDisc = ctx.mostrar_desconto !== false;
   const itensHtml = ctx.ambientes
     .map(
       (a, idx) => `
@@ -99,11 +105,12 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
           <div style="font-weight:700">${a.nome.toUpperCase()}</div>
           ${a.descricao ? `<div style="color:#6B6760;font-size:11px;margin-top:2px">- ${a.descricao}</div>` : ""}
         </td>
-        <td style="text-align:right;color:#6B6760">${fmtBrl(a.preco_base)}</td>
+        ${showDisc ? `<td style="text-align:right;color:#6B6760">${fmtBrl(a.preco_base)}</td>` : ""}
         <td style="text-align:right;color:#B83232;font-weight:700">${fmtBrl(a.preco_final)}</td>
       </tr>`,
     )
     .join("");
+
 
   const pagsHtml = ctx.pagamentos.length
     ? ctx.pagamentos
@@ -258,22 +265,27 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
     <thead><tr>
       <th style="width:50px;text-align:center">ITEM</th>
       <th>DESCRIÇÃO AMBIENTE/PRODUTO</th>
-      <th style="text-align:right;width:130px">VALOR</th>
-      <th style="text-align:right;width:140px">COM DESCONTO</th>
+      ${showDisc ? `<th style="text-align:right;width:130px">VALOR</th>` : ""}
+      <th style="text-align:right;width:140px">${showDisc ? "COM DESCONTO" : "VALOR"}</th>
     </tr></thead>
     <tbody>${itensHtml}</tbody>
   </table>
 
   <div class="totais">
-    <div class="row"><span>Valor total:</span><b>${fmtBrl(ctx.subtotal)}</b></div>
     ${
-      ctx.desconto_valor > 0
-        ? `<div class="row discount"><span>Total do desconto (${ctx.desconto_perc.toFixed(2)}%):</span><b>-${fmtBrl(ctx.desconto_valor)}</b></div>`
-        : ""
+      showDisc
+        ? `<div class="row"><span>Valor total:</span><b>${fmtBrl(ctx.subtotal)}</b></div>
+           ${
+             ctx.desconto_valor > 0
+               ? `<div class="row discount"><span>Total do desconto (${ctx.desconto_perc.toFixed(2)}%):</span><b>-${fmtBrl(ctx.desconto_valor)}</b></div>`
+               : ""
+           }
+           <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>`
+        : `<div class="row grand"><span>Valor total:</span><span>${fmtBrl(ctx.total)}</span></div>`
     }
-    <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>
     <div style="font-size:10px;color:#6B6760;margin-top:6px">*Após assinatura do caderno técnico</div>
   </div>
+
 
   <h2>CONDIÇÃO DE PAGAMENTO</h2>
   <table class="pags">

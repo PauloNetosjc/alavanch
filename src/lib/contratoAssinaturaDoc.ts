@@ -596,7 +596,7 @@ export async function prepararContratoParaAssinatura(
 
   const [{ data: loja }, { data: configEmpresa }, { data: cliente }, { data: tplLoja }, { data: tplContrato }, { data: orcamento }] = await Promise.all([
     pedido.loja_id ? supabase.from("lojas").select("nome,cnpj,endereco,cidade,uf").eq("id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
-    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone,assinar_loja_automaticamente" as any).eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
+    pedido.loja_id ? supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone,assinar_loja_automaticamente,mostrar_desconto_contrato" as any).eq("loja_id", pedido.loja_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.cliente_id ? supabase.from("clientes").select("*").eq("id", pedido.cliente_id).maybeSingle() : Promise.resolve({ data: null } as any),
     pedido.loja_id ? supabase.from("contratos_template").select("*").eq("loja_id", pedido.loja_id).eq("ativo", true).order("updated_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
     contrato.template_id ? supabase.from("contratos_template").select("*").eq("id", contrato.template_id).maybeSingle() : Promise.resolve({ data: null } as any),
@@ -756,7 +756,9 @@ export async function prepararContratoParaAssinatura(
     cliente_ip: solicCtx.cliente_ip || "",
     validation_url: validationUrl,
     qr_data_url: qrDataUrl,
+    mostrar_desconto: (configEmpresa as any)?.mostrar_desconto_contrato !== false,
   };
+
 
   const rawHtml = renderContratoHtml(tpl as ContratoTemplate, ctx as any);
   const html = ensureContratoDateHtml(rawHtml, contratoDateLabel, !templateHasDateVariable(tpl as ContratoTemplate));
