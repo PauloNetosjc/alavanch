@@ -37,16 +37,24 @@ type Lanc = {
   loja_id: string | null;
   baixado_por: string | null;
   baixado_em: string | null;
+  juros_previsto?: number | null;
+  taxa_perc?: number | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  agrupado?: boolean | null;
 };
 
 type Parcela = {
   numero: number;
   total: number;
   valor: number;
+  juros: number;
+  taxa_perc: number;
   recebido: number;
   saldo: number;
   vencimento: string | null;
   forma: string;
+  agrupado: boolean;
   status?: string | null;
   data_pagamento?: string | null;
   lanc?: Lanc;
