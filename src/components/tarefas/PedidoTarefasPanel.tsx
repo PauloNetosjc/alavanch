@@ -529,7 +529,7 @@ export function ComentarDialog({
   );
 }
 
-function AnexoDialog({
+export function AnexoDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [file, setFile] = useState<File | null>(null);
