@@ -416,11 +416,10 @@ export function renderContratoHtml(tpl: ContratoTemplate, ctx: ContratoCtx, opts
                ? `<div class="row discount"><span>Total do desconto (${ctx.desconto_perc.toFixed(2)}%):</span><b>-${fmtBrl(ctx.desconto_valor)}</b></div>`
                : ""
            }
-           <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>`
-        : `<div class="row grand"><span>Valor total:</span><span>${fmtBrl(ctx.total)}</span></div>`
-    }
-    <div style="font-size:10px;color:#6B6760;margin-top:6px">*Após assinatura do caderno técnico</div>
-  </div>
+            <div class="row grand"><span>Valor com desconto:</span><span>${fmtBrl(ctx.total)}</span></div>`
+         : `<div class="row grand"><span>Valor total:</span><span>${fmtBrl(ctx.total)}</span></div>`
+     }
+   </div>
 
 
   ${usaPagsNasClausulas ? "" : `<h2>CONDIÇÃO DE PAGAMENTO</h2>
