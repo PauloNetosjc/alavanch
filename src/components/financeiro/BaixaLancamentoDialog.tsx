@@ -29,7 +29,7 @@ type Props = {
 
 const FORMAS = ["PIX", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Boleto", "Transferência", "Cheque", "Outro"];
 
-const TOLERANCIA_PERC = 2; // tolerância padrão para divergência negativa em baixa
+export const TOLERANCIA_PERC = 2; // tolerância padrão para divergência negativa em baixa
 
 export default function BaixaLancamentoDialog({
   open, onOpenChange, tipo, descricao, valorOriginal, jurosPrevisto = 0, contaIdAtual, contas, onConfirm,
