@@ -120,6 +120,8 @@ export default function PedidoReceita() {
       const { data: pags } = await supabase.from("pagamentos_orcamento").select("*").eq("orcamento_id", ped.orcamento_id);
       setPagamentos(pags || []);
     }
+    const { data: mets } = await supabase.from("metodos_pagamento").select("*");
+    setMetodos(((mets as any[]) || []) as MetodoPagamento[]);
     if (ped?.id) {
       const { data: lanc } = await supabase
         .from("lancamentos_financeiros")
