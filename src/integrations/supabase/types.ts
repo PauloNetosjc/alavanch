@@ -5439,7 +5439,7 @@ export type Database = {
         Returns: boolean
       }
       sub_dias_uteis: {
-        Args: { _fim: string; _loja: string; _n: number }
+        Args: { _inicio: string; _loja: string; _n: number }
         Returns: string
       }
       sync_pedido_para_kanban_card: {
