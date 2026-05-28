@@ -46,8 +46,20 @@ type TarefaNativa = {
   rh_cargos?: { nome: string | null } | null;
   profiles?: { nome_completo: string | null } | null;
   conclui_por_upload_categoria?: string | null;
-  tarefas_nativas_modelos?: { exibir_meus_chamados: boolean; conclui_por_upload_categoria: string | null } | null;
+  tarefas_nativas_modelos?: { nome?: string | null; exibir_meus_chamados: boolean; conclui_por_upload_categoria: string | null } | null;
 };
+
+/* Filtros por tarefa nativa (chaves técnicas fixas → nome do modelo no banco).
+ * Centralizado para não duplicar regra e evitar regressão. */
+export const TASK_FILTERS: ReadonlyArray<{ key: string; label: string; modelo: string }> = [
+  { key: "acompanhar_assinatura_contrato",   label: "Acompanhar assinatura do contrato",     modelo: "Acompanhar assinatura do contrato" },
+  { key: "enviar_projeto_inicial",           label: "Enviar projeto inicial para o cliente", modelo: "Enviar projeto inicial para o cliente" },
+  { key: "subir_arquivo_3d_vendido",         label: "Subir arquivo 3D vendido",              modelo: "Subir arquivo 3D vendido" },
+  { key: "fazer_medicao_tecnica",            label: "Fazer medição técnica",                 modelo: "Fazer medição técnica" },
+  { key: "preparo_projeto_revisao",          label: "Preparo projeto revisão",               modelo: "Preparo projeto revisão" },
+  { key: "revisao_loja",                     label: "Revisão loja",                          modelo: "Revisão loja" },
+  { key: "preparo_envio_pdf_projeto_final",  label: "Preparo e envio de PDF Projeto Final",  modelo: "Preparo e envio de PDF Projeto Final" },
+];
 
 
 const STATUS_BADGE: Record<string, string> = {
@@ -112,6 +124,7 @@ export function MinhasTarefasNativasPanel() {
   const [myCargoId, setMyCargoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("minhas");
+  const [taskKey, setTaskKey] = useState<string>("todos"); // "todos" ou chave técnica
 
   // dialogs
   const [taSel, setTaSel] = useState<TarefaNativa | null>(null);
@@ -142,7 +155,7 @@ export function MinhasTarefasNativasPanel() {
         pedidos(codigo, cliente_id, clientes(nome)),
         rh_cargos(nome),
         profiles(nome_completo),
-        tarefas_nativas_modelos!inner(exibir_meus_chamados, conclui_por_upload_categoria)
+        tarefas_nativas_modelos!inner(nome, exibir_meus_chamados, conclui_por_upload_categoria)
       `)
       .eq("tarefas_nativas_modelos.exibir_meus_chamados", true)
 
@@ -182,8 +195,20 @@ export function MinhasTarefasNativasPanel() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
+  // Helper: nome do modelo associado à chave técnica
+  const modeloDaChave = (key: string): string | null =>
+    TASK_FILTERS.find((f) => f.key === key)?.modelo ?? null;
+
+  // Aplica primeiro o filtro de tipo de tarefa (chave técnica), depois o filtro existente
+  const aposTaskKey = useMemo(() => {
+    if (taskKey === "todos") return list;
+    const modelo = modeloDaChave(taskKey);
+    if (!modelo) return list;
+    return list.filter((t) => (t.tarefas_nativas_modelos?.nome || "") === modelo);
+  }, [list, taskKey]);
+
   const filtrada = useMemo(() => {
-    return list.filter((t) => {
+    return aposTaskKey.filter((t) => {
       if (filtro === "minhas") {
         return myProfileId && t.responsavel_id === myProfileId;
       }
@@ -192,15 +217,25 @@ export function MinhasTarefasNativasPanel() {
       if (filtro === "prealerta") return isPreAlerta(t) && !isAtrasada(t);
       return true; // todas
     });
-  }, [list, filtro, myProfileId]);
+  }, [aposTaskKey, filtro, myProfileId]);
 
   const counts = {
-    minhas: list.filter((t) => myProfileId && t.responsavel_id === myProfileId).length,
-    todas: list.length,
-    atrasadas: list.filter(isAtrasada).length,
-    hoje: list.filter(isHoje).length,
-    prealerta: list.filter((t) => isPreAlerta(t) && !isAtrasada(t)).length,
+    minhas: aposTaskKey.filter((t) => myProfileId && t.responsavel_id === myProfileId).length,
+    todas: aposTaskKey.length,
+    atrasadas: aposTaskKey.filter(isAtrasada).length,
+    hoje: aposTaskKey.filter(isHoje).length,
+    prealerta: aposTaskKey.filter((t) => isPreAlerta(t) && !isAtrasada(t)).length,
   };
+
+  // Contadores por tipo de tarefa nativa (respeitam o escopo de visibilidade do usuário,
+  // pois `list` já foi filtrada por responsabilidade/cargo/loja).
+  const taskCounts = useMemo(() => {
+    const map: Record<string, number> = { todos: list.length };
+    for (const f of TASK_FILTERS) {
+      map[f.key] = list.filter((t) => (t.tarefas_nativas_modelos?.nome || "") === f.modelo).length;
+    }
+    return map;
+  }, [list]);
 
   function podeOperar(t: TarefaNativa): boolean {
     if (podeVerTodas) return true;
@@ -252,6 +287,31 @@ export function MinhasTarefasNativasPanel() {
           ))}
         </div>
       </div>
+
+      {/* Filtros por tipo de tarefa nativa (chaves técnicas fixas) */}
+      <div className="-mx-1 overflow-x-auto">
+        <div className="flex items-center gap-2 px-1 py-1 min-w-max">
+          {[{ key: "todos", label: "Todos" }, ...TASK_FILTERS.map((f) => ({ key: f.key, label: f.label }))].map((b) => {
+            const ativo = taskKey === b.key;
+            const c = taskCounts[b.key] ?? 0;
+            return (
+              <button
+                key={b.key}
+                onClick={() => setTaskKey(b.key)}
+                title={b.label}
+                className={`text-[11px] whitespace-nowrap px-2.5 py-1 rounded-full border transition ${
+                  ativo
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border"
+                }`}
+              >
+                {b.label} <span className={ativo ? "opacity-90" : "text-muted-foreground"}>({c})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
 
       {loading ? (
         <div className="text-[12px] text-muted-foreground py-6 text-center">Carregando…</div>
