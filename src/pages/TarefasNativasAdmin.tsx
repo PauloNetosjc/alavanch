@@ -291,7 +291,7 @@ export default function TarefasNativasAdmin() {
       <PageHeader
         title="Tarefas Nativas do Pedido"
         subtitle="Configure tarefas que serão criadas automaticamente nos pedidos a partir de eventos operacionais — assinatura, medição técnica, revisão final, entrega, montagem e assistência."
-        action={
+        actions={
           <Button size="sm" onClick={openNovo}>
             <Plus className="h-4 w-4 mr-1" /> Novo modelo de tarefa
           </Button>
