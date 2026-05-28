@@ -45,6 +45,25 @@ const fmtBrl = (n: number) =>
 const fmtDateTime = (d?: string | null) =>
   d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
+function PrazoLimite({ data, placeholder }: { data?: string | null; placeholder: string }) {
+  if (!data) return <span className="text-[12px] text-muted-foreground">{placeholder}</span>;
+  const d = new Date(data + "T00:00:00");
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - t.getTime()) / 86400000);
+  const cls = diff < 0
+    ? "bg-red-100 text-red-700"
+    : diff === 0 ? "bg-amber-100 text-amber-700"
+    : diff <= 7 ? "bg-amber-50 text-amber-700"
+    : "bg-emerald-50 text-emerald-700";
+  const sub = diff < 0 ? `vencido há ${Math.abs(diff)}d` : diff === 0 ? "vence hoje" : `em ${diff}d`;
+  return (
+    <span className="flex items-center gap-1.5">
+      <span>{d.toLocaleDateString("pt-BR")}</span>
+      <span className={`text-[10px] px-1.5 py-0.5 rounded ${cls}`}>{sub}</span>
+    </span>
+  );
+}
+
 /* ============================================================== */
 /*                       WORKFLOW STAGES                          */
 /* ============================================================== */
