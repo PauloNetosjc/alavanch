@@ -638,8 +638,10 @@ export function AnexoDialog({
               created_by: userId,
             });
           if (insErr) {
+            // Limpa arquivo órfão no storage se o registro falhar
+            await supabase.storage.from("pedido-docs").remove([up.data?.path || key]).catch(() => {});
             setSaving(false);
-            return toast.error("Arquivo enviado, mas falhou ao registrar na Central: " + insErr.message);
+            return toast.error("Falha ao registrar na Central: " + insErr.message);
           }
         }
 
