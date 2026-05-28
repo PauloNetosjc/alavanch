@@ -539,11 +539,11 @@ export default function WorkflowOperacionalDashboard() {
       </div>
 
       {/* Área expandida */}
-      {etapaSelecionada && (
+      {grupoSelecionado && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm">Pedidos em {etapaLabel(etapaSelecionada)}</h3>
+              <h3 className="font-semibold text-sm">Pedidos em {grupoLabel(grupoSelecionado)}</h3>
               <span className="text-xs text-muted-foreground">({listaExpandida.length})</span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
