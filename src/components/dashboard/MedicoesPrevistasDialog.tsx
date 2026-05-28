@@ -459,8 +459,10 @@ export default function MedicoesPrevistasDialog({
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E7EEF2] text-[#3F7898]">{m.qtd} pedidos</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Valor total</div>
-                      <div className="text-base font-semibold">{BRL(m.valor)}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1">Ticket médio: {BRL(ticket(m.qtd, m.valor))}</div>
+                      <div className="text-base font-semibold text-slate-900">{BRL(m.valor)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-2">Custo</div>
+                      <div className="text-sm font-semibold text-slate-900">{BRL(m.custo)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-2">Ticket médio: <span className="font-semibold text-slate-900">{BRL(ticket(m.qtd, m.valor))}</span></div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                         <div className="rounded-md bg-red-50 text-red-700 px-2 py-1 flex items-center gap-1">
@@ -516,6 +518,7 @@ export default function MedicoesPrevistasDialog({
                     <th className="p-2">Responsável</th>
                     <th className="p-2">Vendedor</th>
                     <th className="p-2 text-right">Valor</th>
+                    <th className="p-2 text-right">Custo</th>
                     <th className="p-2">Venda</th>
                     <th className="p-2">Previsão</th>
                     <th className="p-2">Status</th>
@@ -527,9 +530,9 @@ export default function MedicoesPrevistasDialog({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={13}>Carregando…</td></tr>
+                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={14}>Carregando…</td></tr>
                   ) : lista.length === 0 ? (
-                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={13}>Nenhum pedido para os filtros.</td></tr>
+                    <tr><td className="p-4 text-center text-muted-foreground" colSpan={14}>Nenhum pedido para os filtros.</td></tr>
                   ) : lista.map((p) => {
                     const st = getPrevStatus(p);
                     const dias = p.previsao_medicao ? diffDays(p.previsao_medicao) : null;
@@ -540,7 +543,8 @@ export default function MedicoesPrevistasDialog({
                         <td className="p-2">{p.loja_nome || "—"}</td>
                         <td className="p-2">{p.responsavel_nome || "—"}</td>
                         <td className="p-2">{p.vendedor_nome || "—"}</td>
-                        <td className="p-2 text-right">{BRL(Number(p.valor_total || 0))}</td>
+                        <td className="p-2 text-right font-semibold text-slate-900">{BRL(Number(p.valor_total || 0))}</td>
+                        <td className="p-2 text-right font-semibold text-slate-900">{BRL(Number(p.custo || 0))}</td>
                         <td className="p-2">{fmtDate(p.created_at)}</td>
                         <td className="p-2">{fmtDate(p.previsao_medicao)}</td>
                         <td className="p-2">
