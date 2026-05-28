@@ -651,6 +651,8 @@ export default function ContasAReceber() {
         open={editOpen}
         onOpenChange={setEditOpen}
         tipo="entrada"
+        cats={cats}
+        centros={centros}
         lanc={editAlvo ? {
           id: editAlvo.id,
           descricao: editAlvo.descricao,
@@ -661,6 +663,8 @@ export default function ContasAReceber() {
           forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
+          categoria_id: editAlvo.categoria_id,
+          centro_custo_id: editAlvo.centro_custo_id,
         } : null}
         onSave={salvarEdicao}
         onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
