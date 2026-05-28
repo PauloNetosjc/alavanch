@@ -22,6 +22,7 @@ import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
 import { ItensAvulsosManager } from "@/components/ItensAvulsosManager";
 import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
+import { PedidoTarefasPanel } from "@/components/tarefas/PedidoTarefasPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
@@ -612,8 +613,11 @@ export default function PedidoDetalhe() {
       <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
 
 
-      {/* TAREFAS ASSOCIADAS AO PEDIDO */}
-      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas do Pedido" />
+      {/* TAREFAS ASSOCIADAS AO PEDIDO (legado: agenda/tarefa_interna) */}
+      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" />
+
+      {/* TAREFAS NATIVAS DO PEDIDO (Fase 3 — motor de tarefas) */}
+      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
 
       {/* NOTAS + CHAT INTERNO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
