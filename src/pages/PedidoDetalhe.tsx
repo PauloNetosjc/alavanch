@@ -2188,7 +2188,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
       const env = parsed.environments[0] || { items: [] };
       const diff = diffPromobItems(subs || [], env.items, "clientPrice");
       const versaoAtual = revisoes.filter((r: any) => r.ambiente_id === ambiente.id).length + 1;
-      await supabase.from("pedido_revisoes").insert({
+      const { error: revErr } = await supabase.from("pedido_revisoes").insert({
         pedido_id: pedido.id, ambiente_id: ambiente.id, versao: versaoAtual,
         raw_content: text, parsed_data: env as any, diff: diff as any,
         valor_original: diff.totals.valorOriginal,
@@ -2196,6 +2196,46 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
         variacao_perc: diff.totals.variacaoPerc,
         created_by: user?.id,
       });
+      if (revErr) throw revErr;
+
+      // Gatilho B: espelhar o arquivo em Arquivos do Projeto > Projeto Revisado.
+      // O insert em pedido_documentos com categoria_projeto='projeto_revisado'
+      // dispara o trigger que conclui automaticamente a tarefa nativa "Revisão loja".
+      try {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+        const path = `${pedido.id}/projeto_revisado/${Date.now()}-${safeName}`;
+        const blob = new Blob([text], { type: file.type || "text/plain" });
+        const { error: upErr } = await supabase.storage
+          .from("pedido-docs")
+          .upload(path, blob, { upsert: false });
+        if (!upErr) {
+          let pastaId: string | null = null;
+          try {
+            const { data: pId } = await (supabase as any).rpc("fn_garantir_pasta_projeto", { p_pedido_id: pedido.id });
+            pastaId = pId || null;
+          } catch {}
+          const { error: insErr } = await supabase.from("pedido_documentos").insert({
+            pedido_id: pedido.id,
+            pasta_id: pastaId,
+            nome: `Revisão v${versaoAtual} — ${ambiente.nome || "Ambiente"} — ${file.name}`,
+            storage_path: path,
+            tamanho: file.size,
+            mime_type: file.type || "text/plain",
+            categoria_projeto: "projeto_revisado",
+            created_by: user?.id || null,
+            bucket_name: "pedido-docs",
+          } as any);
+          if (insErr) {
+            await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
+            console.warn("[enviarRevisao] falha ao registrar projeto_revisado:", insErr);
+          }
+        } else {
+          console.warn("[enviarRevisao] falha no upload projeto_revisado:", upErr);
+        }
+      } catch (e) {
+        console.warn("[enviarRevisao] erro ao espelhar em Projeto Revisado:", e);
+      }
+
       toast.success(`Revisão v${versaoAtual} enviada`);
       onChange();
     } catch (e: any) { toast.error(e.message || "Erro"); }
