@@ -62,9 +62,100 @@ const fmtDate = (d: string | Date) =>
 const escapeHtml = (v: string) =>
   String(v).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c] as string));
 
+export type ParcelaExpandida = {
+  idx: number;
+  metodo: string;
+  data_vencimento: string | null;
+  valor: number;
+  descricao: string;
+  parcela_num: number;
+  parcela_total: number;
+  is_entrada: boolean;
+};
+
+/** Expande os pagamentos do snapshot em parcelas individuais (mesma lógica usada em ParcelasTabela). */
+export function expandirPagamentosEmParcelas(pagamentos: ContratoCtx["pagamentos"]): ParcelaExpandida[] {
+  const linhas: ParcelaExpandida[] = [];
+  (pagamentos || []).forEach((p) => {
+    const n = Math.max(1, Number(p.parcelas) || 1);
+    const det: number[] = Array.isArray(p.parcelas_detalhe) && p.parcelas_detalhe.length === n
+      ? p.parcelas_detalhe.map(Number)
+      : (() => {
+          const base = Number((Number(p.valor) / n).toFixed(2));
+          const arr = Array(n).fill(base);
+          arr[n - 1] = Number((Number(p.valor) - base * (n - 1)).toFixed(2));
+          return arr;
+        })();
+    const vencsNeg: (string | null)[] = Array.isArray(p.parcelas_vencimentos) && p.parcelas_vencimentos.length === n
+      ? p.parcelas_vencimentos.map((v) => (v ? String(v).slice(0, 10) : null))
+      : [];
+    const formasNeg: string[] = Array.isArray(p.parcelas_formas) && p.parcelas_formas.length === n
+      ? p.parcelas_formas.map((f) => String(f || ""))
+      : [];
+    const vencBase = p.data_vencimento ? new Date(String(p.data_vencimento).slice(0, 10) + "T00:00:00") : null;
+    for (let i = 0; i < n; i++) {
+      let dt: string | null = vencsNeg[i] || null;
+      if (!dt && vencBase) {
+        const d = new Date(vencBase);
+        d.setMonth(d.getMonth() + i);
+        dt = d.toISOString().slice(0, 10);
+      }
+      const metodoLinha = (formasNeg[i] || p.metodo || "").trim();
+      const metodoLimpo = metodoLinha.replace(/\s*\d+x(\s*a\s*\d+x)?\s*$/i, "").trim() || metodoLinha;
+      const isEntrada = !!p.is_entrada && i === 0;
+      const desc = isEntrada
+        ? `Entrada${metodoLimpo ? ` — ${metodoLimpo}` : ""}`
+        : n === 1
+          ? `${metodoLimpo} — à vista`
+          : `${metodoLimpo} — parcela ${i + 1}/${n}`;
+      linhas.push({
+        idx: linhas.length + 1,
+        metodo: metodoLimpo,
+        data_vencimento: dt,
+        valor: Number(det[i] || 0),
+        descricao: desc,
+        parcela_num: i + 1,
+        parcela_total: n,
+        is_entrada: isEntrada,
+      });
+    }
+  });
+  return linhas;
+}
+
+function renderPagamentosTableHtml(ctx: ContratoCtx): string {
+  const linhas = expandirPagamentosEmParcelas(ctx.pagamentos);
+  const rowsHtml = linhas.length
+    ? linhas
+        .map(
+          (l) => `
+        <tr>
+          <td style="font-weight:600">${escapeHtml(l.descricao)}</td>
+          <td style="text-align:center">${l.data_vencimento ? fmtDate(l.data_vencimento) : "—"}</td>
+          <td style="text-align:right;font-weight:600">${fmtBrl(l.valor)}</td>
+        </tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="3" style="text-align:center;color:#6B6760;padding:14px">Sem condição de pagamento informada</td></tr>`;
+  const totalParcelas = linhas.reduce((s, l) => s + l.valor, 0);
+  return `<table class="pags" style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="background:#1B2240;color:#fff;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:left">PARCELA / DESCRIÇÃO</th>
+      <th style="background:#1B2240;color:#fff;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:center;width:160px">VENCIMENTO</th>
+      <th style="background:#1B2240;color:#fff;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:right;width:160px">VALOR</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr>
+      <td colspan="2" style="padding:10px 12px;border-top:1px solid #1A1A1A;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6B6760">Total</td>
+      <td style="padding:10px 12px;border-top:1px solid #1A1A1A;text-align:right;font-weight:700">${fmtBrl(totalParcelas || ctx.total)}</td>
+    </tr></tfoot>
+  </table>`;
+}
+
 export function applyVariables(text: string, ctx: ContratoCtx): string {
   const prazo = ctx.prazo_entrega ? fmtDate(ctx.prazo_entrega) : "";
   const showDisc = ctx.mostrar_desconto !== false;
+  const pagamentosHtml = renderPagamentosTableHtml(ctx);
   const map: Record<string, string> = {
     "{{numero}}": ctx.numero,
     "{{data}}": fmtDate(ctx.emitido_em),
@@ -94,10 +185,49 @@ export function applyVariables(text: string, ctx: ContratoCtx): string {
     "{{desconto}}": showDisc ? fmtBrl(ctx.desconto_valor) : fmtBrl(0),
     "{{desconto_perc}}": showDisc ? `${(ctx.desconto_perc || 0).toFixed(2)}%` : "0%",
     "{{total}}": fmtBrl(ctx.total),
+    "{{valor_total}}": fmtBrl(ctx.total),
+    "{{pagamentos}}": pagamentosHtml,
   };
   let out = text;
   for (const [k, v] of Object.entries(map)) out = out.split(k).join(v);
   return out;
+}
+
+/** True se as cláusulas já contêm a variável {{pagamentos}} (pra evitar duplicar a tabela fixa). */
+function clausulasUsamPagamentos(clausulas: string | null | undefined) {
+  return !!clausulas && /\{\{\s*pagamentos\s*\}\}/.test(clausulas);
+}
+
+/** Remove do início das cláusulas a repetição literal do título e/ou subtítulo do template. */
+function stripDuplicatedTitle(clausulas: string, titulo: string, subtitulo: string | null): string {
+  if (!clausulas) return clausulas;
+  const norm = (s: string) =>
+    s
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  const alvos = [titulo, subtitulo || ""].map(norm).filter((s) => s.length >= 4);
+  if (!alvos.length) return clausulas;
+  // Trabalha em blocos do topo (parágrafos, headings, divs) até encontrar algo que não seja título/subtítulo.
+  let out = clausulas;
+  for (let i = 0; i < 4; i++) {
+    const m = out.match(/^\s*(<(p|h1|h2|h3|h4|h5|h6|div|strong|b)[^>]*>([\s\S]*?)<\/\2>|[^<]+?(?=<|$))/i);
+    if (!m) break;
+    const trecho = m[0];
+    const conteudo = norm(trecho);
+    if (!conteudo) {
+      out = out.slice(trecho.length);
+      continue;
+    }
+    if (alvos.some((alvo) => conteudo === alvo || conteudo.startsWith(alvo))) {
+      out = out.slice(trecho.length);
+      continue;
+    }
+    break;
+  }
+  return out.replace(/^\s+/, "");
 }
 
 
