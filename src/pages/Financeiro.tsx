@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useLoja } from "@/contexts/LojaContext";
 import { LojasFilter } from "@/components/financeiro/LojasFilter";
+import EntidadeSelector, { type EntidadeRef } from "@/components/financeiro/EntidadeSelector";
 
 type Lanc = {
   id: string;
