@@ -59,6 +59,7 @@ type Lanc = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   categoria_id: string | null;
+  centro_custo_id: string | null;
   conta_id: string | null;
   pedido_id: string | null;
   status: string | null;
@@ -1004,6 +1005,7 @@ function LiquidarDialog({
         valor: restante,
         data_vencimento: novaData,
         categoria_id: lanc.categoria_id,
+        centro_custo_id: lanc.centro_custo_id,
         conta_id: lanc.conta_id,
         pedido_id: lanc.pedido_id,
         status: "pendente",
