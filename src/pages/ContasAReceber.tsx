@@ -102,7 +102,7 @@ export default function ContasAReceber() {
       supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
-      supabase.from("centros_custo").select("id,nome").order("ordem").order("nome"),
+      supabase.from("centros_custo").select("id,nome,ativo").order("ordem").order("nome"),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
