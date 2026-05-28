@@ -5381,6 +5381,10 @@ export type Database = {
         Returns: number
       }
       fn_current_user_email: { Args: never; Returns: string }
+      fn_dedupe_projeto_final: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       fn_garantir_pasta_projeto: {
         Args: { p_pedido_id: string }
         Returns: string
