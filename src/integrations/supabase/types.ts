@@ -3099,6 +3099,7 @@ export type Database = {
           assinatura_data_url: string | null
           assinatura_nome: string | null
           bucket_name: string
+          categoria_projeto: string | null
           created_at: string
           created_by: string | null
           enviado_para_assinatura: boolean | null
@@ -3118,6 +3119,7 @@ export type Database = {
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
           bucket_name?: string
+          categoria_projeto?: string | null
           created_at?: string
           created_by?: string | null
           enviado_para_assinatura?: boolean | null
@@ -3137,6 +3139,7 @@ export type Database = {
           assinatura_data_url?: string | null
           assinatura_nome?: string | null
           bucket_name?: string
+          categoria_projeto?: string | null
           created_at?: string
           created_by?: string | null
           enviado_para_assinatura?: boolean | null
@@ -4820,6 +4823,7 @@ export type Database = {
           ativo: boolean
           bloquear_proxima: boolean
           cargo_id: string | null
+          conclui_por_upload_categoria: string | null
           created_at: string
           depende_de: string | null
           descricao: string | null
@@ -4828,6 +4832,7 @@ export type Database = {
           exibir_meus_chamados: boolean
           exige_anexo: boolean
           exige_aprovacao: boolean
+          fonte_responsavel: string | null
           gatilho: string
           gatilho_offset_dias: number
           gatilho_offset_direcao: string
@@ -4850,6 +4855,7 @@ export type Database = {
           ativo?: boolean
           bloquear_proxima?: boolean
           cargo_id?: string | null
+          conclui_por_upload_categoria?: string | null
           created_at?: string
           depende_de?: string | null
           descricao?: string | null
@@ -4858,6 +4864,7 @@ export type Database = {
           exibir_meus_chamados?: boolean
           exige_anexo?: boolean
           exige_aprovacao?: boolean
+          fonte_responsavel?: string | null
           gatilho: string
           gatilho_offset_dias?: number
           gatilho_offset_direcao?: string
@@ -4880,6 +4887,7 @@ export type Database = {
           ativo?: boolean
           bloquear_proxima?: boolean
           cargo_id?: string | null
+          conclui_por_upload_categoria?: string | null
           created_at?: string
           depende_de?: string | null
           descricao?: string | null
@@ -4888,6 +4896,7 @@ export type Database = {
           exibir_meus_chamados?: boolean
           exige_anexo?: boolean
           exige_aprovacao?: boolean
+          fonte_responsavel?: string | null
           gatilho?: string
           gatilho_offset_dias?: number
           gatilho_offset_direcao?: string
@@ -5294,9 +5303,17 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_garantir_pasta_projeto: {
+        Args: { p_pedido_id: string }
+        Returns: string
+      }
       fn_instanciar_tarefas_nativas: {
         Args: { p_gatilho: string; p_pedido_id: string }
         Returns: number
+      }
+      fn_resolver_responsavel_tarefa: {
+        Args: { p_fonte: string; p_pedido_id: string }
+        Returns: string
       }
       garantir_participante: {
         Args: {
