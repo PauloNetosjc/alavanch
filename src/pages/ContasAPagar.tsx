@@ -117,6 +117,13 @@ export default function ContasAPagar() {
     try { return new Date(p.created_at).toLocaleDateString("pt-BR"); } catch { return "—"; }
   };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
+  const clienteName = (pedidoId: string | null, fornecedorId: string | null) => {
+    const p = pedidos.find((x) => x.id === pedidoId);
+    const cli = p ? clientes.find((c) => c.id === p.cliente_id)?.nome : null;
+    if (cli) return cli;
+    const f = fornecedores.find((x) => x.id === fornecedorId)?.nome;
+    return f || "—";
+  };
 
   const filtrados = useMemo(() => {
     return lancs.filter((l) => {
@@ -140,14 +147,16 @@ export default function ContasAPagar() {
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
         const t = busca.toLowerCase();
+        const cli = clienteName(l.pedido_id, l.fornecedor_id);
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
-          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t);
+          || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
+          || cli.toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, clientes, fornecedores, lojasFiltro]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
