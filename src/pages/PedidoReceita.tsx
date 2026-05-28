@@ -39,10 +39,12 @@ type Lanc = {
   baixado_por: string | null;
   baixado_em: string | null;
   juros_previsto?: number | null;
+  juros_real?: number | null;
   taxa_perc?: number | null;
   numero_parcela?: number | null;
   total_parcelas?: number | null;
   agrupado?: boolean | null;
+
 };
 
 type Parcela = {
