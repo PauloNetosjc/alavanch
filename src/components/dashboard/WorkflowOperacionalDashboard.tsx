@@ -411,7 +411,7 @@ export default function WorkflowOperacionalDashboard() {
 
       {/* Esteira de etapas em formato de setas */}
       <div className="relative no-print-scroll">
-        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-2">
+        <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-1">
           {ETAPAS.map((e, idx) => {
             const r = resumos.get(e.key)!;
             const Icon = e.icon;
@@ -439,7 +439,7 @@ export default function WorkflowOperacionalDashboard() {
                 <button
                   type="button"
                   onClick={() => setEtapaSelecionada(active ? null : e.key)}
-                  className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-[3px] ring-primary/80" : ""}`}
+                  className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105 !bg-[#2F6F90] !text-white hover:!bg-[#3F7898]" : `hover:brightness-105 ${ARROW_BG[risco]}`} ${active ? "ring-[3px] ring-primary/80" : ""}`}
                   style={{
                     clipPath: clip,
                     WebkitClipPath: clip,
@@ -453,23 +453,23 @@ export default function WorkflowOperacionalDashboard() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${BADGE_NUM[risco]}`}>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : BADGE_NUM[risco]}`}>
                         {String(idx + 1).padStart(2, "0")}
                       </span>
-                      <div className={`w-7 h-7 rounded-md flex items-center justify-center ${ICON_BG[risco]}`}>
-                        <Icon className={`w-3.5 h-3.5 ${ICON_FG[risco]}`} />
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center ${active ? "bg-white/20" : ICON_BG[risco]}`}>
+                        <Icon className={`w-3.5 h-3.5 ${active ? "text-white" : ICON_FG[risco]}`} />
                       </div>
                     </div>
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${DOT_CHIP[risco]}`}>
+                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : DOT_CHIP[risco]}`}>
                       {RISCO_LABEL[risco]}
                     </span>
                   </div>
-                  <div className="text-[11px] font-semibold text-foreground leading-tight line-clamp-2">
+                  <div className={`text-[11px] font-semibold leading-tight line-clamp-2 ${active ? "text-white" : "text-foreground"}`}>
                     {e.label}
                   </div>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-xl font-display leading-none">{r.qtd}</span>
-                    <span className="text-[10px] text-muted-foreground truncate">{BRL(r.valor)}</span>
+                    <span className={`text-xl font-display leading-none ${active ? "text-white" : ""}`}>{r.qtd}</span>
+                    <span className={`text-[10px] truncate ${active ? "text-white/80" : "text-muted-foreground"}`}>{BRL(r.valor)}</span>
                   </div>
                   {(r.vencidos > 0 || r.preAlerta > 0 || r.hoje > 0) && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -607,7 +607,7 @@ function StatusBadge({ status, dias }: { status: StatusPrazo; dias: number | nul
     vencido: { label: dias != null ? `Vencido há ${Math.abs(dias)}d` : "Vencido", cls: "bg-red-100 text-red-700" },
     hoje: { label: "Vence hoje", cls: "bg-orange-100 text-orange-700" },
     pre_alerta: { label: dias != null ? `${dias}d restantes` : "Pré-alerta", cls: "bg-amber-100 text-amber-700" },
-    no_prazo: { label: dias != null ? `${dias}d restantes` : "No prazo", cls: "bg-emerald-100 text-emerald-700" },
+    no_prazo: { label: dias != null ? `${dias}d restantes` : "No prazo", cls: "bg-[#C7DFE8] text-[#3F7898]" },
     sem_prazo: { label: "Sem prazo", cls: "bg-muted text-muted-foreground" },
   };
   const c = cfg[status];
@@ -627,17 +627,17 @@ function fmtDateBR(iso: string | null) {
 }
 
 const ICON_BG: Record<string, string> = {
-  danger: "bg-red-200", warning: "bg-orange-200", alert: "bg-amber-200", ok: "bg-emerald-200", muted: "bg-slate-200",
+  danger: "bg-red-200", warning: "bg-orange-200", alert: "bg-amber-200", ok: "bg-[#C7DFE8]", muted: "bg-[#E7EEF2]",
 };
 const ICON_FG: Record<string, string> = {
-  danger: "text-red-800", warning: "text-orange-800", alert: "text-amber-800", ok: "text-emerald-800", muted: "text-slate-600",
+  danger: "text-red-800", warning: "text-orange-800", alert: "text-amber-800", ok: "text-[#3F7898]", muted: "text-[#64748B]",
 };
 const DOT_CHIP: Record<string, string> = {
   danger: "bg-red-200 text-red-800",
   warning: "bg-orange-200 text-orange-800",
   alert: "bg-amber-200 text-amber-800",
-  ok: "bg-emerald-200 text-emerald-800",
-  muted: "bg-slate-200 text-slate-600",
+  ok: "bg-[#C7DFE8] text-[#3F7898]",
+  muted: "bg-[#E7EEF2] text-[#64748B]",
 };
 const RISCO_LABEL: Record<string, string> = {
   danger: "Crítico", warning: "Hoje", alert: "Alerta", ok: "Ok", muted: "—",
@@ -646,15 +646,15 @@ const ARROW_BG: Record<string, string> = {
   danger: "bg-red-100/90 hover:bg-red-200",
   warning: "bg-orange-100/90 hover:bg-orange-200",
   alert: "bg-amber-100/90 hover:bg-amber-200",
-  ok: "bg-emerald-100/90 hover:bg-emerald-200",
-  muted: "bg-slate-100/90 hover:bg-slate-200",
+  ok: "bg-[#8FB9C9]/90 hover:bg-[#5F93AE]",
+  muted: "bg-[#E7EEF2]/90 hover:bg-[#C7DFE8]",
 };
 const BADGE_NUM: Record<string, string> = {
   danger: "bg-red-600 text-white",
   warning: "bg-orange-500 text-white",
   alert: "bg-amber-500 text-white",
-  ok: "bg-emerald-600 text-white",
-  muted: "bg-slate-400 text-white",
+  ok: "bg-[#5F93AE] text-white",
+  muted: "bg-[#8FB9C9] text-white",
 };
 
 export function agruparPedidosPorEtapa(pedidos: PedidoComEtapa[]) {
