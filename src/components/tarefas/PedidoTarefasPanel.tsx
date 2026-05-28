@@ -132,7 +132,7 @@ export function PedidoTarefasPanel({
   const [myProfileId, setMyProfileId] = useState<string | null>(null);
 
   // filtros
-  const [filtro, setFiltro] = useState<"todas" | "pendentes" | "andamento" | "atrasadas" | "concluidas">("todas");
+  const [filtro, setFiltro] = useState<"todas" | "pendentes" | "andamento" | "atrasadas" | "concluidas">("pendentes");
   const [fSetor, setFSetor] = useState("");
   const [fResp, setFResp] = useState("");
 
@@ -337,7 +337,7 @@ export function PedidoTarefasPanel({
                         {t.status !== "concluida" && t.status !== "cancelada" && t.status !== "em_andamento" && podeOperar(t) && (
                           <Button size="sm" variant="outline" onClick={() => iniciar(t)}><Play className="h-3.5 w-3.5 mr-1" />Iniciar</Button>
                         )}
-                        {t.status !== "concluida" && t.status !== "cancelada" && podeOperar(t) && (
+                        {t.status !== "concluida" && t.status !== "cancelada" && podeOperar(t) && (t.origem === "manual" || isAdmin) && (
                           <Button size="sm" onClick={() => { setTaSelecionada(t); setOpenConcluir(true); }}>
                             <Check className="h-3.5 w-3.5 mr-1" />Concluir
                           </Button>
@@ -372,7 +372,7 @@ export function PedidoTarefasPanel({
       )}
 
       {/* DIALOGS */}
-      <ConcluirDialog open={openConcluir} setOpen={setOpenConcluir} tarefa={taSelecionada} onDone={load} userId={user?.id || null} />
+      <ConcluirDialog open={openConcluir} setOpen={setOpenConcluir} tarefa={taSelecionada} onDone={load} userId={user?.id || null} isAdmin={isAdmin} />
       <ReabrirDialog open={openReabrir} setOpen={setOpenReabrir} tarefa={taSelecionada} onDone={load} userId={user?.id || null} />
       <ComentarDialog open={openComentar} setOpen={setOpenComentar} tarefa={taSelecionada} onDone={load} userId={user?.id || null} />
       <AnexoDialog open={openAnexo} setOpen={setOpenAnexo} tarefa={taSelecionada} onDone={load} userId={user?.id || null} />
@@ -392,8 +392,8 @@ export function PedidoTarefasPanel({
  * ============================================================ */
 
 export function ConcluirDialog({
-  open, setOpen, tarefa, onDone, userId,
-}: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
+  open, setOpen, tarefa, onDone, userId, isAdmin,
+}: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null; isAdmin?: boolean }) {
   const [obs, setObs] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -403,15 +403,17 @@ export function ConcluirDialog({
   const concluiPorUpload =
     tarefa?.conclui_por_upload_categoria ??
     tarefa?.tarefas_nativas_modelos?.conclui_por_upload_categoria ?? null;
+  const ehNativa = tarefa?.origem && tarefa.origem !== "manual";
+  const conclusaoAdmin = !!isAdmin && !!ehNativa;
 
   async function confirmar() {
     if (!tarefa) return;
-    if (concluiPorUpload) {
+    if (concluiPorUpload && !isAdmin) {
       return toast.error(
-        "Envie as fotos da medição técnica pelo ícone de anexo (📎) antes de concluir esta tarefa. A conclusão será automática após o upload."
+        "Envie as fotos/arquivos pelo ícone de anexo (📎) antes de concluir esta tarefa. A conclusão será automática após o upload."
       );
     }
-    if (tarefa.exige_anexo && !file) return toast.error("Esta tarefa exige anexo para concluir.");
+    if (tarefa.exige_anexo && !file && !isAdmin) return toast.error("Esta tarefa exige anexo para concluir.");
     setSaving(true);
     let anexoPath: string | null = null;
     if (file) {
@@ -428,10 +430,20 @@ export function ConcluirDialog({
     }).eq("id", tarefa.id);
     if (error) { setSaving(false); return toast.error(error.message); }
     await (supabase as any).from("eventos_tarefa").insert([
-      { tarefa_id: tarefa.id, tipo: "status", usuario_id: userId, payload: { de: tarefa.status, para: "concluida", observacao: obs } },
+      {
+        tarefa_id: tarefa.id,
+        tipo: "status",
+        usuario_id: userId,
+        payload: {
+          de: tarefa.status,
+          para: "concluida",
+          observacao: obs,
+          ...(conclusaoAdmin ? { conclusao_manual_admin: true, motivo: "Tarefa concluída manualmente por administrador." } : {}),
+        },
+      },
       ...(anexoPath ? [{ tarefa_id: tarefa.id, tipo: "anexo", usuario_id: userId, anexo_url: anexoPath, payload: { nome: file?.name, tipo: file?.type, tamanho: file?.size } }] : []),
     ]);
-    toast.success("Tarefa concluída.");
+    toast.success(conclusaoAdmin ? "Tarefa concluída manualmente (admin)." : "Tarefa concluída.");
     setSaving(false); setOpen(false); onDone();
   }
 
