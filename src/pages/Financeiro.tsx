@@ -283,6 +283,7 @@ export default function Financeiro() {
       pedido_id: "",
       parceiro_id: "",
       fornecedor_id: "",
+      entidade: null as EntidadeRef | null,
       forma_pagamento_prevista: "",
       parcelas: 2,
       vincular_contrato: false,
