@@ -333,6 +333,36 @@ export default function WorkflowOperacionalDashboard() {
 
   const etapaLabel = (k: EtapaKey) => ETAPAS.find((e) => e.key === k)?.label || k;
 
+  function exportarExcel() {
+    const fonte = etapaSelecionada
+      ? pedidosComEtapa.filter((p) => p.etapa === etapaSelecionada)
+      : pedidosComEtapa;
+    const rows = fonte.map((p) => ({
+      Etapa: etapaLabel(p.etapa),
+      Cliente: p.cliente_nome || "—",
+      "PV/Contrato": p.codigo,
+      "Valor do contrato": Number(p.valor_total || 0),
+      Loja: p.loja_nome || "—",
+      Responsável: p.responsavel_nome || "—",
+      "Data início etapa": fmtDateBR(p.data_inicio_etapa),
+      "Data de vencimento": fmtDateBR(p.prazo),
+      "Status do prazo":
+        p.statusPrazo === "vencido" ? "Vencido" :
+        p.statusPrazo === "hoje" ? "Vence hoje" :
+        p.statusPrazo === "pre_alerta" ? "Pré-alerta" :
+        p.statusPrazo === "no_prazo" ? "No prazo" : "Sem prazo",
+      "Dias (- atraso / + restantes)": p.diasRestantes ?? "",
+      "Etapa atual": etapaLabel(p.etapa),
+      "Prazo máximo de entrega": fmtDateBR(p.data_limite_entrega),
+      "Prazo máximo de montagem": fmtDateBR(p.data_limite_inicio_montagem),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Workflow");
+    XLSX.writeFile(wb, "workflow_operacional_pedidos.xlsx");
+  }
+
+
   if (loading) {
     return (
       <div className="surface-card p-5">
