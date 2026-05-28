@@ -138,6 +138,14 @@ const REVISAO_PILLS: { id: RevisaoFilter; label: string; activeBg: string; activ
   { id: "nao_revisado", label: "NÃO REVISADOS",  activeBg: "#A8842A", activeFg: "#FFFFFF" },
 ];
 
+type AssinaturaFilter = "todos" | "pendente" | "assinado";
+
+const ASSINATURA_PILLS: { id: AssinaturaFilter; label: string; activeBg: string; activeFg: string }[] = [
+  { id: "todos",    label: "TODAS ASSINATURAS", activeBg: "#1B2240", activeFg: "#FFFFFF" },
+  { id: "pendente", label: "PENDENTE ASSINATURA", activeBg: "#A8842A", activeFg: "#FFFFFF" },
+  { id: "assinado", label: "ASSINADOS",           activeBg: "#3F8B5C", activeFg: "#FFFFFF" },
+];
+
 function tipoFromCodigo(codigo: string): "pedido" | "adendo" | "complemento" {
   const c = (codigo || "").toUpperCase();
   if (c.includes("-ADD") || c.includes("-AD-") || c.startsWith("AD-")) return "adendo";
