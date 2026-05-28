@@ -10,7 +10,7 @@ import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
-import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload, FORMAS_PREVISTAS } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 import { useLoja } from "@/contexts/LojaContext";
@@ -32,6 +32,7 @@ type Lanc = {
   baixado_em: string | null;
   fornecedor_id: string | null;
   forma_pagamento: string | null;
+  forma_pagamento_prevista: string | null;
   notas: string | null;
   loja_id: string | null;
   juros_previsto?: number | null;
@@ -76,6 +77,7 @@ export default function ContasAPagar() {
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
+  const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
@@ -207,6 +209,10 @@ export default function ContasAPagar() {
       }
       if (categoriaFiltro && l.categoria_id !== categoriaFiltro) return false;
       if (fornecedorFiltro && l.fornecedor_id !== fornecedorFiltro) return false;
+      if (formaPrevFiltro) {
+        if (formaPrevFiltro === "__none") { if (l.forma_pagamento_prevista) return false; }
+        else if ((l.forma_pagamento_prevista || "") !== formaPrevFiltro) return false;
+      }
       const isLiquidada = ["pago", "recebido", "conciliado"].includes(l.status || "");
       if (l.status !== "cancelado") {
         if (isLiquidada && !incluirLiquidadas) return false;
@@ -225,12 +231,13 @@ export default function ContasAPagar() {
           || (fam?.clienteNome || "").toLowerCase().includes(t)
           || (fam?.parceiroNome || "").toLowerCase().includes(t)
           || parceiroFornecedor(l).toLowerCase().includes(t)
-          || (l.status || "").toLowerCase().includes(t);
+          || (l.status || "").toLowerCase().includes(t)
+          || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro, fornecedores]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, formaPrevFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro, fornecedores]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -247,9 +254,10 @@ export default function ContasAPagar() {
       data_pagamento: p.data_pagamento,
       valor: p.valor,
       forma_pagamento: p.forma_pagamento,
+      forma_pagamento_prevista: p.forma_pagamento_prevista,
       notas: p.notas,
       ...reapprovalPatch(),
-    }).eq("id", editAlvo.id);
+    } as any).eq("id", editAlvo.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
