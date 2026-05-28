@@ -589,7 +589,7 @@ export default function ContasAReceber() {
                       return s + Math.max(v - j, 0);
                     }, 0))}
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={4} />
 
                 </tr>
               </tfoot>
@@ -623,6 +623,7 @@ export default function ContasAReceber() {
           data_pagamento: editAlvo.data_pagamento,
           valor: Number(editAlvo.valor || 0),
           forma_pagamento: editAlvo.forma_pagamento,
+          forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
         } : null}
