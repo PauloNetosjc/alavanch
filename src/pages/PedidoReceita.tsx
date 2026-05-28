@@ -384,12 +384,24 @@ export default function PedidoReceita() {
                 const pago = isPago(p.status);
                 return (
                   <tr key={p.lanc?.id || p.numero} className="border-t">
-                    <td className="p-3 font-mono text-[12px]">#{codigo}-{p.numero}/{p.total}</td>
+                    <td className="p-3 font-mono text-[12px]">
+                      #{codigo}-{p.numero}/{p.total}
+                      {p.agrupado && (
+                        <span className="ml-1.5 inline-block text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Agrupado</span>
+                      )}
+                    </td>
                     <td className="p-3">{fmtDate(p.vencimento)}</td>
-                    <td className="p-3">{p.forma}</td>
+                    <td className="p-3">
+                      {p.forma}
+                      {p.agrupado && <div className="text-[10px] text-muted-foreground">Recebimento agrupado</div>}
+                    </td>
                     <td className="p-3 text-right">{fmtBrl(p.valor)}</td>
+                    <td className="p-3 text-right text-amber-700">
+                      {p.juros > 0 ? fmtBrl(p.juros) : "—"}
+                      {p.taxa_perc > 0 && <div className="text-[10px] text-muted-foreground">{p.taxa_perc.toFixed(2)}%</div>}
+                    </td>
                     <td className="p-3 text-right">{fmtBrl(p.recebido)}</td>
-                    <td className="p-3 text-right">{fmtBrl(p.saldo)}</td>
+                    <td className="p-3 text-right font-medium">{fmtBrl(p.saldo)}</td>
                     <td className="p-3">{statusBadge(p)}</td>
                     <td className="p-3">{fmtDate(p.data_pagamento)}</td>
                     <td className="p-3 text-right">
@@ -422,6 +434,7 @@ export default function PedidoReceita() {
                 <tr className="border-t bg-muted/30 font-semibold">
                   <td className="p-3" colSpan={3}>Total</td>
                   <td className="p-3 text-right">{fmtBrl(totais.valor)}</td>
+                  <td className="p-3 text-right text-amber-700">{fmtBrl(totais.juros)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.recebido)}</td>
                   <td className="p-3 text-right">{fmtBrl(totais.saldo)}</td>
                   <td className="p-3" colSpan={3}></td>
