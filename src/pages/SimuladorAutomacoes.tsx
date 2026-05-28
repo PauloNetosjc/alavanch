@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowRight, Zap } from "lucide-react";
+import { Play, ArrowRight, Zap, KanbanSquare } from "lucide-react";
+import ConfigurarKanbansDialog from "@/components/ConfigurarKanbansDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const PIPELINES = ["operacional","pos_venda","revisao","montagem","fabrica","leads"];
 const EVENTOS = [
@@ -31,6 +33,9 @@ export default function SimuladorAutomacoes() {
   const [dataRef, setDataRef] = useState<string>("");
   const [resultado, setResultado] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [openConfig, setOpenConfig] = useState(false);
+  const { isAdmin, can } = usePermissions();
+  const podeConfigurarKanbans = isAdmin || can("sistema_configurar_kanbans", "edit");
 
   useEffect(() => {
     (async () => {
@@ -71,7 +76,16 @@ export default function SimuladorAutomacoes() {
 
   return (
     <div className="space-y-4">
-      <PageHeader icon={Zap} title="Simulador de automações" subtitle="Teste qual regra dispara para um cenário e veja o destino e prazo calculados." />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <PageHeader icon={Zap} title="Simulador de automações" subtitle="Teste qual regra dispara para um cenário e veja o destino e prazo calculados." />
+        {podeConfigurarKanbans && (
+          <Button variant="outline" onClick={() => setOpenConfig(true)}>
+            <KanbanSquare className="w-4 h-4" /> Configurar Kanbans
+          </Button>
+        )}
+      </div>
+      <ConfigurarKanbansDialog open={openConfig} onOpenChange={setOpenConfig} />
+
 
       <Card>
         <CardHeader><CardTitle className="text-base">Cenário</CardTitle></CardHeader>

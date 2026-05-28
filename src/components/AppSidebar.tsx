@@ -51,8 +51,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
 import { usePermissions } from "@/hooks/usePermissions";
+import { useKanbansVisibilidade, KanbanChave } from "@/hooks/useKanbansVisibilidade";
 
-type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[] };
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[]; kanban?: KanbanChave };
 type Section = { label: string; items: Item[] };
 type Group = { label: string; icon: React.ComponentType<{ className?: string }>; items: Item[] };
 
@@ -69,7 +70,7 @@ const sections: Section[] = [
     label: "Gestão",
     items: [
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
-      { label: "Kanbans", path: "/kanbans", icon: KanbanSquare },
+      { label: "Kanbans", path: "/kanbans", icon: KanbanSquare, kanban: "crm_comercial" },
       { label: "Comercial", path: "/comercial", icon: Briefcase },
       { label: "Meus Chamados", path: "/meus-chamados", icon: FileText },
       { label: "Autorizações", path: "/autorizacoes", icon: ShieldCheck, roles: ["admin", "diretor"] },
@@ -78,7 +79,7 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2 },
+      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2, kanban: "fabrica" },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
@@ -277,6 +278,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   useUserThemeBoot();
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
+  const { isAtivo: isKanbanAtivo } = useKanbansVisibilidade();
   const [moreOpen, setMoreOpen] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("sidebar_collapsed") === "1"; } catch { return false; }
@@ -324,6 +326,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
     items.filter((it) => {
       if (it.modulo && !can(it.modulo, "view")) return false;
       if (it.roles && !it.roles.includes(role || "")) return false;
+      if (it.kanban && !isKanbanAtivo(it.kanban)) return false;
       return true;
     });
   const filterSection = (s: Section) => ({ ...s, items: filterItems(s.items) });
