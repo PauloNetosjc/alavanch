@@ -53,13 +53,14 @@ export async function solicitarAutorizacao(p: SolicitarParams) {
   const email = u?.user?.email || null;
 
   // Procura uma pendente já existente para a mesma origem.
-  const { data: existente } = await supabase
-    .from("autorizacoes" as any)
+  const { data: existenteRaw } = await (supabase as any)
+    .from("autorizacoes")
     .select("id")
     .eq("origem_modulo", p.origem_modulo)
     .eq("origem_id", p.origem_id)
     .eq("status", "pendente")
     .maybeSingle();
+  const existente = existenteRaw as { id: string } | null;
 
   const payload: any = {
     categoria: p.categoria,
