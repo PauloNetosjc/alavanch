@@ -213,6 +213,8 @@ export default function ContasAReceber() {
           || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
           || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
           || (fam?.clienteNome || "").toLowerCase().includes(t)
+          || (l.entidade_nome || "").toLowerCase().includes(t)
+          || (l.entidade_tipo || "").toLowerCase().includes(t)
           || (l.forma_pagamento_prevista || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
