@@ -174,7 +174,7 @@ export default function AssinaturaPublica() {
           : Promise.resolve({ data: null } as any),
       ]);
       const { data: cfg } = p?.loja_id
-        ? await supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone").eq("loja_id", p.loja_id).maybeSingle()
+        ? await supabase.from("configuracoes_empresa").select("nome_empresa,nome_fantasia,cnpj,endereco,telefone,mostrar_desconto_contrato" as any).eq("loja_id", p.loja_id).maybeSingle()
         : ({ data: null } as any);
       setTipo(t);
       setPedido(p);
@@ -206,11 +206,13 @@ export default function AssinaturaPublica() {
                 signing_url: getPublicSignatureUrl(token),
                 assinatura_loja_url: (s as any).assinatura_loja_url,
                 loja_assinado_em: (s as any).loja_assinado_em,
+                mostrar_desconto: (cfg as any)?.mostrar_desconto_contrato !== false,
               }));
             } catch {/* noop */}
           }
         }
       }
+
 
       // 7) Prefill — REGRA: nunca usar dados do cliente para o participante 'loja'.
       if (participanteAtual?.tipo === "loja") {
