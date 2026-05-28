@@ -263,6 +263,12 @@ export default function Financeiro() {
   const [novoFornOpen, setNovoFornOpen] = useState(false);
   const [novoFornNome, setNovoFornNome] = useState("");
   const [novoFornDoc, setNovoFornDoc] = useState("");
+  const [novoFornIE, setNovoFornIE] = useState("");
+  const [novoFornTel, setNovoFornTel] = useState("");
+  const [novoFornEmail, setNovoFornEmail] = useState("");
+  const [novoFornEndCob, setNovoFornEndCob] = useState("");
+  const [novoFornEndEnt, setNovoFornEndEnt] = useState("");
+  const [novoFornObs, setNovoFornObs] = useState("");
 
   function novoLancamento() {
     setEditLanc({
