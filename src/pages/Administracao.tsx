@@ -217,6 +217,7 @@ function Usuarios() {
   const [userLojas, setUserLojas] = useState<{ user_id: string; loja_id: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [transferUser, setTransferUser] = useState<Profile | null>(null);
   const [form, setForm] = useState<{ email: string; password: string; nome_completo: string; role: string; loja_id: string; telefone: string; lojas_ids: string[]; data_nascimento: string }>({ email: "", password: "", nome_completo: "", role: "vendedor", loja_id: "", telefone: "", lojas_ids: [], data_nascimento: "" });
 
   const load = async () => {
