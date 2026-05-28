@@ -259,22 +259,65 @@ export default function PedidoReceita() {
     return { valor, juros, jurosReal, recebido, saldo, pendentes, liquidadas, vencidas };
   }, [parcelas]);
 
-  // Resumo da forma NEGOCIADA (contrato) — usa pagamentos_orcamento, não os lançamentos reais.
+  // Resumo da forma NEGOCIADA (contrato) — usa pagamentos_orcamento, não os lançamentos reais
+  // nem o nome amplo do método financeiro ("Cartão Crédito 1x a 18x").
   const resumoPagamento = useMemo(() => {
     if (!pagamentos || pagamentos.length === 0) return "—";
+
+    // Normaliza rótulos comerciais (PIX, Cartão de Crédito, Boleto, Dinheiro…).
+    const normalizar = (raw: string): string => {
+      const s = String(raw || "").trim();
+      if (!s) return "Forma não informada";
+      const semAcento = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (/\bpix\b/.test(semAcento)) return "PIX";
+      if (/cartao.*credito|credito.*cartao/.test(semAcento) || /\bcredito\b/.test(semAcento)) return "Cartão de Crédito";
+      if (/cartao.*debito|debito.*cartao/.test(semAcento) || /\bdebito\b/.test(semAcento)) return "Cartão de Débito";
+      if (/\bboleto\b/.test(semAcento)) return "Boleto";
+      if (/\bdinheiro\b|especie/.test(semAcento)) return "Dinheiro";
+      if (/transferenc|\bted\b|\bdoc\b/.test(semAcento)) return "Transferência";
+      if (/cheque/.test(semAcento)) return "Cheque";
+      if (/financiamento/.test(semAcento)) return "Financiamento";
+      // Heurística: se o nome contiver "1x a Nx" (config ampla do método), remove o sufixo.
+      const limpo = s.replace(/\s*\d+\s*x\s*a\s*\d+\s*x\s*$/i, "").trim();
+      return limpo || "Forma não informada";
+    };
+
+    // Resolve a forma de uma parcela específica seguindo a prioridade do brief.
+    const formaDaParcela = (pag: any, idx: number): string => {
+      const formas = Array.isArray(pag.parcelas_formas) ? pag.parcelas_formas : [];
+      const det = Array.isArray(pag.parcelas_detalhe) ? pag.parcelas_detalhe : [];
+      const detItem = det[idx];
+      if (detItem && typeof detItem === "object") {
+        const f = detItem.forma_pagamento || detItem.forma;
+        if (f) return normalizar(String(f));
+      }
+      if (formas[idx]) return normalizar(String(formas[idx]));
+      if (formas[0]) return normalizar(String(formas[0]));
+      if (pag.metodo) return normalizar(String(pag.metodo));
+      if (pag.forma_pagamento) return normalizar(String(pag.forma_pagamento));
+      return "Forma não informada";
+    };
+
     const pags = [...pagamentos].sort((a: any, b: any) =>
       String(a.created_at || "").localeCompare(String(b.created_at || ""))
     );
-    const partes: string[] = [];
+
+    // Conta parcelas por rótulo comercial preservando ordem de aparição.
+    const ordem: string[] = [];
+    const contagem = new Map<string, number>();
     for (const pag of pags) {
       const det = Array.isArray(pag.parcelas_detalhe) ? pag.parcelas_detalhe : [];
       const qtd = det.length > 0 ? det.length : Math.max(Number(pag.parcelas) || 1, 1);
-      const metodo = metodos.find((m: any) => m.nome === pag.metodo) as any;
-      const nome = (metodo?.nome || pag.metodo || pag.forma_pagamento || "—").trim();
-      partes.push(`${qtd}x ${nome}`);
+      for (let k = 0; k < qtd; k++) {
+        const rotulo = formaDaParcela(pag, k);
+        if (!contagem.has(rotulo)) ordem.push(rotulo);
+        contagem.set(rotulo, (contagem.get(rotulo) || 0) + 1);
+      }
     }
-    return partes.join(" + ");
-  }, [pagamentos, metodos]);
+
+    if (ordem.length === 0) return "—";
+    return ordem.map((r) => `${contagem.get(r)}x ${r}`).join(" + ");
+  }, [pagamentos]);
 
 
   const gerarReceber = async () => {
