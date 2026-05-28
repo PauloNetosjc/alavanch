@@ -5,11 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, AlertTriangle, Check, X, Info, RotateCcw, Printer, FileSpreadsheet, Pencil, Layers } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
-import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
+import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
@@ -34,12 +34,20 @@ type Lanc = {
   forma_pagamento: string | null;
   notas: string | null;
   loja_id: string | null;
+  juros_previsto?: number | null;
+  juros_real?: number | null;
+  taxa_perc?: number | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  agrupado?: boolean | null;
 };
 type Cat = { id: string; nome: string; parent_id: string | null };
 type Conta = { id: string; nome: string; banco: string | null };
-type Pedido = { id: string; codigo: string; created_at: string | null; cliente_id: string | null };
+type Pedido = { id: string; codigo: string; created_at: string | null; receita_codigo: string | null; pedido_pai_id: string | null; pedido_origem_complemento_id: string | null; cliente_id: string | null; orcamento_id: string | null };
 type Cliente = { id: string; nome: string };
 type Profile = { user_id: string; nome_completo: string | null };
+type Orc = { id: string; parceiro_id: string | null };
+type Parceiro = { id: string; nome: string };
 
 function fmt(d?: string | null) {
   if (!d) return "—";
@@ -55,8 +63,11 @@ export default function ContasAPagar() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [contas, setContas] = useState<Conta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([]);
+  const [orcamentos, setOrcamentos] = useState<Orc[]>([]);
+  const [parceiros, setParceiros] = useState<Parceiro[]>([]);
 
   // Filtros
   const hoje = new Date();
@@ -77,17 +88,17 @@ export default function ContasAPagar() {
     if (selectedLojaId) setLojasFiltro([selectedLojaId]); else setLojasFiltro([]);
   }, [selectedLojaId]);
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-
   async function load() {
-    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }] = await Promise.all([
+    const [{ data: l }, { data: c }, { data: ct }, { data: pd }, { data: cl }, { data: pf }, { data: fr }, { data: oc }, { data: pa }] = await Promise.all([
       supabase.from("lancamentos_financeiros").select("*").eq("tipo", "saida").order("data_vencimento", { ascending: true }).limit(2000),
       supabase.from("categorias_financeiras").select("id,nome,parent_id").order("nome"),
       supabase.from("contas_bancarias").select("id,nome,banco").order("nome"),
-      supabase.from("pedidos").select("id,codigo,created_at,cliente_id").limit(2000),
+      supabase.from("pedidos").select("id,codigo,created_at,receita_codigo,pedido_pai_id,pedido_origem_complemento_id,cliente_id,orcamento_id").limit(2000),
       supabase.from("clientes").select("id,nome").limit(5000),
       supabase.from("profiles").select("user_id,nome_completo"),
       supabase.from("fornecedores").select("id,nome").order("nome"),
+      supabase.from("orcamentos").select("id,parceiro_id").limit(5000),
+      supabase.from("parceiros").select("id,nome").limit(2000),
     ]);
     setLancs((l as Lanc[]) || []);
     setCats((c as Cat[]) || []);
@@ -96,6 +107,8 @@ export default function ContasAPagar() {
     setClientes((cl as Cliente[]) || []);
     setProfiles((pf as Profile[]) || []);
     setFornecedores((fr as any[]) || []);
+    setOrcamentos((oc as Orc[]) || []);
+    setParceiros((pa as Parceiro[]) || []);
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -117,12 +130,67 @@ export default function ContasAPagar() {
     try { return new Date(p.created_at).toLocaleDateString("pt-BR"); } catch { return "—"; }
   };
   const userName = (id: string | null) => profiles.find((p) => p.user_id === id)?.nome_completo || "Usuário";
-  const clienteName = (pedidoId: string | null, fornecedorId: string | null) => {
-    const p = pedidos.find((x) => x.id === pedidoId);
-    const cli = p ? clientes.find((c) => c.id === p.cliente_id)?.nome : null;
-    if (cli) return cli;
-    const f = fornecedores.find((x) => x.id === fornecedorId)?.nome;
+
+  // Mapa pedido -> família (raiz + adendos + complementos)
+  const pedidoFamilia = useMemo(() => {
+    const byId = new Map(pedidos.map((p) => [p.id, p]));
+    const map = new Map<string, { receitas: string[]; codigos: string[]; clienteNome: string; parceiroNome: string }>();
+    for (const p of pedidos) {
+      const raizId = p.pedido_pai_id || p.pedido_origem_complemento_id || p.id;
+      const raiz = byId.get(raizId) || p;
+      const familia = pedidos.filter(
+        (x) => x.id === raizId
+          || x.pedido_pai_id === raizId
+          || x.pedido_origem_complemento_id === raizId,
+      );
+      const receitas = Array.from(new Set(familia.map((x) => x.receita_codigo).filter(Boolean) as string[]));
+      const codigos = Array.from(new Set(familia.map((x) => x.codigo).filter(Boolean)));
+      const cliente = clientes.find((c) => c.id === raiz.cliente_id)?.nome || "";
+      const orc = orcamentos.find((o) => o.id === raiz.orcamento_id);
+      const parc = orc?.parceiro_id ? parceiros.find((x) => x.id === orc.parceiro_id)?.nome || "" : "";
+      map.set(p.id, { receitas, codigos, clienteNome: cliente, parceiroNome: parc });
+    }
+    return map;
+  }, [pedidos, clientes, orcamentos, parceiros]);
+
+  // Mapa lancamento.id -> { numero, total, receitaCodigo }
+  const parcelaInfo = useMemo(() => {
+    const map = new Map<string, { numero: number; total: number; receitaCodigo: string | null }>();
+    const porPedido = new Map<string, Lanc[]>();
+    for (const l of lancs) {
+      if (!l.pedido_id) continue;
+      if (!porPedido.has(l.pedido_id)) porPedido.set(l.pedido_id, []);
+      porPedido.get(l.pedido_id)!.push(l);
+    }
+    for (const [pid, arr] of porPedido) {
+      const ordenado = [...arr].sort((a, b) => {
+        const da = a.data_vencimento || "";
+        const db = b.data_vencimento || "";
+        if (da !== db) return da < db ? -1 : 1;
+        return a.id < b.id ? -1 : 1;
+      });
+      const total = ordenado.length;
+      const ped = pedidos.find((p) => p.id === pid);
+      const receitaCodigo = ped?.receita_codigo || ped?.codigo || null;
+      ordenado.forEach((l, idx) => {
+        const m = (l.descricao || "").match(/Parcela\s+(\d+)\s*\/\s*(\d+)/i);
+        const numero = m ? parseInt(m[1], 10) : idx + 1;
+        const tot = m ? parseInt(m[2], 10) : total;
+        map.set(l.id, { numero, total: tot, receitaCodigo });
+      });
+    }
+    return map;
+  }, [lancs, pedidos]);
+
+  const parceiroFornecedor = (l: Lanc): string => {
+    const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
+    if (fam?.parceiroNome) return fam.parceiroNome;
+    const f = fornecedores.find((x) => x.id === l.fornecedor_id)?.nome;
     return f || "—";
+  };
+  const clienteName = (l: Lanc): string => {
+    const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
+    return fam?.clienteNome || "—";
   };
 
   const filtrados = useMemo(() => {
@@ -146,17 +214,23 @@ export default function ContasAPagar() {
       }
       if (!mostrarCancelados && l.status === "cancelado") return false;
       if (busca) {
-        const t = busca.toLowerCase();
-        const cli = clienteName(l.pedido_id, l.fornecedor_id);
+        const t = busca.toLowerCase().replace(/^#/, "");
+        const fam = l.pedido_id ? pedidoFamilia.get(l.pedido_id) : null;
         const ok = (l.descricao || "").toLowerCase().includes(t)
           || catName(l.categoria_id).toLowerCase().includes(t)
+          || contaName(l.conta_id).toLowerCase().includes(t)
           || (pedidoCod(l.pedido_id) || "").toLowerCase().includes(t)
-          || cli.toLowerCase().includes(t);
+          || (fam?.receitas || []).some((r) => r.toLowerCase().includes(t))
+          || (fam?.codigos || []).some((c) => c.toLowerCase().includes(t))
+          || (fam?.clienteNome || "").toLowerCase().includes(t)
+          || (fam?.parceiroNome || "").toLowerCase().includes(t)
+          || parceiroFornecedor(l).toLowerCase().includes(t)
+          || (l.status || "").toLowerCase().includes(t);
         if (!ok) return false;
       }
       return true;
     });
-  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, clientes, fornecedores, lojasFiltro]);
+  }, [lancs, dtIni, dtFim, categoriaFiltro, fornecedorFiltro, incluirPendentes, incluirLiquidadas, mostrarCancelados, incluirAprovadas, incluirNaoAprovadas, busca, cats, pedidos, pedidoFamilia, lojasFiltro, fornecedores]);
 
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaAlvo, setBaixaAlvo] = useState<Lanc | null>(null);
@@ -180,7 +254,6 @@ export default function ContasAPagar() {
     toast.success(souAprovador ? "Parcela atualizada" : "Parcela atualizada — enviada para aprovação"); load();
   }
 
-
   function abrirBaixa(l: Lanc) {
     setBaixaAlvo(l);
     setBaixaOpen(true);
@@ -189,9 +262,26 @@ export default function ContasAPagar() {
   async function confirmarBaixa(p: BaixaPayload) {
     if (!baixaAlvo) return;
     const agora = new Date();
-    const original = Number(baixaAlvo.valor || 0);
+    const bruto = Number(baixaAlvo.valor || 0);
+    const juros = Number(baixaAlvo.juros_previsto || 0);
+    const liquidoPrev = Math.max(0, Math.round((bruto + juros) * 100) / 100); // em despesa, juros aumenta o pago
     const pago = Number(p.valor) || 0;
-    const diff = Math.round((original - pago) * 100) / 100;
+    const jurosReal = Math.round((pago - bruto) * 100) / 100; // pago acima do bruto = juros real positivo
+    const diff = Math.round((pago - liquidoPrev) * 100) / 100;
+    const percDiff = liquidoPrev > 0 ? Math.abs(diff) / liquidoPrev * 100 : 0;
+
+    // Exige aprovação quando paga mais do que o previsto acima da tolerância
+    const exigeAprov = !souAprovador && diff > 0.005 && percDiff > TOLERANCIA_PERC;
+
+    const contaTrocada = (baixaAlvo.conta_id || "") !== (p.conta_id || "");
+    const contaAnt = contas.find((c) => c.id === baixaAlvo.conta_id)?.nome || "—";
+    const contaNova = contas.find((c) => c.id === p.conta_id)?.nome || "—";
+    const auditoria: string[] = [];
+    if (contaTrocada) auditoria.push(`Conta alterada de "${contaAnt}" para "${contaNova}" por ${userName(user?.id ?? null)} em ${agora.toLocaleString("pt-BR")}.`);
+    auditoria.push(`Pago ${BRL(pago)} sobre bruto ${BRL(bruto)} (juros previsto ${BRL(juros)}, juros real ${BRL(jurosReal)}).`);
+    if (diff > 0.005) auditoria.push(`Diferença positiva (pago a mais): ${BRL(diff)}${exigeAprov ? " — enviado para Aprovador" : " — dentro da tolerância"}.`);
+    else if (diff < -0.005) auditoria.push(`Diferença negativa (pago a menos): ${BRL(Math.abs(diff))}.`);
+    const notasNovas = [baixaAlvo.notas, ...auditoria].filter(Boolean).join("\n");
 
     const { error } = await supabase.from("lancamentos_financeiros")
       .update({
@@ -199,39 +289,26 @@ export default function ContasAPagar() {
         data_pagamento: p.data_pagamento,
         conta_id: p.conta_id,
         forma_pagamento: p.forma_pagamento,
-        valor: pago,
+        juros_real: jurosReal,
         baixado_por: user?.id ?? null,
         baixado_em: agora.toISOString(),
+        notas: notasNovas,
+        ...(exigeAprov ? { aprovacao_status: "pendente_aprovacao", aprovado_por: null, aprovado_em: null } : {}),
       })
       .eq("id", baixaAlvo.id);
     if (error) { toast.error(error.message); return; }
 
-    if (diff > 0.005) {
-      const novoVenc = baixaAlvo.data_vencimento || new Date().toISOString().slice(0, 10);
-      const { error: e2 } = await supabase.from("lancamentos_financeiros").insert({
-        tipo: "saida",
-        descricao: `${baixaAlvo.descricao || "Pagamento"} — saldo restante`,
-        valor: diff,
-        data_vencimento: novoVenc,
-        categoria_id: baixaAlvo.categoria_id,
-        conta_id: p.conta_id,
-        pedido_id: baixaAlvo.pedido_id,
-        status: "pendente",
-        aprovacao_status: baixaAlvo.aprovacao_status || "pendente_aprovacao",
-        loja_id: (baixaAlvo as any).loja_id ?? null,
-      });
-      if (e2) toast.error("Baixa OK, mas falhou criar saldo: " + e2.message);
-      else toast.success(`Pago. Parcela de saldo (${diff.toFixed(2)}) criada.`);
-    } else {
-      toast.success("Pago");
-    }
+    if (diff < -0.005) toast.success(`Pago. Diferença a menos: ${BRL(Math.abs(diff))}.`);
+    else if (exigeAprov) toast.success("Baixa registrada — enviada para Aprovador (diferença acima da tolerância).");
+    else if (diff > 0.005) toast.success(`Pago. Diferença ${BRL(diff)} dentro da tolerância.`);
+    else toast.success("Pago");
     load();
   }
 
   async function estornar(l: Lanc) {
     if (!confirm("Estornar este pagamento? A parcela voltará para pendente.")) return;
     const { error } = await supabase.from("lancamentos_financeiros")
-      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, ...reapprovalPatch() })
+      .update({ status: "pendente", data_pagamento: null, baixado_por: null, baixado_em: null, forma_pagamento: null, juros_real: 0, ...reapprovalPatch() })
       .eq("id", l.id);
     if (error) { toast.error(error.message); return; }
     toast.success(souAprovador ? "Estornado" : "Estornado — enviado para aprovação"); load();
@@ -252,14 +329,13 @@ export default function ContasAPagar() {
   const toRows = (): LancRow[] => filtrados.map((l) => ({
     data: l.data_pagamento || l.data_vencimento || "",
     descricao: l.descricao || "",
-    cliente: clienteName(l.pedido_id, l.fornecedor_id),
+    cliente: clienteName(l) !== "—" ? clienteName(l) : parceiroFornecedor(l),
     categoria: catName(l.categoria_id),
     conta: contaName(l.conta_id),
     tipo: l.tipo,
     status: l.status || "",
     valor: Number(l.valor || 0),
   }));
-
 
   return (
     <div className="p-8 space-y-6">
@@ -295,7 +371,6 @@ export default function ContasAPagar() {
         </div>
       </div>
 
-
       <LancamentosFiltros
         busca={busca} setBusca={setBusca}
         dtIni={dtIni} setDtIni={setDtIni}
@@ -315,16 +390,21 @@ export default function ContasAPagar() {
       <div className="rounded-2xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-                <th className="text-left py-3 px-5 font-medium">Cliente</th>
-                <th className="text-left py-3 font-medium">Data Contrato</th>
+                <th className="text-left py-3 px-5 font-medium">Código</th>
+                <th className="text-left py-3 font-medium">Cliente</th>
+                <th className="text-left py-3 font-medium">Parceiro / Fornecedor</th>
+                <th className="text-left py-3 font-medium">Data Origem</th>
                 <th className="text-left py-3 font-medium">Vencimento</th>
                 <th className="text-left py-3 font-medium">Descrição</th>
                 <th className="text-left py-3 font-medium">Categoria</th>
                 <th className="text-left py-3 font-medium">Conta</th>
-                <th className="text-right py-3 font-medium">Valor</th>
+                <th className="text-right py-3 font-medium">Valor bruto</th>
+                <th className="text-right py-3 font-medium">Juros / Taxa</th>
+                <th className="text-right py-3 font-medium">Pago</th>
+                <th className="text-right py-3 font-medium">Juros Real</th>
+                <th className="text-right py-3 font-medium">Saldo</th>
                 <th className="text-center py-3 font-medium">Status</th>
                 <th className="text-left py-3 font-medium">Notas</th>
                 <th className="text-right py-3 px-5 font-medium">Ações</th>
@@ -335,6 +415,7 @@ export default function ContasAPagar() {
                 const cod = pedidoCod(l.pedido_id);
                 const pago = ["pago", "recebido", "conciliado"].includes(l.status || "");
                 const cancelado = l.status === "cancelado";
+                const vencido = !pago && !cancelado && l.data_vencimento && l.data_vencimento < new Date().toISOString().slice(0, 10);
                 const baixaInfo = pago && l.baixado_em ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -351,8 +432,24 @@ export default function ContasAPagar() {
                 ) : null;
                 return (
                   <tr key={l.id} className={`border-b hover:bg-muted/30 ${cancelado ? "opacity-60" : ""}`}>
-                    <td className="py-4 px-5 whitespace-nowrap max-w-[200px] truncate" title={clienteName(l.pedido_id, l.fornecedor_id)}>
-                      {clienteName(l.pedido_id, l.fornecedor_id)}
+                    <td className="py-4 px-5 whitespace-nowrap">
+                      {(() => {
+                        const info = parcelaInfo.get(l.id);
+                        if (info && info.receitaCodigo) {
+                          return (
+                            <Link to={`/pedidos/${l.pedido_id}/receita`} className="font-mono text-[12px] text-primary hover:underline" title="Ver receita agrupada">
+                              #{info.receitaCodigo}-{info.numero}/{info.total}
+                            </Link>
+                          );
+                        }
+                        return <span className="font-mono text-[12px] text-muted-foreground">#{l.id.slice(0, 6)}</span>;
+                      })()}
+                    </td>
+                    <td className="py-4 whitespace-nowrap max-w-[180px] truncate" title={clienteName(l)}>
+                      {clienteName(l)}
+                    </td>
+                    <td className="whitespace-nowrap max-w-[180px] truncate" title={parceiroFornecedor(l)}>
+                      {parceiroFornecedor(l)}
                     </td>
                     <td className="whitespace-nowrap text-muted-foreground">{pedidoData(l.pedido_id)}</td>
                     <td className="whitespace-nowrap">{fmt(l.data_vencimento)}</td>
@@ -366,11 +463,44 @@ export default function ContasAPagar() {
                     </td>
                     <td>{catName(l.categoria_id)}</td>
                     <td>{contaName(l.conta_id)}</td>
-                    <td className="text-right font-semibold whitespace-nowrap text-rose-700">{BRL(Number(l.valor || 0))}</td>
+                    <td className="text-right font-semibold whitespace-nowrap text-rose-700">
+                      {BRL(Number(l.valor || 0))}
+                      {l.agrupado && (
+                        <div className="mt-1 inline-flex items-center text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">
+                          Agrupado{l.total_parcelas ? ` ${l.total_parcelas}x` : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-right whitespace-nowrap text-amber-700">
+                      {Number(l.juros_previsto || 0) > 0 ? BRL(Number(l.juros_previsto || 0)) : "—"}
+                      {l.taxa_perc != null && Number(l.taxa_perc) > 0 && (
+                        <div className="text-[10px] text-muted-foreground">{Number(l.taxa_perc).toFixed(2)}%</div>
+                      )}
+                    </td>
+                    <td className="text-right whitespace-nowrap">
+                      {pago ? <span className="font-medium text-rose-700">{BRL(Number(l.valor || 0) + Number(l.juros_real || 0))}</span> : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="text-right whitespace-nowrap">
+                      {pago ? (() => {
+                        const jr = Number(l.juros_real || 0);
+                        if (Math.abs(jr) < 0.005) return <span className="text-muted-foreground">R$ 0,00</span>;
+                        if (jr > 0) return <span className="text-amber-700" title="Pago acima do bruto">{BRL(jr)}</span>;
+                        return <span className="text-emerald-700" title="Pago abaixo do bruto">-{BRL(Math.abs(jr))}</span>;
+                      })() : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="text-right font-medium whitespace-nowrap">
+                      {(() => {
+                        if (pago || cancelado) return BRL(0);
+                        const valor = Number(l.valor || 0);
+                        const juros = Number(l.juros_previsto || 0);
+                        return BRL(valor + juros);
+                      })()}
+                    </td>
                     <td className="text-center">
                       <div className="inline-flex items-center">
                         {cancelado ? <Badge variant="destructive">CANCELADO</Badge>
                           : pago ? <Badge className="bg-emerald-500/15 text-emerald-700">PAGO</Badge>
+                          : vencido ? <Badge className="bg-rose-500/15 text-rose-700">VENCIDO</Badge>
                           : <Badge className="bg-violet-500/15 text-violet-700">PENDENTE</Badge>}
                         {baixaInfo}
                       </div>
@@ -380,15 +510,27 @@ export default function ContasAPagar() {
                     </td>
                     <td className="text-right px-5">
                       <div className="flex justify-end gap-1">
+                        {l.pedido_id && (
+                          <Button size="icon" variant="ghost" title="Ver pedido / receita" asChild>
+                            <Link to={`/pedidos/${l.pedido_id}/receita`}>
+                              <Layers className="w-4 h-4 text-primary" />
+                            </Link>
+                          </Button>
+                        )}
                         {!pago && !cancelado && (
                           <>
-                            <Button size="icon" variant="ghost" title="Liquidar" onClick={() => abrirBaixa(l)}>
+                            <Button size="icon" variant="ghost" title="Pagar / Liquidar" onClick={() => abrirBaixa(l)}>
                               <Check className="w-4 h-4 text-emerald-600" />
                             </Button>
                             <Button size="icon" variant="ghost" title="Cancelar" onClick={() => cancelar(l)}>
                               <X className="w-4 h-4 text-rose-500" />
                             </Button>
                           </>
+                        )}
+                        {pago && !cancelado && podeEditar && (
+                          <Button size="icon" variant="ghost" title="Estornar pagamento" onClick={() => estornar(l)}>
+                            <RotateCcw className="w-4 h-4 text-amber-600" />
+                          </Button>
                         )}
                         {podeEditar && !cancelado && (
                           <Button size="icon" variant="ghost" title="Alterar parcela" onClick={() => abrirEdicao(l)}>
@@ -401,7 +543,7 @@ export default function ContasAPagar() {
                 );
               })}
               {!filtrados.length && (
-                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={16} className="text-center py-12 text-muted-foreground">
                   <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-60" />
                   Nenhuma conta a pagar
                 </td></tr>
@@ -410,11 +552,35 @@ export default function ContasAPagar() {
             {filtrados.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-semibold">
-                  <td colSpan={6} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                  <td colSpan={8} className="py-3 px-5 text-right text-xs uppercase tracking-wider text-muted-foreground">
                     Total ({filtrados.length} {filtrados.length === 1 ? "parcela" : "parcelas"})
                   </td>
                   <td className="py-3 text-right text-rose-700 whitespace-nowrap">
                     {BRL(filtrados.reduce((s, l) => s + Number(l.valor || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => s + Number(l.juros_previsto || 0), 0))}
+                  </td>
+                  <td className="py-3 text-right text-rose-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const p = ["pago","recebido","conciliado"].includes(l.status||"");
+                      if (!p) return s;
+                      return s + Number(l.valor || 0) + Number(l.juros_real || 0);
+                    }, 0))}
+                  </td>
+                  <td className="py-3 text-right text-amber-700 whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const p = ["pago","recebido","conciliado"].includes(l.status||"");
+                      return p ? s + Number(l.juros_real || 0) : s;
+                    }, 0))}
+                  </td>
+                  <td className="py-3 text-right whitespace-nowrap">
+                    {BRL(filtrados.reduce((s, l) => {
+                      const p = ["pago","recebido","conciliado"].includes(l.status||"");
+                      const cancel = l.status === "cancelado";
+                      if (p || cancel) return s;
+                      return s + Number(l.valor || 0) + Number(l.juros_previsto || 0);
+                    }, 0))}
                   </td>
                   <td colSpan={3} />
                 </tr>
@@ -431,6 +597,7 @@ export default function ContasAPagar() {
         tipo="saida"
         descricao={baixaAlvo?.descricao ?? null}
         valorOriginal={Number(baixaAlvo?.valor || 0)}
+        jurosPrevisto={Number(baixaAlvo?.juros_previsto || 0)}
         contaIdAtual={baixaAlvo?.conta_id ?? null}
         contas={contas}
         onConfirm={confirmarBaixa}
