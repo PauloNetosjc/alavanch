@@ -124,6 +124,7 @@ export function MinhasTarefasNativasPanel() {
   const [myCargoId, setMyCargoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("minhas");
+  const [taskKey, setTaskKey] = useState<string>("todos"); // "todos" ou chave técnica
 
   // dialogs
   const [taSel, setTaSel] = useState<TarefaNativa | null>(null);
