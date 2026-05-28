@@ -474,17 +474,17 @@ export default function WorkflowOperacionalDashboard() {
                   {(r.vencidos > 0 || r.preAlerta > 0 || r.hoje > 0) && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {r.vencidos > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-100 text-red-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-200/80 text-red-800">
                           {r.vencidos} venc
                         </span>
                       )}
                       {r.hoje > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-orange-100 text-orange-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-orange-200/80 text-orange-800">
                           {r.hoje} hoje
                         </span>
                       )}
                       {r.preAlerta > 0 && (
-                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700">
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-200/80 text-amber-800">
                           {r.preAlerta} alerta
                         </span>
                       )}
