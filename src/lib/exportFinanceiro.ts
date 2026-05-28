@@ -131,8 +131,8 @@ export function imprimirLista(rows: LancRow[], titulo: string) {
       </tr>`).join("")}
     </tbody>
     <tfoot>
-      <tr><td colspan="7" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
-      <tr><td colspan="7" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
+      <tr><td colspan="8" class="right">Total Entradas</td><td class="right">${BRL(totalEnt)}</td></tr>
+      <tr><td colspan="8" class="right">Total Saídas</td><td class="right">${BRL(totalSai)}</td></tr>
     </tfoot>
   </table>
   <script>window.onload=()=>{window.print();}</script>
