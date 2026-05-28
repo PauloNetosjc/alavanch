@@ -1673,6 +1673,44 @@ export type Database = {
         }
         Relationships: []
       }
+      eventos_tarefa: {
+        Row: {
+          anexo_url: string | null
+          created_at: string
+          id: string
+          payload: Json
+          tarefa_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          anexo_url?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          tarefa_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          anexo_url?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          tarefa_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_tarefa_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_pedido"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -4726,6 +4764,281 @@ export type Database = {
           },
         ]
       }
+      tarefas_nativas_modelos: {
+        Row: {
+          ativo: boolean
+          bloquear_proxima: boolean
+          cargo_id: string | null
+          created_at: string
+          depende_de: string | null
+          descricao: string | null
+          exibir_controle_prazos: boolean
+          exibir_kanban: boolean
+          exibir_meus_chamados: boolean
+          exige_anexo: boolean
+          exige_aprovacao: boolean
+          gatilho: string
+          gatilho_offset_dias: number
+          gatilho_offset_direcao: string
+          gatilho_referencia: string | null
+          id: string
+          loja_id: string | null
+          nome: string
+          ordem: number
+          pipeline: string | null
+          prazo_qtd: number
+          prazo_tipo: string
+          prazo_unidade: string
+          pre_alerta_dias: number
+          prioridade: string
+          responsavel_padrao_id: string | null
+          setor: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          bloquear_proxima?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          depende_de?: string | null
+          descricao?: string | null
+          exibir_controle_prazos?: boolean
+          exibir_kanban?: boolean
+          exibir_meus_chamados?: boolean
+          exige_anexo?: boolean
+          exige_aprovacao?: boolean
+          gatilho: string
+          gatilho_offset_dias?: number
+          gatilho_offset_direcao?: string
+          gatilho_referencia?: string | null
+          id?: string
+          loja_id?: string | null
+          nome: string
+          ordem?: number
+          pipeline?: string | null
+          prazo_qtd?: number
+          prazo_tipo?: string
+          prazo_unidade?: string
+          pre_alerta_dias?: number
+          prioridade?: string
+          responsavel_padrao_id?: string | null
+          setor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          bloquear_proxima?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          depende_de?: string | null
+          descricao?: string | null
+          exibir_controle_prazos?: boolean
+          exibir_kanban?: boolean
+          exibir_meus_chamados?: boolean
+          exige_anexo?: boolean
+          exige_aprovacao?: boolean
+          gatilho?: string
+          gatilho_offset_dias?: number
+          gatilho_offset_direcao?: string
+          gatilho_referencia?: string | null
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          ordem?: number
+          pipeline?: string | null
+          prazo_qtd?: number
+          prazo_tipo?: string
+          prazo_unidade?: string
+          pre_alerta_dias?: number
+          prioridade?: string
+          responsavel_padrao_id?: string | null
+          setor?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_nativas_modelos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_nativas_modelos_depende_de_fkey"
+            columns: ["depende_de"]
+            isOneToOne: false
+            referencedRelation: "tarefas_nativas_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_nativas_modelos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_nativas_modelos_responsavel_padrao_id_fkey"
+            columns: ["responsavel_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_pedido: {
+        Row: {
+          bloqueio_proxima: boolean
+          cargo_id: string | null
+          cliente_id: string | null
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          criado_por: string | null
+          depende_de: string | null
+          descricao: string | null
+          exibir_controle_prazos: boolean
+          exibir_kanban: boolean
+          exibir_meus_chamados: boolean
+          exige_anexo: boolean
+          exige_aprovacao: boolean
+          id: string
+          kanban_card_id: string | null
+          loja_id: string | null
+          modelo_id: string | null
+          observacao_conclusao: string | null
+          origem: string
+          pedido_id: string
+          prazo: string | null
+          pre_alerta_em: string | null
+          prioridade: string
+          responsavel_id: string | null
+          setor: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          bloqueio_proxima?: boolean
+          cargo_id?: string | null
+          cliente_id?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          depende_de?: string | null
+          descricao?: string | null
+          exibir_controle_prazos?: boolean
+          exibir_kanban?: boolean
+          exibir_meus_chamados?: boolean
+          exige_anexo?: boolean
+          exige_aprovacao?: boolean
+          id?: string
+          kanban_card_id?: string | null
+          loja_id?: string | null
+          modelo_id?: string | null
+          observacao_conclusao?: string | null
+          origem?: string
+          pedido_id: string
+          prazo?: string | null
+          pre_alerta_em?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          bloqueio_proxima?: boolean
+          cargo_id?: string | null
+          cliente_id?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          depende_de?: string | null
+          descricao?: string | null
+          exibir_controle_prazos?: boolean
+          exibir_kanban?: boolean
+          exibir_meus_chamados?: boolean
+          exige_anexo?: boolean
+          exige_aprovacao?: boolean
+          id?: string
+          kanban_card_id?: string | null
+          loja_id?: string | null
+          modelo_id?: string | null
+          observacao_conclusao?: string | null
+          origem?: string
+          pedido_id?: string
+          prazo?: string | null
+          pre_alerta_em?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_pedido_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_depende_de_fkey"
+            columns: ["depende_de"]
+            isOneToOne: false
+            referencedRelation: "tarefas_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_kanban_card_id_fkey"
+            columns: ["kanban_card_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_nativas_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates_mensagem: {
         Row: {
           ativo: boolean | null
@@ -4929,6 +5242,10 @@ export type Database = {
           _regra_id: string
         }
         Returns: Json
+      }
+      fn_instanciar_tarefas_nativas: {
+        Args: { p_gatilho: string; p_pedido_id: string }
+        Returns: number
       }
       garantir_participante: {
         Args: {
