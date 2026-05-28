@@ -2732,7 +2732,45 @@ function ContratoEnvioBar({ contrato, cliente, pedido, solic, pastas, onChange, 
 /*               PEDIDO HEADER PANEL (modelo imagem 2)            */
 /* ============================================================== */
 function PedidoHeaderPanel({ pedido, orcamento, cliente, loja, contrato, vendedor, responsavel, adendos, usuarios = [], salvarPedido }: any) {
-  const fluxoTrabalho = (pedido.workflow_estagio || pedido.status || "").toString().toUpperCase().replace(/_/g, " ");
+  const ETAPA_LABEL: Record<string, string> = {
+    contrato_assinado: "Contrato assinado",
+    projeto_inicial: "Projeto inicial",
+    projeto_vendido: "Projeto vendido",
+    medicao_tecnica: "Medição técnica",
+    preparo_projeto_revisao: "Preparo projeto revisão",
+    revisao_loja: "Revisão loja",
+    projeto_revisado: "Projeto revisado",
+    pdf_projeto_final: "PDF Projeto Final",
+    projeto_para_producao: "Projeto para Produção",
+    fabrica_liberado_para_lote: "Liberado para Fábrica",
+    fabrica_em_producao: "Em produção",
+    chegada_deposito: "Chegada depósito",
+    entrega: "Entrega",
+    montagem: "Montagem",
+    vistoria: "Vistoria",
+    finalizado: "Finalizado",
+  };
+  const ETAPA_COLOR: Record<string, string> = {
+    contrato_assinado: "bg-slate-100 text-slate-700",
+    projeto_inicial: "bg-sky-100 text-sky-700",
+    projeto_vendido: "bg-sky-100 text-sky-700",
+    medicao_tecnica: "bg-cyan-100 text-cyan-700",
+    preparo_projeto_revisao: "bg-indigo-100 text-indigo-700",
+    revisao_loja: "bg-indigo-100 text-indigo-700",
+    projeto_revisado: "bg-violet-100 text-violet-700",
+    pdf_projeto_final: "bg-amber-100 text-amber-700",
+    projeto_para_producao: "bg-amber-100 text-amber-700",
+    fabrica_liberado_para_lote: "bg-emerald-100 text-emerald-700",
+    fabrica_em_producao: "bg-emerald-100 text-emerald-700",
+    chegada_deposito: "bg-teal-100 text-teal-700",
+    entrega: "bg-blue-100 text-blue-700",
+    montagem: "bg-green-100 text-green-700",
+    vistoria: "bg-purple-100 text-purple-700",
+    finalizado: "bg-emerald-200 text-emerald-800",
+  };
+  const etapaKey = (pedido.etapa_atual || "").toString();
+  const etapaLabel = ETAPA_LABEL[etapaKey] || (etapaKey ? etapaKey.replace(/_/g, " ") : "—");
+  const etapaCls = ETAPA_COLOR[etapaKey] || "bg-muted text-muted-foreground";
   const previsaoMedicao = pedido.previsao_medicao;
   const dataVenda = orcamento?.confirmado_em || pedido.created_at;
   const [editingCF, setEditingCF] = useState(false);
