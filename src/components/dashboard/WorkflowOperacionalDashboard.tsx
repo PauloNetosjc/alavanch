@@ -627,34 +627,34 @@ function fmtDateBR(iso: string | null) {
 }
 
 const ICON_BG: Record<string, string> = {
-  danger: "bg-red-100", warning: "bg-orange-100", alert: "bg-amber-100", ok: "bg-emerald-100", muted: "bg-muted",
+  danger: "bg-red-200", warning: "bg-orange-200", alert: "bg-amber-200", ok: "bg-emerald-200", muted: "bg-slate-200",
 };
 const ICON_FG: Record<string, string> = {
-  danger: "text-red-700", warning: "text-orange-700", alert: "text-amber-700", ok: "text-emerald-700", muted: "text-muted-foreground",
+  danger: "text-red-800", warning: "text-orange-800", alert: "text-amber-800", ok: "text-emerald-800", muted: "text-slate-600",
 };
 const DOT_CHIP: Record<string, string> = {
-  danger: "bg-red-100 text-red-700",
-  warning: "bg-orange-100 text-orange-700",
-  alert: "bg-amber-100 text-amber-700",
-  ok: "bg-emerald-100 text-emerald-700",
-  muted: "bg-muted text-muted-foreground",
+  danger: "bg-red-200 text-red-800",
+  warning: "bg-orange-200 text-orange-800",
+  alert: "bg-amber-200 text-amber-800",
+  ok: "bg-emerald-200 text-emerald-800",
+  muted: "bg-slate-200 text-slate-600",
 };
 const RISCO_LABEL: Record<string, string> = {
   danger: "Crítico", warning: "Hoje", alert: "Alerta", ok: "Ok", muted: "—",
 };
 const ARROW_BG: Record<string, string> = {
-  danger: "bg-red-50 hover:bg-red-100",
-  warning: "bg-orange-50 hover:bg-orange-100",
-  alert: "bg-amber-50 hover:bg-amber-100",
-  ok: "bg-primary/5 hover:bg-primary/10",
-  muted: "bg-muted/40 hover:bg-muted/60",
+  danger: "bg-red-100/90 hover:bg-red-200",
+  warning: "bg-orange-100/90 hover:bg-orange-200",
+  alert: "bg-amber-100/90 hover:bg-amber-200",
+  ok: "bg-emerald-100/90 hover:bg-emerald-200",
+  muted: "bg-slate-100/90 hover:bg-slate-200",
 };
 const BADGE_NUM: Record<string, string> = {
   danger: "bg-red-600 text-white",
   warning: "bg-orange-500 text-white",
   alert: "bg-amber-500 text-white",
-  ok: "bg-primary text-primary-foreground",
-  muted: "bg-muted-foreground/20 text-muted-foreground",
+  ok: "bg-emerald-600 text-white",
+  muted: "bg-slate-400 text-white",
 };
 
 export function agruparPedidosPorEtapa(pedidos: PedidoComEtapa[]) {
