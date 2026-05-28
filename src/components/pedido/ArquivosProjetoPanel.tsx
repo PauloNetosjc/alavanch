@@ -409,12 +409,12 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
         <div>
           <h3 className="font-playfair text-[18px] font-semibold leading-none">Arquivos do Projeto</h3>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Fluxo sequencial: Vendido → Para Revisão → Revisado. Uploads concluem automaticamente a tarefa nativa correspondente.
+            Fluxo sequencial: Vendido → Para Revisão → Revisado → Para Produção. Uploads concluem automaticamente as tarefas nativas correspondentes.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         {SECOES.map((s) => {
           const arquivos = docsPor[s.key];
           const lib = categoriaLiberada(s.key);
