@@ -17,11 +17,17 @@ type Linha = {
   id: string;
   codigo: string | null;
   loja_id: string | null;
+  created_at: string | null;
+  valor_total: number | null;
   data_assinatura_pdf_final: string | null;
   status_fabrica: string | null;
   cliente_nome: string | null;
   loja_nome: string | null;
 };
+
+function fmtBrl(n: number | null): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n || 0));
+}
 
 function fmtData(iso: string | null): string {
   if (!iso) return "—";
@@ -42,7 +48,7 @@ function ListaLiberadosFabrica() {
     let query = (supabase as any)
       .from("pedidos")
       .select(
-        "id, codigo, loja_id, data_assinatura_pdf_final, status_fabrica, arquivado, cliente:clientes(nome), loja:lojas(nome)"
+        "id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, arquivado, cliente:clientes(nome), loja:lojas(nome)"
       )
       .eq("status_fabrica", "liberado_para_lote")
       .or("arquivado.is.null,arquivado.eq.false")
@@ -64,6 +70,8 @@ function ListaLiberadosFabrica() {
       id: p.id,
       codigo: p.codigo,
       loja_id: p.loja_id,
+      created_at: p.created_at,
+      valor_total: p.valor_total,
       data_assinatura_pdf_final: p.data_assinatura_pdf_final,
       status_fabrica: p.status_fabrica,
       cliente_nome: p.cliente?.nome || null,
