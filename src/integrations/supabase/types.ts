@@ -4649,6 +4649,7 @@ export type Database = {
           loja_user_agent: string | null
           motivo_recusa: string | null
           observacao: string | null
+          observacao_manual: string | null
           pedido_documento_id: string | null
           pedido_id: string
           recusado_em: string | null
@@ -4693,6 +4694,7 @@ export type Database = {
           loja_user_agent?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
+          observacao_manual?: string | null
           pedido_documento_id?: string | null
           pedido_id: string
           recusado_em?: string | null
@@ -4737,6 +4739,7 @@ export type Database = {
           loja_user_agent?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
+          observacao_manual?: string | null
           pedido_documento_id?: string | null
           pedido_id?: string
           recusado_em?: string | null
