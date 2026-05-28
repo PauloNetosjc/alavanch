@@ -213,7 +213,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
       });
 
       try {
-        const safe = file.name.replace(/[^\w.\-]+/g, "_");
+        const safe = sanitizeStorageFileName(file.name);
         const path = `${pedido.id}/${cat}/${Date.now()}-${safe}`;
         const { error: upErr } = await supabase.storage.from("pedido-docs").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
