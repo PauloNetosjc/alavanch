@@ -17,9 +17,12 @@ type Fornecedor = {
   nome: string;
   documento: string | null;
   tipo_documento: string | null;
+  inscricao_estadual: string | null;
   email: string | null;
   telefone: string | null;
   endereco: string | null;
+  endereco_cobranca: string | null;
+  endereco_entrega: string | null;
   cidade: string | null;
   estado: string | null;
   cep: string | null;
@@ -37,9 +40,12 @@ const empty = {
   nome: "",
   documento: "",
   tipo_documento: "CNPJ",
+  inscricao_estadual: "",
   email: "",
   telefone: "",
   endereco: "",
+  endereco_cobranca: "",
+  endereco_entrega: "",
   cidade: "",
   estado: "",
   cep: "",
