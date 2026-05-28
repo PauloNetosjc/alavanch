@@ -31,6 +31,7 @@ type Metodo = {
   taxa_perc_parcela: number;
   max_parcelas: number;
   parcelas_config: ParcelaConfig[];
+  prazo_recebimento_dias: number;
 };
 
 const FORMAS_FALLBACK = ["Boleto", "PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência", "Cheque", "Crediário Próprio"];
