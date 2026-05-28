@@ -28,6 +28,7 @@ import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaD
 import { VisualizarAssinaturasDialog } from "@/components/assinaturas/VisualizarAssinaturasDialog";
 import { UploadContratoManualDialog } from "@/components/assinaturas/UploadContratoManualDialog";
 import { Badge } from "@/components/ui/badge";
+import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
