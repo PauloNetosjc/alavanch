@@ -386,7 +386,7 @@ export function PedidoTarefasPanel({
  * DIALOGS
  * ============================================================ */
 
-function ConcluirDialog({
+export function ConcluirDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [obs, setObs] = useState("");
@@ -493,7 +493,7 @@ function ReabrirDialog({
   );
 }
 
-function ComentarDialog({
+export function ComentarDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [txt, setTxt] = useState("");
@@ -529,7 +529,7 @@ function ComentarDialog({
   );
 }
 
-function AnexoDialog({
+export function AnexoDialog({
   open, setOpen, tarefa, onDone, userId,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; onDone: () => void; userId: string | null }) {
   const [file, setFile] = useState<File | null>(null);
@@ -569,7 +569,7 @@ function AnexoDialog({
   );
 }
 
-function HistoricoDialog({
+export function HistoricoDialog({
   open, setOpen, tarefa, profiles,
 }: { open: boolean; setOpen: (b: boolean) => void; tarefa: Tarefa | null; profiles: any[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);

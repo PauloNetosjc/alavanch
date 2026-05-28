@@ -5303,6 +5303,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_concluir_tarefas_por_assinatura: {
+        Args: { p_pedido_id: string }
+        Returns: number
+      }
       fn_current_user_email: { Args: never; Returns: string }
       fn_garantir_pasta_projeto: {
         Args: { p_pedido_id: string }
