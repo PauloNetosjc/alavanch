@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { findKanban } from "@/components/kanban/kanbanRegistry";
 import { supabase } from "@/integrations/supabase/client";
+import { useLoja } from "@/contexts/LojaContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,13 +15,18 @@ type View = "kanban" | "lista";
 type Linha = {
   id: string;
   codigo: string | null;
+  loja_id: string | null;
+  created_at: string | null;
+  valor_total: number | null;
   data_assinatura_pdf_final: string | null;
-  data_upload_projeto_producao: string | null;
   status_fabrica: string | null;
   cliente_nome: string | null;
   loja_nome: string | null;
-  vendedor_nome: string | null;
 };
+
+function fmtBrl(n: number | null): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n || 0));
+}
 
 function fmtData(iso: string | null): string {
   if (!iso) return "—";
@@ -33,18 +38,23 @@ function fmtData(iso: string | null): string {
 }
 
 function ListaLiberadosFabrica() {
+  const { selectedLojaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [linhas, setLinhas] = useState<Linha[]>([]);
 
   async function carregar() {
     setLoading(true);
-    const { data: pedidos, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("pedidos")
       .select(
-        "id, codigo, vendedor_id, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)"
+        "id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)"
       )
       .eq("status_fabrica", "liberado_para_lote")
-      .order("data_assinatura_pdf_final", { ascending: false, nullsFirst: false });
+      .order("created_at", { ascending: false });
+
+    if (selectedLojaId) query = query.eq("loja_id", selectedLojaId);
+
+    const { data: pedidos, error } = await query;
 
     if (error) {
       console.error("[ListaLiberadosFabrica] erro", error);
@@ -53,50 +63,28 @@ function ListaLiberadosFabrica() {
       return;
     }
 
-    const ids = (pedidos || []).map((p: any) => p.id);
-    const vendedorIds = Array.from(
-      new Set((pedidos || []).map((p: any) => p.vendedor_id).filter(Boolean))
-    );
-
-    const [{ data: docs }, { data: profs }] = await Promise.all([
-      ids.length
-        ? (supabase as any)
-            .from("pedido_documentos")
-            .select("pedido_id, created_at")
-            .in("pedido_id", ids)
-            .eq("categoria_projeto", "projeto_para_producao")
-            .order("created_at", { ascending: true })
-        : Promise.resolve({ data: [] as any[] }),
-      vendedorIds.length
-        ? supabase
-            .from("profiles")
-            .select("user_id, nome_completo")
-            .in("user_id", vendedorIds as string[])
-        : Promise.resolve({ data: [] as any[] }),
-    ]);
-
-    const datasUpload: Record<string, string> = {};
-    (docs || []).forEach((d: any) => {
-      if (!datasUpload[d.pedido_id]) datasUpload[d.pedido_id] = d.created_at;
-    });
-    const vendedorMap: Record<string, string> = {};
-    (profs || []).forEach((p: any) => {
-      vendedorMap[p.user_id] = p.nome_completo || "";
-    });
-
     // Fonte de verdade: status_fabrica = 'liberado_para_lote'.
-    // Não filtramos por data_assinatura_pdf_final/projeto_para_producao aqui —
-    // apenas enriquecemos a linha quando esses dados existirem.
     const result: Linha[] = (pedidos || []).map((p: any) => ({
       id: p.id,
       codigo: p.codigo,
+      loja_id: p.loja_id,
+      created_at: p.created_at,
+      valor_total: p.valor_total,
       data_assinatura_pdf_final: p.data_assinatura_pdf_final,
-      data_upload_projeto_producao: datasUpload[p.id] || null,
       status_fabrica: p.status_fabrica,
       cliente_nome: p.cliente?.nome || null,
       loja_nome: p.loja?.nome || null,
-      vendedor_nome: p.vendedor_id ? vendedorMap[p.vendedor_id] || null : null,
     }));
+
+    if (import.meta.env.DEV) {
+      console.debug("[FabricaDebug] Lista", {
+        lojaAtual: selectedLojaId,
+        quantidadeRetornada: result.length,
+        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual",
+        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId },
+        pedidosRetornados: result.map((p) => ({ codigo: p.codigo, loja_id: p.loja_id, status_fabrica: p.status_fabrica })),
+      });
+    }
 
     setLinhas(result);
     setLoading(false);
@@ -115,7 +103,7 @@ function ListaLiberadosFabrica() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [selectedLojaId]);
 
   return (
     <div className="space-y-3">
@@ -123,7 +111,7 @@ function ListaLiberadosFabrica() {
         <div>
           <h2 className="font-playfair text-lg font-semibold">Pedidos liberados para lote</h2>
           <p className="text-xs text-muted-foreground">
-            Pedidos com Projeto para Produção enviado e PDF Projeto Final assinado pelo cliente.
+            Pedidos com status de fábrica liberado para lote na loja atual.
           </p>
         </div>
         <Badge variant="secondary" className="bg-violet-100 text-violet-700">
@@ -148,9 +136,9 @@ function ListaLiberadosFabrica() {
                   <th className="text-left px-3 py-2">PV</th>
                   <th className="text-left px-3 py-2">Cliente</th>
                   <th className="text-left px-3 py-2">Loja</th>
-                  <th className="text-left px-3 py-2">Vendedor</th>
+                  <th className="text-left px-3 py-2">Criado em</th>
+                  <th className="text-left px-3 py-2">Valor</th>
                   <th className="text-left px-3 py-2">Assinatura PDF Final</th>
-                  <th className="text-left px-3 py-2">Projeto p/ Produção</th>
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-right px-3 py-2">Ações</th>
                 </tr>
@@ -161,9 +149,9 @@ function ListaLiberadosFabrica() {
                     <td className="px-3 py-2 font-medium">{l.codigo || "—"}</td>
                     <td className="px-3 py-2">{l.cliente_nome || "—"}</td>
                     <td className="px-3 py-2">{l.loja_nome || "—"}</td>
-                    <td className="px-3 py-2">{l.vendedor_nome || "—"}</td>
+                    <td className="px-3 py-2">{fmtData(l.created_at)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{fmtBrl(l.valor_total)}</td>
                     <td className="px-3 py-2">{fmtData(l.data_assinatura_pdf_final)}</td>
-                    <td className="px-3 py-2">{fmtData(l.data_upload_projeto_producao)}</td>
                     <td className="px-3 py-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">
                         Liberado para lote
@@ -193,6 +181,116 @@ function ListaLiberadosFabrica() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function KanbanLiberadosFabrica() {
+  const { selectedLojaId } = useLoja();
+  const [loading, setLoading] = useState(true);
+  const [linhas, setLinhas] = useState<Linha[]>([]);
+
+  async function carregar() {
+    setLoading(true);
+    let query = (supabase as any)
+      .from("pedidos")
+      .select("id, codigo, loja_id, created_at, valor_total, data_assinatura_pdf_final, status_fabrica, cliente:clientes(nome), loja:lojas(nome)")
+      .eq("status_fabrica", "liberado_para_lote")
+      .order("created_at", { ascending: false });
+
+    if (selectedLojaId) query = query.eq("loja_id", selectedLojaId);
+
+    const { data: pedidos, error } = await query;
+    if (error) {
+      console.error("[FabricaKanban] erro", error);
+      setLinhas([]);
+      setLoading(false);
+      return;
+    }
+
+    const result: Linha[] = (pedidos || []).map((p: any) => ({
+      id: p.id,
+      codigo: p.codigo,
+      loja_id: p.loja_id,
+      created_at: p.created_at,
+      valor_total: p.valor_total,
+      data_assinatura_pdf_final: p.data_assinatura_pdf_final,
+      status_fabrica: p.status_fabrica,
+      cliente_nome: p.cliente?.nome || null,
+      loja_nome: p.loja?.nome || null,
+    }));
+
+    if (import.meta.env.DEV) {
+      console.debug("[FabricaDebug] Kanban", {
+        lojaAtual: selectedLojaId,
+        quantidadeRetornada: result.length,
+        queryUsada: "pedidos.status_fabrica = 'liberado_para_lote' + loja_id atual",
+        filtrosAplicados: { status_fabrica: "liberado_para_lote", loja_id: selectedLojaId },
+        pedidosRetornados: result.map((p) => ({ codigo: p.codigo, loja_id: p.loja_id, status_fabrica: p.status_fabrica })),
+      });
+    }
+
+    setLinhas(result);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    carregar();
+    const ch = supabase
+      .channel("fabrica-kanban-liberados")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pedidos" },
+        () => carregar()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [selectedLojaId]);
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground py-12 text-[13px]">Carregando…</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto pb-4">
+      <div className="flex gap-3 min-w-max">
+        <div className="w-[320px] shrink-0">
+          <div className="rounded-t-lg px-3 py-2 bg-violet-500/10 border-t-[3px] border-violet-500">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[12px] font-semibold uppercase text-violet-700">Liberado para lote</div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-background text-foreground">{linhas.length}</span>
+            </div>
+          </div>
+          <div className="bg-muted/30 rounded-b-lg p-2 space-y-2 min-h-[180px]">
+            {linhas.map((p) => (
+              <Card key={p.id} className="border-l-4 border-l-violet-500 p-3 space-y-2 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-[12px] font-bold text-primary">{p.codigo || "—"}</div>
+                    <div className="text-[12px] font-medium truncate max-w-[220px]">{p.cliente_nome || "—"}</div>
+                  </div>
+                  <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">Liberado</Badge>
+                </div>
+                <div className="grid gap-0.5 text-[10px] text-muted-foreground">
+                  <span>{p.loja_nome || "—"}</span>
+                  <span>Criado em {fmtData(p.created_at)}</span>
+                  <span className="font-mono text-foreground">{fmtBrl(p.valor_total)}</span>
+                </div>
+                <Button asChild size="sm" variant="outline" className="w-full">
+                  <Link to={`/pedidos/${p.id}`}>
+                    <Eye className="w-3.5 h-3.5 mr-1" /> Ver pedido
+                  </Link>
+                </Button>
+              </Card>
+            ))}
+            {linhas.length === 0 && (
+              <div className="text-[11px] text-muted-foreground text-center py-4">Vazio</div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -253,17 +351,17 @@ export default function KanbanFabrica() {
   }
 
   return (
-    <div className="relative">
-      <div className="absolute right-4 top-4 z-10">{Toggle}</div>
-      <KanbanBoard
-        activeKey="fabrica"
-        pipeline={def.pipeline!}
-        title={def.label}
-        subtitle={def.subtitle}
-        icon={def.icon}
-        iconVariant={def.variant}
-        useStageDialog
-      />
+    <div className="p-4 md:p-6 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="font-playfair text-2xl font-semibold">{def.label}</h1>
+          {def.subtitle && (
+            <p className="text-sm text-muted-foreground">{def.subtitle}</p>
+          )}
+        </div>
+        {Toggle}
+      </div>
+      <KanbanLiberadosFabrica />
     </div>
   );
 }
