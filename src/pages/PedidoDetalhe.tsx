@@ -272,10 +272,13 @@ export default function PedidoDetalhe() {
       supabase.from("solicitacoes_assinatura").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setContrato(ctRes.data);
-    // Preserva docs virtuais (orçamento) e substitui docs do pedido
+    // Preserva docs virtuais (orçamento) e substitui docs do pedido — exclui categoria_projeto operacional
+    const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
+    const filtrarCentral = (rows: any[]) =>
+      rows.filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
     setDocs((prev) => {
       const virtuais = (prev || []).filter((d: any) => d._readonly);
-      return [...virtuais, ...((dcsRes.data as any[]) || [])];
+      return [...virtuais, ...filtrarCentral((dcsRes.data as any[]) || [])];
     });
     setSolicitacoes(solsRes.data || []);
     setSolicAssin(saRes.data || null);
@@ -286,13 +289,21 @@ export default function PedidoDetalhe() {
   // Realtime subscriptions
   useEffect(() => {
     if (!id) return;
+    const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
     const ch = supabase.channel(`pedido_${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_chat", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at").then(({ data }) => setChat(data || []));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
-        supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => setDocs(data || []));
+        supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => {
+          const rows = (data || []).filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+          setDocs((prev) => {
+            const virtuais = (prev || []).filter((d: any) => d._readonly);
+            return [...virtuais, ...rows];
+          });
+        });
       })
+
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${id}` }, (payload) => {
         // Sincroniza alterações vindas dos kanbans (estagio_*) ou outros pontos
         if (payload.new) setPedido((prev: any) => ({ ...(prev || {}), ...(payload.new as any) }));
