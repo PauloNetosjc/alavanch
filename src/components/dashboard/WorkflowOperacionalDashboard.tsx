@@ -453,17 +453,17 @@ export default function WorkflowOperacionalDashboard() {
       {/* Esteira de etapas em formato de setas */}
       <div className="relative no-print-scroll">
         <div className="flex overflow-x-auto pb-3 pt-1 -mx-1 px-1 workflow-arrows gap-1">
-          {ETAPAS.map((e, idx) => {
-            const r = resumos.get(e.key)!;
+          {WORKFLOW_STAGE_GROUPS.map((e, idx) => {
+            const r = resumos.get(e.visualKey)!;
             const Icon = e.icon;
-            const active = etapaSelecionada === e.key;
+            const active = grupoSelecionado === e.visualKey;
             const risco =
               r.vencidos > 0 ? "danger" :
               r.hoje > 0 ? "warning" :
               r.preAlerta > 0 ? "alert" :
               r.qtd > 0 ? "ok" : "muted";
             const isFirst = idx === 0;
-            const isLast = idx === ETAPAS.length - 1;
+            const isLast = idx === WORKFLOW_STAGE_GROUPS.length - 1;
             // Arrow shape via clip-path
             const tip = 14;
             const clip = isLast
@@ -473,13 +473,13 @@ export default function WorkflowOperacionalDashboard() {
               : `polygon(0 0, calc(100% - ${tip}px) 0, 100% 50%, calc(100% - ${tip}px) 100%, 0 100%, ${tip}px 50%)`;
             return (
               <div
-                key={e.key}
+                key={e.visualKey}
                 className={`shrink-0 transition-all duration-200 ${active ? "drop-shadow-lg" : "drop-shadow-sm"}`}
                 style={{ marginLeft: isFirst ? 0 : -tip + 8 }}
               >
                 <button
                   type="button"
-                  onClick={() => setEtapaSelecionada(active ? null : e.key)}
+                  onClick={() => setGrupoSelecionado(active ? null : e.visualKey)}
                   className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105 !bg-[#2F6F90] !text-white hover:!bg-[#3F7898]" : `hover:brightness-105 ${ARROW_BG[risco]}`} ${active ? "ring-[3px] ring-primary/80" : ""}`}
                   style={{
                     clipPath: clip,
