@@ -1,91 +1,108 @@
+## Relatórios Financeiros — Plano de implementação
 
-# Correção definitiva da assinatura digital — token por participante
+Nova página `/financeiro/relatorios` acessada pelo botão "Relatórios" hoje existente no topo do módulo Financeiro. Reutiliza `lancamentos_financeiros`, `categorias_financeiras`, `centros_custo`, `contas_bancarias`, `clientes`, `fornecedores`, `parceiros` e `pedidos` — sem alterar lógica de baixa, contratos, RT ou workflow.
 
-## Objetivo
-Cada participante (loja e cliente) terá seu próprio link. A página `/assinatura/:token` passa a usar o token do participante. O painel do pedido mostra dois blocos separados com botões "Copiar link" individuais. O status geral da solicitação passa a ser derivado dos participantes — nunca mais aparece "Assinatura realizada" sem o participante daquele link ter assinado.
+### Estrutura da página
 
-## 1. Migração SQL (única)
+```
+[Header] Relatórios Financeiros
+         Análise de receitas, despesas, categorias, contatos, centros de custo e resultado por pedido.
 
-Arquivo novo em `supabase/migrations/`.
+[Filtros] Período (default = mês atual) · Loja · Categoria · Subcategoria · Centro de custo
+          Conta bancária · Status · Tipo de entidade · Entidade · Forma de pagamento · DRE
+          [Buscar] [Limpar] [Exportar Excel] [Imprimir]
 
-- `assinatura_participantes`:
-  - adicionar `token text NOT NULL DEFAULT encode(gen_random_bytes(32),'hex')`
-  - adicionar `enviado_em`, `visualizado_em` (timestamptz, nullable)
-  - criar `UNIQUE INDEX idx_ap_token ON assinatura_participantes(token)`
-  - backfill: `UPDATE` em participantes existentes sem token (segurança extra)
-  - backfill: para cada `solicitacoes_assinatura` que ainda não tem participante `cliente`, criar um a partir de `cliente_nome/email/telefone/documento/cliente_assinado_em`; idem `loja` quando `requer_assinatura_loja` ou já existe `loja_assinado_em`
-- Função `public.recalcular_status_solicitacao(p_solic uuid)`:
-  - lê todos os participantes obrigatórios da solicitação
-  - se algum `recusado` → `recusado`
-  - se `expira_em < now()` e ninguém assinou tudo → `expirado`
-  - se todos obrigatórios `assinado` → `concluido` (+ `concluido_em = now()`)
-  - se loja assinou e cliente pendente → `assinado_loja` (mapeado para "aguardando cliente")
-  - se cliente assinou e loja pendente → `assinado_cliente` (mapeado para "aguardando loja")
-  - caso contrário → mantém `aguardando_cliente`/`aguardando_loja` conforme regra do tipo de documento
-  - também espelha `cliente_assinado_em` e `loja_assinado_em` em `solicitacoes_assinatura` (compatibilidade)
-- Trigger `trg_recalcular_status_ap` em `AFTER INSERT/UPDATE OF status,assinado_em ON assinatura_participantes` chamando a função acima
-- Reescrever `sincronizar_status_assinatura_por_evidencia` para **não** marcar `cliente_assinado_em`/`status=concluido` sozinha — apenas delega a `recalcular_status_solicitacao` (e atualiza URL da evidência se necessário)
-- Política RLS nova em `assinatura_participantes`:
-  - `SELECT` para `anon` quando `token = current_setting('request.jwt.claims',true)` não se aplica — então usar regra: permitir SELECT anon onde `token IS NOT NULL AND (SELECT s.expira_em > now() FROM solicitacoes_assinatura s WHERE s.id = solicitacao_id)` (mantém isolamento, pois o filtro só retorna a linha que casa o token)
-  - `UPDATE` anon: permitir alterar apenas `status, assinado_em, ip, user_agent, visualizado_em` da própria linha (via política `WITH CHECK token IS NOT NULL`)
-- Backfill final: rodar `recalcular_status_solicitacao(id)` para toda solicitação não concluída — corrige PV-LOJ-2866 e similares
+[Cards resumo] Receitas · Despesas · Resultado · Recebidas · Pendentes ·
+               Pagas · A pagar · Vencidas · Margem (%)
 
-## 2. Frontend
+[Tabs]
+  Despesas:  Por Categoria | Mês a Mês | Por Contato | Por Centro de Custo
+  Receitas:  Por Pedido    | Por Contato | Por Categoria
+```
 
-### `src/lib/publicLinks.ts`
-- Mantém `getPublicSignatureUrl(token)`.
-- Adicionar `getParticipanteSignatureUrl(token)` (alias, mesma URL `/assinatura/:token`).
+### Componentes novos
 
-### `src/pages/AssinaturaPublica.tsx` (refatorar lookup)
-1. Buscar **primeiro** em `assinatura_participantes` por `token`.
-2. Se encontrar → setar `participante` e carregar `solicitacoes_assinatura` por `solicitacao_id`. Tela usa `participante.status`.
-3. Se não encontrar → fallback: buscar `solicitacoes_assinatura` por `token` (legado). Nesse caso procurar o participante `cliente` daquela solicitação; se existir, **redirecionar** para `/assinatura/<participante.token>` (mantém compatibilidade com links antigos). Se não houver participante, exibir tela legada como hoje.
-4. Decisão da UI baseada em `participante.status`:
-   - `pendente`/`enviado`/`visualizado` → mostrar formulário (loja vê pad simples + nome/email pré-preenchidos do `participante`; cliente vê fluxo atual com foto/selfie)
-   - `assinado` → tela "Assinatura já realizada em <data/hora>"
-   - solicitação `cancelado`/`expirado`/`recusado` → tela correspondente
-5. Ao abrir, gravar `visualizado_em = now()` no participante (uma vez).
-6. Ao assinar:
-   - upload de evidências (mantém)
-   - `UPDATE assinatura_participantes` apenas do registro do token: `status='assinado', assinado_em=now(), ip, user_agent`
-   - `INSERT assinatura_evidencias` com `participante_id`
-   - `INSERT assinatura_eventos` com `participante_id` e `tipo_evento` `'cliente_assinou'` ou `'loja_assinou'`
-   - **não** atualizar `solicitacoes_assinatura.status` diretamente — o trigger recalcula
-7. Remover o cálculo manual `done = (status==='concluido' && ...)` — usar apenas `participante.status === 'assinado'`.
+- `src/pages/RelatoriosFinanceiros.tsx` — página principal, filtros, cards, tabs.
+- `src/components/relatorios/RelatoriosFiltros.tsx` — barra de filtros reaproveitando padrão de `LancamentosFiltros`.
+- `src/components/relatorios/DespesasPorCategoria.tsx` — tabela agrupada Categoria → Subcategoria → Lançamentos com Recharts (barra + pizza).
+- `src/components/relatorios/DespesasMesAMes.tsx` — agrupamento Mês → Categoria → Lançamentos, gráfico de coluna empilhado por status.
+- `src/components/relatorios/DespesasPorContato.tsx` — ranking de contatos, expandir lançamentos.
+- `src/components/relatorios/DespesasPorCentroCusto.tsx` — Centro → Categoria → Lançamentos.
+- `src/components/relatorios/ReceitasPorContato.tsx` — espelho do equivalente em despesas, filtrando tipo=receita.
+- `src/components/relatorios/ReceitasPorCategoria.tsx` — espelho da despesa por categoria.
+- `src/components/relatorios/ReceitaPorPedido.tsx` — tabela com colunas Pedido, Etiqueta, Data, Cliente, Valor Venda, Juros Financeiros, RT, Valor Venda Líquida (editável), Custo Venda, Custo Revisão (editável), Lucro Venda, Lucro Revisado, Margem Venda %, Margem Revisado %.
+- `src/lib/relatoriosFinanceiros.ts` — helpers de agregação puros (testáveis).
+- `src/lib/exportRelatorios.ts` — exports XLSX por relatório.
 
-### `src/components/assinaturas/AssinaturasDigitaisPanel.tsx` (UI dois blocos)
-- Para cada solicitação, buscar `assinatura_participantes` (loja e cliente).
-- Renderizar dois sub-blocos lado a lado:
-  - **Assinatura da loja**: nome, cargo, status individual, datas (enviado/visualizado/assinado), botão "Copiar link" copiando `participante_loja.token`; se a loja faz login, mostra também o botão "Assinar agora" que abre `AssinarPelaLojaDialog` (mantém fluxo interno).
-  - **Assinatura do cliente**: nome, status, datas, botão "Copiar link" copiando `participante_cliente.token`. Se ainda não existe participante cliente, criar on-demand (RPC nova `garantir_participante(p_solic, p_tipo)`).
-- Se o tipo de documento exige loja primeiro e a loja ainda não assinou: o botão "Copiar link do cliente" fica desabilitado com tooltip "A loja precisa assinar antes de enviar ao cliente."
-- Botão "Baixar PDF assinado" só aparece quando todos os obrigatórios estão `assinado`.
+### Banco de dados
 
-### `src/components/assinaturas/AssinarPelaLojaDialog.tsx`
-- Em vez de criar um novo participante toda vez, fazer `UPSERT` no participante `loja` existente (criado pela migração/painel) pelo `solicitacao_id+tipo`.
-- Não atualizar `solicitacoes_assinatura.status` — o trigger faz.
-- Mantém upload da assinatura e snapshot do contrato.
+Nova migration cria **uma tabela auxiliar** apenas para os ajustes do relatório "Receita por Pedido":
 
-### RPC `garantir_participante(p_solic uuid, p_tipo assinatura_participante_tipo)`
-- Cria o participante se não existir, preenchendo nome/email/telefone/documento a partir de `clientes` ou da própria solicitação (`cliente_*` / `loja_*`).
-- Retorna a linha. Usado pelo painel ao copiar link do cliente quando ainda não existe.
+```sql
+CREATE TABLE public.resultado_pedido_ajustes (
+  id uuid pk default gen_random_uuid(),
+  pedido_id uuid not null unique references public.pedidos(id) on delete cascade,
+  loja_id uuid references public.lojas(id),
+  valor_venda_liquida_ajustado numeric,
+  custo_revisao_ajustado numeric,
+  atualizado_por uuid,
+  atualizado_em timestamptz default now(),
+  created_at timestamptz default now()
+);
+-- GRANTs (authenticated + service_role) + RLS por loja
+```
 
-## 3. Compatibilidade / segurança
-- `solicitacoes_assinatura.token` é mantido como fallback (legado). Nada apaga dados antigos.
-- RLS: nenhuma policy existente é removida. As novas policies do participante só permitem ver/alterar a linha do próprio token.
-- Contratos já concluídos não são alterados (trigger só recalcula quando há mudança em participantes).
+Sem alteração em pedidos, contratos, lancamentos, baixas ou RT.
 
-## 4. Teste manual com PV-LOJ-2866
-1. Após migração: a solicitação `259866b9…` continua `aguardando_loja`; o participante `cliente` ganha token; é criado participante `loja` se faltar.
-2. Abrir painel do pedido → ver bloco loja (com botão "Copiar link" da loja) e bloco cliente (link desabilitado se loja precisa assinar primeiro).
-3. Abrir o link da loja → tela "Assinar pela loja" (não mais "Assinatura realizada").
-4. Assinar pela loja → trigger recalcula → status vira `assinado_loja`.
-5. Botão "Copiar link do cliente" libera. Abrir → tela do cliente (formulário). Não mais "Assinatura realizada".
-6. Assinar pelo cliente → status vira `concluido`, PDF final é gerado.
-7. Reabrir qualquer um dos links → "Assinatura já realizada em <data/hora>".
+Permissões registradas no catálogo:
+- `relatorios_financeiros.view`
+- `relatorios_financeiros.export`
+- `relatorios_financeiros.editar_resultado_pedido`
 
-## 5. Entregáveis
-- 1 migração: `supabase/migrations/<ts>_token_por_participante_assinatura.sql`
-- Editados: `src/pages/AssinaturaPublica.tsx`, `src/components/assinaturas/AssinaturasDigitaisPanel.tsx`, `src/components/assinaturas/AssinarPelaLojaDialog.tsx`, `src/lib/publicLinks.ts`
-- Funções SQL alteradas/criadas: `recalcular_status_solicitacao` (nova), `sincronizar_status_assinatura_por_evidencia` (simplificada para delegar), `garantir_participante` (nova RPC), trigger `trg_recalcular_status_ap` (nova)
-- `solicitacoes_assinatura.token` permanece para fallback legado; nenhuma policy ou dado removido.
+### Navegação / botão "Relatórios"
+
+- Botão "Relatórios" em `src/pages/Financeiro.tsx` → `navigate('/financeiro/relatorios')`.
+- Rota nova em `src/App.tsx` protegida com `RequirePermission modulo="relatorios_financeiros"`.
+- (Sidebar não é alterada — acesso pelo botão dentro do Financeiro, conforme pedido.)
+
+### Cálculos centrais (helpers puros)
+
+- Status derivado: `pago` (data_pagamento ≠ null), `vencido` (sem pago e vencimento < hoje), `pendente` (sem pago e vencimento ≥ hoje).
+- Agregações: somatório por chave, % sobre total, contagem.
+- Resultado: `receitas - despesas`. Margem: `resultado / receitas * 100` (0 se receitas=0).
+- Receita por Pedido:
+  - `valor_venda` = `pedidos.valor_total` (ou contrato).
+  - `juros` = soma de juros financeiros do contrato/parcelas (se existir).
+  - `rt` = soma de despesas com categoria "RT/Indicação" vinculadas ao pedido, ou campo de RT do pedido.
+  - `valor_liquido = ajuste.valor_venda_liquida_ajustado ?? (valor_venda - juros - rt)`.
+  - `custo_venda` = custo de fábrica/produto do pedido (campo já existente).
+  - `custo_revisao = ajuste.custo_revisao_ajustado ?? custo_venda` (0 se ausente).
+  - Lucro/Margem conforme fórmulas do briefing.
+
+### Edição inline (Receita por Pedido)
+
+- Apenas com permissão `editar_resultado_pedido`.
+- `onBlur` → upsert em `resultado_pedido_ajustes` (pedido_id único) + revalidação otimista.
+- Não modifica pedido, contas ou baixas.
+
+### Performance
+
+- Período default = mês atual; data inicial obrigatória.
+- 1 query consolidada de `lancamentos_financeiros` por aplicação de filtro, com joins para nomes (categoria, centro, conta).
+- Receita por Pedido busca apenas pedidos do período + ajustes em uma única query paralela.
+- Agregações no client (já filtrado por período/loja). Usar `useMemo`.
+
+### Export / Print
+
+- `exportRelatorios.ts` usa XLSX (já presente em `exportFinanceiro.ts`) — uma função por relatório, respeitando filtros.
+- Print: `window.print()` + classe `print:` Tailwind escondendo sidebar, filtros, botões. Cabeçalho de impressão com título, data e filtros aplicados.
+
+### Entregáveis
+
+1. Migration `resultado_pedido_ajustes` + permissões em `permissoes_modulos_catalogo`.
+2. Rota + botão "Relatórios" linkado.
+3. Página + 7 componentes de relatório + filtros + cards.
+4. Helpers de agregação e export XLSX.
+5. Estilos de impressão.
+
+Sem alterações em fluxos existentes (A Receber, A Pagar, baixas, pedidos, contratos, RT, workflow).
