@@ -656,6 +656,8 @@ export default function ContasAPagar() {
         open={editOpen}
         onOpenChange={setEditOpen}
         tipo="saida"
+        cats={cats}
+        centros={centros}
         lanc={editAlvo ? {
           id: editAlvo.id,
           descricao: editAlvo.descricao,
@@ -666,6 +668,8 @@ export default function ContasAPagar() {
           forma_pagamento_prevista: editAlvo.forma_pagamento_prevista,
           notas: editAlvo.notas,
           status: editAlvo.status,
+          categoria_id: editAlvo.categoria_id,
+          centro_custo_id: editAlvo.centro_custo_id,
         } : null}
         onSave={salvarEdicao}
         onEstornar={editAlvo ? () => estornar(editAlvo) : undefined}
