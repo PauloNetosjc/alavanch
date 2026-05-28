@@ -138,6 +138,8 @@ function ListaLiberadosFabrica() {
                   <th className="text-left px-3 py-2">PV</th>
                   <th className="text-left px-3 py-2">Cliente</th>
                   <th className="text-left px-3 py-2">Loja</th>
+                  <th className="text-left px-3 py-2">Criado em</th>
+                  <th className="text-left px-3 py-2">Valor</th>
                   <th className="text-left px-3 py-2">Assinatura PDF Final</th>
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-right px-3 py-2">Ações</th>
@@ -149,6 +151,8 @@ function ListaLiberadosFabrica() {
                     <td className="px-3 py-2 font-medium">{l.codigo || "—"}</td>
                     <td className="px-3 py-2">{l.cliente_nome || "—"}</td>
                     <td className="px-3 py-2">{l.loja_nome || "—"}</td>
+                    <td className="px-3 py-2">{fmtData(l.created_at)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{fmtBrl(l.valor_total)}</td>
                     <td className="px-3 py-2">{fmtData(l.data_assinatura_pdf_final)}</td>
                     <td className="px-3 py-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">
