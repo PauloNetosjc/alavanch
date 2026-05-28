@@ -10,7 +10,7 @@ import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import LancamentosFiltros from "@/components/financeiro/LancamentosFiltros";
 import BaixaLancamentoDialog, { type BaixaPayload, TOLERANCIA_PERC } from "@/components/financeiro/BaixaLancamentoDialog";
-import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import EditarLancamentoDialog, { type EditarPayload, FORMAS_PREVISTAS } from "@/components/financeiro/EditarLancamentoDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { exportarExcel, imprimirLista, type LancRow } from "@/lib/exportFinanceiro";
 import { useLoja } from "@/contexts/LojaContext";
@@ -32,6 +32,7 @@ type Lanc = {
   baixado_em: string | null;
   fornecedor_id: string | null;
   forma_pagamento: string | null;
+  forma_pagamento_prevista: string | null;
   notas: string | null;
   loja_id: string | null;
   juros_previsto?: number | null;
@@ -73,6 +74,7 @@ export default function ContasAReceber() {
   const [dtFim, setDtFim] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10));
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [fornecedorFiltro, setFornecedorFiltro] = useState("");
+  const [formaPrevFiltro, setFormaPrevFiltro] = useState("");
   const [incluirPendentes, setIncluirPendentes] = useState(true);
   const [incluirLiquidadas, setIncluirLiquidadas] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
