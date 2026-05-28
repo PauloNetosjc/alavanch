@@ -4314,6 +4314,54 @@ export type Database = {
           },
         ]
       }
+      resultado_pedido_ajustes: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          created_at: string
+          custo_revisao_ajustado: number | null
+          id: string
+          loja_id: string | null
+          pedido_id: string
+          valor_venda_liquida_ajustado: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          created_at?: string
+          custo_revisao_ajustado?: number | null
+          id?: string
+          loja_id?: string | null
+          pedido_id: string
+          valor_venda_liquida_ajustado?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          created_at?: string
+          custo_revisao_ajustado?: number | null
+          id?: string
+          loja_id?: string | null
+          pedido_id?: string
+          valor_venda_liquida_ajustado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resultado_pedido_ajustes_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resultado_pedido_ajustes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_cargos: {
         Row: {
           ativo: boolean
