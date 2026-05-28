@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings, Percent, ShieldCheck, Save, Building2, Users, Banknote,
-  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays,
+  CreditCard, Handshake, Tags, MessageSquare, FileText, Plus, Pencil, Trash2, KanbanSquare, CalendarDays, UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate, useSearchParams } from "react-router-dom";
