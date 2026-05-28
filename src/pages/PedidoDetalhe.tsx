@@ -28,6 +28,7 @@ import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaD
 import { VisualizarAssinaturasDialog } from "@/components/assinaturas/VisualizarAssinaturasDialog";
 import { UploadContratoManualDialog } from "@/components/assinaturas/UploadContratoManualDialog";
 import { Badge } from "@/components/ui/badge";
+import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { getPublicSignatureUrl } from "@/lib/publicLinks";
 import { PedidoEtiquetas } from "@/components/PedidoEtiquetas";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
@@ -1691,11 +1692,7 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
               </div>
             )}
             {viewDoc?.url && viewDoc.mime.startsWith("application/pdf") && (
-              <iframe
-                src={viewDoc.url}
-                title={viewDoc.nome}
-                className="w-full h-full border-0"
-              />
+              <PdfCanvasViewer blobUrl={viewDoc.url} />
             )}
             {viewDoc?.url && viewDoc.mime.startsWith("image/") && (
               <img src={viewDoc.url} alt={viewDoc.nome} className="max-w-full max-h-[80vh] object-contain" />
