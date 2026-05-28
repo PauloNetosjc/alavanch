@@ -74,7 +74,7 @@ type PedidoComEtapa = PedidoLite & {
   diasRestantes: number | null;
 };
 
-// ---------- Etapas ----------
+// ---------- Etapas (internas, para labels/lookup) ----------
 const ETAPAS: { key: EtapaKey; label: string; icon: any }[] = [
   { key: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature },
   { key: "projeto_inicial", label: "Projeto Inicial", icon: FileText },
@@ -90,6 +90,38 @@ const ETAPAS: { key: EtapaKey; label: string; icon: any }[] = [
   { key: "montagem", label: "Montagem", icon: Wrench },
   { key: "vistoria_finalizacao", label: "Vistoria / Finalização", icon: ShieldCheck },
 ];
+
+// ---------- Agrupamentos visuais ----------
+type GroupKey =
+  | "contrato_assinado"
+  | "projeto_inicial"
+  | "medicao_tecnica"
+  | "preparo_projeto_revisao"
+  | "revisao_loja"
+  | "pdf_projeto_final"
+  | "fabrica_lote"
+  | "entrega"
+  | "montagem"
+  | "vistoria_finalizacao";
+
+const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
+  { visualKey: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature, internalKeys: ["contrato_assinado"] },
+  { visualKey: "projeto_inicial", label: "Projeto Inicial", icon: FileText, internalKeys: ["projeto_inicial", "projeto_vendido"] },
+  { visualKey: "medicao_tecnica", label: "Medição Técnica", icon: Ruler, internalKeys: ["medicao_tecnica"] },
+  { visualKey: "preparo_projeto_revisao", label: "Preparo Revisão", icon: Pencil, internalKeys: ["preparo_projeto_revisao"] },
+  { visualKey: "revisao_loja", label: "Revisão Loja", icon: ClipboardCheck, internalKeys: ["revisao_loja"] },
+  { visualKey: "pdf_projeto_final", label: "PDF Projeto Final", icon: FilePlus2, internalKeys: ["projeto_revisado", "pdf_projeto_final"] },
+  { visualKey: "fabrica_lote", label: "Fábrica / Lote", icon: Factory, internalKeys: ["projeto_para_producao", "fabrica_lote"] },
+  { visualKey: "entrega", label: "Entrega", icon: Truck, internalKeys: ["entrega"] },
+  { visualKey: "montagem", label: "Montagem", icon: Wrench, internalKeys: ["montagem"] },
+  { visualKey: "vistoria_finalizacao", label: "Vistoria / Finalização", icon: ShieldCheck, internalKeys: ["vistoria_finalizacao"] },
+];
+
+const ETAPA_TO_GROUP: Record<EtapaKey, GroupKey> = (() => {
+  const m: any = {};
+  WORKFLOW_STAGE_GROUPS.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
+  return m;
+})();
 
 // Mapeia nome do modelo da tarefa nativa -> chave técnica
 const MODELO_PARA_ETAPA: Record<string, EtapaKey> = {
