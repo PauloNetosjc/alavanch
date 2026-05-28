@@ -213,7 +213,7 @@ export default function WorkflowOperacionalDashboard() {
   const [docs, setDocs] = useState<DocLite[]>([]);
   const [profileNomes, setProfileNomes] = useState<Record<string, string>>({});
 
-  const [etapaSelecionada, setEtapaSelecionada] = useState<EtapaKey | null>(null);
+  const [grupoSelecionado, setGrupoSelecionado] = useState<GroupKey | null>(null);
   const [statusFiltro, setStatusFiltro] = useState<"todos" | StatusPrazo>("todos");
   const [busca, setBusca] = useState("");
 
