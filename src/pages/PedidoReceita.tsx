@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import BaixaLancamentoDialog, { type BaixaPayload } from "@/components/financeiro/BaixaLancamentoDialog";
 import EditarLancamentoDialog, { type EditarPayload } from "@/components/financeiro/EditarLancamentoDialog";
+import { gerarPreviewReceita, type MetodoPagamento } from "@/lib/receitaPreview";
 
 const fmtBrl = (v: number) =>
   (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -91,6 +92,7 @@ export default function PedidoReceita() {
   const [cliente, setCliente] = useState<any>(null);
   const [loja, setLoja] = useState<any>(null);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [metodos, setMetodos] = useState<MetodoPagamento[]>([]);
   const [lancamentos, setLancamentos] = useState<Lanc[]>([]);
   const [contas, setContas] = useState<{ id: string; nome: string; banco: string | null }[]>([]);
   const [criador, setCriador] = useState<any>(null);
@@ -118,6 +120,8 @@ export default function PedidoReceita() {
       const { data: pags } = await supabase.from("pagamentos_orcamento").select("*").eq("orcamento_id", ped.orcamento_id);
       setPagamentos(pags || []);
     }
+    const { data: mets } = await supabase.from("metodos_pagamento").select("*");
+    setMetodos(((mets as any[]) || []) as MetodoPagamento[]);
     if (ped?.id) {
       const { data: lanc } = await supabase
         .from("lancamentos_financeiros")
@@ -177,39 +181,24 @@ export default function PedidoReceita() {
         };
       });
     }
-    // Fallback: pagamentos_orcamento
-    const out: Parcela[] = [];
-    let i = 1;
-    for (const p of pagamentos) {
-      const detalhe = (p.parcelas_detalhe as any[]) || [];
-      const vencs = (p.parcelas_vencimentos as any[]) || [];
-      const formas = (p.parcelas_formas as any[]) || [];
-      const formaDefault = p.forma_pagamento || p.metodo || "—";
-      if (Array.isArray(detalhe) && detalhe.length) {
-        detalhe.forEach((d: any, k: number) => {
-          const isObj = d && typeof d === "object" && !Array.isArray(d);
-          const valor = isObj ? Number(d.valor) || 0 : Number(d) || 0;
-          const venc = (isObj ? (d.data_vencimento || d.data) : null) || vencs[k] || null;
-          const forma = (isObj ? (d.forma_pagamento || d.forma) : null) || formas[k] || formaDefault;
-          out.push({ numero: i++, total: 0, valor, juros: 0, taxa_perc: 0, recebido: 0, saldo: valor, vencimento: venc, forma, agrupado: false, status: "pendente", origemReal: false });
-        });
-      } else {
-        const qtd = Number(p.parcelas) || 1;
-        const valorTotal = Number(p.valor) || 0;
-        const valorParcela = qtd > 0 ? valorTotal / qtd : valorTotal;
-        const baseDate = p.data_vencimento ? new Date(p.data_vencimento) : null;
-        for (let k = 0; k < qtd; k++) {
-          let dataStr: string | null = vencs[k] || null;
-          if (!dataStr && baseDate) {
-            const d = new Date(baseDate); d.setMonth(d.getMonth() + k);
-            dataStr = d.toISOString().slice(0, 10);
-          }
-          out.push({ numero: i++, total: 0, valor: valorParcela, juros: 0, taxa_perc: 0, recebido: 0, saldo: valorParcela, vencimento: dataStr, forma: formas[k] || formaDefault, agrupado: false, status: "pendente", origemReal: false });
-        }
-      }
-    }
-    return out.map((p) => ({ ...p, total: out.length }));
-  }, [integrado, lancamentos, pagamentos]);
+    // Fallback (prévia): usa o mesmo cálculo do gerador SQL
+    const dataBase = (pedido?.created_at || new Date().toISOString()).slice(0, 10);
+    const prev = gerarPreviewReceita(pagamentos as any, metodos, dataBase);
+    return prev.map((p) => ({
+      numero: p.numero,
+      total: p.total,
+      valor: p.valor,
+      juros: p.juros,
+      taxa_perc: p.taxa_perc,
+      recebido: 0,
+      saldo: p.saldo,
+      vencimento: p.vencimento,
+      forma: p.forma,
+      agrupado: p.agrupado,
+      status: p.status,
+      origemReal: false,
+    }));
+  }, [integrado, lancamentos, pagamentos, metodos, pedido]);
 
   const totais = useMemo(() => {
     const valor = parcelas.reduce((s, p) => s + p.valor, 0);
