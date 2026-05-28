@@ -468,6 +468,29 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
                   </Button>
                 )}
 
+                {arquivos.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-1.5"
+                    disabled={zipKey === s.key}
+                    onClick={() => handleBaixarTodos(s.key)}
+                    title="Baixar todos os arquivos desta seção em um .zip"
+                  >
+                    {zipKey === s.key ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        Preparando arquivos…
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-3.5 h-3.5 mr-1.5" />
+                        Baixar todos ({arquivos.length})
+                      </>
+                    )}
+                  </Button>
+                )}
+
                 {/* Painel de progresso/fila */}
                 {isUploading && uploadQueue.length > 0 && (
                   <div className="mt-2 space-y-1">
