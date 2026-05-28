@@ -439,7 +439,7 @@ export default function WorkflowOperacionalDashboard() {
                 <button
                   type="button"
                   onClick={() => setEtapaSelecionada(active ? null : e.key)}
-                  className={`relative text-left transition-all ${active ? "scale-[1.03] z-10" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-2 ring-primary" : ""}`}
+                  className={`relative text-left transition-all duration-200 ${active ? "scale-[1.04] z-20 brightness-105" : "hover:brightness-105"} ${ARROW_BG[risco]} ${active ? "ring-[3px] ring-primary/80" : ""}`}
                   style={{
                     clipPath: clip,
                     WebkitClipPath: clip,
