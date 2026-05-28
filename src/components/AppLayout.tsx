@@ -9,7 +9,6 @@ import { ErrorBoundary } from "./ErrorBoundary";
 
 export function AppLayout() {
   const { role } = useAuth();
-  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Montador tem layout dedicado
