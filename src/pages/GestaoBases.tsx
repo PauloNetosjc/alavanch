@@ -516,12 +516,13 @@ function DetalheBaseSheet({
           </SheetTitle>
         </SheetHeader>
         <Tabs defaultValue="dados" className="mt-4">
-          <TabsList className="grid grid-cols-6">
+          <TabsList className="grid grid-cols-4 md:grid-cols-7 h-auto">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="lojas"><Store className="w-3.5 h-3.5 mr-1" />Lojas</TabsTrigger>
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1" />Usuários</TabsTrigger>
             <TabsTrigger value="modulos"><Package className="w-3.5 h-3.5 mr-1" />Módulos</TabsTrigger>
             <TabsTrigger value="cobranca"><CreditCard className="w-3.5 h-3.5 mr-1" />Cobrança</TabsTrigger>
+            <TabsTrigger value="contratos"><FileSignature className="w-3.5 h-3.5 mr-1" />Contratos</TabsTrigger>
             <TabsTrigger value="historico"><History className="w-3.5 h-3.5 mr-1" />Histórico</TabsTrigger>
           </TabsList>
 
