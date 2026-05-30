@@ -131,6 +131,7 @@ const moreGroups: Group[] = [
     items: [
       { label: "Info Sistema", path: "/sistema/info", icon: Cog, roles: ["admin"] },
       { label: "Gestão de Módulos", path: "/sistema/gestao-modulos", icon: Package, roles: ["admin"] },
+      { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
