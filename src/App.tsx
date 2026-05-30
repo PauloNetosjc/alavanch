@@ -24,6 +24,8 @@ const ComunicadosSaaS = lazy(() => import("@/pages/ComunicadosSaaS"));
 const ModelosContratoSaaS = lazy(() => import("@/pages/ModelosContratoSaaS"));
 const EmpresaSaaS = lazy(() => import("@/pages/sistema-saas/EmpresaSaaS"));
 const FinanceiroSaaS = lazy(() => import("@/pages/sistema-saas/FinanceiroSaaS"));
+const CrmSaaS = lazy(() => import("@/pages/sistema-saas/CrmSaaS"));
+const AgendaSaaS = lazy(() => import("@/pages/sistema-saas/AgendaSaaS"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
