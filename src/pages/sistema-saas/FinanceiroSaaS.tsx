@@ -441,11 +441,6 @@ export default function FinanceiroSaaS() {
             <SaaSLancamentosTab tipo="receita" />
           </Card>
 
-          {/* Cobranças vinculadas */}
-          <Card className="p-4">
-            <div className="text-sm font-medium mb-3">Cobranças SaaS vinculadas</div>
-            <CobrancasSaaS embedded />
-          </Card>
         </div>
       )}
 
