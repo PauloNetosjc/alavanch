@@ -5,8 +5,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Tabs, TabsList, TabsTrigger, TabsContent,
+  Tabs, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import { AnexoView, anexoIcon } from "./AnexoView";
 
 const tipoLabel: Record<string, string> = {
   novidade: "Novidade", aviso: "Aviso", manutencao: "Manutenção", financeiro: "Financeiro",
