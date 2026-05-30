@@ -39,7 +39,10 @@ type Base = {
   data_inicio: string | null;
   data_cancelamento: string | null;
   created_at: string;
+  sistema_saas_id: string | null;
 };
+
+type Sistema = { id: string; nome: string; slug: string; ativo: boolean; status: string };
 
 type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null; cidade?: string | null; uf?: string | null; cnpj?: string | null; email?: string | null; telefone?: string | null; endereco?: string | null };
 type Modulo = { chave: string; nome: string; categoria: string | null; essencial: boolean };
@@ -77,6 +80,7 @@ const emptyForm = (): Partial<Base> => ({
   plano: "personalizado",
   observacoes: "",
   data_inicio: new Date().toISOString().slice(0, 10),
+  sistema_saas_id: null,
 });
 
 function statusBadge(s: string) {
@@ -89,6 +93,7 @@ export default function GestaoBases() {
   const [bases, setBases] = useState<Base[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [contratos, setContratos] = useState<any[]>([]);
+  const [sistemas, setSistemas] = useState<Sistema[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -103,14 +108,16 @@ export default function GestaoBases() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: b }, { data: l }, { data: c }] = await Promise.all([
+    const [{ data: b }, { data: l }, { data: c }, { data: s }] = await Promise.all([
       supabase.from("bases_clientes" as any).select("*").order("nome"),
       supabase.from("lojas").select("id,nome,ativo,base_cliente_id,cidade,uf,cnpj,email,telefone,endereco").order("nome"),
       (supabase.from("base_contratos" as any) as any).select("id,base_cliente_id,status"),
+      (supabase.from("sistemas_saas" as any) as any).select("id,nome,slug,ativo,status").eq("ativo", true).order("ordem").order("nome"),
     ]);
     setBases((b || []) as any);
     setLojas((l || []) as any);
     setContratos((c || []) as any);
+    setSistemas((s || []) as any);
     setLoading(false);
   };
 
@@ -177,6 +184,7 @@ export default function GestaoBases() {
 
   const salvar = async () => {
     if (!form.nome?.trim()) { toast.error("Nome da base é obrigatório"); return; }
+    if (!form.sistema_saas_id) { toast.error("Selecione o sistema contratado"); return; }
     setSaving(true);
     try {
       const payload: any = {
@@ -191,6 +199,7 @@ export default function GestaoBases() {
         plano: form.plano || "personalizado",
         observacoes: form.observacoes || null,
         data_inicio: form.data_inicio || null,
+        sistema_saas_id: form.sistema_saas_id,
         atualizado_por: user?.id ?? null,
       };
       if (editing) {
@@ -313,6 +322,7 @@ export default function GestaoBases() {
                   <th className="text-left p-3">Base</th>
                   <th className="text-left p-3">CNPJ</th>
                   <th className="text-left p-3">Responsável</th>
+                  <th className="text-left p-3">Sistema</th>
                   <th className="text-left p-3">Plano</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Lojas</th>
@@ -337,6 +347,7 @@ export default function GestaoBases() {
                       <div>{b.responsavel_nome || "—"}</div>
                       {b.email_responsavel && <div className="text-muted-foreground">{b.email_responsavel}</div>}
                     </td>
+                    <td className="p-3 text-xs">{sistemas.find((s) => s.id === b.sistema_saas_id)?.nome || <span className="text-muted-foreground">—</span>}</td>
                     <td className="p-3"><Badge variant="outline" className="capitalize">{b.plano}</Badge></td>
                     <td className="p-3">{statusBadge(b.status)}</td>
                     <td className="p-3 text-xs">{(lojasPorBase[b.id] || []).length}</td>
@@ -393,6 +404,15 @@ export default function GestaoBases() {
               <Label>E-mail do responsável</Label>
               <Input type="email" value={form.email_responsavel || ""} onChange={(e) => setForm({ ...form, email_responsavel: e.target.value })} />
             </div>
+            <div className="col-span-2">
+              <Label>Sistema contratado *</Label>
+              <Select value={form.sistema_saas_id || ""} onValueChange={(v) => setForm({ ...form, sistema_saas_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione o sistema" /></SelectTrigger>
+                <SelectContent>
+                  {sistemas.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Plano</Label>
               <Select value={form.plano || "personalizado"} onValueChange={(v) => setForm({ ...form, plano: v })}>
@@ -428,6 +448,7 @@ export default function GestaoBases() {
         <DetalheBaseSheet
           base={detalheBase}
           lojas={lojasPorBase[detalheBase.id] || []}
+          sistemas={sistemas}
           onClose={() => setDetalheBase(null)}
           onChanged={load}
           userId={user?.id ?? null}
@@ -442,9 +463,9 @@ export default function GestaoBases() {
 // ============================================================
 
 function DetalheBaseSheet({
-  base, lojas, onClose, onChanged, userId,
+  base, lojas, sistemas, onClose, onChanged, userId,
 }: {
-  base: Base; lojas: Loja[]; onClose: () => void; onChanged: () => void; userId: string | null;
+  base: Base; lojas: Loja[]; sistemas: Sistema[]; onClose: () => void; onChanged: () => void; userId: string | null;
 }) {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [ativacoes, setAtivacoes] = useState<ModuloLoja[]>([]);
@@ -533,6 +554,7 @@ function DetalheBaseSheet({
             <Linha label="Responsável" value={base.responsavel_nome} />
             <Linha label="E-mail" value={base.email_responsavel} />
             <Linha label="Telefone" value={base.telefone_responsavel} />
+            <Linha label="Sistema contratado" value={sistemas.find((s) => s.id === base.sistema_saas_id)?.nome || null} />
             <Linha label="Plano" value={base.plano} />
             <Linha label="Status" value={base.status} />
             <Linha label="Início" value={base.data_inicio ? new Date(base.data_inicio).toLocaleDateString("pt-BR") : null} />
