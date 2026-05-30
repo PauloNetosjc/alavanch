@@ -12,6 +12,7 @@ const ProducaoPorPedido = lazy(() => import("@/pages/fabrica/ProducaoPorPedido")
 const ConferenciaFabrica = lazy(() => import("@/pages/fabrica/Conferencia"));
 const KanbanFabrica = lazy(() => import("@/pages/KanbanFabrica"));
 const Almoxarifado = lazy(() => import("@/pages/fabrica/Almoxarifado"));
+const Expedicao = lazy(() => import("@/pages/fabrica/Expedicao"));
 
 interface AbaDef {
   value: string;
