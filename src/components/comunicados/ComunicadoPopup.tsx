@@ -52,6 +52,7 @@ export function ComunicadoPopup() {
         <div className="text-[13px] text-foreground whitespace-pre-wrap leading-relaxed">
           {current.mensagem}
         </div>
+        <AnexoView c={current} />
         {current.link_url && (
           <a href={current.link_url} target="_blank" rel="noreferrer" className="text-[12px] text-primary underline">
             Saiba mais →
