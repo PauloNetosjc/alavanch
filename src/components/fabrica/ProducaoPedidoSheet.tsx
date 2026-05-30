@@ -385,5 +385,22 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
         )}
       </SheetContent>
     </Sheet>
+    <ConferenciaPedidoSheet
+      open={confOpen}
+      onOpenChange={(v) => { setConfOpen(v); if (!v) carregar(); }}
+      pedidoId={pedidoId}
+      onChanged={() => { carregar(); onChanged?.(); }}
+    />
+    <EtiquetaPreviewDialog
+      open={etiquetaOpen}
+      onOpenChange={setEtiquetaOpen}
+      pedidoId={pedidoId || ""}
+      pedidoCodigo={pedido?.codigo}
+      cliente={pedido?.cliente?.nome}
+      projeto={etiquetaPecas[0]?.modulo?.ambiente || undefined}
+      volume={etiquetaVolume}
+      pecas={etiquetaPecas}
+    />
+    </>
   );
 }
