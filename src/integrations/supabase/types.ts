@@ -902,6 +902,104 @@ export type Database = {
           },
         ]
       }
+      bases_clientes: {
+        Row: {
+          atualizado_por: string | null
+          cnpj: string | null
+          created_at: string
+          criado_por: string | null
+          data_cancelamento: string | null
+          data_inicio: string | null
+          email_responsavel: string | null
+          id: string
+          nome: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          plano: string
+          razao_social: string | null
+          responsavel_nome: string | null
+          status: string
+          telefone_responsavel: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_inicio?: string | null
+          email_responsavel?: string | null
+          id?: string
+          nome: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          plano?: string
+          razao_social?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          telefone_responsavel?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_inicio?: string | null
+          email_responsavel?: string | null
+          id?: string
+          nome?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          plano?: string
+          razao_social?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          telefone_responsavel?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bases_clientes_historico: {
+        Row: {
+          base_id: string
+          created_at: string
+          descricao: string | null
+          detalhes: Json | null
+          evento: string
+          id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          base_id: string
+          created_at?: string
+          descricao?: string | null
+          detalhes?: Json | null
+          evento: string
+          id?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          base_id?: string
+          created_at?: string
+          descricao?: string | null
+          detalhes?: Json | null
+          evento?: string
+          id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bases_clientes_historico_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartoes_credito: {
         Row: {
           ativo: boolean | null
@@ -2398,6 +2496,7 @@ export type Database = {
       lojas: {
         Row: {
           ativo: boolean | null
+          base_cliente_id: string | null
           cidade: string | null
           cnpj: string | null
           created_at: string
@@ -2412,6 +2511,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          base_cliente_id?: string | null
           cidade?: string | null
           cnpj?: string | null
           created_at?: string
@@ -2426,6 +2526,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          base_cliente_id?: string | null
           cidade?: string | null
           cnpj?: string | null
           created_at?: string
@@ -2438,7 +2539,15 @@ export type Database = {
           uf?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lojas_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lote_pedidos: {
         Row: {
