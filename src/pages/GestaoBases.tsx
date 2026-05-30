@@ -649,3 +649,174 @@ function Linha({ label, value }: { label: string; value: string | null | undefin
     </div>
   );
 }
+
+// ============================================================
+// Aba: Lojas da Base (CRUD direto)
+// ============================================================
+function LojasDaBase({
+  baseId, lojas, usuarios, userId, onChanged,
+}: {
+  baseId: string;
+  lojas: Loja[];
+  usuarios: any[];
+  userId: string | null;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Loja | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Partial<Loja>>({});
+
+  const abrirNova = () => { setEditing(null); setForm({ ativo: true }); setOpen(true); };
+  const abrirEdit = (lj: Loja) => { setEditing(lj); setForm({ ...lj }); setOpen(true); };
+
+  const salvar = async () => {
+    if (!form.nome?.trim()) { toast.error("Nome da loja é obrigatório"); return; }
+    setSaving(true);
+    try {
+      const payload: any = {
+        nome: form.nome,
+        cidade: form.cidade || null,
+        uf: form.uf || null,
+        endereco: form.endereco || null,
+        telefone: form.telefone ? maskPhone(form.telefone) : null,
+        email: form.email || null,
+        cnpj: form.cnpj ? maskCnpj(form.cnpj) : null,
+        ativo: form.ativo ?? true,
+        base_cliente_id: baseId,
+      };
+      if (editing) {
+        const { error } = await supabase.from("lojas").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await supabase.from("bases_clientes_historico" as any).insert({
+          base_id: baseId, evento: "loja_editada",
+          descricao: `Loja "${payload.nome}" atualizada`, usuario_id: userId,
+        } as any);
+        toast.success("Loja atualizada");
+      } else {
+        const { data, error } = await supabase.from("lojas").insert(payload).select("id").single();
+        if (error) throw error;
+        await supabase.from("bases_clientes_historico" as any).insert({
+          base_id: baseId, evento: "loja_criada",
+          descricao: `Loja "${payload.nome}" criada`,
+          detalhes: { loja_id: (data as any).id }, usuario_id: userId,
+        } as any);
+        toast.success("Loja criada");
+      }
+      setOpen(false);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar loja");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAtivo = async (lj: Loja) => {
+    const novo = !lj.ativo;
+    const { error } = await supabase.from("lojas").update({ ativo: novo }).eq("id", lj.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("bases_clientes_historico" as any).insert({
+      base_id: baseId, evento: novo ? "loja_ativada" : "loja_inativada",
+      descricao: `Loja "${lj.nome}" ${novo ? "ativada" : "inativada"}`, usuario_id: userId,
+    } as any);
+    toast.success(novo ? "Loja ativada" : "Loja inativada");
+    onChanged();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs text-muted-foreground">{lojas.length} loja{lojas.length !== 1 ? "s" : ""} vinculada{lojas.length !== 1 ? "s" : ""}</div>
+        <Button size="sm" onClick={abrirNova} className="gap-2"><Plus className="w-3.5 h-3.5"/> Nova loja</Button>
+      </div>
+
+      {lojas.length === 0 ? (
+        <div className="text-sm text-muted-foreground border rounded-md p-6 text-center">
+          Nenhuma loja vinculada. Clique em <strong>Nova loja</strong> para criar a primeira.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {lojas.map((lj) => (
+            <Card key={lj.id} className="p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{lj.nome}</span>
+                  {lj.ativo
+                    ? <Badge className="bg-emerald-100 text-emerald-800 border-0 text-[10px]">Ativa</Badge>
+                    : <Badge className="bg-zinc-200 text-zinc-700 border-0 text-[10px]">Inativa</Badge>}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {[lj.cidade, lj.uf].filter(Boolean).join("/") || "—"}
+                  {lj.cnpj && <> · {maskCnpj(lj.cnpj)}</>}
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{usuarios.filter((u) => u.loja_id === lj.id).length} usuários</Badge>
+              <div className="flex gap-1">
+                <Button size="sm" variant="ghost" onClick={() => abrirEdit(lj)}>Editar</Button>
+                <Button size="sm" variant="ghost" onClick={() => toggleAtivo(lj)}>
+                  {lj.ativo ? "Inativar" : "Ativar"}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar loja" : "Criar loja para esta base"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>Nome da loja *</Label>
+              <Input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+            </div>
+            <div>
+              <Label>Cidade</Label>
+              <Input value={form.cidade || ""} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+            </div>
+            <div>
+              <Label>UF</Label>
+              <Input maxLength={2} value={form.uf || ""} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço</Label>
+              <Input value={form.endereco || ""} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input value={form.telefone || ""} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} />
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>CNPJ</Label>
+              <Input value={form.cnpj || ""} onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={(form.ativo ?? true) ? "ativa" : "inativa"} onValueChange={(v) => setForm({ ...form, ativo: v === "ativa" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativa">Ativa</SelectItem>
+                  <SelectItem value="inativa">Inativa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={salvar} disabled={saving}>
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />}
+              {editing ? "Salvar" : "Criar loja"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
