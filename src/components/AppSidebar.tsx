@@ -79,7 +79,7 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2, kanban: "fabrica" },
+      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2, modulo: "fabrica_lotes" },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
