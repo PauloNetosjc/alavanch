@@ -23,7 +23,9 @@ import { ConferenciaPedidoSheet } from "@/components/fabrica/ConferenciaPedidoSh
 import { EtiquetaPreviewDialog } from "@/components/fabrica/EtiquetaPreviewDialog";
 import { AlmoxarifadoPedidoSheet } from "@/components/fabrica/AlmoxarifadoPedidoSheet";
 import { EtiquetaCaixaPreviewDialog } from "@/components/fabrica/EtiquetaCaixaPreviewDialog";
-import { ScanBarcode, Printer, PackageOpen } from "lucide-react";
+import { ExpedicaoPedidoSheet } from "@/components/fabrica/ExpedicaoPedidoSheet";
+import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
+import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
 
 interface Props {
   open: boolean;
@@ -49,6 +51,8 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [almoxOpen, setAlmoxOpen] = useState(false);
   const [caixaPreview, setCaixaPreview] = useState<any | null>(null);
   const [caixaPreviewItens, setCaixaPreviewItens] = useState<any[]>([]);
+  const [expOpen, setExpOpen] = useState(false);
+  const [histExp, setHistExp] = useState<any[]>([]);
 
   async function carregar() {
     if (!pedidoId) return;
@@ -72,6 +76,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
       setVolumes(vs || []);
       setVolumePecas(vp || []);
       setHistoricoConf(hi || []);
+      try { setHistExp(await listarHistoricoExp(pedidoId, 30)); } catch {}
     } finally {
       setLoading(false);
     }
@@ -168,6 +173,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               <TabsTrigger value="pecas">Peças ({pecas.length})</TabsTrigger>
               <TabsTrigger value="conferencia">Conferência ({volumes.length})</TabsTrigger>
               <TabsTrigger value="almox">Almoxarifado ({almox.length})</TabsTrigger>
+              <TabsTrigger value="expedicao">Expedição</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos ({arquivos.length})</TabsTrigger>
             </TabsList>
 
@@ -408,6 +414,65 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
+            <TabsContent value="expedicao" className="space-y-3">
+              {(() => {
+                const ativos = volumes.filter((v: any) => v.status !== "cancelado");
+                const r = resumirVolumes(ativos);
+                const podeIniciar = ["pronto_para_expedicao", "em_expedicao", "expedido"].includes(pedido?.status_fabrica);
+                return (
+                  <>
+                    <Card className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Truck className="h-5 w-5 text-amber-700" />
+                        <div className="font-medium">Expedição por volumes</div>
+                        <Badge variant="outline" className={statusFabricaBadgeClass(pedido?.status_fabrica)}>
+                          {statusFabricaLabel(pedido?.status_fabrica)}
+                        </Badge>
+                        <Button size="sm" className="ml-auto" disabled={!podeIniciar} onClick={() => setExpOpen(true)}>
+                          <ScanBarcode className="h-4 w-4 mr-1" />
+                          {pedido?.status_fabrica === "expedido" ? "Consultar" : "Iniciar expedição"}
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+                        <div className="rounded border p-2"><div className="text-xs text-muted-foreground">Total</div><div className="text-lg font-bold">{r.total}</div></div>
+                        <div className="rounded border p-2"><div className="text-xs text-muted-foreground">Carregados</div><div className="text-lg font-bold text-emerald-700">{r.carregados}</div></div>
+                        <div className="rounded border p-2"><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-lg font-bold text-amber-700">{r.pendentes}</div></div>
+                        <div className="rounded border p-2"><div className="text-xs text-muted-foreground">Caixas</div><div className="text-lg font-bold">{r.caixas}</div></div>
+                        <div className="rounded border p-2"><div className="text-xs text-muted-foreground">Problemas</div><div className="text-lg font-bold text-red-700">{r.problemas}</div></div>
+                      </div>
+                      {pedido?.fabrica_expedido_em && (
+                        <div className="text-xs text-muted-foreground mt-3">
+                          Expedido em {new Date(pedido.fabrica_expedido_em).toLocaleString("pt-BR")}
+                        </div>
+                      )}
+                      {!podeIniciar && (
+                        <div className="text-xs text-muted-foreground mt-3">
+                          Pedido precisa estar pronto para expedição (peças e almoxarifado concluídos).
+                        </div>
+                      )}
+                    </Card>
+
+                    <Card className="p-3">
+                      <div className="text-sm font-medium mb-2">Histórico de bipagem</div>
+                      {histExp.length === 0 ? (
+                        <div className="text-xs text-muted-foreground py-2">Sem eventos.</div>
+                      ) : (
+                        <div className="space-y-1 text-xs font-mono max-h-72 overflow-y-auto">
+                          {histExp.map((h: any) => (
+                            <div key={h.id} className="flex gap-2 border-b border-border/40 pb-1">
+                              <span className="text-muted-foreground shrink-0">{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                              <Badge variant="outline" className="text-[10px]">{RESULTADO_EXP_LABEL[h.resultado] || h.resultado}</Badge>
+                              <span className="truncate">{h.codigo_bipado || ""} {h.mensagem ? `— ${h.mensagem}` : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </>
+                );
+              })()}
+            </TabsContent>
+
             <TabsContent value="arquivos">
               <Card className="p-0 overflow-hidden">
                 <table className="w-full text-sm">
@@ -479,6 +544,12 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
         itens={caixaPreviewItens}
       />
     )}
+    <ExpedicaoPedidoSheet
+      open={expOpen}
+      onOpenChange={(v) => { setExpOpen(v); if (!v) carregar(); }}
+      pedido={pedido}
+      onChanged={() => { carregar(); onChanged?.(); }}
+    />
     </>
   );
 }

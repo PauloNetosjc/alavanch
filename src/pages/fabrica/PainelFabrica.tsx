@@ -48,6 +48,7 @@ export default function PainelFabrica() {
     { key: "em_corte", icon: Factory },
     { key: "aguardando_conferencia", icon: ClipboardList },
     { key: "pronto_para_expedicao", icon: Truck },
+    { key: "em_expedicao", icon: Truck },
     { key: "expedido", icon: Truck },
     { key: "ocorrencia_peca_faltante", icon: AlertTriangle },
   ];

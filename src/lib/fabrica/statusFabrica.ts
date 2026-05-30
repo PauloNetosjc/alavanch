@@ -12,9 +12,9 @@ export type StatusFabrica =
   | "aguardando_almoxarifado"
   | "em_separacao_almoxarifado"
   | "pronto_para_expedicao"
+  | "em_expedicao"
   | "expedido"
   | "ocorrencia_peca_faltante"
-  // status legados do fluxo de lotes que podem aparecer
   | "liberado_para_lote"
   | "em_producao"
   | "concluido_fabrica";
@@ -32,6 +32,7 @@ export const STATUS_FABRICA_LABEL: Record<string, string> = {
   aguardando_almoxarifado: "Aguardando almoxarifado",
   em_separacao_almoxarifado: "Separação almoxarifado",
   pronto_para_expedicao: "Pronto para expedição",
+  em_expedicao: "Em expedição",
   expedido: "Expedido",
   ocorrencia_peca_faltante: "Ocorrência / peça faltante",
   em_producao: "Em produção",
@@ -50,6 +51,7 @@ export const STATUS_FABRICA_ORDEM: StatusFabrica[] = [
   "aguardando_almoxarifado",
   "em_separacao_almoxarifado",
   "pronto_para_expedicao",
+  "em_expedicao",
   "expedido",
   "ocorrencia_peca_faltante",
 ];
@@ -71,6 +73,7 @@ export function statusFabricaBadgeClass(s: string | null | undefined): string {
     case "em_corte":
     case "em_separacao_pecas":
     case "em_separacao_almoxarifado":
+    case "em_expedicao":
     case "em_producao":
       return "bg-amber-100 text-amber-800 border-amber-200";
     case "arquivos_importados":
