@@ -544,6 +544,12 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
         itens={caixaPreviewItens}
       />
     )}
+    <ExpedicaoPedidoSheet
+      open={expOpen}
+      onOpenChange={(v) => { setExpOpen(v); if (!v) carregar(); }}
+      pedido={pedido}
+      onChanged={() => { carregar(); onChanged?.(); }}
+    />
     </>
   );
 }
