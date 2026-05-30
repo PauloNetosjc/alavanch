@@ -131,16 +131,21 @@ const moreGroups: Group[] = [
     icon: Cog,
     items: [
       { label: "Info Sistema", path: "/sistema/info", icon: Cog, roles: ["admin"] },
-      { label: "Painel Master", path: "/sistema/painel-master", icon: TrendingUp, roles: ["admin"] },
-      { label: "Gestão de Módulos", path: "/sistema/gestao-modulos", icon: Package, roles: ["admin"] },
-      { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
       { label: "Agenda", path: "/administracao?tab=agenda", icon: CalendarDays, roles: ["admin"] },
-      
       { label: "Simulador de automações", path: "/administracao/simulador-automacoes", icon: Zap, roles: ["admin"] },
       { label: "Tarefas Nativas do Pedido", path: "/administracao/tarefas-nativas", icon: ListChecks, roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Sistema SaaS",
+    icon: TrendingUp,
+    items: [
+      { label: "Painel Master", path: "/sistema/painel-master", icon: TrendingUp, roles: ["admin"] },
+      { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
+      { label: "Gestão de Módulos", path: "/sistema/gestao-modulos", icon: Package, roles: ["admin"] },
     ],
   },
   {
