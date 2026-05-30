@@ -195,7 +195,7 @@ const App = () => (
                 <Route path="/bater-ponto" element={<RequireModulo modulo="bater_ponto" nome="Bater Ponto"><RequirePermission modulo="bater_ponto"><BaterPonto /></RequirePermission></RequireModulo>} />
                 <Route path="/sistema/gestao-modulos" element={<Navigate to="/sistema/gestao-bases" replace />} />
                 <Route path="/sistema/gestao-bases" element={<RequirePermission modulo="sistema.gestao_bases"><GestaoBases /></RequirePermission>} />
-                <Route path="/sistema/gestao-bases/cobrancas" element={<RequirePermission modulo="sistema.cobranca_bases"><CobrancasSaaS /></RequirePermission>} />
+                <Route path="/sistema/gestao-bases/cobrancas" element={<Navigate to="/sistema-saas/financeiro?aba=receber" replace />} />
                 <Route path="/sistema/gestao-bases/comunicados" element={<RequirePermission modulo="sistema.comunicados_saas"><ComunicadosSaaS /></RequirePermission>} />
                 <Route path="/sistema/gestao-bases/modelos-contrato" element={<RequirePermission modulo="sistema.modelos_contrato_saas"><ModelosContratoSaaS /></RequirePermission>} />
                 <Route path="/sistema-saas/empresa" element={<RequirePermission modulo="sistema.empresa_saas"><EmpresaSaaS /></RequirePermission>} />
