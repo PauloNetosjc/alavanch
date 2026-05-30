@@ -998,6 +998,7 @@ export type Database = {
           base_cliente_id: string
           competencia_ano: number | null
           competencia_mes: number | null
+          contrato_id: string | null
           created_at: string
           criado_por: string | null
           data_pagamento: string | null
@@ -1017,6 +1018,7 @@ export type Database = {
           base_cliente_id: string
           competencia_ano?: number | null
           competencia_mes?: number | null
+          contrato_id?: string | null
           created_at?: string
           criado_por?: string | null
           data_pagamento?: string | null
@@ -1036,6 +1038,7 @@ export type Database = {
           base_cliente_id?: string
           competencia_ano?: number | null
           competencia_mes?: number | null
+          contrato_id?: string | null
           created_at?: string
           criado_por?: string | null
           data_pagamento?: string | null
@@ -1062,6 +1065,13 @@ export type Database = {
             columns: ["base_cliente_id"]
             isOneToOne: false
             referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "base_contratos"
             referencedColumns: ["id"]
           },
         ]
@@ -1121,6 +1131,178 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      base_contratos: {
+        Row: {
+          armazenamento_adicional_mb: number | null
+          armazenamento_incluido_mb: number | null
+          arquivo_assinado_url: string | null
+          assinante_documento: string | null
+          assinante_email: string | null
+          assinante_ip: string | null
+          assinante_nome: string | null
+          assinante_user_agent: string | null
+          assinatura_id: string | null
+          assinatura_token: string | null
+          assinatura_url: string | null
+          atualizado_por: string | null
+          base_cliente_id: string
+          conteudo_html: string | null
+          created_at: string
+          criado_por: string | null
+          data_assinatura: string | null
+          data_envio_assinatura: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          dia_vencimento: number | null
+          id: string
+          lojas_incluidas: number | null
+          modelo_id: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          pdf_url: string | null
+          plano: string | null
+          status: string
+          tipo_contrato: string
+          updated_at: string
+          usuarios_incluidos: number | null
+          valor_implantacao: number | null
+          valor_mensal: number | null
+        }
+        Insert: {
+          armazenamento_adicional_mb?: number | null
+          armazenamento_incluido_mb?: number | null
+          arquivo_assinado_url?: string | null
+          assinante_documento?: string | null
+          assinante_email?: string | null
+          assinante_ip?: string | null
+          assinante_nome?: string | null
+          assinante_user_agent?: string | null
+          assinatura_id?: string | null
+          assinatura_token?: string | null
+          assinatura_url?: string | null
+          atualizado_por?: string | null
+          base_cliente_id: string
+          conteudo_html?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_assinatura?: string | null
+          data_envio_assinatura?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number | null
+          id?: string
+          lojas_incluidas?: number | null
+          modelo_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          pdf_url?: string | null
+          plano?: string | null
+          status?: string
+          tipo_contrato?: string
+          updated_at?: string
+          usuarios_incluidos?: number | null
+          valor_implantacao?: number | null
+          valor_mensal?: number | null
+        }
+        Update: {
+          armazenamento_adicional_mb?: number | null
+          armazenamento_incluido_mb?: number | null
+          arquivo_assinado_url?: string | null
+          assinante_documento?: string | null
+          assinante_email?: string | null
+          assinante_ip?: string | null
+          assinante_nome?: string | null
+          assinante_user_agent?: string | null
+          assinatura_id?: string | null
+          assinatura_token?: string | null
+          assinatura_url?: string | null
+          atualizado_por?: string | null
+          base_cliente_id?: string
+          conteudo_html?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_assinatura?: string | null
+          data_envio_assinatura?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number | null
+          id?: string
+          lojas_incluidas?: number | null
+          modelo_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          pdf_url?: string | null
+          plano?: string | null
+          status?: string
+          tipo_contrato?: string
+          updated_at?: string
+          usuarios_incluidos?: number | null
+          valor_implantacao?: number | null
+          valor_mensal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_contratos_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "base_assinaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_contratos_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_contratos_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "base_modelos_contrato"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      base_modelos_contrato: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          conteudo_html: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          padrao: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          conteudo_html?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          padrao?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          conteudo_html?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          padrao?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       bases_clientes: {
         Row: {
