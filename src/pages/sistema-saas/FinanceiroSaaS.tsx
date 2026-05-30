@@ -324,6 +324,9 @@ export default function FinanceiroSaaS() {
     return <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  // View ativa: receber | pagar | visao-geral | compras-avulsas | bancos | categorias | centros | relatorios
+  const viewAtiva: string = vistaPrincipal ?? abaSecundaria;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
@@ -377,81 +380,8 @@ export default function FinanceiroSaaS() {
         </button>
       </div>
 
-      {/* Conteúdo principal quando A Receber/A Pagar está selecionado */}
-      {vistaPrincipal === "receber" && (
-        <div className="space-y-4">
-          {/* KPIs cobranças */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
-            <Kpi label="Previsto no mês" value={brl(kpi.previsto)} />
-            <Kpi label="Recebido no mês" value={brl(kpi.recebido)} tone="emerald" />
-            <Kpi label="Em aberto" value={brl(kpi.aberto)} tone="amber" />
-            <Kpi label="Vencido" value={brl(kpi.vencido)} tone="red" />
-            <Kpi label="Implantação em aberto" value={brl(kpi.implantacao)} />
-            <Kpi label="Mensalidades em aberto" value={brl(kpi.mensalidades)} />
-            <Kpi label="Avulsas em aberto" value={brl(kpi.avulsas)} />
-            <Kpi label="Contratos aguard. assinatura" value={String(kpi.contratosAguarda)} tone="amber" />
-          </div>
-
-          {/* Gráficos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Chart title="Receita prevista x recebida (12 meses)">
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={dadosMes}>
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => brl(v)} /><Legend />
-                  <Line type="monotone" dataKey="previsto" stroke="#ca8a04" />
-                  <Line type="monotone" dataKey="recebido" stroke="#15803d" />
-                </LineChart>
-              </ResponsiveContainer>
-            </Chart>
-            <Chart title="Cobranças por status">
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={dadosStatus} dataKey="value" nameKey="name" outerRadius={80} label={(d: any) => `${d.name}: ${brl(d.value)}`}>
-                    {dadosStatus.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => brl(v)} /><Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </Chart>
-            <Chart title="Receita por tipo de cobrança">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={dadosTipo}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => brl(v)} />
-                  <Bar dataKey="value" fill="#15803d" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Chart>
-            <Chart title="Inadimplência por base (top 10)">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={inadimplenciaPorBase} layout="vertical" margin={{ left: 30 }}>
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
-                  <Tooltip formatter={(v: number) => brl(v)} />
-                  <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Chart>
-          </div>
-
-          {/* Lançamentos a receber (saas_lancamentos_financeiros) */}
-          <Card className="p-4">
-            <div className="text-sm font-medium mb-3">Lançamentos a receber</div>
-            <SaaSLancamentosTab tipo="receita" />
-          </Card>
-
-        </div>
-      )}
-
-      {vistaPrincipal === "pagar" && (
-        <div className="space-y-4">
-          <SaaSLancamentosTab tipo="despesa" />
-        </div>
-      )}
-
-      {/* Abas secundárias / configurações */}
-      <Tabs value={abaSecundaria} onValueChange={selecionarSecundaria}>
+      {/* Menu secundário fixo logo abaixo dos botões principais */}
+      <Tabs value={vistaPrincipal ? "" : abaSecundaria} onValueChange={selecionarSecundaria}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="compras-avulsas">Compras Avulsas</TabsTrigger>
@@ -460,9 +390,37 @@ export default function FinanceiroSaaS() {
           <TabsTrigger value="centros">Centros de Custo</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
         </TabsList>
+      </Tabs>
 
-        {/* VISÃO GERAL */}
-        <TabsContent value="visao-geral" className="space-y-4 mt-4">
+      {/* A RECEBER — sem KPIs/gráficos da Visão Geral */}
+      {viewAtiva === "receber" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Kpi label="Em aberto" value={brl(kpi.aberto)} tone="amber" />
+            <Kpi label="Recebido no mês" value={brl(kpi.recebido)} tone="emerald" />
+            <Kpi label="Vencido" value={brl(kpi.vencido)} tone="red" />
+            <Kpi label="Previsto no mês" value={brl(kpi.previsto)} />
+          </div>
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-3">Lançamentos a receber</div>
+            <SaaSLancamentosTab tipo="receita" />
+          </Card>
+        </div>
+      )}
+
+      {/* A PAGAR — sem KPIs/gráficos da Visão Geral */}
+      {viewAtiva === "pagar" && (
+        <div className="space-y-4">
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-3">Lançamentos a pagar</div>
+            <SaaSLancamentosTab tipo="despesa" />
+          </Card>
+        </div>
+      )}
+
+      {/* VISÃO GERAL */}
+      {viewAtiva === "visao-geral" && (
+        <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <Kpi label="Previsto no mês" value={brl(kpi.previsto)} />
             <Kpi label="Recebido no mês" value={brl(kpi.recebido)} tone="emerald" />
@@ -517,20 +475,15 @@ export default function FinanceiroSaaS() {
               </ResponsiveContainer>
             </Chart>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
+      {viewAtiva === "bancos" && <SaaSBancosTab />}
+      {viewAtiva === "categorias" && <SaaSCategoriasTab />}
+      {viewAtiva === "centros" && <SaaSCentrosCustoTab />}
 
-        {/* BANCOS */}
-        <TabsContent value="bancos" className="mt-4"><SaaSBancosTab /></TabsContent>
-
-        {/* CATEGORIAS */}
-        <TabsContent value="categorias" className="mt-4"><SaaSCategoriasTab /></TabsContent>
-
-        {/* CENTROS DE CUSTO */}
-        <TabsContent value="centros" className="mt-4"><SaaSCentrosCustoTab /></TabsContent>
-
-        {/* COMPRAS AVULSAS */}
-        <TabsContent value="compras-avulsas" className="space-y-4 mt-4">
+      {viewAtiva === "compras-avulsas" && (
+        <div className="space-y-4">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Label className="text-xs">Base</Label>
@@ -595,10 +548,11 @@ export default function FinanceiroSaaS() {
               </table>
             </div>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* RELATÓRIOS */}
-        <TabsContent value="relatorios" className="space-y-4 mt-4">
+      {viewAtiva === "relatorios" && (
+        <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <RelatorioCard title="Receita por sistema vendido" rows={receitaPorSistemaRows} dataKey="Receita" labelKey="Sistema" onExport={() => exportRelatorio(receitaPorSistemaRows, "receita_sistema")} />
             <RelatorioCard title="Receita por plano" rows={receitaPorPlanoRows} dataKey="Receita" labelKey="Plano" onExport={() => exportRelatorio(receitaPorPlanoRows, "receita_plano")} />
@@ -633,8 +587,8 @@ export default function FinanceiroSaaS() {
               </table>
             </div>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Modal Compra */}
       {(novaCompra || editingCompra) && (
