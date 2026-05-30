@@ -496,7 +496,7 @@ export default function PainelMaster() {
 // ============================================================
 
 function KpiBox({ label, value, icon: Icon, tone }: {
-  label: string; value: number; icon?: any; tone?: "emerald" | "blue" | "amber" | "red";
+  label: string; value: number | string; icon?: any; tone?: "emerald" | "blue" | "amber" | "red";
 }) {
   const toneClass = tone === "emerald" ? "text-emerald-700"
     : tone === "blue" ? "text-blue-700"
