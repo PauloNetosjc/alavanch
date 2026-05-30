@@ -88,7 +88,7 @@ export async function processarBip(
   const pecaDoPedido = pecas.find((p: any) => p.pedido_id === pedidoId);
   if (!pecaDoPedido) {
     const msg = `Peça pertence a outro pedido (${cod}).`;
-    await registrarHistorico({ pedidoId, codigoBipado: cod, peca_id: pecas[0].id as any, resultado: "peca_de_outro_pedido", mensagem: msg });
+    await registrarHistorico({ pedidoId, codigoBipado: cod, pecaId: pecas[0].id, resultado: "peca_de_outro_pedido", mensagem: msg });
     return { ok: false, resultado: "peca_de_outro_pedido", mensagem: msg };
   }
 
