@@ -93,6 +93,11 @@ export function NovidadesButton() {
                     <Badge className={`${prioColor[c.prioridade] || ""} border-0 text-[9px] py-0 capitalize`}>
                       {c.prioridade}
                     </Badge>
+                    {c.anexo_tipo && c.anexo_tipo !== "nenhum" && (
+                      <span className="inline-flex items-center text-muted-foreground" title={c.anexo_tipo}>
+                        {anexoIcon(c.anexo_tipo)}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground ml-auto">
                       {new Date(c.created_at).toLocaleDateString("pt-BR")}
                     </span>
