@@ -40,7 +40,7 @@ type Base = {
   created_at: string;
 };
 
-type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null };
+type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null; cidade?: string | null; uf?: string | null; cnpj?: string | null; email?: string | null; telefone?: string | null; endereco?: string | null };
 type Modulo = { chave: string; nome: string; categoria: string | null; essencial: boolean };
 type ModuloLoja = { loja_id: string; modulo_chave: string; ativo: boolean; contratado: boolean };
 
