@@ -2998,6 +2998,220 @@ export type Database = {
           },
         ]
       }
+      fabrica_ocorrencias: {
+        Row: {
+          aberto_por: string | null
+          almoxarifado_item_id: string | null
+          atualizado_por: string | null
+          bloqueante: boolean
+          codigo: string | null
+          created_at: string
+          data_abertura: string
+          data_previsao_resolucao: string | null
+          data_resolucao: string | null
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          lote_id: string | null
+          modulo_id: string | null
+          observacoes: string | null
+          peca_id: string | null
+          pedido_id: string
+          prioridade: string
+          quantidade_afetada: number | null
+          responsavel_id: string | null
+          setor_responsavel: string
+          solucao_descricao: string | null
+          status: string
+          tipo_ocorrencia: string
+          titulo: string
+          updated_at: string
+          volume_id: string | null
+        }
+        Insert: {
+          aberto_por?: string | null
+          almoxarifado_item_id?: string | null
+          atualizado_por?: string | null
+          bloqueante?: boolean
+          codigo?: string | null
+          created_at?: string
+          data_abertura?: string
+          data_previsao_resolucao?: string | null
+          data_resolucao?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          modulo_id?: string | null
+          observacoes?: string | null
+          peca_id?: string | null
+          pedido_id: string
+          prioridade?: string
+          quantidade_afetada?: number | null
+          responsavel_id?: string | null
+          setor_responsavel?: string
+          solucao_descricao?: string | null
+          status?: string
+          tipo_ocorrencia: string
+          titulo: string
+          updated_at?: string
+          volume_id?: string | null
+        }
+        Update: {
+          aberto_por?: string | null
+          almoxarifado_item_id?: string | null
+          atualizado_por?: string | null
+          bloqueante?: boolean
+          codigo?: string | null
+          created_at?: string
+          data_abertura?: string
+          data_previsao_resolucao?: string | null
+          data_resolucao?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          modulo_id?: string | null
+          observacoes?: string | null
+          peca_id?: string | null
+          pedido_id?: string
+          prioridade?: string
+          quantidade_afetada?: number | null
+          responsavel_id?: string | null
+          setor_responsavel?: string
+          solucao_descricao?: string | null
+          status?: string
+          tipo_ocorrencia?: string
+          titulo?: string
+          updated_at?: string
+          volume_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ocorrencias_almoxarifado_item_id_fkey"
+            columns: ["almoxarifado_item_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ocorrencias_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_modulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ocorrencias_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ocorrencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ocorrencias_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_ocorrencias_anexos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          ocorrencia_id: string
+          tamanho_bytes: number | null
+          url_arquivo: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          ocorrencia_id: string
+          tamanho_bytes?: number | null
+          url_arquivo: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          ocorrencia_id?: string
+          tamanho_bytes?: number | null
+          url_arquivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ocorrencias_anexos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ocorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_ocorrencias_historico: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          descricao: string | null
+          id: string
+          ocorrencia_id: string
+          status_anterior: string | null
+          status_novo: string | null
+          tipo_evento: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          id?: string
+          ocorrencia_id: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          id?: string
+          ocorrencia_id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ocorrencias_historico_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ocorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_pecas: {
         Row: {
           atualizado_por: string | null
@@ -5300,6 +5514,7 @@ export type Database = {
           rt_repassado: number
           status: string
           status_fabrica: string | null
+          status_fabrica_anterior: string | null
           updated_at: string
           urgencia: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido: number | null
@@ -5357,6 +5572,7 @@ export type Database = {
           rt_repassado?: number
           status?: string
           status_fabrica?: string | null
+          status_fabrica_anterior?: string | null
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido?: number | null
@@ -5414,6 +5630,7 @@ export type Database = {
           rt_repassado?: number
           status?: string
           status_fabrica?: string | null
+          status_fabrica_anterior?: string | null
           updated_at?: string
           urgencia?: Database["public"]["Enums"]["urgencia_nivel"] | null
           valor_liquido?: number | null

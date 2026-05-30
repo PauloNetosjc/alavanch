@@ -26,6 +26,7 @@ import { EtiquetaCaixaPreviewDialog } from "@/components/fabrica/EtiquetaCaixaPr
 import { ExpedicaoPedidoSheet } from "@/components/fabrica/ExpedicaoPedidoSheet";
 import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
 import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
+import { OcorrenciasPedidoTab } from "@/components/fabrica/OcorrenciasPedidoTab";
 
 interface Props {
   open: boolean;
@@ -174,6 +175,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               <TabsTrigger value="conferencia">Conferência ({volumes.length})</TabsTrigger>
               <TabsTrigger value="almox">Almoxarifado ({almox.length})</TabsTrigger>
               <TabsTrigger value="expedicao">Expedição</TabsTrigger>
+              <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos ({arquivos.length})</TabsTrigger>
             </TabsList>
 
@@ -471,6 +473,10 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
                   </>
                 );
               })()}
+            </TabsContent>
+
+            <TabsContent value="ocorrencias">
+              <OcorrenciasPedidoTab pedidoId={pedidoId} />
             </TabsContent>
 
             <TabsContent value="arquivos">
