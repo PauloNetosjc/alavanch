@@ -314,7 +314,62 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
-            <TabsContent value="almox">
+            <TabsContent value="almox" className="space-y-3">
+              {(() => {
+                const caixas = volumes.filter((v) => v.tipo_volume === "caixa_almoxarifado" && v.status !== "cancelado");
+                const completos = almox.filter((a) => a.status === "separado_completo").length;
+                const parciais = almox.filter((a) => a.status === "separado_parcial").length;
+                const faltantes = almox.filter((a) => a.status === "faltante").length;
+                return (
+                  <Card className="p-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        <span>Total: <b>{almox.length}</b></span>
+                        <span className="text-emerald-700">Completos: <b>{completos}</b></span>
+                        <span className="text-amber-700">Parciais: <b>{parciais}</b></span>
+                        <span className="text-red-700">Faltantes: <b>{faltantes}</b></span>
+                        <span>Caixas: <b>{caixas.length}</b></span>
+                      </div>
+                      <Button size="sm" onClick={() => setAlmoxOpen(true)}>
+                        <PackageOpen className="h-4 w-4 mr-1" />Iniciar separação
+                      </Button>
+                    </div>
+                    {caixas.length > 0 && (
+                      <div className="mt-3 grid sm:grid-cols-2 gap-2">
+                        {caixas.map((cx) => (
+                          <div key={cx.id} className="flex items-center justify-between border rounded-md p-2 text-sm">
+                            <div>
+                              <div className="font-medium">Caixa #{cx.numero_volume}</div>
+                              <div className="text-[11px] text-muted-foreground">{cx.codigo_barras} · {cx.status}</div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                const { data } = await (supabase as any)
+                                  .from("fabrica_volume_almoxarifado_itens")
+                                  .select("*, item:fabrica_almoxarifado_itens(*)")
+                                  .eq("volume_id", cx.id);
+                                setCaixaPreview(cx);
+                                setCaixaPreviewItens(
+                                  (data || []).map((r: any) => ({
+                                    referencia: r.item?.referencia || "—",
+                                    descricao: r.item?.descricao,
+                                    quantidade: r.quantidade,
+                                    unidade: r.item?.unidade,
+                                  })),
+                                );
+                              }}
+                            >
+                              <Printer className="h-4 w-4 mr-1" />Etiqueta
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })()}
               <Card className="p-0 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm min-w-[800px]">
