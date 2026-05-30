@@ -135,6 +135,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/contrato/:token" element={<ContratoAssinar />} />
+              <Route path="/contrato-saas/:token" element={<ContratoSaaSAssinar />} />
               <Route path="/assinatura/:token" element={<AssinaturaPublica />} />
               <Route path="/validar-contrato" element={<ValidarContrato />} />
               <Route path="/validar-contrato/:token" element={<ValidarContrato />} />
