@@ -293,6 +293,48 @@ export default function ComunicadosSaaS() {
     setLeituras((data as any) || []);
   };
 
+  const [uploading, setUploading] = useState(false);
+  const uploadAnexo = async (file: File) => {
+    const tipo = form.anexo_tipo;
+    if (tipo === "nenhum" || tipo === "link") return;
+    const mimesOk = MIMES_OK[tipo] || [];
+    if (mimesOk.length && !mimesOk.includes(file.type)) {
+      toast.error(`Tipo de arquivo não permitido para ${anexoLabel(tipo)}`);
+      return;
+    }
+    const limMb = LIMITES_MB[tipo] || 10;
+    if (file.size > limMb * 1024 * 1024) {
+      toast.error(`Arquivo excede o limite de ${limMb} MB`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${tipo}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("comunicados-saas").upload(path, file, {
+        contentType: file.type, upsert: false,
+      });
+      if (upErr) { toast.error(upErr.message); return; }
+      const { data: pub } = supabase.storage.from("comunicados-saas").getPublicUrl(path);
+      setForm(f => ({
+        ...f,
+        anexo_url: pub.publicUrl,
+        anexo_nome: file.name,
+        anexo_mime: file.type,
+        anexo_tamanho_bytes: file.size,
+      }));
+      toast.success("Arquivo enviado");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removerAnexo = () => {
+    setForm(f => ({
+      ...f, anexo_url: "", anexo_nome: "", anexo_mime: "", anexo_tamanho_bytes: null,
+    }));
+  };
+
   const destinoTexto = (c: Comunicado) => {
     const dests = destinatarios.filter(d => d.comunicado_id === c.id);
     if (dests.some(d => d.enviar_para_todas_bases)) return "Todas as bases";
