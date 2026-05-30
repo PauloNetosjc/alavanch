@@ -92,6 +92,7 @@ export default function GestaoBases() {
   const [bases, setBases] = useState<Base[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [contratos, setContratos] = useState<any[]>([]);
+  const [sistemas, setSistemas] = useState<Sistema[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -106,14 +107,16 @@ export default function GestaoBases() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: b }, { data: l }, { data: c }] = await Promise.all([
+    const [{ data: b }, { data: l }, { data: c }, { data: s }] = await Promise.all([
       supabase.from("bases_clientes" as any).select("*").order("nome"),
       supabase.from("lojas").select("id,nome,ativo,base_cliente_id,cidade,uf,cnpj,email,telefone,endereco").order("nome"),
       (supabase.from("base_contratos" as any) as any).select("id,base_cliente_id,status"),
+      (supabase.from("sistemas_saas" as any) as any).select("id,nome,slug,ativo,status").eq("ativo", true).order("ordem").order("nome"),
     ]);
     setBases((b || []) as any);
     setLojas((l || []) as any);
     setContratos((c || []) as any);
+    setSistemas((s || []) as any);
     setLoading(false);
   };
 
