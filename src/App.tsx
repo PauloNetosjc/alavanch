@@ -15,6 +15,8 @@ import NotFound from "@/pages/NotFound";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 import { RequirePermission } from "@/components/RequirePermission";
 import KanbanGuard from "@/components/KanbanGuard";
+import { RequireModulo } from "@/components/RequireModulo";
+const GestaoModulos = lazy(() => import("@/pages/GestaoModulos"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
@@ -151,7 +153,7 @@ const App = () => (
                 <Route path="/kanban-pos-venda" element={<KanbanGuard chave="pos_venda"><KanbanPosVenda /></KanbanGuard>} />
                 <Route path="/kanban-revisao" element={<KanbanGuard chave="revisao"><KanbanRevisao /></KanbanGuard>} />
                 <Route path="/kanban-montagem" element={<KanbanGuard chave="montagem"><KanbanMontagem /></KanbanGuard>} />
-                <Route path="/kanban-fabrica" element={<RequirePermission modulo="fabrica_lotes"><KanbanFabrica /></RequirePermission>} />
+                <Route path="/kanban-fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_lotes"><KanbanFabrica /></RequirePermission></RequireModulo>} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
@@ -181,9 +183,10 @@ const App = () => (
                 <Route path="/financeiro/a-pagar" element={<RequirePermission modulo="lancamentos"><ContasAPagar /></RequirePermission>} />
                 <Route path="/financeiro/a-receber" element={<RequirePermission modulo="lancamentos"><ContasAReceber /></RequirePermission>} />
                 <Route path="/financeiro/aprovador" element={<RequirePermission modulo="lancamentos"><AprovadorFinanceiro /></RequirePermission>} />
-                <Route path="/notas-fiscais" element={<RequirePermission modulo="lancamentos"><NotasFiscais /></RequirePermission>} />
-                <Route path="/rh" element={<RequirePermission modulo="rh"><RH /></RequirePermission>} />
-                <Route path="/bater-ponto" element={<BaterPonto />} />
+                <Route path="/notas-fiscais" element={<RequireModulo modulo="notas_fiscais" nome="Notas Fiscais"><RequirePermission modulo="notas_fiscais"><NotasFiscais /></RequirePermission></RequireModulo>} />
+                <Route path="/rh" element={<RequireModulo modulo="rh" nome="RH"><RequirePermission modulo="rh"><RH /></RequirePermission></RequireModulo>} />
+                <Route path="/bater-ponto" element={<RequireModulo modulo="bater_ponto" nome="Bater Ponto"><RequirePermission modulo="bater_ponto"><BaterPonto /></RequirePermission></RequireModulo>} />
+                <Route path="/sistema/gestao-modulos" element={<RequirePermission modulo="sistema.gestao_modulos"><GestaoModulos /></RequirePermission>} />
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
                 <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />
