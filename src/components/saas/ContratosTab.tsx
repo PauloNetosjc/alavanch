@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  FileSignature, Plus, Eye, Upload, XCircle, Download, Printer, FileText,
+  FileSignature, Plus, Eye, Upload, XCircle, Download, Printer, FileText, Send, Copy, ExternalLink,
 } from "lucide-react";
 import {
   renderContratoSaasTemplate, type DadosContratoSaaS,
