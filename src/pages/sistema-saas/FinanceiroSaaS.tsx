@@ -26,7 +26,7 @@ import {
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
 import { SaaSBancosTab, SaaSCategoriasTab, SaaSCentrosCustoTab } from "@/components/sistema-saas/SaaSConfigTabs";
-import { RelatoriosSaaSExtras } from "@/components/sistema-saas/RelatoriosSaaSExtras";
+import { RelatoriosFinanceiroSaaS } from "@/components/sistema-saas/RelatoriosFinanceiroSaaS";
 
 type Base = { id: string; nome: string; plano: string; status: string; sistema_saas_id: string | null };
 type Sistema = { id: string; nome: string };
