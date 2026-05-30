@@ -274,6 +274,35 @@ export function ContratosTab({ baseId, baseNome }: Props) {
     load();
   };
 
+  const enviarParaAssinatura = async (c: Contrato) => {
+    if (c.status === "cancelado" || c.status === "assinado" || c.status === "anexado_manual") {
+      toast.error("Este contrato não pode ser enviado para assinatura.");
+      return;
+    }
+    const token = c.assinatura_token || (crypto as any).randomUUID();
+    const path = `/contrato-saas/${token}`;
+    const url = `${window.location.origin}${path}`;
+    const { error } = await (supabase.from("base_contratos" as any) as any).update({
+      assinatura_token: token,
+      assinatura_url: path,
+      status: "enviado_para_assinatura",
+      data_envio_assinatura: new Date().toISOString(),
+      atualizado_por: user?.id,
+    }).eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    await registrarHistorico(baseId, "contrato_enviado_assinatura",
+      `Contrato ${c.numero_contrato} enviado para assinatura digital`,
+      { contrato_id: c.id, numero_contrato: c.numero_contrato, url: path }, user?.id);
+    setLinkAssinatura({ url, numero: c.numero_contrato });
+    load();
+    if (openVisualizar?.id === c.id) setOpenVisualizar({ ...openVisualizar, status: "enviado_para_assinatura", assinatura_token: token, assinatura_url: path });
+  };
+
+  const copiarLink = async (url: string) => {
+    try { await navigator.clipboard.writeText(url); toast.success("Link copiado"); }
+    catch { toast.error("Não foi possível copiar"); }
+  };
+
   const imprimirVisualizar = () => {
     if (!openVisualizar?.conteudo_html) return;
     const w = window.open("", "_blank", "width=900,height=700");
