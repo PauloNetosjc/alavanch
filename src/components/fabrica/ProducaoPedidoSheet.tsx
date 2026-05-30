@@ -23,7 +23,9 @@ import { ConferenciaPedidoSheet } from "@/components/fabrica/ConferenciaPedidoSh
 import { EtiquetaPreviewDialog } from "@/components/fabrica/EtiquetaPreviewDialog";
 import { AlmoxarifadoPedidoSheet } from "@/components/fabrica/AlmoxarifadoPedidoSheet";
 import { EtiquetaCaixaPreviewDialog } from "@/components/fabrica/EtiquetaCaixaPreviewDialog";
-import { ScanBarcode, Printer, PackageOpen } from "lucide-react";
+import { ExpedicaoPedidoSheet } from "@/components/fabrica/ExpedicaoPedidoSheet";
+import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
+import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
 
 interface Props {
   open: boolean;
