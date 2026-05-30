@@ -74,6 +74,13 @@ type FormState = {
   destino: "todas" | "bases" | "lojas";
   bases: string[];
   lojas: string[];
+  anexo_tipo: "nenhum" | "imagem" | "pdf" | "video" | "link";
+  anexo_url: string;
+  anexo_nome: string;
+  anexo_mime: string;
+  anexo_tamanho_bytes: number | null;
+  anexo_texto_botao: string;
+  anexo_video_modo: "upload" | "link";
 };
 
 const emptyForm = (): FormState => ({
@@ -83,7 +90,22 @@ const emptyForm = (): FormState => ({
   data_inicio: new Date().toISOString().slice(0,10), data_fim: "",
   link_url: "",
   destino: "todas", bases: [], lojas: [],
+  anexo_tipo: "nenhum", anexo_url: "", anexo_nome: "", anexo_mime: "",
+  anexo_tamanho_bytes: null, anexo_texto_botao: "",
+  anexo_video_modo: "link",
 });
+
+const LIMITES_MB: Record<string, number> = { imagem: 10, pdf: 20, video: 100 };
+const MIMES_OK: Record<string, string[]> = {
+  imagem: ["image/png", "image/jpeg", "image/jpg", "image/webp"],
+  pdf: ["application/pdf"],
+  video: ["video/mp4", "video/webm", "video/quicktime"],
+};
+const ACCEPT: Record<string, string> = {
+  imagem: "image/png,image/jpeg,image/webp",
+  pdf: "application/pdf",
+  video: "video/mp4,video/webm,video/quicktime",
+};
 
 export default function ComunicadosSaaS() {
   const { user } = useAuth();
