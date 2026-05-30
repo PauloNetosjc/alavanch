@@ -76,6 +76,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
       setVolumes(vs || []);
       setVolumePecas(vp || []);
       setHistoricoConf(hi || []);
+      try { setHistExp(await listarHistoricoExp(pedidoId, 30)); } catch {}
     } finally {
       setLoading(false);
     }
