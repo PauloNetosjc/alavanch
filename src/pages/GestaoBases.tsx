@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone, FileSignature } from "lucide-react";
 import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
+import { ContratosTab } from "@/components/saas/ContratosTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
 type Base = {
@@ -140,6 +141,18 @@ export default function GestaoBases() {
   }, [bases, busca, filtroStatus, filtroPlano]);
 
   const STATUS_AGUARDA = ["rascunho", "aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"];
+  const STATUS_OK = ["assinado", "anexado_manual"];
+  const contratoPendentePorBase = useMemo(() => {
+    const set = new Set<string>();
+    const byBase: Record<string, any[]> = {};
+    contratos.forEach((c: any) => { (byBase[c.base_cliente_id] ||= []).push(c); });
+    Object.entries(byBase).forEach(([baseId, lista]) => {
+      const temOk = lista.some((c) => STATUS_OK.includes(c.status));
+      const temPendente = lista.some((c) => STATUS_AGUARDA.includes(c.status));
+      if (!temOk && temPendente) set.add(baseId);
+    });
+    return set;
+  }, [contratos]);
   const kpi = useMemo(() => ({
     total: bases.length,
     ativo: bases.filter((b) => b.status === "ativo").length,
@@ -311,7 +324,12 @@ export default function GestaoBases() {
                 {filtradas.map((b) => (
                   <tr key={b.id} className="border-t hover:bg-muted/20">
                     <td className="p-3">
-                      <div className="font-medium">{b.nome}</div>
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        {b.nome}
+                        {contratoPendentePorBase.has(b.id) && (
+                          <Badge className="bg-amber-100 text-amber-800 border-0 text-[10px]">Contrato pendente</Badge>
+                        )}
+                      </div>
                       {b.razao_social && <div className="text-xs text-muted-foreground">{b.razao_social}</div>}
                     </td>
                     <td className="p-3 text-xs">{b.cnpj ? maskCnpj(b.cnpj) : "—"}</td>
@@ -498,12 +516,13 @@ function DetalheBaseSheet({
           </SheetTitle>
         </SheetHeader>
         <Tabs defaultValue="dados" className="mt-4">
-          <TabsList className="grid grid-cols-6">
+          <TabsList className="grid grid-cols-4 md:grid-cols-7 h-auto">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="lojas"><Store className="w-3.5 h-3.5 mr-1" />Lojas</TabsTrigger>
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1" />Usuários</TabsTrigger>
             <TabsTrigger value="modulos"><Package className="w-3.5 h-3.5 mr-1" />Módulos</TabsTrigger>
             <TabsTrigger value="cobranca"><CreditCard className="w-3.5 h-3.5 mr-1" />Cobrança</TabsTrigger>
+            <TabsTrigger value="contratos"><FileSignature className="w-3.5 h-3.5 mr-1" />Contratos</TabsTrigger>
             <TabsTrigger value="historico"><History className="w-3.5 h-3.5 mr-1" />Histórico</TabsTrigger>
           </TabsList>
 
@@ -617,6 +636,10 @@ function DetalheBaseSheet({
               userId={userId}
               onChanged={onChanged}
             />
+          </TabsContent>
+
+          <TabsContent value="contratos" className="mt-4">
+            <ContratosTab baseId={base.id} baseNome={base.nome} />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">
