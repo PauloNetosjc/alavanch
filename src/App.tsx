@@ -218,6 +218,7 @@ const App = () => (
                 <Route path="/sistema-saas/financeiro" element={<RequirePermission modulo="sistema.financeiro_saas"><FinanceiroSaaS /></RequirePermission>} />
                 <Route path="/sistema-saas/crm" element={<RequirePermission modulo="sistema.crm_saas"><CrmSaaS /></RequirePermission>} />
                 <Route path="/sistema-saas/agenda" element={<RequirePermission modulo="sistema.agenda_saas"><AgendaSaaS /></RequirePermission>} />
+                <Route path="/sistema-saas/usuarios" element={<RequirePermission modulo="sistema.usuarios_saas"><UsuariosSistemaSaaS /></RequirePermission>} />
                 <Route path="/sistema/painel-master" element={<RequirePermission modulo="sistema.painel_master"><PainelMaster /></RequirePermission>} />
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
