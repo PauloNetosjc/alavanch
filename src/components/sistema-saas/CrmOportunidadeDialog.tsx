@@ -71,7 +71,8 @@ export function CrmOportunidadeDialog({ open, onOpenChange, oportunidade, onSave
         payload.status = "aberto";
         const { data, error } = await supabase.from("saas_crm_oportunidades" as any).insert(payload).select("id").single();
         if (error) throw error;
-        if (data?.id) await registrarHistoricoCrm({ oportunidade_id: (data as any).id, tipo_evento: "criacao", descricao: "Oportunidade criada", etapa_nova: "lead_novo" });
+        const newId = (data as any)?.id;
+        if (newId) await registrarHistoricoCrm({ oportunidade_id: newId, tipo_evento: "criacao", descricao: "Oportunidade criada", etapa_nova: "lead_novo" });
       }
       toast.success("Oportunidade salva");
       onOpenChange(false);
