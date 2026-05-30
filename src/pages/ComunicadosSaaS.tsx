@@ -533,6 +533,121 @@ export default function ComunicadosSaaS() {
               </label>
             </div>
 
+            {/* Anexo / Mídia */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                <Label className="text-[13px] font-medium">Anexo / Mídia</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo de conteúdo</Label>
+                  <Select
+                    value={form.anexo_tipo}
+                    onValueChange={(v) => setForm({
+                      ...form, anexo_tipo: v as any,
+                      anexo_url: "", anexo_nome: "", anexo_mime: "",
+                      anexo_tamanho_bytes: null, anexo_texto_botao: "",
+                    })}
+                  >
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhum">Nenhum</SelectItem>
+                      <SelectItem value="imagem">Imagem</SelectItem>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="video">Vídeo</SelectItem>
+                      <SelectItem value="link">Link</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.anexo_tipo === "video" && (
+                  <div>
+                    <Label className="text-xs">Origem do vídeo</Label>
+                    <Select
+                      value={form.anexo_video_modo}
+                      onValueChange={(v) => setForm({
+                        ...form, anexo_video_modo: v as any,
+                        anexo_url: "", anexo_nome: "", anexo_mime: "", anexo_tamanho_bytes: null,
+                      })}
+                    >
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="link">Link externo</SelectItem>
+                        <SelectItem value="upload">Upload de arquivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {(form.anexo_tipo === "imagem" || form.anexo_tipo === "pdf" ||
+                (form.anexo_tipo === "video" && form.anexo_video_modo === "upload")) && (
+                <div className="space-y-2">
+                  {!form.anexo_url ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept={ACCEPT[form.anexo_tipo === "video" ? "video" : form.anexo_tipo]}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAnexo(f); }}
+                        className="text-[12px]"
+                        disabled={uploading}
+                      />
+                      {uploading && <span className="text-[11px] text-muted-foreground">Enviando…</span>}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border p-2 bg-secondary/30">
+                      {anexoIcon(form.anexo_tipo)}
+                      <div className="flex-1 min-w-0 text-[12px]">
+                        <div className="truncate">{form.anexo_nome}</div>
+                        {form.anexo_tamanho_bytes && (
+                          <div className="text-[10px] text-muted-foreground">
+                            {((form.anexo_tamanho_bytes || 0) / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                        )}
+                      </div>
+                      <Button size="sm" variant="outline" asChild className="h-7 text-[11px]">
+                        <a href={form.anexo_url} target="_blank" rel="noreferrer">Ver</a>
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={removerAnexo} className="h-7 text-[11px]">
+                        <Trash2 className="w-3 h-3 text-red-600"/>
+                      </Button>
+                    </div>
+                  )}
+                  <div className="text-[10.5px] text-muted-foreground">
+                    Limite: {LIMITES_MB[form.anexo_tipo === "video" ? "video" : form.anexo_tipo]} MB
+                  </div>
+                  {form.anexo_tipo === "imagem" && form.anexo_url && (
+                    <img src={form.anexo_url} alt="" className="max-h-40 rounded-md border object-contain bg-secondary/30" />
+                  )}
+                </div>
+              )}
+
+              {(form.anexo_tipo === "link" || (form.anexo_tipo === "video" && form.anexo_video_modo === "link")) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">URL *</Label>
+                    <Input
+                      value={form.anexo_url}
+                      onChange={(e) => setForm({...form, anexo_url: e.target.value})}
+                      placeholder="https://"
+                    />
+                  </div>
+                  {form.anexo_tipo === "link" && (
+                    <div>
+                      <Label className="text-xs">Texto do botão</Label>
+                      <Input
+                        value={form.anexo_texto_botao}
+                        onChange={(e) => setForm({...form, anexo_texto_botao: e.target.value})}
+                        placeholder="Ex.: Ver novidade"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+
+
             <div className="border-t pt-4 space-y-3">
               <Label>Destinatários</Label>
               <Tabs value={form.destino} onValueChange={(v) => setForm({...form, destino: v as any})}>
