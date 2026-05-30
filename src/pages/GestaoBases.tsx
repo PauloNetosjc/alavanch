@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone, FileSignature } from "lucide-react";
 import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
+import { ContratosTab } from "@/components/saas/ContratosTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
 type Base = {
