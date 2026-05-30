@@ -190,7 +190,7 @@ const App = () => (
                 <Route path="/notas-fiscais" element={<RequireModulo modulo="notas_fiscais" nome="Notas Fiscais"><RequirePermission modulo="notas_fiscais"><NotasFiscais /></RequirePermission></RequireModulo>} />
                 <Route path="/rh" element={<RequireModulo modulo="rh" nome="RH"><RequirePermission modulo="rh"><RH /></RequirePermission></RequireModulo>} />
                 <Route path="/bater-ponto" element={<RequireModulo modulo="bater_ponto" nome="Bater Ponto"><RequirePermission modulo="bater_ponto"><BaterPonto /></RequirePermission></RequireModulo>} />
-                <Route path="/sistema/gestao-modulos" element={<RequirePermission modulo="sistema.gestao_modulos"><GestaoModulos /></RequirePermission>} />
+                <Route path="/sistema/gestao-modulos" element={<Navigate to="/sistema/gestao-bases" replace />} />
                 <Route path="/sistema/gestao-bases" element={<RequirePermission modulo="sistema.gestao_bases"><GestaoBases /></RequirePermission>} />
                 <Route path="/sistema/gestao-bases/cobrancas" element={<RequirePermission modulo="sistema.cobranca_bases"><CobrancasSaaS /></RequirePermission>} />
                 <Route path="/sistema/gestao-bases/comunicados" element={<RequirePermission modulo="sistema.comunicados_saas"><ComunicadosSaaS /></RequirePermission>} />
