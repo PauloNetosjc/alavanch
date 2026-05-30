@@ -168,12 +168,13 @@ const App = () => (
                 <Route path="/kanban-pos-venda" element={<KanbanGuard chave="pos_venda"><KanbanPosVenda /></KanbanGuard>} />
                 <Route path="/kanban-revisao" element={<KanbanGuard chave="revisao"><KanbanRevisao /></KanbanGuard>} />
                 <Route path="/kanban-montagem" element={<KanbanGuard chave="montagem"><KanbanMontagem /></KanbanGuard>} />
-                <Route path="/kanban-fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_lotes"><KanbanFabrica /></RequirePermission></RequireModulo>} />
-                <Route path="/fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_painel"><PainelFabrica /></RequirePermission></RequireModulo>} />
-                <Route path="/fabrica/painel" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_painel"><PainelFabrica /></RequirePermission></RequireModulo>} />
-                <Route path="/fabrica/importar" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_importar_producao"><ImportarProducao /></RequirePermission></RequireModulo>} />
-                <Route path="/fabrica/producao" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_producao_pedido"><ProducaoPorPedido /></RequirePermission></RequireModulo>} />
-                <Route path="/fabrica/conferencia" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_conferencia"><ConferenciaFabrica /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_lotes"><Fabrica /></RequirePermission></RequireModulo>} />
+                {/* Aliases antigos das telas de Fábrica → abas internas */}
+                <Route path="/kanban-fabrica" element={<Navigate to="/fabrica?aba=lotes" replace />} />
+                <Route path="/fabrica/painel" element={<Navigate to="/fabrica?aba=painel" replace />} />
+                <Route path="/fabrica/importar" element={<Navigate to="/fabrica?aba=importar" replace />} />
+                <Route path="/fabrica/producao" element={<Navigate to="/fabrica?aba=producao-pedido" replace />} />
+                <Route path="/fabrica/conferencia" element={<Navigate to="/fabrica?aba=conferencia" replace />} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
