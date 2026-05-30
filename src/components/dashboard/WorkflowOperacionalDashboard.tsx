@@ -169,6 +169,11 @@ type ContratoFiltro = "todos" | "assinados" | "nao_assinados";
 export default function WorkflowOperacionalDashboard() {
   const navigate = useNavigate();
   const { selectedLojaId } = useLoja();
+  const { isModuloAtivo } = useModulosLoja();
+  const WORKFLOW_STAGE_GROUPS = useMemo(
+    () => WORKFLOW_STAGE_GROUPS_ALL.filter((g) => g.visualKey !== "fabrica_lote" || isModuloAtivo("fabrica")),
+    [isModuloAtivo]
+  );
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<PedidoLite[]>([]);
 
