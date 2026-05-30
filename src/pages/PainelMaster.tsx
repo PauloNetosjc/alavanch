@@ -39,6 +39,7 @@ export default function PainelMaster() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assinaturas, setAssinaturas] = useState<any[]>([]);
   const [cobrancas, setCobrancas] = useState<any[]>([]);
+  const [contratos, setContratos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
@@ -49,7 +50,7 @@ export default function PainelMaster() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [b, l, m, a, p, sub, cob] = await Promise.all([
+      const [b, l, m, a, p, sub, cob, ct] = await Promise.all([
         supabase.from("bases_clientes" as any).select("*").order("nome"),
         supabase.from("lojas").select("id,nome,ativo,base_cliente_id"),
         supabase.from("modulos_sistema" as any).select("chave,nome,categoria,essencial").order("ordem"),
@@ -57,6 +58,7 @@ export default function PainelMaster() {
         supabase.from("profiles").select("id,loja_id,ativo"),
         supabase.from("base_assinaturas" as any).select("*"),
         supabase.from("base_cobrancas" as any).select("*"),
+        supabase.from("base_contratos" as any).select("id,base_cliente_id,status"),
       ]);
       setBases((b.data || []) as any);
       setLojas((l.data || []) as any);
@@ -65,6 +67,7 @@ export default function PainelMaster() {
       setProfiles((p.data || []) as any);
       setAssinaturas((sub.data || []) as any);
       setCobrancas((cob.data || []) as any);
+      setContratos((ct.data || []) as any);
       setLoading(false);
     })();
   }, []);
