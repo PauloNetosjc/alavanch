@@ -26,6 +26,7 @@ import { EtiquetaCaixaPreviewDialog } from "@/components/fabrica/EtiquetaCaixaPr
 import { ExpedicaoPedidoSheet } from "@/components/fabrica/ExpedicaoPedidoSheet";
 import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
 import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
+import { OcorrenciasPedidoTab } from "@/components/fabrica/OcorrenciasPedidoTab";
 
 interface Props {
   open: boolean;
