@@ -141,6 +141,18 @@ export default function GestaoBases() {
   }, [bases, busca, filtroStatus, filtroPlano]);
 
   const STATUS_AGUARDA = ["rascunho", "aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"];
+  const STATUS_OK = ["assinado", "anexado_manual"];
+  const contratoPendentePorBase = useMemo(() => {
+    const set = new Set<string>();
+    const byBase: Record<string, any[]> = {};
+    contratos.forEach((c: any) => { (byBase[c.base_cliente_id] ||= []).push(c); });
+    Object.entries(byBase).forEach(([baseId, lista]) => {
+      const temOk = lista.some((c) => STATUS_OK.includes(c.status));
+      const temPendente = lista.some((c) => STATUS_AGUARDA.includes(c.status));
+      if (!temOk && temPendente) set.add(baseId);
+    });
+    return set;
+  }, [contratos]);
   const kpi = useMemo(() => ({
     total: bases.length,
     ativo: bases.filter((b) => b.status === "ativo").length,
