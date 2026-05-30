@@ -141,6 +141,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const obrigatoriosOk = arquivos.some((a) => a.tipo_arquivo === "relatorio_fabricacao_modulo") && arquivos.some((a) => a.tipo_arquivo === "relatorio_almoxarifado");
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader>
