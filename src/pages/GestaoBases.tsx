@@ -448,6 +448,7 @@ export default function GestaoBases() {
         <DetalheBaseSheet
           base={detalheBase}
           lojas={lojasPorBase[detalheBase.id] || []}
+          sistemas={sistemas}
           onClose={() => setDetalheBase(null)}
           onChanged={load}
           userId={user?.id ?? null}
@@ -462,9 +463,9 @@ export default function GestaoBases() {
 // ============================================================
 
 function DetalheBaseSheet({
-  base, lojas, onClose, onChanged, userId,
+  base, lojas, sistemas, onClose, onChanged, userId,
 }: {
-  base: Base; lojas: Loja[]; onClose: () => void; onChanged: () => void; userId: string | null;
+  base: Base; lojas: Loja[]; sistemas: Sistema[]; onClose: () => void; onChanged: () => void; userId: string | null;
 }) {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [ativacoes, setAtivacoes] = useState<ModuloLoja[]>([]);
