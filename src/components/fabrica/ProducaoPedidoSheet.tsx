@@ -474,6 +474,10 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               })()}
             </TabsContent>
 
+            <TabsContent value="ocorrencias">
+              <OcorrenciasPedidoTab pedidoId={pedidoId} />
+            </TabsContent>
+
             <TabsContent value="arquivos">
               <Card className="p-0 overflow-hidden">
                 <table className="w-full text-sm">
