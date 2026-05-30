@@ -38,7 +38,7 @@ const ABAS: AbaDef[] = [
   { value: "conferencia", label: "Conferência", permissao: "fabrica_conferencia", render: () => <ConferenciaFabrica /> },
   { value: "almoxarifado", label: "Almoxarifado", permissao: "fabrica_almoxarifado", render: () => <Almoxarifado /> },
   { value: "expedicao", label: "Expedição", permissao: "fabrica_expedicao", render: () => <Expedicao /> },
-  { value: "ocorrencias", label: "Ocorrências", render: () => <EmBreve titulo="Ocorrências" /> },
+  { value: "ocorrencias", label: "Ocorrências", permissao: "fabrica_ocorrencias", render: () => <Ocorrencias /> },
   { value: "lotes", label: "Kanban / Lotes", permissao: "fabrica_lotes", render: () => <KanbanFabrica /> },
 ];
 
