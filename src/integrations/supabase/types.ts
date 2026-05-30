@@ -5845,6 +5845,317 @@ export type Database = {
         }
         Relationships: []
       }
+      saas_categorias_financeiras: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          contabilizar_dre: boolean
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome: string
+          ordem: number
+          parent_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          contabilizar_dre?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          parent_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          contabilizar_dre?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          parent_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_categorias_financeiras_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "saas_categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_centros_custo: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saas_contas_bancarias: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          atualizado_por: string | null
+          banco: string | null
+          chave_pix: string | null
+          conta: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          saldo_inicial: number
+          tipo_conta: string | null
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          atualizado_por?: string | null
+          banco?: string | null
+          chave_pix?: string | null
+          conta?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          saldo_inicial?: number
+          tipo_conta?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          atualizado_por?: string | null
+          banco?: string | null
+          chave_pix?: string | null
+          conta?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          saldo_inicial?: number
+          tipo_conta?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saas_formas_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saas_lancamentos_financeiros: {
+        Row: {
+          atualizado_por: string | null
+          base_cliente_id: string | null
+          categoria_id: string | null
+          centro_custo_id: string | null
+          cobranca_id: string | null
+          compra_avulsa_id: string | null
+          conta_bancaria_id: string | null
+          contrato_id: string | null
+          created_at: string
+          criado_por: string | null
+          data_competencia: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento_prevista: string | null
+          forma_pagamento_real: string | null
+          fornecedor_nome: string | null
+          id: string
+          nota_fiscal_id: string | null
+          observacoes: string | null
+          origem: string
+          sistema_saas_id: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          categoria_id?: string | null
+          centro_custo_id?: string | null
+          cobranca_id?: string | null
+          compra_avulsa_id?: string | null
+          conta_bancaria_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_competencia?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento_prevista?: string | null
+          forma_pagamento_real?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          origem?: string
+          sistema_saas_id?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          categoria_id?: string | null
+          centro_custo_id?: string | null
+          cobranca_id?: string | null
+          compra_avulsa_id?: string | null
+          conta_bancaria_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_competencia?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento_prevista?: string | null
+          forma_pagamento_real?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          origem?: string
+          sistema_saas_id?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "saas_categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "saas_centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "base_cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_compra_avulsa_id_fkey"
+            columns: ["compra_avulsa_id"]
+            isOneToOne: false
+            referencedRelation: "base_compras_avulsas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "saas_contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "base_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_lancamentos_financeiros_sistema_saas_id_fkey"
+            columns: ["sistema_saas_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_saas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sistemas_saas: {
         Row: {
           ativo: boolean

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+// removed Link (no longer used)
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,9 +21,11 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import {
-  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2, ArrowRight,
+  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2,
 } from "lucide-react";
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
+import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
+import { SaaSBancosTab, SaaSCategoriasTab, SaaSCentrosCustoTab } from "@/components/sistema-saas/SaaSConfigTabs";
 
 type Base = { id: string; nome: string; plano: string; status: string; sistema_saas_id: string | null };
 type Sistema = { id: string; nome: string };
@@ -310,9 +312,13 @@ export default function FinanceiroSaaS() {
       <Tabs defaultValue="visao-geral">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="a-receber">A Receber SaaS</TabsTrigger>
+          <TabsTrigger value="a-receber">A Receber</TabsTrigger>
+          <TabsTrigger value="a-pagar">A Pagar</TabsTrigger>
           <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
           <TabsTrigger value="compras-avulsas">Compras Avulsas</TabsTrigger>
+          <TabsTrigger value="bancos">Bancos</TabsTrigger>
+          <TabsTrigger value="categorias">Categorias</TabsTrigger>
+          <TabsTrigger value="centros">Centros de Custo</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
         </TabsList>
 
@@ -374,27 +380,31 @@ export default function FinanceiroSaaS() {
           </div>
         </TabsContent>
 
-        {/* A RECEBER SAAS (reusa a tela de Cobranças completa, com filtros, ações e edição) */}
+        {/* A RECEBER SAAS — agora usa saas_lancamentos_financeiros */}
         <TabsContent value="a-receber" className="mt-4">
+          <SaaSLancamentosTab tipo="receita" />
+        </TabsContent>
+
+        {/* A PAGAR SAAS */}
+        <TabsContent value="a-pagar" className="mt-4">
+          <SaaSLancamentosTab tipo="despesa" />
+        </TabsContent>
+
+        {/* COBRANÇAS (tela legada de gerenciamento) */}
+        <TabsContent value="cobrancas" className="mt-4">
           <Card className="p-4">
             <CobrancasSaaS embedded />
           </Card>
         </TabsContent>
 
-        {/* COBRANÇAS (atalho para a tela legada) */}
-        <TabsContent value="cobrancas" className="mt-4">
-          <Card className="p-6 space-y-3">
-            <div className="text-sm">
-              A gestão de cobranças usa a mesma base de dados de <strong>A Receber SaaS</strong>. A tela clássica continua acessível em:
-            </div>
-            <code className="text-xs bg-muted px-2 py-1 rounded">/sistema/gestao-bases/cobrancas</code>
-            <div>
-              <Button asChild>
-                <Link to="/sistema/gestao-bases/cobrancas">Abrir tela clássica <ArrowRight className="w-4 h-4 ml-1" /></Link>
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
+        {/* BANCOS */}
+        <TabsContent value="bancos" className="mt-4"><SaaSBancosTab /></TabsContent>
+
+        {/* CATEGORIAS */}
+        <TabsContent value="categorias" className="mt-4"><SaaSCategoriasTab /></TabsContent>
+
+        {/* CENTROS DE CUSTO */}
+        <TabsContent value="centros" className="mt-4"><SaaSCentrosCustoTab /></TabsContent>
 
         {/* COMPRAS AVULSAS */}
         <TabsContent value="compras-avulsas" className="space-y-4 mt-4">
