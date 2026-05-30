@@ -554,6 +554,7 @@ function DetalheBaseSheet({
             <Linha label="Responsável" value={base.responsavel_nome} />
             <Linha label="E-mail" value={base.email_responsavel} />
             <Linha label="Telefone" value={base.telefone_responsavel} />
+            <Linha label="Sistema contratado" value={sistemas.find((s) => s.id === base.sistema_saas_id)?.nome || null} />
             <Linha label="Plano" value={base.plano} />
             <Linha label="Status" value={base.status} />
             <Linha label="Início" value={base.data_inicio ? new Date(base.data_inicio).toLocaleDateString("pt-BR") : null} />
