@@ -315,7 +315,15 @@ export default function PainelMaster() {
         <KpiBox label="Armaz. contratado" value={`${saasKpi.armTotalGB.toFixed(1)} GB`} />
         <KpiBox label="Armaz. usado" value={`${saasKpi.armUsadoGB.toFixed(1)} GB`} />
         <KpiBox label="Bases >70% arm." value={saasKpi.acimaDe70.length + saasKpi.acimaDe90.length} tone="amber" />
+        <KpiBox
+          label="Contratos aguardando assinatura"
+          value={saasKpi.contratosAguardando}
+          icon={FileSignature}
+          tone={saasKpi.contratosAguardando > 0 ? "amber" : undefined}
+          to="/sistema/gestao-bases/cobrancas"
+        />
       </div>
+
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
