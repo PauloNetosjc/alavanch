@@ -224,7 +224,12 @@ export default function GestaoBases() {
             Administre os clientes/bases do SaaS, lojas vinculadas, planos e módulos.
           </p>
         </div>
-        <Button onClick={abrirNova} className="gap-2"><Plus className="w-4 h-4" /> Nova base</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild className="gap-2">
+            <a href="/sistema/gestao-bases/cobrancas"><CreditCard className="w-4 h-4" /> Cobranças</a>
+          </Button>
+          <Button onClick={abrirNova} className="gap-2"><Plus className="w-4 h-4" /> Nova base</Button>
+        </div>
       </div>
 
       {/* KPIs */}
