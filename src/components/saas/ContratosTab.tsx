@@ -374,6 +374,16 @@ export function ContratosTab({ baseId, baseNome }: Props) {
                         <Download className="w-3.5 h-3.5" />
                       </Button>
                     )}
+                    {c.status !== "cancelado" && c.status !== "assinado" && c.status !== "anexado_manual" && (
+                      <Button size="sm" variant="ghost" title="Enviar para assinatura" onClick={() => enviarParaAssinatura(c)}>
+                        <Send className="w-3.5 h-3.5 text-blue-600" />
+                      </Button>
+                    )}
+                    {c.assinatura_token && c.status !== "cancelado" && (
+                      <Button size="sm" variant="ghost" title="Copiar link de assinatura" onClick={() => copiarLink(`${window.location.origin}/contrato-saas/${c.assinatura_token}`)}>
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     {c.status !== "cancelado" && c.status !== "assinado" && (
                       <Button size="sm" variant="ghost" title="Anexar assinado" onClick={() => { setOpenAnexar(c); setObsAnexo(c.observacoes || ""); }}>
                         <Upload className="w-3.5 h-3.5" />
