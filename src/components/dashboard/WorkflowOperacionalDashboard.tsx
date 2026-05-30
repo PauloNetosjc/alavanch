@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
+import { useModulosLoja } from "@/hooks/useModulosLoja";
 import { BRL } from "@/lib/financeiro";
 import {
   FileSignature, FileText, Ruler, Pencil, ClipboardCheck,
@@ -86,7 +87,7 @@ type GroupKey =
   | "vistoria_finalizacao"
   | "pos_montagem";
 
-const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
+const WORKFLOW_STAGE_GROUPS_ALL: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
   { visualKey: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature, internalKeys: ["contrato_assinado"] },
   { visualKey: "projeto_inicial", label: "Projeto Inicial", icon: FileText, internalKeys: ["projeto_inicial", "projeto_vendido"] },
   { visualKey: "medicao_tecnica", label: "Medição Técnica", icon: Ruler, internalKeys: ["medicao_tecnica"] },
