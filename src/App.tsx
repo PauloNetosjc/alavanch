@@ -40,6 +40,9 @@ const KanbanPosVenda = lazy(() => import("@/pages/KanbanPosVenda"));
 const KanbanRevisao = lazy(() => import("@/pages/KanbanRevisao"));
 const KanbanMontagem = lazy(() => import("@/pages/KanbanMontagem"));
 const KanbanFabrica = lazy(() => import("@/pages/KanbanFabrica"));
+const PainelFabrica = lazy(() => import("@/pages/fabrica/PainelFabrica"));
+const ImportarProducao = lazy(() => import("@/pages/fabrica/ImportarProducao"));
+const ProducaoPorPedido = lazy(() => import("@/pages/fabrica/ProducaoPorPedido"));
 const Kanbans = lazy(() => import("@/pages/Kanbans"));
 const ComercialNovo = lazy(() => import("@/pages/ComercialNovo"));
 const ComercialNegociacao = lazy(() => import("@/pages/ComercialNegociacao"));
@@ -165,6 +168,10 @@ const App = () => (
                 <Route path="/kanban-revisao" element={<KanbanGuard chave="revisao"><KanbanRevisao /></KanbanGuard>} />
                 <Route path="/kanban-montagem" element={<KanbanGuard chave="montagem"><KanbanMontagem /></KanbanGuard>} />
                 <Route path="/kanban-fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_lotes"><KanbanFabrica /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_painel"><PainelFabrica /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica/painel" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_painel"><PainelFabrica /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica/importar" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_importar_producao"><ImportarProducao /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica/producao" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_producao_pedido"><ProducaoPorPedido /></RequirePermission></RequireModulo>} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
