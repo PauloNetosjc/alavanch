@@ -32,6 +32,7 @@ export const STATUS_FABRICA_LABEL: Record<string, string> = {
   aguardando_almoxarifado: "Aguardando almoxarifado",
   em_separacao_almoxarifado: "Separação almoxarifado",
   pronto_para_expedicao: "Pronto para expedição",
+  em_expedicao: "Em expedição",
   expedido: "Expedido",
   ocorrencia_peca_faltante: "Ocorrência / peça faltante",
   em_producao: "Em produção",
