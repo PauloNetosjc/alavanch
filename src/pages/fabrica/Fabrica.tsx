@@ -11,6 +11,7 @@ const ImportarProducao = lazy(() => import("@/pages/fabrica/ImportarProducao"));
 const ProducaoPorPedido = lazy(() => import("@/pages/fabrica/ProducaoPorPedido"));
 const ConferenciaFabrica = lazy(() => import("@/pages/fabrica/Conferencia"));
 const KanbanFabrica = lazy(() => import("@/pages/KanbanFabrica"));
+const Almoxarifado = lazy(() => import("@/pages/fabrica/Almoxarifado"));
 
 interface AbaDef {
   value: string;
@@ -33,7 +34,7 @@ const ABAS: AbaDef[] = [
   { value: "importar", label: "Importar Produção", permissao: "fabrica_importar_producao", render: () => <ImportarProducao /> },
   { value: "producao-pedido", label: "Produção por Pedido", permissao: "fabrica_producao_pedido", render: () => <ProducaoPorPedido /> },
   { value: "conferencia", label: "Conferência", permissao: "fabrica_conferencia", render: () => <ConferenciaFabrica /> },
-  { value: "almoxarifado", label: "Almoxarifado", render: () => <EmBreve titulo="Almoxarifado" /> },
+  { value: "almoxarifado", label: "Almoxarifado", permissao: "fabrica_almoxarifado", render: () => <Almoxarifado /> },
   { value: "expedicao", label: "Expedição", render: () => <EmBreve titulo="Expedição" /> },
   { value: "ocorrencias", label: "Ocorrências", render: () => <EmBreve titulo="Ocorrências" /> },
   { value: "lotes", label: "Kanban / Lotes", permissao: "fabrica_lotes", render: () => <KanbanFabrica /> },

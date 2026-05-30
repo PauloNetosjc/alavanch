@@ -2659,6 +2659,67 @@ export type Database = {
           },
         ]
       }
+      fabrica_almoxarifado_historico: {
+        Row: {
+          codigo_bipado: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          mensagem: string | null
+          pedido_id: string
+          quantidade: number | null
+          resultado: string
+          usuario_id: string | null
+          volume_id: string | null
+        }
+        Insert: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mensagem?: string | null
+          pedido_id: string
+          quantidade?: number | null
+          resultado: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Update: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mensagem?: string | null
+          pedido_id?: string
+          quantidade?: number | null
+          resultado?: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_almoxarifado_historico_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_almoxarifado_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_almoxarifado_historico_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_almoxarifado_itens: {
         Row: {
           atualizado_por: string | null
@@ -2972,6 +3033,61 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_volume_almoxarifado_itens: {
+        Row: {
+          almoxarifado_item_id: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          observacoes: string | null
+          pedido_id: string
+          quantidade: number
+          volume_id: string
+        }
+        Insert: {
+          almoxarifado_item_id: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          pedido_id: string
+          quantidade?: number
+          volume_id: string
+        }
+        Update: {
+          almoxarifado_item_id?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          pedido_id?: string
+          quantidade?: number
+          volume_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_volume_almoxarifado_itens_almoxarifado_item_id_fkey"
+            columns: ["almoxarifado_item_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_volume_almoxarifado_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_volume_almoxarifado_itens_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_volumes"
             referencedColumns: ["id"]
           },
         ]
