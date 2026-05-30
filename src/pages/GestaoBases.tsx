@@ -347,6 +347,7 @@ export default function GestaoBases() {
                       <div>{b.responsavel_nome || "—"}</div>
                       {b.email_responsavel && <div className="text-muted-foreground">{b.email_responsavel}</div>}
                     </td>
+                    <td className="p-3 text-xs">{sistemas.find((s) => s.id === b.sistema_saas_id)?.nome || <span className="text-muted-foreground">—</span>}</td>
                     <td className="p-3"><Badge variant="outline" className="capitalize">{b.plano}</Badge></td>
                     <td className="p-3">{statusBadge(b.status)}</td>
                     <td className="p-3 text-xs">{(lojasPorBase[b.id] || []).length}</td>
