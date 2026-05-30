@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import {
-  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2,
+  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2, ArrowDownCircle, ArrowUpCircle,
 } from "lucide-react";
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
