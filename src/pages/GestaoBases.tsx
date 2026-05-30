@@ -269,7 +269,7 @@ export default function GestaoBases() {
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Teste</div><div className="text-2xl font-display mt-1 text-blue-700">{kpi.teste}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Suspensas</div><div className="text-2xl font-display mt-1 text-amber-700">{kpi.suspenso}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Canceladas</div><div className="text-2xl font-display mt-1 text-red-700">{kpi.cancelado}</div></Card>
-        <a href="/sistema/gestao-bases/cobrancas" className="block">
+        <a href="/sistema-saas/financeiro?aba=receber" className="block">
           <Card className={`p-4 transition hover:shadow-md cursor-pointer ${kpi.contratosAguarda > 0 ? "border-amber-400 bg-amber-50/40" : ""}`}>
             <div className="text-[10px] uppercase text-muted-foreground flex items-center gap-1"><FileSignature className="w-3 h-3"/> Contratos aguardando</div>
             <div className={`text-2xl font-display mt-1 ${kpi.contratosAguarda > 0 ? "text-amber-700" : ""}`}>{kpi.contratosAguarda}</div>
