@@ -493,9 +493,27 @@ export function ContratosTab({ baseId, baseNome }: Props) {
               <div className="border rounded-md p-5 bg-white prose prose-sm max-w-none text-[12.5px]" >
                 <div dangerouslySetInnerHTML={{ __html: openVisualizar.conteudo_html || "<em>Contrato sem conteúdo.</em>" }} />
               </div>
+              {(openVisualizar.status === "assinado" || openVisualizar.assinante_nome) && (
+                <div className="mt-3 border border-emerald-200 bg-emerald-50 rounded-md p-3 text-[12px]">
+                  <div className="font-medium text-emerald-900 mb-1">Evidências da assinatura</div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-emerald-900">
+                    <div><span className="text-emerald-700">Assinante:</span> {openVisualizar.assinante_nome || "—"}</div>
+                    <div><span className="text-emerald-700">Documento:</span> {openVisualizar.assinante_documento || "—"}</div>
+                    <div><span className="text-emerald-700">E-mail:</span> {openVisualizar.assinante_email || "—"}</div>
+                    <div><span className="text-emerald-700">Data/hora:</span> {openVisualizar.data_assinatura ? new Date(openVisualizar.data_assinatura).toLocaleString("pt-BR") : "—"}</div>
+                    <div><span className="text-emerald-700">IP:</span> {openVisualizar.assinante_ip || "—"}</div>
+                    <div className="truncate"><span className="text-emerald-700">Dispositivo:</span> {openVisualizar.assinante_user_agent || "—"}</div>
+                  </div>
+                </div>
+              )}
               <DialogFooter className="gap-2 pt-3">
                 <Button variant="outline" onClick={() => setOpenVisualizar(null)}>Fechar</Button>
                 <Button variant="outline" onClick={imprimirVisualizar} className="gap-1.5"><Printer className="w-3.5 h-3.5" /> Imprimir</Button>
+                {openVisualizar.status !== "cancelado" && openVisualizar.status !== "assinado" && openVisualizar.status !== "anexado_manual" && (
+                  <Button variant="outline" onClick={() => enviarParaAssinatura(openVisualizar)} className="gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Enviar para assinatura
+                  </Button>
+                )}
                 {openVisualizar.status !== "cancelado" && openVisualizar.status !== "assinado" && (
                   <Button onClick={() => { setOpenAnexar(openVisualizar); setObsAnexo(openVisualizar.observacoes || ""); setOpenVisualizar(null); }} className="gap-1.5">
                     <Upload className="w-3.5 h-3.5" /> Anexar assinado
