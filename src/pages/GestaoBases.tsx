@@ -253,7 +253,7 @@ export default function GestaoBases() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" asChild className="gap-2">
-            <a href="/sistema/gestao-bases/cobrancas"><CreditCard className="w-4 h-4" /> Cobranças</a>
+            <a href="/sistema-saas/financeiro?aba=receber"><CreditCard className="w-4 h-4" /> Cobranças</a>
           </Button>
           <Button variant="outline" asChild className="gap-2">
             <a href="/sistema/gestao-bases/comunicados"><Megaphone className="w-4 h-4" /> Comunicados</a>
