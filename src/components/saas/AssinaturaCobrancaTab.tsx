@@ -208,30 +208,60 @@ export function AssinaturaCobrancaTab({
   }, [assinatura, cobrancas, compras, lojasCount, usuariosCount]);
 
   // ===== Ações cobranças =====
-  const gerarMensalidade = async (data: { mes: number; ano: number; vencimento: string; valor: number; obs?: string; force?: boolean }) => {
+  const gerarMensalidade = async (data: {
+    tipo: "unica" | "recorrente";
+    mes: number; ano: number; vencimento: string; valor: number; obs?: string;
+    qtdMeses?: number; diaVencimento?: number;
+  }) => {
     if (!assinatura) return;
-    if (!data.force) {
-      const dup = cobrancas.find((c) => c.tipo_cobranca === "mensalidade" && c.competencia_mes === data.mes && c.competencia_ano === data.ano && c.status !== "cancelado");
-      if (dup) {
-        if (!confirm("Já existe uma mensalidade para esta competência. Deseja gerar mesmo assim?")) return;
+
+    // monta lista de competências
+    const lista: { mes: number; ano: number; vencimento: string }[] = [];
+    if (data.tipo === "unica") {
+      lista.push({ mes: data.mes, ano: data.ano, vencimento: data.vencimento });
+    } else {
+      const dia = Math.min(Math.max(1, data.diaVencimento || 10), 28);
+      let m = data.mes, y = data.ano;
+      for (let i = 0; i < (data.qtdMeses || 1); i++) {
+        const venc = `${y}-${String(m).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+        lista.push({ mes: m, ano: y, vencimento: venc });
+        m++;
+        if (m > 12) { m = 1; y++; }
       }
     }
-    const { error } = await supabase.from("base_cobrancas" as any).insert({
+
+    // checa duplicatas
+    const duplicadas = lista.filter((l) =>
+      cobrancas.some((c) => c.tipo_cobranca === "mensalidade" && c.competencia_mes === l.mes && c.competencia_ano === l.ano && c.status !== "cancelado")
+    );
+    if (duplicadas.length > 0) {
+      const labels = duplicadas.map((d) => `${String(d.mes).padStart(2, "0")}/${d.ano}`).join(", ");
+      if (!confirm(`Já existe mensalidade para: ${labels}. Deseja gerar mesmo assim?`)) return;
+    }
+
+    const payload = lista.map((l) => ({
       base_cliente_id: baseId,
       assinatura_id: assinatura.id,
       tipo_cobranca: "mensalidade",
-      descricao: `Mensalidade ${String(data.mes).padStart(2, "0")}/${data.ano}`,
-      competencia_mes: data.mes,
-      competencia_ano: data.ano,
-      data_vencimento: data.vencimento,
+      descricao: `Mensalidade ${String(l.mes).padStart(2, "0")}/${l.ano}`,
+      competencia_mes: l.mes,
+      competencia_ano: l.ano,
+      data_vencimento: l.vencimento,
       valor: data.valor,
       status: "pendente",
       observacoes: data.obs || null,
       criado_por: userId,
-    } as any);
+    }));
+
+    const { error } = await supabase.from("base_cobrancas" as any).insert(payload as any);
     if (error) { toast.error(error.message); return; }
-    await registrarHist("cobranca_gerada", `Mensalidade ${data.mes}/${data.ano} gerada (${brl(data.valor)})`);
-    toast.success("Mensalidade gerada");
+    await registrarHist(
+      data.tipo === "recorrente" ? "mensalidades_recorrentes_geradas" : "cobranca_gerada",
+      data.tipo === "recorrente"
+        ? `${lista.length} mensalidades recorrentes geradas (${brl(data.valor)} cada)`
+        : `Mensalidade ${data.mes}/${data.ano} gerada (${brl(data.valor)})`,
+    );
+    toast.success(`${lista.length} cobrança(s) gerada(s)`);
     setShowGerar(false);
     carregar();
   };
