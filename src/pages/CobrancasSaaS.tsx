@@ -65,7 +65,7 @@ function statusBadge(s: string) {
   return <Badge className={`${c[s] || "bg-zinc-200 text-zinc-700"} border-0 capitalize`}>{s}</Badge>;
 }
 
-export default function CobrancasSaaS() {
+export default function CobrancasSaaS({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [bases, setBases] = useState<Base[]>([]);
   const [assinaturas, setAssinaturas] = useState<Assinatura[]>([]);
@@ -313,23 +313,25 @@ export default function CobrancasSaaS() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 print:p-0">
+    <div className={`${embedded ? "" : "p-6 max-w-7xl mx-auto"} space-y-6 print:p-0`}>
       {/* Header */}
-      <div className="flex items-start justify-between print:hidden">
-        <div>
-          <h1 className="text-2xl font-display flex items-center gap-2">
-            <Wallet className="w-5 h-5" /> Cobranças SaaS
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Controle de mensalidades, implantação, compras avulsas, armazenamento e recorrências das bases.
-          </p>
+      {!embedded && (
+        <div className="flex items-start justify-between print:hidden">
+          <div>
+            <h1 className="text-2xl font-display flex items-center gap-2">
+              <Wallet className="w-5 h-5" /> Cobranças SaaS
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Controle de mensalidades, implantação, compras avulsas, armazenamento e recorrências das bases.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/sistema/gestao-bases"><ArrowLeft className="w-4 h-4 mr-1" /> Gestão de Bases</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/sistema/gestao-bases"><ArrowLeft className="w-4 h-4 mr-1" /> Gestão de Bases</Link>
-          </Button>
-        </div>
-      </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">

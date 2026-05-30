@@ -146,11 +146,12 @@ const moreGroups: Group[] = [
     icon: TrendingUp,
     items: [
       { label: "Painel Master", path: "/sistema/painel-master", icon: TrendingUp, roles: ["admin"] },
+      { label: "Empresa SaaS", path: "/sistema-saas/empresa", icon: Building2, modulo: "sistema.empresa_saas" },
       { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
+      { label: "Financeiro SaaS", path: "/sistema-saas/financeiro", icon: Wallet, modulo: "sistema.financeiro_saas" },
       { label: "Cobranças SaaS", path: "/sistema/gestao-bases/cobrancas", icon: Wallet, roles: ["admin"] },
       { label: "Comunicados", path: "/sistema/gestao-bases/comunicados", icon: Megaphone, roles: ["admin"] },
       { label: "Modelos de Contrato", path: "/sistema/gestao-bases/modelos-contrato", icon: FileSignature, modulo: "sistema.modelos_contrato_saas" },
-      { label: "Empresa SaaS", path: "/sistema-saas/empresa", icon: Building2, modulo: "sistema.empresa_saas" },
     ],
   },
   {

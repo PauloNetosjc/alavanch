@@ -23,6 +23,7 @@ const CobrancasSaaS = lazy(() => import("@/pages/CobrancasSaaS"));
 const ComunicadosSaaS = lazy(() => import("@/pages/ComunicadosSaaS"));
 const ModelosContratoSaaS = lazy(() => import("@/pages/ModelosContratoSaaS"));
 const EmpresaSaaS = lazy(() => import("@/pages/sistema-saas/EmpresaSaaS"));
+const FinanceiroSaaS = lazy(() => import("@/pages/sistema-saas/FinanceiroSaaS"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
@@ -198,6 +199,7 @@ const App = () => (
                 <Route path="/sistema/gestao-bases/comunicados" element={<RequirePermission modulo="sistema.comunicados_saas"><ComunicadosSaaS /></RequirePermission>} />
                 <Route path="/sistema/gestao-bases/modelos-contrato" element={<RequirePermission modulo="sistema.modelos_contrato_saas"><ModelosContratoSaaS /></RequirePermission>} />
                 <Route path="/sistema-saas/empresa" element={<RequirePermission modulo="sistema.empresa_saas"><EmpresaSaaS /></RequirePermission>} />
+                <Route path="/sistema-saas/financeiro" element={<RequirePermission modulo="sistema.financeiro_saas"><FinanceiroSaaS /></RequirePermission>} />
                 <Route path="/sistema/painel-master" element={<RequirePermission modulo="sistema.painel_master"><PainelMaster /></RequirePermission>} />
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
