@@ -37,26 +37,49 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [modulos, setModulos] = useState<any[]>([]);
   const [pecas, setPecas] = useState<any[]>([]);
   const [almox, setAlmox] = useState<any[]>([]);
+  const [volumes, setVolumes] = useState<any[]>([]);
+  const [volumePecas, setVolumePecas] = useState<any[]>([]);
+  const [historicoConf, setHistoricoConf] = useState<any[]>([]);
+  const [confOpen, setConfOpen] = useState(false);
+  const [etiquetaOpen, setEtiquetaOpen] = useState(false);
+  const [etiquetaVolume, setEtiquetaVolume] = useState<any>(null);
+  const [etiquetaPecas, setEtiquetaPecas] = useState<any[]>([]);
 
   async function carregar() {
     if (!pedidoId) return;
     setLoading(true);
     try {
-      const [{ data: p }, { data: ar }, { data: mo }, { data: pc }, { data: al }] = await Promise.all([
+      const [{ data: p }, { data: ar }, { data: mo }, { data: pc }, { data: al }, { data: vs }, { data: vp }, { data: hi }] = await Promise.all([
         (supabase as any).from("pedidos").select("id, codigo, status_fabrica, valor_total, data_assinatura_pdf_final, cliente:clientes(nome), loja:lojas(nome)").eq("id", pedidoId).maybeSingle(),
         (supabase as any).from("fabrica_arquivos_producao").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
         (supabase as any).from("fabrica_modulos").select("*").eq("pedido_id", pedidoId).order("ordem", { ascending: true, nullsFirst: false }),
-        (supabase as any).from("fabrica_pecas").select("*, modulo:fabrica_modulos(codigo_modulo, nome_modulo)").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
+        (supabase as any).from("fabrica_pecas").select("*, modulo:fabrica_modulos(codigo_modulo, nome_modulo, ambiente)").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
         (supabase as any).from("fabrica_almoxarifado_itens").select("*").eq("pedido_id", pedidoId).order("referencia", { ascending: true }),
+        (supabase as any).from("fabrica_volumes").select("*").eq("pedido_id", pedidoId).order("numero_volume"),
+        (supabase as any).from("fabrica_volume_pecas").select("*").eq("pedido_id", pedidoId),
+        (supabase as any).from("fabrica_conferencia_historico").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: false }).limit(30),
       ]);
       setPedido(p);
       setArquivos(ar || []);
       setModulos(mo || []);
       setPecas(pc || []);
       setAlmox(al || []);
+      setVolumes(vs || []);
+      setVolumePecas(vp || []);
+      setHistoricoConf(hi || []);
     } finally {
       setLoading(false);
     }
+  }
+
+  function abrirEtiquetaVolume(volumeId: string) {
+    const vol = volumes.find((v) => v.id === volumeId);
+    if (!vol) return;
+    const pids = volumePecas.filter((vp) => vp.volume_id === volumeId).map((vp) => vp.peca_id);
+    const ps = pecas.filter((p) => pids.includes(p.id));
+    setEtiquetaVolume(vol);
+    setEtiquetaPecas(ps);
+    setEtiquetaOpen(true);
   }
 
   useEffect(() => {
