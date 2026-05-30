@@ -49,6 +49,8 @@ import {
   KeyRound,
   TrendingUp,
   FileSignature,
+  Target,
+  CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
