@@ -22,6 +22,7 @@ const PainelMaster = lazy(() => import("@/pages/PainelMaster"));
 const CobrancasSaaS = lazy(() => import("@/pages/CobrancasSaaS"));
 const ComunicadosSaaS = lazy(() => import("@/pages/ComunicadosSaaS"));
 const ModelosContratoSaaS = lazy(() => import("@/pages/ModelosContratoSaaS"));
+const EmpresaSaaS = lazy(() => import("@/pages/sistema-saas/EmpresaSaaS"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
