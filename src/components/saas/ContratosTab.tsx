@@ -41,6 +41,10 @@ type Contrato = {
   usuarios_incluidos: number | null; armazenamento_incluido_mb: number | null;
   armazenamento_adicional_mb: number | null;
   data_inicio: string | null; data_fim: string | null; data_assinatura: string | null;
+  data_envio_assinatura: string | null;
+  assinatura_token: string | null; assinatura_url: string | null;
+  assinante_nome: string | null; assinante_documento: string | null;
+  assinante_email: string | null; assinante_ip: string | null; assinante_user_agent: string | null;
   arquivo_assinado_url: string | null; conteudo_html: string | null;
   modelo_id: string | null; observacoes: string | null;
   created_at: string;
