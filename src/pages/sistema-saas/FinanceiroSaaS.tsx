@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+// removed Link (no longer used)
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import {
-  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2, ArrowRight,
+  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2,
 } from "lucide-react";
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
