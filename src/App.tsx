@@ -16,7 +16,7 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 import { RequirePermission } from "@/components/RequirePermission";
 import KanbanGuard from "@/components/KanbanGuard";
 import { RequireModulo } from "@/components/RequireModulo";
-const GestaoModulos = lazy(() => import("@/pages/GestaoModulos"));
+
 const GestaoBases = lazy(() => import("@/pages/GestaoBases"));
 const PainelMaster = lazy(() => import("@/pages/PainelMaster"));
 const CobrancasSaaS = lazy(() => import("@/pages/CobrancasSaaS"));
