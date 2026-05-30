@@ -2651,6 +2651,92 @@ export type Database = {
         }
         Relationships: []
       }
+      modulos_loja: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          contratado: boolean
+          created_at: string
+          data_ativacao: string | null
+          data_desativacao: string | null
+          id: string
+          loja_id: string
+          modulo_chave: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          contratado?: boolean
+          created_at?: string
+          data_ativacao?: string | null
+          data_desativacao?: string | null
+          id?: string
+          loja_id: string
+          modulo_chave: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          contratado?: boolean
+          created_at?: string
+          data_ativacao?: string | null
+          data_desativacao?: string | null
+          id?: string
+          loja_id?: string
+          modulo_chave?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulos_loja_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modulos_sistema: {
+        Row: {
+          ativo_global: boolean
+          categoria: string | null
+          chave: string
+          created_at: string
+          descricao: string | null
+          essencial: boolean
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo_global?: boolean
+          categoria?: string | null
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          essencial?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo_global?: boolean
+          categoria?: string | null
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          essencial?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notas_fiscais: {
         Row: {
           chave: string | null
@@ -5869,6 +5955,10 @@ export type Database = {
       loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
+      modulo_ativo: {
+        Args: { _chave: string; _loja_id: string }
+        Returns: boolean
+      }
       pedido_doc_anon_writeable: {
         Args: { _pedido_id: string; _solic_id: string }
         Returns: boolean
