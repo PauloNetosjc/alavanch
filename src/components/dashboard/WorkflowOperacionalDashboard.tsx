@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
+import { useModulosLoja } from "@/hooks/useModulosLoja";
 import { BRL } from "@/lib/financeiro";
 import {
   FileSignature, FileText, Ruler, Pencil, ClipboardCheck,
@@ -86,7 +87,7 @@ type GroupKey =
   | "vistoria_finalizacao"
   | "pos_montagem";
 
-const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
+const WORKFLOW_STAGE_GROUPS_ALL: { visualKey: GroupKey; label: string; icon: any; internalKeys: EtapaKey[] }[] = [
   { visualKey: "contrato_assinado", label: "Contrato Assinado", icon: FileSignature, internalKeys: ["contrato_assinado"] },
   { visualKey: "projeto_inicial", label: "Projeto Inicial", icon: FileText, internalKeys: ["projeto_inicial", "projeto_vendido"] },
   { visualKey: "medicao_tecnica", label: "Medição Técnica", icon: Ruler, internalKeys: ["medicao_tecnica"] },
@@ -102,7 +103,7 @@ const WORKFLOW_STAGE_GROUPS: { visualKey: GroupKey; label: string; icon: any; in
 
 const ETAPA_TO_GROUP: Record<string, GroupKey> = (() => {
   const m: Record<string, GroupKey> = {};
-  WORKFLOW_STAGE_GROUPS.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
+  WORKFLOW_STAGE_GROUPS_ALL.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
   return m;
 })();
 
@@ -168,6 +169,11 @@ type ContratoFiltro = "todos" | "assinados" | "nao_assinados";
 export default function WorkflowOperacionalDashboard() {
   const navigate = useNavigate();
   const { selectedLojaId } = useLoja();
+  const { isModuloAtivo } = useModulosLoja();
+  const WORKFLOW_STAGE_GROUPS = useMemo(
+    () => WORKFLOW_STAGE_GROUPS_ALL.filter((g) => g.visualKey !== "fabrica_lote" || isModuloAtivo("fabrica")),
+    [isModuloAtivo]
+  );
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<PedidoLite[]>([]);
 

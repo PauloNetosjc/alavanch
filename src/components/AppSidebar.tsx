@@ -52,8 +52,9 @@ import { useBranding } from "@/contexts/BrandingContext";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useKanbansVisibilidade, KanbanChave } from "@/hooks/useKanbansVisibilidade";
+import { useModulosLoja } from "@/hooks/useModulosLoja";
 
-type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[]; kanban?: KanbanChave };
+type Item = { label: string; path: string; icon: React.ComponentType<{ className?: string }>; modulo?: string; roles?: string[]; kanban?: KanbanChave; moduloLoja?: string };
 type Section = { label: string; items: Item[] };
 type Group = { label: string; icon: React.ComponentType<{ className?: string }>; items: Item[] };
 
@@ -79,7 +80,7 @@ const sections: Section[] = [
   {
     label: "Operação",
     items: [
-      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2, modulo: "fabrica_lotes" },
+      { label: "Fábrica", path: "/kanban-fabrica", icon: Building2, modulo: "fabrica_lotes", moduloLoja: "fabrica" },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
     ],
@@ -88,9 +89,9 @@ const sections: Section[] = [
     label: "Administrativo",
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
-      { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "lancamentos" },
-      { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh" },
-      { label: "Bater Ponto", path: "/bater-ponto", icon: Fingerprint },
+      { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "notas_fiscais", moduloLoja: "notas_fiscais" },
+      { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh", moduloLoja: "rh" },
+      { label: "Bater Ponto", path: "/bater-ponto", icon: Fingerprint, modulo: "bater_ponto", moduloLoja: "bater_ponto" },
     ],
   },
 ];
@@ -129,6 +130,7 @@ const moreGroups: Group[] = [
     icon: Cog,
     items: [
       { label: "Info Sistema", path: "/sistema/info", icon: Cog, roles: ["admin"] },
+      { label: "Gestão de Módulos", path: "/sistema/gestao-modulos", icon: Package, roles: ["admin"] },
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
       { label: "Assinaturas Digitais", path: "/assinaturas", icon: PenLine },
       { label: "Configurações", path: "/configuracoes", icon: Settings },
@@ -279,6 +281,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const { nome: brandNome, logoUrl } = useBranding();
   const { can } = usePermissions();
   const { isAtivo: isKanbanAtivo } = useKanbansVisibilidade();
+  const { isModuloAtivo } = useModulosLoja();
   const [moreOpen, setMoreOpen] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("sidebar_collapsed") === "1"; } catch { return false; }
@@ -327,6 +330,7 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
       if (it.modulo && !can(it.modulo, "view")) return false;
       if (it.roles && !it.roles.includes(role || "")) return false;
       if (it.kanban && !isKanbanAtivo(it.kanban)) return false;
+      if (it.moduloLoja && !isModuloAtivo(it.moduloLoja)) return false;
       return true;
     });
   const filterSection = (s: Section) => ({ ...s, items: filterItems(s.items) });
