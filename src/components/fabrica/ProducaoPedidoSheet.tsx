@@ -21,7 +21,9 @@ import {
 import { getSignedUrlFabrica, removerArquivoFabrica } from "@/lib/fabrica/arquivos";
 import { ConferenciaPedidoSheet } from "@/components/fabrica/ConferenciaPedidoSheet";
 import { EtiquetaPreviewDialog } from "@/components/fabrica/EtiquetaPreviewDialog";
-import { ScanBarcode, Printer } from "lucide-react";
+import { AlmoxarifadoPedidoSheet } from "@/components/fabrica/AlmoxarifadoPedidoSheet";
+import { EtiquetaCaixaPreviewDialog } from "@/components/fabrica/EtiquetaCaixaPreviewDialog";
+import { ScanBarcode, Printer, PackageOpen } from "lucide-react";
 
 interface Props {
   open: boolean;
