@@ -122,6 +122,7 @@ export function NovidadesButton() {
                 {new Date(selected.created_at).toLocaleString("pt-BR")}
               </div>
               <div className="text-[12.5px] whitespace-pre-wrap leading-relaxed">{selected.mensagem}</div>
+              <AnexoView c={selected} />
               {selected.link_url && (
                 <a href={selected.link_url} target="_blank" rel="noreferrer" className="block mt-2 text-[12px] text-primary underline">
                   Saiba mais →
