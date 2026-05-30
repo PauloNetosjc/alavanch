@@ -563,6 +563,10 @@ export default function FinanceiroSaaS() {
             <RelatorioCard title="MRR por sistema" rows={mrrPorSistemaRows} dataKey="MRR" labelKey="Sistema" onExport={() => exportRelatorio(mrrPorSistemaRows, "mrr_sistema")} />
           </div>
 
+          <RelatoriosSaaSExtras />
+
+
+
           <Card className="p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium flex items-center gap-2"><FileSignature className="w-4 h-4" /> Implantação em aberto</div>
