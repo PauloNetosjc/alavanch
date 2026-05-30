@@ -19,6 +19,9 @@ import {
   TIPO_ARQUIVO_LABEL,
 } from "@/lib/fabrica/statusFabrica";
 import { getSignedUrlFabrica, removerArquivoFabrica } from "@/lib/fabrica/arquivos";
+import { ConferenciaPedidoSheet } from "@/components/fabrica/ConferenciaPedidoSheet";
+import { EtiquetaPreviewDialog } from "@/components/fabrica/EtiquetaPreviewDialog";
+import { ScanBarcode, Printer } from "lucide-react";
 
 interface Props {
   open: boolean;
