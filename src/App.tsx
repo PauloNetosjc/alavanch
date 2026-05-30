@@ -77,6 +77,7 @@ const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const Agenda = lazy(() => import("@/pages/Agenda"));
 const Autorizacoes = lazy(() => import("@/pages/Autorizacoes"));
 const AssinaturaPublica = lazy(() => import("@/pages/AssinaturaPublica"));
+const ContratoSaaSAssinar = lazy(() => import("@/pages/ContratoSaaSAssinar"));
 const ValidarContrato = lazy(() => import("@/pages/ValidarContrato"));
 
 const Assinaturas = lazy(() => import("@/pages/Assinaturas"));
