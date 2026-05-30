@@ -151,7 +151,7 @@ const App = () => (
                 <Route path="/kanban-pos-venda" element={<KanbanGuard chave="pos_venda"><KanbanPosVenda /></KanbanGuard>} />
                 <Route path="/kanban-revisao" element={<KanbanGuard chave="revisao"><KanbanRevisao /></KanbanGuard>} />
                 <Route path="/kanban-montagem" element={<KanbanGuard chave="montagem"><KanbanMontagem /></KanbanGuard>} />
-                <Route path="/kanban-fabrica" element={<KanbanGuard chave="fabrica"><KanbanFabrica /></KanbanGuard>} />
+                <Route path="/kanban-fabrica" element={<RequirePermission modulo="fabrica_lotes"><KanbanFabrica /></RequirePermission>} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />
