@@ -462,6 +462,23 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
       volume={etiquetaVolume}
       pecas={etiquetaPecas}
     />
+    <AlmoxarifadoPedidoSheet
+      open={almoxOpen}
+      onOpenChange={(v) => { setAlmoxOpen(v); if (!v) carregar(); }}
+      pedido={pedido}
+      onChanged={() => { carregar(); onChanged?.(); }}
+    />
+    {caixaPreview && (
+      <EtiquetaCaixaPreviewDialog
+        open={!!caixaPreview}
+        onOpenChange={(v) => !v && setCaixaPreview(null)}
+        pedidoId={pedidoId || ""}
+        pedidoCodigo={pedido?.codigo}
+        cliente={pedido?.cliente?.nome}
+        caixa={caixaPreview}
+        itens={caixaPreviewItens}
+      />
+    )}
     </>
   );
 }
