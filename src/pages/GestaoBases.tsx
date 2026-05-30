@@ -638,6 +638,10 @@ function DetalheBaseSheet({
             />
           </TabsContent>
 
+          <TabsContent value="contratos" className="mt-4">
+            <ContratosTab baseId={base.id} baseNome={base.nome} />
+          </TabsContent>
+
           <TabsContent value="historico" className="mt-4">
             {historico.length === 0 ? (
               <div className="text-sm text-muted-foreground">Nenhum evento registrado.</div>
