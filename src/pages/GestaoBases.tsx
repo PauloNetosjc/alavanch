@@ -184,6 +184,7 @@ export default function GestaoBases() {
 
   const salvar = async () => {
     if (!form.nome?.trim()) { toast.error("Nome da base é obrigatório"); return; }
+    if (!form.sistema_saas_id) { toast.error("Selecione o sistema contratado"); return; }
     setSaving(true);
     try {
       const payload: any = {
@@ -198,6 +199,7 @@ export default function GestaoBases() {
         plano: form.plano || "personalizado",
         observacoes: form.observacoes || null,
         data_inicio: form.data_inicio || null,
+        sistema_saas_id: form.sistema_saas_id,
         atualizado_por: user?.id ?? null,
       };
       if (editing) {
