@@ -523,24 +523,13 @@ function DetalheBaseSheet({
           </TabsContent>
 
           <TabsContent value="lojas" className="mt-4">
-            {lojas.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhuma loja vinculada a esta base.</div>
-            ) : (
-              <div className="space-y-2">
-                {lojas.map((lj) => (
-                  <Card key={lj.id} className="p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-sm">{lj.nome}</div>
-                      <div className="text-xs text-muted-foreground">{lj.ativo ? "Ativa" : "Inativa"}</div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px]">{usuarios.filter((u) => u.loja_id === lj.id).length} usuários</Badge>
-                  </Card>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-3">
-              Para cadastrar novas lojas, use Administração → Lojas e vincule a esta base.
-            </p>
+            <LojasDaBase
+              baseId={base.id}
+              lojas={lojas}
+              usuarios={usuarios}
+              userId={userId}
+              onChanged={() => { onChanged(); carregarTudo(); }}
+            />
           </TabsContent>
 
           <TabsContent value="usuarios" className="mt-4">
