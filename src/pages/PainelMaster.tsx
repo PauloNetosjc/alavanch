@@ -320,7 +320,7 @@ export default function PainelMaster() {
           value={saasKpi.contratosAguardando}
           icon={FileSignature}
           tone={saasKpi.contratosAguardando > 0 ? "amber" : undefined}
-          to="/sistema/gestao-bases/cobrancas"
+          to="/sistema-saas/financeiro?aba=receber"
         />
       </div>
 
