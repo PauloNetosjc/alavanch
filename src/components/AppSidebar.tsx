@@ -149,7 +149,7 @@ const moreGroups: Group[] = [
       { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
       { label: "Cobranças SaaS", path: "/sistema/gestao-bases/cobrancas", icon: Wallet, roles: ["admin"] },
       { label: "Comunicados", path: "/sistema/gestao-bases/comunicados", icon: Megaphone, roles: ["admin"] },
-      
+      { label: "Modelos de Contrato", path: "/sistema/gestao-bases/modelos-contrato", icon: FileSignature, modulo: "sistema.modelos_contrato_saas" },
     ],
   },
   {
