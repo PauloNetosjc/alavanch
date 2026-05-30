@@ -46,6 +46,9 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [etiquetaOpen, setEtiquetaOpen] = useState(false);
   const [etiquetaVolume, setEtiquetaVolume] = useState<any>(null);
   const [etiquetaPecas, setEtiquetaPecas] = useState<any[]>([]);
+  const [almoxOpen, setAlmoxOpen] = useState(false);
+  const [caixaPreview, setCaixaPreview] = useState<any | null>(null);
+  const [caixaPreviewItens, setCaixaPreviewItens] = useState<any[]>([]);
 
   async function carregar() {
     if (!pedidoId) return;
