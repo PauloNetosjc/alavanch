@@ -5,8 +5,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Tabs, TabsList, TabsTrigger, TabsContent,
+  Tabs, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import { AnexoView, anexoIcon } from "./AnexoView";
 
 const tipoLabel: Record<string, string> = {
   novidade: "Novidade", aviso: "Aviso", manutencao: "Manutenção", financeiro: "Financeiro",
@@ -92,6 +93,11 @@ export function NovidadesButton() {
                     <Badge className={`${prioColor[c.prioridade] || ""} border-0 text-[9px] py-0 capitalize`}>
                       {c.prioridade}
                     </Badge>
+                    {c.anexo_tipo && c.anexo_tipo !== "nenhum" && (
+                      <span className="inline-flex items-center text-muted-foreground" title={c.anexo_tipo}>
+                        {anexoIcon(c.anexo_tipo)}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground ml-auto">
                       {new Date(c.created_at).toLocaleDateString("pt-BR")}
                     </span>
@@ -116,6 +122,7 @@ export function NovidadesButton() {
                 {new Date(selected.created_at).toLocaleString("pt-BR")}
               </div>
               <div className="text-[12.5px] whitespace-pre-wrap leading-relaxed">{selected.mensagem}</div>
+              <AnexoView c={selected} />
               {selected.link_url && (
                 <a href={selected.link_url} target="_blank" rel="noreferrer" className="block mt-2 text-[12px] text-primary underline">
                   Saiba mais →

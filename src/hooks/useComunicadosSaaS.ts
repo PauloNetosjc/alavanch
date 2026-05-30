@@ -17,6 +17,12 @@ export type Comunicado = {
   link_url: string | null;
   criado_por: string | null;
   created_at: string;
+  anexo_tipo?: string | null;
+  anexo_url?: string | null;
+  anexo_nome?: string | null;
+  anexo_mime?: string | null;
+  anexo_tamanho_bytes?: number | null;
+  anexo_texto_botao?: string | null;
 };
 
 export type Leitura = {

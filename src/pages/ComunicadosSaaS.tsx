@@ -17,7 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Megaphone, Plus, Search, ArrowLeft, Send, Copy, Eye, Trash2, X, Check } from "lucide-react";
+import { Megaphone, Plus, Search, ArrowLeft, Send, Copy, Eye, Trash2, X, Check, Upload, FileText, Image as ImageIcon, Video, Link as LinkIcon, Paperclip } from "lucide-react";
+import { AnexoView, anexoIcon, anexoLabel } from "@/components/comunicados/AnexoView";
 
 type Comunicado = {
   id: string;
@@ -28,6 +29,12 @@ type Comunicado = {
   link_url: string | null;
   criado_por: string | null;
   created_at: string;
+  anexo_tipo?: string | null;
+  anexo_url?: string | null;
+  anexo_nome?: string | null;
+  anexo_mime?: string | null;
+  anexo_tamanho_bytes?: number | null;
+  anexo_texto_botao?: string | null;
 };
 type Destinatario = {
   id: string; comunicado_id: string;
@@ -67,6 +74,13 @@ type FormState = {
   destino: "todas" | "bases" | "lojas";
   bases: string[];
   lojas: string[];
+  anexo_tipo: "nenhum" | "imagem" | "pdf" | "video" | "link";
+  anexo_url: string;
+  anexo_nome: string;
+  anexo_mime: string;
+  anexo_tamanho_bytes: number | null;
+  anexo_texto_botao: string;
+  anexo_video_modo: "upload" | "link";
 };
 
 const emptyForm = (): FormState => ({
@@ -76,7 +90,22 @@ const emptyForm = (): FormState => ({
   data_inicio: new Date().toISOString().slice(0,10), data_fim: "",
   link_url: "",
   destino: "todas", bases: [], lojas: [],
+  anexo_tipo: "nenhum", anexo_url: "", anexo_nome: "", anexo_mime: "",
+  anexo_tamanho_bytes: null, anexo_texto_botao: "",
+  anexo_video_modo: "link",
 });
+
+const LIMITES_MB: Record<string, number> = { imagem: 10, pdf: 20, video: 100 };
+const MIMES_OK: Record<string, string[]> = {
+  imagem: ["image/png", "image/jpeg", "image/jpg", "image/webp"],
+  pdf: ["application/pdf"],
+  video: ["video/mp4", "video/webm", "video/quicktime"],
+};
+const ACCEPT: Record<string, string> = {
+  imagem: "image/png,image/jpeg,image/webp",
+  pdf: "application/pdf",
+  video: "video/mp4,video/webm,video/quicktime",
+};
 
 export default function ComunicadosSaaS() {
   const { user } = useAuth();
@@ -161,6 +190,13 @@ export default function ComunicadosSaaS() {
       link_url: c.link_url || "",
       destino: todas ? "todas" : lojasIds.length > 0 ? "lojas" : "bases",
       bases: basesIds, lojas: lojasIds,
+      anexo_tipo: (c.anexo_tipo as any) || "nenhum",
+      anexo_url: c.anexo_url || "",
+      anexo_nome: c.anexo_nome || "",
+      anexo_mime: c.anexo_mime || "",
+      anexo_tamanho_bytes: c.anexo_tamanho_bytes ?? null,
+      anexo_texto_botao: c.anexo_texto_botao || "",
+      anexo_video_modo: c.anexo_tipo === "video" && c.anexo_mime ? "upload" : "link",
     });
     setOpen(true);
   };
@@ -178,6 +214,15 @@ export default function ComunicadosSaaS() {
     if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
       toast.error("Data final não pode ser anterior à inicial"); return;
     }
+    // Validações de anexo
+    if (form.anexo_tipo !== "nenhum") {
+      if (form.anexo_tipo === "link" || (form.anexo_tipo === "video" && form.anexo_video_modo === "link")) {
+        if (!form.anexo_url.trim()) { toast.error("Informe a URL do anexo"); return; }
+        try { new URL(form.anexo_url); } catch { toast.error("URL inválida"); return; }
+      } else {
+        if (!form.anexo_url) { toast.error("Faça upload do arquivo"); return; }
+      }
+    }
 
     const payload: any = {
       titulo: form.titulo.trim(),
@@ -188,6 +233,12 @@ export default function ComunicadosSaaS() {
       data_inicio: form.data_inicio || null,
       data_fim: form.data_fim || null,
       link_url: form.link_url || null,
+      anexo_tipo: form.anexo_tipo === "nenhum" ? null : form.anexo_tipo,
+      anexo_url: form.anexo_tipo === "nenhum" ? null : (form.anexo_url || null),
+      anexo_nome: form.anexo_tipo === "nenhum" ? null : (form.anexo_nome || null),
+      anexo_mime: form.anexo_tipo === "nenhum" ? null : (form.anexo_mime || null),
+      anexo_tamanho_bytes: form.anexo_tipo === "nenhum" ? null : form.anexo_tamanho_bytes,
+      anexo_texto_botao: form.anexo_tipo === "link" ? (form.anexo_texto_botao || null) : null,
       atualizado_por: user?.id,
     };
 
@@ -240,6 +291,48 @@ export default function ComunicadosSaaS() {
     const { data } = await (supabase.from("comunicados_saas_leituras" as any) as any)
       .select("*").eq("comunicado_id", c.id);
     setLeituras((data as any) || []);
+  };
+
+  const [uploading, setUploading] = useState(false);
+  const uploadAnexo = async (file: File) => {
+    const tipo = form.anexo_tipo;
+    if (tipo === "nenhum" || tipo === "link") return;
+    const mimesOk = MIMES_OK[tipo] || [];
+    if (mimesOk.length && !mimesOk.includes(file.type)) {
+      toast.error(`Tipo de arquivo não permitido para ${anexoLabel(tipo)}`);
+      return;
+    }
+    const limMb = LIMITES_MB[tipo] || 10;
+    if (file.size > limMb * 1024 * 1024) {
+      toast.error(`Arquivo excede o limite de ${limMb} MB`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${tipo}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("comunicados-saas").upload(path, file, {
+        contentType: file.type, upsert: false,
+      });
+      if (upErr) { toast.error(upErr.message); return; }
+      const { data: pub } = supabase.storage.from("comunicados-saas").getPublicUrl(path);
+      setForm(f => ({
+        ...f,
+        anexo_url: pub.publicUrl,
+        anexo_nome: file.name,
+        anexo_mime: file.type,
+        anexo_tamanho_bytes: file.size,
+      }));
+      toast.success("Arquivo enviado");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removerAnexo = () => {
+    setForm(f => ({
+      ...f, anexo_url: "", anexo_nome: "", anexo_mime: "", anexo_tamanho_bytes: null,
+    }));
   };
 
   const destinoTexto = (c: Comunicado) => {
@@ -323,13 +416,14 @@ export default function ComunicadosSaaS() {
                 <th className="text-left px-3 py-2">Destino</th>
                 <th className="text-left px-3 py-2">Início</th>
                 <th className="text-left px-3 py-2">Fim</th>
+                <th className="text-left px-3 py-2">Anexo</th>
                 <th className="text-center px-3 py-2">Pop-up</th>
                 <th className="text-right px-3 py-2">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">Carregando…</td></tr>}
-              {!loading && filtered.length === 0 && <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum comunicado.</td></tr>}
+              {loading && <tr><td colSpan={10} className="text-center py-6 text-muted-foreground">Carregando…</td></tr>}
+              {!loading && filtered.length === 0 && <tr><td colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum comunicado.</td></tr>}
               {filtered.map(c => (
                 <tr key={c.id} className="border-t hover:bg-secondary/30">
                   <td className="px-3 py-2 font-medium">{c.titulo}</td>
@@ -339,6 +433,13 @@ export default function ComunicadosSaaS() {
                   <td className="px-3 py-2 text-[12px] text-muted-foreground">{destinoTexto(c)}</td>
                   <td className="px-3 py-2 text-[12px]">{c.data_inicio ? new Date(c.data_inicio).toLocaleDateString("pt-BR") : "—"}</td>
                   <td className="px-3 py-2 text-[12px]">{c.data_fim ? new Date(c.data_fim).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td className="px-3 py-2 text-[12px]">
+                    {c.anexo_tipo && c.anexo_tipo !== "nenhum" ? (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        {anexoIcon(c.anexo_tipo)} {anexoLabel(c.anexo_tipo)}
+                      </span>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-3 py-2 text-center">{c.exibir_popup ? <Check className="w-3.5 h-3.5 inline text-emerald-600" /> : <X className="w-3.5 h-3.5 inline text-muted-foreground" />}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
@@ -431,6 +532,121 @@ export default function ComunicadosSaaS() {
                 Permitir fechar pop-up
               </label>
             </div>
+
+            {/* Anexo / Mídia */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                <Label className="text-[13px] font-medium">Anexo / Mídia</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo de conteúdo</Label>
+                  <Select
+                    value={form.anexo_tipo}
+                    onValueChange={(v) => setForm({
+                      ...form, anexo_tipo: v as any,
+                      anexo_url: "", anexo_nome: "", anexo_mime: "",
+                      anexo_tamanho_bytes: null, anexo_texto_botao: "",
+                    })}
+                  >
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhum">Nenhum</SelectItem>
+                      <SelectItem value="imagem">Imagem</SelectItem>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="video">Vídeo</SelectItem>
+                      <SelectItem value="link">Link</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.anexo_tipo === "video" && (
+                  <div>
+                    <Label className="text-xs">Origem do vídeo</Label>
+                    <Select
+                      value={form.anexo_video_modo}
+                      onValueChange={(v) => setForm({
+                        ...form, anexo_video_modo: v as any,
+                        anexo_url: "", anexo_nome: "", anexo_mime: "", anexo_tamanho_bytes: null,
+                      })}
+                    >
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="link">Link externo</SelectItem>
+                        <SelectItem value="upload">Upload de arquivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {(form.anexo_tipo === "imagem" || form.anexo_tipo === "pdf" ||
+                (form.anexo_tipo === "video" && form.anexo_video_modo === "upload")) && (
+                <div className="space-y-2">
+                  {!form.anexo_url ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept={ACCEPT[form.anexo_tipo === "video" ? "video" : form.anexo_tipo]}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAnexo(f); }}
+                        className="text-[12px]"
+                        disabled={uploading}
+                      />
+                      {uploading && <span className="text-[11px] text-muted-foreground">Enviando…</span>}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border p-2 bg-secondary/30">
+                      {anexoIcon(form.anexo_tipo)}
+                      <div className="flex-1 min-w-0 text-[12px]">
+                        <div className="truncate">{form.anexo_nome}</div>
+                        {form.anexo_tamanho_bytes && (
+                          <div className="text-[10px] text-muted-foreground">
+                            {((form.anexo_tamanho_bytes || 0) / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                        )}
+                      </div>
+                      <Button size="sm" variant="outline" asChild className="h-7 text-[11px]">
+                        <a href={form.anexo_url} target="_blank" rel="noreferrer">Ver</a>
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={removerAnexo} className="h-7 text-[11px]">
+                        <Trash2 className="w-3 h-3 text-red-600"/>
+                      </Button>
+                    </div>
+                  )}
+                  <div className="text-[10.5px] text-muted-foreground">
+                    Limite: {LIMITES_MB[form.anexo_tipo === "video" ? "video" : form.anexo_tipo]} MB
+                  </div>
+                  {form.anexo_tipo === "imagem" && form.anexo_url && (
+                    <img src={form.anexo_url} alt="" className="max-h-40 rounded-md border object-contain bg-secondary/30" />
+                  )}
+                </div>
+              )}
+
+              {(form.anexo_tipo === "link" || (form.anexo_tipo === "video" && form.anexo_video_modo === "link")) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">URL *</Label>
+                    <Input
+                      value={form.anexo_url}
+                      onChange={(e) => setForm({...form, anexo_url: e.target.value})}
+                      placeholder="https://"
+                    />
+                  </div>
+                  {form.anexo_tipo === "link" && (
+                    <div>
+                      <Label className="text-xs">Texto do botão</Label>
+                      <Input
+                        value={form.anexo_texto_botao}
+                        onChange={(e) => setForm({...form, anexo_texto_botao: e.target.value})}
+                        placeholder="Ex.: Ver novidade"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+
 
             <div className="border-t pt-4 space-y-3">
               <Label>Destinatários</Label>
