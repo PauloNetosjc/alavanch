@@ -103,7 +103,7 @@ const WORKFLOW_STAGE_GROUPS_ALL: { visualKey: GroupKey; label: string; icon: any
 
 const ETAPA_TO_GROUP: Record<string, GroupKey> = (() => {
   const m: Record<string, GroupKey> = {};
-  WORKFLOW_STAGE_GROUPS.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
+  WORKFLOW_STAGE_GROUPS_ALL.forEach((g) => g.internalKeys.forEach((k) => { m[k] = g.visualKey; }));
   return m;
 })();
 
