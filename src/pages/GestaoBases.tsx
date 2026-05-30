@@ -19,7 +19,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Plus, Search, Loader2, History, Package, Users, Store } from "lucide-react";
+import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard } from "lucide-react";
+import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
 type Base = {
@@ -478,11 +479,12 @@ function DetalheBaseSheet({
           </SheetTitle>
         </SheetHeader>
         <Tabs defaultValue="dados" className="mt-4">
-          <TabsList className="grid grid-cols-5">
+          <TabsList className="grid grid-cols-6">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="lojas"><Store className="w-3.5 h-3.5 mr-1" />Lojas</TabsTrigger>
             <TabsTrigger value="usuarios"><Users className="w-3.5 h-3.5 mr-1" />Usuários</TabsTrigger>
             <TabsTrigger value="modulos"><Package className="w-3.5 h-3.5 mr-1" />Módulos</TabsTrigger>
+            <TabsTrigger value="cobranca"><CreditCard className="w-3.5 h-3.5 mr-1" />Cobrança</TabsTrigger>
             <TabsTrigger value="historico"><History className="w-3.5 h-3.5 mr-1" />Histórico</TabsTrigger>
           </TabsList>
 
@@ -596,6 +598,17 @@ function DetalheBaseSheet({
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="cobranca" className="mt-4">
+            <AssinaturaCobrancaTab
+              baseId={base.id}
+              basePlano={base.plano}
+              lojasCount={lojas.length}
+              usuariosCount={usuarios.length}
+              userId={userId}
+              onChanged={onChanged}
+            />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">

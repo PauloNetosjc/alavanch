@@ -902,6 +902,226 @@ export type Database = {
           },
         ]
       }
+      base_assinaturas: {
+        Row: {
+          armazenamento_adicional_mb: number
+          armazenamento_incluido_mb: number
+          armazenamento_usado_mb: number
+          atualizado_por: string | null
+          base_cliente_id: string
+          created_at: string
+          criado_por: string | null
+          data_cancelamento: string | null
+          data_inicio: string | null
+          dia_vencimento: number
+          forma_pagamento: string | null
+          id: string
+          implantacao_paga: boolean
+          lojas_incluidas: number
+          observacoes: string | null
+          plano: string
+          status_assinatura: string
+          updated_at: string
+          usuarios_incluidos: number
+          valor_implantacao: number
+          valor_loja_adicional: number
+          valor_mensal: number
+          valor_por_gb_adicional: number
+          valor_usuario_adicional: number
+        }
+        Insert: {
+          armazenamento_adicional_mb?: number
+          armazenamento_incluido_mb?: number
+          armazenamento_usado_mb?: number
+          atualizado_por?: string | null
+          base_cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number
+          forma_pagamento?: string | null
+          id?: string
+          implantacao_paga?: boolean
+          lojas_incluidas?: number
+          observacoes?: string | null
+          plano?: string
+          status_assinatura?: string
+          updated_at?: string
+          usuarios_incluidos?: number
+          valor_implantacao?: number
+          valor_loja_adicional?: number
+          valor_mensal?: number
+          valor_por_gb_adicional?: number
+          valor_usuario_adicional?: number
+        }
+        Update: {
+          armazenamento_adicional_mb?: number
+          armazenamento_incluido_mb?: number
+          armazenamento_usado_mb?: number
+          atualizado_por?: string | null
+          base_cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_inicio?: string | null
+          dia_vencimento?: number
+          forma_pagamento?: string | null
+          id?: string
+          implantacao_paga?: boolean
+          lojas_incluidas?: number
+          observacoes?: string | null
+          plano?: string
+          status_assinatura?: string
+          updated_at?: string
+          usuarios_incluidos?: number
+          valor_implantacao?: number
+          valor_loja_adicional?: number
+          valor_mensal?: number
+          valor_por_gb_adicional?: number
+          valor_usuario_adicional?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_assinaturas_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      base_cobrancas: {
+        Row: {
+          assinatura_id: string | null
+          atualizado_por: string | null
+          base_cliente_id: string
+          competencia_ano: number | null
+          competencia_mes: number | null
+          created_at: string
+          criado_por: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          tipo_cobranca: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          assinatura_id?: string | null
+          atualizado_por?: string | null
+          base_cliente_id: string
+          competencia_ano?: number | null
+          competencia_mes?: number | null
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_cobranca: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          assinatura_id?: string | null
+          atualizado_por?: string | null
+          base_cliente_id?: string
+          competencia_ano?: number | null
+          competencia_mes?: number | null
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_cobranca?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_cobrancas_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "base_assinaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_cobrancas_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      base_compras_avulsas: {
+        Row: {
+          atualizado_por: string | null
+          base_cliente_id: string
+          created_at: string
+          criado_por: string | null
+          data_compra: string
+          descricao: string | null
+          id: string
+          observacoes: string | null
+          quantidade_armazenamento_mb: number | null
+          status_pagamento: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          atualizado_por?: string | null
+          base_cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          quantidade_armazenamento_mb?: number | null
+          status_pagamento?: string
+          tipo: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          atualizado_por?: string | null
+          base_cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          quantidade_armazenamento_mb?: number | null
+          status_pagamento?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_compras_avulsas_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bases_clientes: {
         Row: {
           atualizado_por: string | null
