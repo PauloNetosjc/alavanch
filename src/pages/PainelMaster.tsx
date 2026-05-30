@@ -11,8 +11,9 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import {
-  Activity, Building2, Layers, Loader2, Search, TrendingUp, AlertTriangle, Sparkles, Users, Store,
+  Activity, Building2, Layers, Loader2, Search, TrendingUp, AlertTriangle, Sparkles, Users, Store, FileSignature,
 } from "lucide-react";
+
 import { maskCnpj } from "@/lib/masks";
 
 const OPCIONAIS = ["fabrica", "rh", "bater_ponto", "notas_fiscais"];
@@ -177,6 +178,10 @@ export default function PainelMaster() {
       }
     });
 
+    const contratosAguardando = contratos.filter((c) =>
+      ["aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"].includes(c.status)
+    ).length;
+
     return {
       mrr, implantacaoAberta,
       pendentes: pendentes.length,
@@ -185,8 +190,10 @@ export default function PainelMaster() {
       armTotalGB: armTotalContratado / 1024,
       armUsadoGB: armTotalUsado / 1024,
       acimaDe70, acimaDe90,
+      contratosAguardando,
     };
-  }, [assinaturas, cobrancas, lojasPorBase, usuariosPorLoja, bases]);
+  }, [assinaturas, cobrancas, lojasPorBase, usuariosPorLoja, bases, contratos]);
+
 
   const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -308,7 +315,15 @@ export default function PainelMaster() {
         <KpiBox label="Armaz. contratado" value={`${saasKpi.armTotalGB.toFixed(1)} GB`} />
         <KpiBox label="Armaz. usado" value={`${saasKpi.armUsadoGB.toFixed(1)} GB`} />
         <KpiBox label="Bases >70% arm." value={saasKpi.acimaDe70.length + saasKpi.acimaDe90.length} tone="amber" />
+        <KpiBox
+          label="Contratos aguardando assinatura"
+          value={saasKpi.contratosAguardando}
+          icon={FileSignature}
+          tone={saasKpi.contratosAguardando > 0 ? "amber" : undefined}
+          to="/sistema/gestao-bases/cobrancas"
+        />
       </div>
+
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -498,23 +513,25 @@ export default function PainelMaster() {
 
 // ============================================================
 
-function KpiBox({ label, value, icon: Icon, tone }: {
-  label: string; value: number | string; icon?: any; tone?: "emerald" | "blue" | "amber" | "red";
+function KpiBox({ label, value, icon: Icon, tone, to }: {
+  label: string; value: number | string; icon?: any; tone?: "emerald" | "blue" | "amber" | "red"; to?: string;
 }) {
   const toneClass = tone === "emerald" ? "text-emerald-700"
     : tone === "blue" ? "text-blue-700"
     : tone === "amber" ? "text-amber-700"
     : tone === "red" ? "text-red-700"
     : "";
-  return (
-    <Card className="p-3">
+  const content = (
+    <Card className={`p-3 ${to ? "hover:shadow-md hover:border-primary/40 transition cursor-pointer" : ""}`}>
       <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground">
         {Icon && <Icon className="w-3 h-3" />}{label}
       </div>
       <div className={`text-2xl font-display mt-1 ${toneClass}`}>{value}</div>
     </Card>
   );
+  return to ? <Link to={to}>{content}</Link> : content;
 }
+
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
