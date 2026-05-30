@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Building, Package, Plus, Loader2, Save } from "lucide-react";
-import { maskCnpj, maskPhone, maskCep, maskCpf } from "@/lib/masks";
+import { maskCnpj, maskPhone, maskCpf } from "@/lib/masks";
+
+const maskCep = (v: string) => v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
 
 // ============================================================
 // Tipos
