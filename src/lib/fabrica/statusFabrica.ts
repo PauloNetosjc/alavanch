@@ -51,6 +51,7 @@ export const STATUS_FABRICA_ORDEM: StatusFabrica[] = [
   "aguardando_almoxarifado",
   "em_separacao_almoxarifado",
   "pronto_para_expedicao",
+  "em_expedicao",
   "expedido",
   "ocorrencia_peca_faltante",
 ];
