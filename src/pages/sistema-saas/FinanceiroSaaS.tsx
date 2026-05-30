@@ -26,6 +26,7 @@ import {
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
 import { SaaSBancosTab, SaaSCategoriasTab, SaaSCentrosCustoTab } from "@/components/sistema-saas/SaaSConfigTabs";
+import { RelatoriosSaaSExtras } from "@/components/sistema-saas/RelatoriosSaaSExtras";
 
 type Base = { id: string; nome: string; plano: string; status: string; sistema_saas_id: string | null };
 type Sistema = { id: string; nome: string };
@@ -561,6 +562,10 @@ export default function FinanceiroSaaS() {
             <RelatorioCard title="Inadimplência por base" rows={inadimplenciaRows} dataKey="EmAtraso" labelKey="Base" onExport={() => exportRelatorio(inadimplenciaRows, "inadimplencia")} color="#dc2626" />
             <RelatorioCard title="MRR por sistema" rows={mrrPorSistemaRows} dataKey="MRR" labelKey="Sistema" onExport={() => exportRelatorio(mrrPorSistemaRows, "mrr_sistema")} />
           </div>
+
+          <RelatoriosSaaSExtras />
+
+
 
           <Card className="p-4">
             <div className="flex items-center justify-between mb-2">
