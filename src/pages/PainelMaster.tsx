@@ -39,6 +39,7 @@ export default function PainelMaster() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assinaturas, setAssinaturas] = useState<any[]>([]);
   const [cobrancas, setCobrancas] = useState<any[]>([]);
+  const [contratos, setContratos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
