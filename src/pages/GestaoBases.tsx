@@ -322,6 +322,7 @@ export default function GestaoBases() {
                   <th className="text-left p-3">Base</th>
                   <th className="text-left p-3">CNPJ</th>
                   <th className="text-left p-3">Responsável</th>
+                  <th className="text-left p-3">Sistema</th>
                   <th className="text-left p-3">Plano</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Lojas</th>
