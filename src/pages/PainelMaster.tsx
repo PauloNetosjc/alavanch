@@ -177,6 +177,10 @@ export default function PainelMaster() {
       }
     });
 
+    const contratosAguardando = contratos.filter((c) =>
+      ["aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"].includes(c.status)
+    ).length;
+
     return {
       mrr, implantacaoAberta,
       pendentes: pendentes.length,
@@ -185,8 +189,10 @@ export default function PainelMaster() {
       armTotalGB: armTotalContratado / 1024,
       armUsadoGB: armTotalUsado / 1024,
       acimaDe70, acimaDe90,
+      contratosAguardando,
     };
-  }, [assinaturas, cobrancas, lojasPorBase, usuariosPorLoja, bases]);
+  }, [assinaturas, cobrancas, lojasPorBase, usuariosPorLoja, bases, contratos]);
+
 
   const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
