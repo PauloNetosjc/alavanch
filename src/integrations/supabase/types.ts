@@ -8084,6 +8084,7 @@ export type Database = {
         Returns: boolean
       }
       is_dia_util: { Args: { _data: string; _loja: string }; Returns: boolean }
+      is_rh_manager: { Args: { _uid: string }; Returns: boolean }
       kanban_processar_atrasos: { Args: never; Returns: number }
       liberar_pedido_para_fabrica: {
         Args: { p_pedido_id: string }
