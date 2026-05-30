@@ -611,33 +611,69 @@ function GerarMensalidadeDialog({
   onClose, onGerar, valorBase, diaVencimento,
 }: {
   onClose: () => void;
-  onGerar: (d: { mes: number; ano: number; vencimento: string; valor: number; obs?: string }) => void;
+  onGerar: (d: {
+    tipo: "unica" | "recorrente";
+    mes: number; ano: number; vencimento: string; valor: number; obs?: string;
+    qtdMeses?: number; diaVencimento?: number;
+  }) => void;
   valorBase: number;
   diaVencimento: number;
 }) {
   const hoje = new Date();
+  const [tipo, setTipo] = useState<"unica" | "recorrente">("unica");
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
   const [valor, setValor] = useState(valorBase);
   const [obs, setObs] = useState("");
+  const [qtdMeses, setQtdMeses] = useState(12);
+  const [dia, setDia] = useState(diaVencimento || 10);
   const venc = useMemo(() => {
-    const d = new Date(ano, mes - 1, Math.min(diaVencimento || 10, 28));
+    const d = new Date(ano, mes - 1, Math.min(dia || 10, 28));
     return d.toISOString().slice(0, 10);
-  }, [mes, ano, diaVencimento]);
+  }, [mes, ano, dia]);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Gerar mensalidade</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <Field label="Mês"><Input type="number" min={1} max={12} value={mes} onChange={(e) => setMes(Number(e.target.value))} /></Field>
-          <Field label="Ano"><Input type="number" value={ano} onChange={(e) => setAno(Number(e.target.value))} /></Field>
-          <Field label="Vencimento"><Input type="date" value={venc} readOnly /></Field>
-          <Field label="Valor"><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(Number(e.target.value))} /></Field>
+          <div className="col-span-2">
+            <Label className="text-xs">Tipo de geração</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unica">Mensalidade única</SelectItem>
+                <SelectItem value="recorrente">Mensalidades recorrentes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Field label={tipo === "recorrente" ? "Mês inicial" : "Mês"}>
+            <Input type="number" min={1} max={12} value={mes} onChange={(e) => setMes(Number(e.target.value))} />
+          </Field>
+          <Field label={tipo === "recorrente" ? "Ano inicial" : "Ano"}>
+            <Input type="number" value={ano} onChange={(e) => setAno(Number(e.target.value))} />
+          </Field>
+          {tipo === "recorrente" ? (
+            <>
+              <Field label="Quantidade de meses"><Input type="number" min={1} max={60} value={qtdMeses} onChange={(e) => setQtdMeses(Number(e.target.value))} /></Field>
+              <Field label="Dia de vencimento"><Input type="number" min={1} max={28} value={dia} onChange={(e) => setDia(Number(e.target.value))} /></Field>
+            </>
+          ) : (
+            <>
+              <Field label="Vencimento"><Input type="date" value={venc} readOnly /></Field>
+              <Field label="Dia (padrão)"><Input type="number" min={1} max={28} value={dia} onChange={(e) => setDia(Number(e.target.value))} /></Field>
+            </>
+          )}
+          <Field label="Valor mensal"><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(Number(e.target.value))} /></Field>
           <div className="col-span-2"><Field label="Observações"><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></Field></div>
+          {tipo === "recorrente" && (
+            <div className="col-span-2 text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
+              Serão geradas <strong>{qtdMeses}</strong> cobranças mensais a partir de {String(mes).padStart(2, "0")}/{ano}, vencendo todo dia {dia}.
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onGerar({ mes, ano, vencimento: venc, valor, obs })}>Gerar</Button>
+          <Button onClick={() => onGerar({ tipo, mes, ano, vencimento: venc, valor, obs, qtdMeses, diaVencimento: dia })}>Gerar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
