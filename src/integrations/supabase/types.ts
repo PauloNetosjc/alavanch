@@ -1819,6 +1819,53 @@ export type Database = {
           },
         ]
       }
+      etapas_kanban_fabrica: {
+        Row: {
+          ativo: boolean
+          chave: string
+          cor_hex: string | null
+          created_at: string
+          id: string
+          loja_id: string | null
+          nome: string
+          ordem: number
+          prazo_dias_uteis: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome: string
+          ordem?: number
+          prazo_dias_uteis?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          ordem?: number
+          prazo_dias_uteis?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_kanban_fabrica_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiquetas: {
         Row: {
           ativo: boolean
@@ -2392,6 +2439,101 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lote_pedidos: {
+        Row: {
+          created_at: string
+          data_inclusao: string
+          etapa_atual: string | null
+          id: string
+          lote_id: string
+          pedido_id: string
+          posicao_ordem: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_inclusao?: string
+          etapa_atual?: string | null
+          id?: string
+          lote_id: string
+          pedido_id: string
+          posicao_ordem?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_inclusao?: string
+          etapa_atual?: string | null
+          id?: string
+          lote_id?: string
+          pedido_id?: string
+          posicao_ordem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lote_pedidos_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lote_pedidos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotes_producao: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_criacao: string
+          data_previsao_conclusao: string | null
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          numero_lote: string
+          responsavel_id: string | null
+          status_lote: Database["public"]["Enums"]["status_lote_producao"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_criacao?: string
+          data_previsao_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          numero_lote: string
+          responsavel_id?: string | null
+          status_lote?: Database["public"]["Enums"]["status_lote_producao"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_criacao?: string
+          data_previsao_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          numero_lote?: string
+          responsavel_id?: string | null
+          status_lote?: Database["public"]["Enums"]["status_lote_producao"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_producao_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       materiais_assistencia: {
         Row: {
@@ -3440,6 +3582,60 @@ export type Database = {
           },
           {
             foreignKeyName: "pedido_estagio_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_etapa_fabrica: {
+        Row: {
+          created_at: string
+          data_entrada: string
+          data_saida: string | null
+          etapa_chave: string
+          id: string
+          lote_id: string | null
+          movido_por: string | null
+          observacao: string | null
+          pedido_id: string
+          responsavel_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_entrada?: string
+          data_saida?: string | null
+          etapa_chave: string
+          id?: string
+          lote_id?: string | null
+          movido_por?: string | null
+          observacao?: string | null
+          pedido_id: string
+          responsavel_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_entrada?: string
+          data_saida?: string | null
+          etapa_chave?: string
+          id?: string
+          lote_id?: string | null
+          movido_por?: string | null
+          observacao?: string | null
+          pedido_id?: string
+          responsavel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_etapa_fabrica_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_etapa_fabrica_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
@@ -5705,6 +5901,10 @@ export type Database = {
         Args: { _loja: string; _user_id: string }
         Returns: boolean
       }
+      proximo_numero_lote: {
+        Args: { _ano?: number; _loja_id: string }
+        Returns: string
+      }
       recalcular_prazos_operacionais_pedido: {
         Args: { p_pedido_id: string }
         Returns: undefined
@@ -5819,6 +6019,11 @@ export type Database = {
         | "revisao_adendo_pendente"
       categoria_autorizacao: "revisao" | "agenda" | "desconto" | "outro"
       documento_origem_tipo: "sistema" | "upload"
+      status_lote_producao:
+        | "rascunho"
+        | "em_producao"
+        | "concluido"
+        | "cancelado"
       urgencia_nivel: "baixa" | "media" | "alta"
     }
     CompositeTypes: {
@@ -6005,6 +6210,12 @@ export const Constants = {
       ],
       categoria_autorizacao: ["revisao", "agenda", "desconto", "outro"],
       documento_origem_tipo: ["sistema", "upload"],
+      status_lote_producao: [
+        "rascunho",
+        "em_producao",
+        "concluido",
+        "cancelado",
+      ],
       urgencia_nivel: ["baixa", "media", "alta"],
     },
   },
