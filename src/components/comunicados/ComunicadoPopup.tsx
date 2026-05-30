@@ -4,6 +4,7 @@ import { useComunicadosSaaS, type Comunicado } from "@/hooks/useComunicadosSaaS"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AnexoView } from "./AnexoView";
 
 const tipoLabel: Record<string, string> = {
   novidade: "Novidade", aviso: "Aviso", manutencao: "Manutenção", financeiro: "Financeiro",
