@@ -254,6 +254,60 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
+            <TabsContent value="conferencia" className="space-y-3">
+              <Card className="p-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                <div><div className="text-xs text-muted-foreground">Total peças</div><div className="font-bold">{pecas.length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Conferidas</div><div className="font-bold">{pecas.filter((p) => ["conferida","aguardando_par_embalagem","embalada"].includes(p.status)).length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Embaladas</div><div className="font-bold text-emerald-700">{pecas.filter((p) => p.status === "embalada").length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Volumes</div><div className="font-bold">{volumes.length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Ocorrências</div><div className="font-bold text-red-700">{pecas.filter((p) => ["faltante","avariada","divergente"].includes(p.status)).length}</div></div>
+              </Card>
+              <div className="flex justify-end">
+                <Button onClick={() => setConfOpen(true)}><ScanBarcode className="h-4 w-4 mr-2" />Abrir conferência</Button>
+              </div>
+              <Card className="p-0 overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-medium">Volumes</div>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left">
+                    <tr><th className="p-2">#</th><th className="p-2">Tipo</th><th className="p-2">Status</th><th className="p-2">Peças</th><th className="p-2">Código</th><th className="p-2 w-28"></th></tr>
+                  </thead>
+                  <tbody>
+                    {volumes.map((v) => {
+                      const pids = volumePecas.filter((vp) => vp.volume_id === v.id).map((vp) => vp.peca_id);
+                      const ps = pecas.filter((p) => pids.includes(p.id));
+                      return (
+                        <tr key={v.id} className="border-t">
+                          <td className="p-2 font-bold">#{v.numero_volume}</td>
+                          <td className="p-2">{v.tipo_volume}</td>
+                          <td className="p-2"><Badge variant="outline">{v.status}</Badge></td>
+                          <td className="p-2 text-xs">{ps.map((x) => x.codigo_peca).join(" + ")}</td>
+                          <td className="p-2 font-mono text-xs">{v.codigo_barras}</td>
+                          <td className="p-2 text-right">
+                            <Button size="sm" variant="outline" onClick={() => abrirEtiquetaVolume(v.id)}>
+                              <Printer className="h-3.5 w-3.5 mr-1" /> Etiqueta
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {volumes.length === 0 && <tr><td className="p-4 text-center text-muted-foreground" colSpan={6}>Nenhum volume criado.</td></tr>}
+                  </tbody>
+                </table>
+              </Card>
+              <Card className="p-0 overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-medium">Últimas leituras</div>
+                <div className="divide-y max-h-72 overflow-y-auto">
+                  {historicoConf.slice(0, 20).map((h) => (
+                    <div key={h.id} className="px-3 py-1.5 text-xs">
+                      <div className="flex justify-between"><span className="font-mono">{h.codigo_bipado || "—"}</span><span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</span></div>
+                      <div className="text-muted-foreground">{h.mensagem}</div>
+                    </div>
+                  ))}
+                  {historicoConf.length === 0 && <div className="p-3 text-xs text-muted-foreground">Sem histórico.</div>}
+                </div>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="almox">
               <Card className="p-0 overflow-hidden">
                 <div className="overflow-x-auto">
