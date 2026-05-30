@@ -19,6 +19,9 @@ import {
   TIPO_ARQUIVO_LABEL,
 } from "@/lib/fabrica/statusFabrica";
 import { getSignedUrlFabrica, removerArquivoFabrica } from "@/lib/fabrica/arquivos";
+import { ConferenciaPedidoSheet } from "@/components/fabrica/ConferenciaPedidoSheet";
+import { EtiquetaPreviewDialog } from "@/components/fabrica/EtiquetaPreviewDialog";
+import { ScanBarcode, Printer } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -34,26 +37,49 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [modulos, setModulos] = useState<any[]>([]);
   const [pecas, setPecas] = useState<any[]>([]);
   const [almox, setAlmox] = useState<any[]>([]);
+  const [volumes, setVolumes] = useState<any[]>([]);
+  const [volumePecas, setVolumePecas] = useState<any[]>([]);
+  const [historicoConf, setHistoricoConf] = useState<any[]>([]);
+  const [confOpen, setConfOpen] = useState(false);
+  const [etiquetaOpen, setEtiquetaOpen] = useState(false);
+  const [etiquetaVolume, setEtiquetaVolume] = useState<any>(null);
+  const [etiquetaPecas, setEtiquetaPecas] = useState<any[]>([]);
 
   async function carregar() {
     if (!pedidoId) return;
     setLoading(true);
     try {
-      const [{ data: p }, { data: ar }, { data: mo }, { data: pc }, { data: al }] = await Promise.all([
+      const [{ data: p }, { data: ar }, { data: mo }, { data: pc }, { data: al }, { data: vs }, { data: vp }, { data: hi }] = await Promise.all([
         (supabase as any).from("pedidos").select("id, codigo, status_fabrica, valor_total, data_assinatura_pdf_final, cliente:clientes(nome), loja:lojas(nome)").eq("id", pedidoId).maybeSingle(),
         (supabase as any).from("fabrica_arquivos_producao").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
         (supabase as any).from("fabrica_modulos").select("*").eq("pedido_id", pedidoId).order("ordem", { ascending: true, nullsFirst: false }),
-        (supabase as any).from("fabrica_pecas").select("*, modulo:fabrica_modulos(codigo_modulo, nome_modulo)").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
+        (supabase as any).from("fabrica_pecas").select("*, modulo:fabrica_modulos(codigo_modulo, nome_modulo, ambiente)").eq("pedido_id", pedidoId).order("created_at", { ascending: false }),
         (supabase as any).from("fabrica_almoxarifado_itens").select("*").eq("pedido_id", pedidoId).order("referencia", { ascending: true }),
+        (supabase as any).from("fabrica_volumes").select("*").eq("pedido_id", pedidoId).order("numero_volume"),
+        (supabase as any).from("fabrica_volume_pecas").select("*").eq("pedido_id", pedidoId),
+        (supabase as any).from("fabrica_conferencia_historico").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: false }).limit(30),
       ]);
       setPedido(p);
       setArquivos(ar || []);
       setModulos(mo || []);
       setPecas(pc || []);
       setAlmox(al || []);
+      setVolumes(vs || []);
+      setVolumePecas(vp || []);
+      setHistoricoConf(hi || []);
     } finally {
       setLoading(false);
     }
+  }
+
+  function abrirEtiquetaVolume(volumeId: string) {
+    const vol = volumes.find((v) => v.id === volumeId);
+    if (!vol) return;
+    const pids = volumePecas.filter((vp) => vp.volume_id === volumeId).map((vp) => vp.peca_id);
+    const ps = pecas.filter((p) => pids.includes(p.id));
+    setEtiquetaVolume(vol);
+    setEtiquetaPecas(ps);
+    setEtiquetaOpen(true);
   }
 
   useEffect(() => {
@@ -115,6 +141,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const obrigatoriosOk = arquivos.some((a) => a.tipo_arquivo === "relatorio_fabricacao_modulo") && arquivos.some((a) => a.tipo_arquivo === "relatorio_almoxarifado");
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader>
@@ -134,6 +161,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               <TabsTrigger value="resumo">Resumo</TabsTrigger>
               <TabsTrigger value="modulos">Módulos ({modulos.length})</TabsTrigger>
               <TabsTrigger value="pecas">Peças ({pecas.length})</TabsTrigger>
+              <TabsTrigger value="conferencia">Conferência ({volumes.length})</TabsTrigger>
               <TabsTrigger value="almox">Almoxarifado ({almox.length})</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos ({arquivos.length})</TabsTrigger>
             </TabsList>
@@ -227,6 +255,60 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
+            <TabsContent value="conferencia" className="space-y-3">
+              <Card className="p-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                <div><div className="text-xs text-muted-foreground">Total peças</div><div className="font-bold">{pecas.length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Conferidas</div><div className="font-bold">{pecas.filter((p) => ["conferida","aguardando_par_embalagem","embalada"].includes(p.status)).length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Embaladas</div><div className="font-bold text-emerald-700">{pecas.filter((p) => p.status === "embalada").length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Volumes</div><div className="font-bold">{volumes.length}</div></div>
+                <div><div className="text-xs text-muted-foreground">Ocorrências</div><div className="font-bold text-red-700">{pecas.filter((p) => ["faltante","avariada","divergente"].includes(p.status)).length}</div></div>
+              </Card>
+              <div className="flex justify-end">
+                <Button onClick={() => setConfOpen(true)}><ScanBarcode className="h-4 w-4 mr-2" />Abrir conferência</Button>
+              </div>
+              <Card className="p-0 overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-medium">Volumes</div>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left">
+                    <tr><th className="p-2">#</th><th className="p-2">Tipo</th><th className="p-2">Status</th><th className="p-2">Peças</th><th className="p-2">Código</th><th className="p-2 w-28"></th></tr>
+                  </thead>
+                  <tbody>
+                    {volumes.map((v) => {
+                      const pids = volumePecas.filter((vp) => vp.volume_id === v.id).map((vp) => vp.peca_id);
+                      const ps = pecas.filter((p) => pids.includes(p.id));
+                      return (
+                        <tr key={v.id} className="border-t">
+                          <td className="p-2 font-bold">#{v.numero_volume}</td>
+                          <td className="p-2">{v.tipo_volume}</td>
+                          <td className="p-2"><Badge variant="outline">{v.status}</Badge></td>
+                          <td className="p-2 text-xs">{ps.map((x) => x.codigo_peca).join(" + ")}</td>
+                          <td className="p-2 font-mono text-xs">{v.codigo_barras}</td>
+                          <td className="p-2 text-right">
+                            <Button size="sm" variant="outline" onClick={() => abrirEtiquetaVolume(v.id)}>
+                              <Printer className="h-3.5 w-3.5 mr-1" /> Etiqueta
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {volumes.length === 0 && <tr><td className="p-4 text-center text-muted-foreground" colSpan={6}>Nenhum volume criado.</td></tr>}
+                  </tbody>
+                </table>
+              </Card>
+              <Card className="p-0 overflow-hidden">
+                <div className="px-4 py-2 border-b text-sm font-medium">Últimas leituras</div>
+                <div className="divide-y max-h-72 overflow-y-auto">
+                  {historicoConf.slice(0, 20).map((h) => (
+                    <div key={h.id} className="px-3 py-1.5 text-xs">
+                      <div className="flex justify-between"><span className="font-mono">{h.codigo_bipado || "—"}</span><span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</span></div>
+                      <div className="text-muted-foreground">{h.mensagem}</div>
+                    </div>
+                  ))}
+                  {historicoConf.length === 0 && <div className="p-3 text-xs text-muted-foreground">Sem histórico.</div>}
+                </div>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="almox">
               <Card className="p-0 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -304,5 +386,22 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
         )}
       </SheetContent>
     </Sheet>
+    <ConferenciaPedidoSheet
+      open={confOpen}
+      onOpenChange={(v) => { setConfOpen(v); if (!v) carregar(); }}
+      pedidoId={pedidoId}
+      onChanged={() => { carregar(); onChanged?.(); }}
+    />
+    <EtiquetaPreviewDialog
+      open={etiquetaOpen}
+      onOpenChange={setEtiquetaOpen}
+      pedidoId={pedidoId || ""}
+      pedidoCodigo={pedido?.codigo}
+      cliente={pedido?.cliente?.nome}
+      projeto={etiquetaPecas[0]?.modulo?.ambiente || undefined}
+      volume={etiquetaVolume}
+      pecas={etiquetaPecas}
+    />
+    </>
   );
 }

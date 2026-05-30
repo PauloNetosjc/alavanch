@@ -43,6 +43,7 @@ const KanbanFabrica = lazy(() => import("@/pages/KanbanFabrica"));
 const PainelFabrica = lazy(() => import("@/pages/fabrica/PainelFabrica"));
 const ImportarProducao = lazy(() => import("@/pages/fabrica/ImportarProducao"));
 const ProducaoPorPedido = lazy(() => import("@/pages/fabrica/ProducaoPorPedido"));
+const ConferenciaFabrica = lazy(() => import("@/pages/fabrica/Conferencia"));
 const Kanbans = lazy(() => import("@/pages/Kanbans"));
 const ComercialNovo = lazy(() => import("@/pages/ComercialNovo"));
 const ComercialNegociacao = lazy(() => import("@/pages/ComercialNegociacao"));
@@ -172,6 +173,7 @@ const App = () => (
                 <Route path="/fabrica/painel" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_painel"><PainelFabrica /></RequirePermission></RequireModulo>} />
                 <Route path="/fabrica/importar" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_importar_producao"><ImportarProducao /></RequirePermission></RequireModulo>} />
                 <Route path="/fabrica/producao" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_producao_pedido"><ProducaoPorPedido /></RequirePermission></RequireModulo>} />
+                <Route path="/fabrica/conferencia" element={<RequireModulo modulo="fabrica" nome="Fábrica"><RequirePermission modulo="fabrica_conferencia"><ConferenciaFabrica /></RequirePermission></RequireModulo>} />
                 {/* Aliases antigos */}
                 <Route path="/operacional/kanban" element={<Navigate to="/kanbans" replace />} />
                 <Route path="/operacional/pos-venda" element={<Navigate to="/kanban-pos-venda" replace />} />

@@ -2786,6 +2786,53 @@ export type Database = {
           },
         ]
       }
+      fabrica_conferencia_historico: {
+        Row: {
+          codigo_bipado: string | null
+          created_at: string
+          id: string
+          lote_id: string | null
+          mensagem: string | null
+          peca_id: string | null
+          pedido_id: string
+          resultado: string
+          usuario_id: string | null
+          volume_id: string | null
+        }
+        Insert: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          mensagem?: string | null
+          peca_id?: string | null
+          pedido_id: string
+          resultado: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Update: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          mensagem?: string | null
+          peca_id?: string | null
+          pedido_id?: string
+          resultado?: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_conferencia_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_modulos: {
         Row: {
           ambiente: string | null
@@ -2864,6 +2911,7 @@ export type Database = {
           status: string
           unidade: string | null
           updated_at: string
+          volume_id: string | null
         }
         Insert: {
           atualizado_por?: string | null
@@ -2886,6 +2934,7 @@ export type Database = {
           status?: string
           unidade?: string | null
           updated_at?: string
+          volume_id?: string | null
         }
         Update: {
           atualizado_por?: string | null
@@ -2908,6 +2957,7 @@ export type Database = {
           status?: string
           unidade?: string | null
           updated_at?: string
+          volume_id?: string | null
         }
         Relationships: [
           {
@@ -2919,6 +2969,111 @@ export type Database = {
           },
           {
             foreignKeyName: "fabrica_pecas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_volume_pecas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          peca_id: string
+          pedido_id: string
+          volume_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          peca_id: string
+          pedido_id: string
+          volume_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          peca_id?: string
+          pedido_id?: string
+          volume_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_volume_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: true
+            referencedRelation: "fabrica_pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_volume_pecas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_volume_pecas_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_volumes: {
+        Row: {
+          atualizado_por: string | null
+          codigo_barras: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          lote_id: string | null
+          numero_volume: number
+          observacoes: string | null
+          pedido_id: string
+          quantidade_pecas: number
+          status: string
+          tipo_volume: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          codigo_barras: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lote_id?: string | null
+          numero_volume: number
+          observacoes?: string | null
+          pedido_id: string
+          quantidade_pecas?: number
+          status?: string
+          tipo_volume?: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          codigo_barras?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lote_id?: string | null
+          numero_volume?: number
+          observacoes?: string | null
+          pedido_id?: string
+          quantidade_pecas?: number
+          status?: string
+          tipo_volume?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_volumes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"

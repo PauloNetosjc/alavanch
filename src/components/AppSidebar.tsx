@@ -51,6 +51,7 @@ import {
   FileSignature,
   Target,
   CalendarClock,
+  ScanBarcode,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -88,6 +89,7 @@ const sections: Section[] = [
       { label: "Fábrica · Painel", path: "/fabrica/painel", icon: Building2, modulo: "fabrica_painel", moduloLoja: "fabrica" },
       { label: "Fábrica · Importar Produção", path: "/fabrica/importar", icon: Building2, modulo: "fabrica_importar_producao", moduloLoja: "fabrica" },
       { label: "Fábrica · Produção por Pedido", path: "/fabrica/producao", icon: Building2, modulo: "fabrica_producao_pedido", moduloLoja: "fabrica" },
+      { label: "Fábrica · Conferência", path: "/fabrica/conferencia", icon: ScanBarcode, modulo: "fabrica_conferencia", moduloLoja: "fabrica" },
       { label: "Fábrica · Kanban (lotes)", path: "/kanban-fabrica", icon: Building2, modulo: "fabrica_lotes", moduloLoja: "fabrica" },
       { label: "Entrega e Montagem", path: "/montagem", icon: Hammer },
       { label: "Assistência Técnica", path: "/assistencia", icon: Wrench },
