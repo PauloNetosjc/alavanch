@@ -80,6 +80,7 @@ const emptyForm = (): Partial<Base> => ({
   plano: "personalizado",
   observacoes: "",
   data_inicio: new Date().toISOString().slice(0, 10),
+  sistema_saas_id: null,
 });
 
 function statusBadge(s: string) {
