@@ -65,7 +65,7 @@ function statusBadge(s: string) {
   return <Badge className={`${c[s] || "bg-zinc-200 text-zinc-700"} border-0 capitalize`}>{s}</Badge>;
 }
 
-export default function CobrancasSaaS() {
+export default function CobrancasSaaS({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [bases, setBases] = useState<Base[]>([]);
   const [assinaturas, setAssinaturas] = useState<Assinatura[]>([]);
