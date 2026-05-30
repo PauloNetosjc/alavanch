@@ -404,6 +404,15 @@ export default function GestaoBases() {
               <Label>E-mail do responsável</Label>
               <Input type="email" value={form.email_responsavel || ""} onChange={(e) => setForm({ ...form, email_responsavel: e.target.value })} />
             </div>
+            <div className="col-span-2">
+              <Label>Sistema contratado *</Label>
+              <Select value={form.sistema_saas_id || ""} onValueChange={(v) => setForm({ ...form, sistema_saas_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione o sistema" /></SelectTrigger>
+                <SelectContent>
+                  {sistemas.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Plano</Label>
               <Select value={form.plano || "personalizado"} onValueChange={(v) => setForm({ ...form, plano: v })}>
