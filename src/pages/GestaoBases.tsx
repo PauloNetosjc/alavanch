@@ -39,7 +39,10 @@ type Base = {
   data_inicio: string | null;
   data_cancelamento: string | null;
   created_at: string;
+  sistema_saas_id: string | null;
 };
+
+type Sistema = { id: string; nome: string; slug: string; ativo: boolean; status: string };
 
 type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null; cidade?: string | null; uf?: string | null; cnpj?: string | null; email?: string | null; telefone?: string | null; endereco?: string | null };
 type Modulo = { chave: string; nome: string; categoria: string | null; essencial: boolean };
