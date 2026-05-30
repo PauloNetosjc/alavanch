@@ -190,6 +190,13 @@ export default function ComunicadosSaaS() {
       link_url: c.link_url || "",
       destino: todas ? "todas" : lojasIds.length > 0 ? "lojas" : "bases",
       bases: basesIds, lojas: lojasIds,
+      anexo_tipo: (c.anexo_tipo as any) || "nenhum",
+      anexo_url: c.anexo_url || "",
+      anexo_nome: c.anexo_nome || "",
+      anexo_mime: c.anexo_mime || "",
+      anexo_tamanho_bytes: c.anexo_tamanho_bytes ?? null,
+      anexo_texto_botao: c.anexo_texto_botao || "",
+      anexo_video_modo: c.anexo_tipo === "video" && c.anexo_mime ? "upload" : "link",
     });
     setOpen(true);
   };
