@@ -26,7 +26,7 @@ import {
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
 import { SaaSBancosTab, SaaSCategoriasTab, SaaSCentrosCustoTab } from "@/components/sistema-saas/SaaSConfigTabs";
-import { RelatoriosSaaSExtras } from "@/components/sistema-saas/RelatoriosSaaSExtras";
+import { RelatoriosFinanceiroSaaS } from "@/components/sistema-saas/RelatoriosFinanceiroSaaS";
 
 type Base = { id: string; nome: string; plano: string; status: string; sistema_saas_id: string | null };
 type Sistema = { id: string; nome: string };
@@ -553,47 +553,9 @@ export default function FinanceiroSaaS() {
       )}
 
       {viewAtiva === "relatorios" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <RelatorioCard title="Receita por sistema vendido" rows={receitaPorSistemaRows} dataKey="Receita" labelKey="Sistema" onExport={() => exportRelatorio(receitaPorSistemaRows, "receita_sistema")} />
-            <RelatorioCard title="Receita por plano" rows={receitaPorPlanoRows} dataKey="Receita" labelKey="Plano" onExport={() => exportRelatorio(receitaPorPlanoRows, "receita_plano")} />
-            <RelatorioCard title="Receita por base (top 10)" rows={receitaPorBaseRows.slice(0, 10)} dataKey="Receita" labelKey="Base" onExport={() => exportRelatorio(receitaPorBaseRows, "receita_base")} />
-            <RelatorioCard title="Receita por tipo de cobrança" rows={receitaPorTipoRows} dataKey="Receita" labelKey="Tipo" onExport={() => exportRelatorio(receitaPorTipoRows, "receita_tipo")} />
-            <RelatorioCard title="Inadimplência por base" rows={inadimplenciaRows} dataKey="EmAtraso" labelKey="Base" onExport={() => exportRelatorio(inadimplenciaRows, "inadimplencia")} color="#dc2626" />
-            <RelatorioCard title="MRR por sistema" rows={mrrPorSistemaRows} dataKey="MRR" labelKey="Sistema" onExport={() => exportRelatorio(mrrPorSistemaRows, "mrr_sistema")} />
-          </div>
-
-          <RelatoriosSaaSExtras />
-
-
-
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-medium flex items-center gap-2"><FileSignature className="w-4 h-4" /> Implantação em aberto</div>
-              <Button variant="outline" size="sm" onClick={() => exportRelatorio(implantacaoAbertoRows, "implantacao_aberto")} className="gap-1">
-                <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-[10px] uppercase">
-                  <tr><th className="text-left p-2">Base</th><th className="text-left p-2">Vencimento</th><th className="text-right p-2">Valor</th></tr>
-                </thead>
-                <tbody>
-                  {implantacaoAbertoRows.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">Sem implantações em aberto</td></tr>}
-                  {implantacaoAbertoRows.map((r, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="p-2">{r.Base}</td>
-                      <td className="p-2">{r.Vencimento ? new Date(r.Vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                      <td className="p-2 text-right">{brl(r.Valor)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
+        <RelatoriosFinanceiroSaaS />
       )}
+
 
       {/* Modal Compra */}
       {(novaCompra || editingCompra) && (
