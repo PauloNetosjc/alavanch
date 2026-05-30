@@ -1320,6 +1320,7 @@ export type Database = {
           plano: string
           razao_social: string | null
           responsavel_nome: string | null
+          sistema_saas_id: string | null
           status: string
           telefone_responsavel: string | null
           updated_at: string
@@ -1339,6 +1340,7 @@ export type Database = {
           plano?: string
           razao_social?: string | null
           responsavel_nome?: string | null
+          sistema_saas_id?: string | null
           status?: string
           telefone_responsavel?: string | null
           updated_at?: string
@@ -1358,11 +1360,20 @@ export type Database = {
           plano?: string
           razao_social?: string | null
           responsavel_nome?: string | null
+          sistema_saas_id?: string | null
           status?: string
           telefone_responsavel?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bases_clientes_sistema_saas_id_fkey"
+            columns: ["sistema_saas_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_saas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bases_clientes_historico: {
         Row: {
@@ -2469,6 +2480,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      empresa_saas_config: {
+        Row: {
+          atualizado_por: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string | null
+          responsavel_cpf: string | null
+          responsavel_legal: string | null
+          site: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel_cpf?: string | null
+          responsavel_legal?: string | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel_cpf?: string | null
+          responsavel_legal?: string | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       etapas_kanban_fabrica: {
         Row: {
@@ -5765,6 +5842,48 @@ export type Database = {
           id?: string
           modulo?: string
           role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      sistemas_saas: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
