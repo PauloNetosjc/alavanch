@@ -11,8 +11,9 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import {
-  Activity, Building2, Layers, Loader2, Search, TrendingUp, AlertTriangle, Sparkles, Users, Store,
+  Activity, Building2, Layers, Loader2, Search, TrendingUp, AlertTriangle, Sparkles, Users, Store, FileSignature,
 } from "lucide-react";
+
 import { maskCnpj } from "@/lib/masks";
 
 const OPCIONAIS = ["fabrica", "rh", "bater_ponto", "notas_fiscais"];
