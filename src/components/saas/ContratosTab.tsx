@@ -579,6 +579,34 @@ export function ContratosTab({ baseId, baseNome }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Link gerado */}
+      <Dialog open={!!linkAssinatura} onOpenChange={(o) => { if (!o) setLinkAssinatura(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Link de assinatura gerado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="text-[12px] text-muted-foreground">
+              Contrato <strong className="text-foreground">{linkAssinatura?.numero}</strong> foi enviado para assinatura.
+              Envie este link ao cliente:
+            </div>
+            <div className="flex gap-2">
+              <Input readOnly value={linkAssinatura?.url ?? ""} className="font-mono text-[11px]" onFocus={(e) => e.currentTarget.select()} />
+              <Button variant="outline" size="sm" onClick={() => linkAssinatura && copiarLink(linkAssinatura.url)}>
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => linkAssinatura && window.open(linkAssinatura.url, "_blank")}>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              O contrato só poderá ser assinado uma vez. Após a assinatura, as evidências (nome, documento, e-mail, IP, dispositivo, data/hora) ficarão registradas.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setLinkAssinatura(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
