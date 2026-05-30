@@ -5845,6 +5845,81 @@ export type Database = {
         }
         Relationships: []
       }
+      saas_agenda_eventos: {
+        Row: {
+          atualizado_por: string | null
+          base_cliente_id: string | null
+          created_at: string
+          criado_por: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          link_reuniao: string | null
+          local: string | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          participantes: string | null
+          responsavel_id: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          id?: string
+          link_reuniao?: string | null
+          local?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          participantes?: string | null
+          responsavel_id?: string | null
+          status?: string
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          link_reuniao?: string | null
+          local?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          participantes?: string | null
+          responsavel_id?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_agenda_eventos_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_agenda_eventos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "saas_crm_oportunidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_categorias_financeiras: {
         Row: {
           ativo: boolean
@@ -5981,6 +6056,161 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      saas_crm_historico: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          descricao: string | null
+          etapa_anterior: string | null
+          etapa_nova: string | null
+          id: string
+          oportunidade_id: string
+          tipo_evento: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          etapa_anterior?: string | null
+          etapa_nova?: string | null
+          id?: string
+          oportunidade_id: string
+          tipo_evento: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          etapa_anterior?: string | null
+          etapa_nova?: string | null
+          id?: string
+          oportunidade_id?: string
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_crm_historico_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "saas_crm_oportunidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_crm_oportunidades: {
+        Row: {
+          armazenamento_previsto_gb: number | null
+          atualizado_por: string | null
+          base_cliente_id: string | null
+          cnpj: string | null
+          created_at: string
+          criado_por: string | null
+          data_fechamento: string | null
+          data_prevista_fechamento: string | null
+          email: string | null
+          etapa: string
+          id: string
+          lojas_previstas: number | null
+          motivo_perda: string | null
+          nome_empresa: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          origem: string | null
+          plano_interesse: string | null
+          probabilidade: number | null
+          razao_social: string | null
+          responsavel_nome: string | null
+          sistema_saas_id: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+          usuarios_previstos: number | null
+          valor_implantacao_proposto: number | null
+          valor_mensal_proposto: number | null
+        }
+        Insert: {
+          armazenamento_previsto_gb?: number | null
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fechamento?: string | null
+          data_prevista_fechamento?: string | null
+          email?: string | null
+          etapa?: string
+          id?: string
+          lojas_previstas?: number | null
+          motivo_perda?: string | null
+          nome_empresa: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          plano_interesse?: string | null
+          probabilidade?: number | null
+          razao_social?: string | null
+          responsavel_nome?: string | null
+          sistema_saas_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          usuarios_previstos?: number | null
+          valor_implantacao_proposto?: number | null
+          valor_mensal_proposto?: number | null
+        }
+        Update: {
+          armazenamento_previsto_gb?: number | null
+          atualizado_por?: string | null
+          base_cliente_id?: string | null
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fechamento?: string | null
+          data_prevista_fechamento?: string | null
+          email?: string | null
+          etapa?: string
+          id?: string
+          lojas_previstas?: number | null
+          motivo_perda?: string | null
+          nome_empresa?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          plano_interesse?: string | null
+          probabilidade?: number | null
+          razao_social?: string | null
+          responsavel_nome?: string | null
+          sistema_saas_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          usuarios_previstos?: number | null
+          valor_implantacao_proposto?: number | null
+          valor_mensal_proposto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_crm_oportunidades_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_crm_oportunidades_sistema_saas_id_fkey"
+            columns: ["sistema_saas_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_saas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saas_formas_pagamento: {
         Row: {
