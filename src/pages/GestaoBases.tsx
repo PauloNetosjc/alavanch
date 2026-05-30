@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard } from "lucide-react";
+import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone } from "lucide-react";
 import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
@@ -224,9 +224,12 @@ export default function GestaoBases() {
             Administre os clientes/bases do SaaS, lojas vinculadas, planos e módulos.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" asChild className="gap-2">
             <a href="/sistema/gestao-bases/cobrancas"><CreditCard className="w-4 h-4" /> Cobranças</a>
+          </Button>
+          <Button variant="outline" asChild className="gap-2">
+            <a href="/sistema/gestao-bases/comunicados"><Megaphone className="w-4 h-4" /> Comunicados</a>
           </Button>
           <Button onClick={abrirNova} className="gap-2"><Plus className="w-4 h-4" /> Nova base</Button>
         </div>
