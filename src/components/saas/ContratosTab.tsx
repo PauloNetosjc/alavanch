@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  FileSignature, Plus, Eye, Upload, XCircle, Download, Printer, FileText,
+  FileSignature, Plus, Eye, Upload, XCircle, Download, Printer, FileText, Send, Copy, ExternalLink,
 } from "lucide-react";
 import {
   renderContratoSaasTemplate, type DadosContratoSaaS,
@@ -41,6 +41,10 @@ type Contrato = {
   usuarios_incluidos: number | null; armazenamento_incluido_mb: number | null;
   armazenamento_adicional_mb: number | null;
   data_inicio: string | null; data_fim: string | null; data_assinatura: string | null;
+  data_envio_assinatura: string | null;
+  assinatura_token: string | null; assinatura_url: string | null;
+  assinante_nome: string | null; assinante_documento: string | null;
+  assinante_email: string | null; assinante_ip: string | null; assinante_user_agent: string | null;
   arquivo_assinado_url: string | null; conteudo_html: string | null;
   modelo_id: string | null; observacoes: string | null;
   created_at: string;
@@ -98,6 +102,7 @@ export function ContratosTab({ baseId, baseNome }: Props) {
   const [openVisualizar, setOpenVisualizar] = useState<Contrato | null>(null);
   const [openAnexar, setOpenAnexar] = useState<Contrato | null>(null);
   const [openCancelar, setOpenCancelar] = useState<Contrato | null>(null);
+  const [linkAssinatura, setLinkAssinatura] = useState<{ url: string; numero: string } | null>(null);
 
   // form gerar
   const [modeloId, setModeloId] = useState<string>("");
@@ -269,6 +274,35 @@ export function ContratosTab({ baseId, baseNome }: Props) {
     load();
   };
 
+  const enviarParaAssinatura = async (c: Contrato) => {
+    if (c.status === "cancelado" || c.status === "assinado" || c.status === "anexado_manual") {
+      toast.error("Este contrato não pode ser enviado para assinatura.");
+      return;
+    }
+    const token = c.assinatura_token || (crypto as any).randomUUID();
+    const path = `/contrato-saas/${token}`;
+    const url = `${window.location.origin}${path}`;
+    const { error } = await (supabase.from("base_contratos" as any) as any).update({
+      assinatura_token: token,
+      assinatura_url: path,
+      status: "enviado_para_assinatura",
+      data_envio_assinatura: new Date().toISOString(),
+      atualizado_por: user?.id,
+    }).eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    await registrarHistorico(baseId, "contrato_enviado_assinatura",
+      `Contrato ${c.numero_contrato} enviado para assinatura digital`,
+      { contrato_id: c.id, numero_contrato: c.numero_contrato, url: path }, user?.id);
+    setLinkAssinatura({ url, numero: c.numero_contrato });
+    load();
+    if (openVisualizar?.id === c.id) setOpenVisualizar({ ...openVisualizar, status: "enviado_para_assinatura", assinatura_token: token, assinatura_url: path });
+  };
+
+  const copiarLink = async (url: string) => {
+    try { await navigator.clipboard.writeText(url); toast.success("Link copiado"); }
+    catch { toast.error("Não foi possível copiar"); }
+  };
+
   const imprimirVisualizar = () => {
     if (!openVisualizar?.conteudo_html) return;
     const w = window.open("", "_blank", "width=900,height=700");
@@ -338,6 +372,16 @@ export function ContratosTab({ baseId, baseNome }: Props) {
                     {c.arquivo_assinado_url && (
                       <Button size="sm" variant="ghost" title="Baixar arquivo" onClick={() => baixarAnexo(c)}>
                         <Download className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    {c.status !== "cancelado" && c.status !== "assinado" && c.status !== "anexado_manual" && (
+                      <Button size="sm" variant="ghost" title="Enviar para assinatura" onClick={() => enviarParaAssinatura(c)}>
+                        <Send className="w-3.5 h-3.5 text-blue-600" />
+                      </Button>
+                    )}
+                    {c.assinatura_token && c.status !== "cancelado" && (
+                      <Button size="sm" variant="ghost" title="Copiar link de assinatura" onClick={() => copiarLink(`${window.location.origin}/contrato-saas/${c.assinatura_token}`)}>
+                        <Copy className="w-3.5 h-3.5" />
                       </Button>
                     )}
                     {c.status !== "cancelado" && c.status !== "assinado" && (
@@ -449,9 +493,27 @@ export function ContratosTab({ baseId, baseNome }: Props) {
               <div className="border rounded-md p-5 bg-white prose prose-sm max-w-none text-[12.5px]" >
                 <div dangerouslySetInnerHTML={{ __html: openVisualizar.conteudo_html || "<em>Contrato sem conteúdo.</em>" }} />
               </div>
+              {(openVisualizar.status === "assinado" || openVisualizar.assinante_nome) && (
+                <div className="mt-3 border border-emerald-200 bg-emerald-50 rounded-md p-3 text-[12px]">
+                  <div className="font-medium text-emerald-900 mb-1">Evidências da assinatura</div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-emerald-900">
+                    <div><span className="text-emerald-700">Assinante:</span> {openVisualizar.assinante_nome || "—"}</div>
+                    <div><span className="text-emerald-700">Documento:</span> {openVisualizar.assinante_documento || "—"}</div>
+                    <div><span className="text-emerald-700">E-mail:</span> {openVisualizar.assinante_email || "—"}</div>
+                    <div><span className="text-emerald-700">Data/hora:</span> {openVisualizar.data_assinatura ? new Date(openVisualizar.data_assinatura).toLocaleString("pt-BR") : "—"}</div>
+                    <div><span className="text-emerald-700">IP:</span> {openVisualizar.assinante_ip || "—"}</div>
+                    <div className="truncate"><span className="text-emerald-700">Dispositivo:</span> {openVisualizar.assinante_user_agent || "—"}</div>
+                  </div>
+                </div>
+              )}
               <DialogFooter className="gap-2 pt-3">
                 <Button variant="outline" onClick={() => setOpenVisualizar(null)}>Fechar</Button>
                 <Button variant="outline" onClick={imprimirVisualizar} className="gap-1.5"><Printer className="w-3.5 h-3.5" /> Imprimir</Button>
+                {openVisualizar.status !== "cancelado" && openVisualizar.status !== "assinado" && openVisualizar.status !== "anexado_manual" && (
+                  <Button variant="outline" onClick={() => enviarParaAssinatura(openVisualizar)} className="gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Enviar para assinatura
+                  </Button>
+                )}
                 {openVisualizar.status !== "cancelado" && openVisualizar.status !== "assinado" && (
                   <Button onClick={() => { setOpenAnexar(openVisualizar); setObsAnexo(openVisualizar.observacoes || ""); setOpenVisualizar(null); }} className="gap-1.5">
                     <Upload className="w-3.5 h-3.5" /> Anexar assinado
@@ -514,6 +576,34 @@ export function ContratosTab({ baseId, baseNome }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setOpenCancelar(null); setMotivoCancel(""); }}>Voltar</Button>
             <Button onClick={cancelarContrato} className="bg-red-600 hover:bg-red-700">Confirmar cancelamento</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link gerado */}
+      <Dialog open={!!linkAssinatura} onOpenChange={(o) => { if (!o) setLinkAssinatura(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Link de assinatura gerado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="text-[12px] text-muted-foreground">
+              Contrato <strong className="text-foreground">{linkAssinatura?.numero}</strong> foi enviado para assinatura.
+              Envie este link ao cliente:
+            </div>
+            <div className="flex gap-2">
+              <Input readOnly value={linkAssinatura?.url ?? ""} className="font-mono text-[11px]" onFocus={(e) => e.currentTarget.select()} />
+              <Button variant="outline" size="sm" onClick={() => linkAssinatura && copiarLink(linkAssinatura.url)}>
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => linkAssinatura && window.open(linkAssinatura.url, "_blank")}>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              O contrato só poderá ser assinado uma vez. Após a assinatura, as evidências (nome, documento, e-mail, IP, dispositivo, data/hora) ficarão registradas.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setLinkAssinatura(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

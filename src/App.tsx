@@ -77,6 +77,7 @@ const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const Agenda = lazy(() => import("@/pages/Agenda"));
 const Autorizacoes = lazy(() => import("@/pages/Autorizacoes"));
 const AssinaturaPublica = lazy(() => import("@/pages/AssinaturaPublica"));
+const ContratoSaaSAssinar = lazy(() => import("@/pages/ContratoSaaSAssinar"));
 const ValidarContrato = lazy(() => import("@/pages/ValidarContrato"));
 
 const Assinaturas = lazy(() => import("@/pages/Assinaturas"));
@@ -134,6 +135,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/contrato/:token" element={<ContratoAssinar />} />
+              <Route path="/contrato-saas/:token" element={<ContratoSaaSAssinar />} />
               <Route path="/assinatura/:token" element={<AssinaturaPublica />} />
               <Route path="/validar-contrato" element={<ValidarContrato />} />
               <Route path="/validar-contrato/:token" element={<ValidarContrato />} />
