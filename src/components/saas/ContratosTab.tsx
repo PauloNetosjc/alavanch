@@ -102,6 +102,7 @@ export function ContratosTab({ baseId, baseNome }: Props) {
   const [openVisualizar, setOpenVisualizar] = useState<Contrato | null>(null);
   const [openAnexar, setOpenAnexar] = useState<Contrato | null>(null);
   const [openCancelar, setOpenCancelar] = useState<Contrato | null>(null);
+  const [linkAssinatura, setLinkAssinatura] = useState<{ url: string; numero: string } | null>(null);
 
   // form gerar
   const [modeloId, setModeloId] = useState<string>("");
