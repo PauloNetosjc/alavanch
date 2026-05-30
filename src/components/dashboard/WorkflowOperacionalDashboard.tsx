@@ -266,7 +266,8 @@ export default function WorkflowOperacionalDashboard() {
     WORKFLOW_STAGE_GROUPS.forEach((g) => map.set(g.visualKey, { qtd: 0, valor: 0, vencidos: 0, preAlerta: 0, hoje: 0 }));
     pedidos.filter(isAtivoWorkflow).forEach((p) => {
       const gk = ETAPA_TO_GROUP[p.etapa_atual!]; if (!gk) return;
-      const r = map.get(gk)!;
+      const r = map.get(gk);
+      if (!r) return;
       r.qtd += 1;
       r.valor += Number(p.valor_total || 0);
       if (p.statusPrazo === "vencido") r.vencidos += 1;
