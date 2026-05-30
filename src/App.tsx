@@ -18,6 +18,7 @@ import KanbanGuard from "@/components/KanbanGuard";
 import { RequireModulo } from "@/components/RequireModulo";
 const GestaoModulos = lazy(() => import("@/pages/GestaoModulos"));
 const GestaoBases = lazy(() => import("@/pages/GestaoBases"));
+const PainelMaster = lazy(() => import("@/pages/PainelMaster"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
@@ -189,6 +190,7 @@ const App = () => (
                 <Route path="/bater-ponto" element={<RequireModulo modulo="bater_ponto" nome="Bater Ponto"><RequirePermission modulo="bater_ponto"><BaterPonto /></RequirePermission></RequireModulo>} />
                 <Route path="/sistema/gestao-modulos" element={<RequirePermission modulo="sistema.gestao_modulos"><GestaoModulos /></RequirePermission>} />
                 <Route path="/sistema/gestao-bases" element={<RequirePermission modulo="sistema.gestao_bases"><GestaoBases /></RequirePermission>} />
+                <Route path="/sistema/painel-master" element={<RequirePermission modulo="sistema.painel_master"><PainelMaster /></RequirePermission>} />
                 <Route path="/contas" element={<RequirePermission modulo="contas"><ContasCorrentes /></RequirePermission>} />
                 <Route path="/contas/:id/extrato" element={<RequirePermission modulo="extrato"><ExtratoConta /></RequirePermission>} />
                 <Route path="/categorias-financeiras" element={<RequirePermission modulo="categorias_financeiras"><CategoriasFinanceiras /></RequirePermission>} />

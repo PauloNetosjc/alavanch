@@ -46,6 +46,7 @@ import {
   Tags,
   Fingerprint,
   KeyRound,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -130,6 +131,7 @@ const moreGroups: Group[] = [
     icon: Cog,
     items: [
       { label: "Info Sistema", path: "/sistema/info", icon: Cog, roles: ["admin"] },
+      { label: "Painel Master", path: "/sistema/painel-master", icon: TrendingUp, roles: ["admin"] },
       { label: "Gestão de Módulos", path: "/sistema/gestao-modulos", icon: Package, roles: ["admin"] },
       { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
       { label: "Cargos", path: "/sistema/cargos", icon: Shield, roles: ["admin"] },
