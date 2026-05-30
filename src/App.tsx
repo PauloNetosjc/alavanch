@@ -44,6 +44,7 @@ const PainelFabrica = lazy(() => import("@/pages/fabrica/PainelFabrica"));
 const ImportarProducao = lazy(() => import("@/pages/fabrica/ImportarProducao"));
 const ProducaoPorPedido = lazy(() => import("@/pages/fabrica/ProducaoPorPedido"));
 const ConferenciaFabrica = lazy(() => import("@/pages/fabrica/Conferencia"));
+const Fabrica = lazy(() => import("@/pages/fabrica/Fabrica"));
 const Kanbans = lazy(() => import("@/pages/Kanbans"));
 const ComercialNovo = lazy(() => import("@/pages/ComercialNovo"));
 const ComercialNegociacao = lazy(() => import("@/pages/ComercialNegociacao"));
