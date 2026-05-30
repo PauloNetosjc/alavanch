@@ -292,15 +292,12 @@ export default function FinanceiroSaaS() {
     }));
   }, [cobrancas, baseById]);
 
-  if (loading) {
-    return <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
-  }
-
   // ---- Navegação principal (A Receber / A Pagar) e abas secundárias ----
+  // IMPORTANTE: todos os hooks devem ficar acima do early return de loading
   const [searchParams, setSearchParams] = useSearchParams();
   const abaParam = searchParams.get("aba");
   const initialMain: "receber" | "pagar" | null =
-    abaParam === "receber" ? "receber" : abaParam === "pagar" ? "pagar" : "receber";
+    abaParam === "pagar" ? "pagar" : "receber";
   const [vistaPrincipal, setVistaPrincipal] = useState<"receber" | "pagar" | null>(initialMain);
   const [abaSecundaria, setAbaSecundaria] = useState<string>("visao-geral");
 
@@ -322,6 +319,10 @@ export default function FinanceiroSaaS() {
     setAbaSecundaria(v);
     setSearchParams({ aba: v }, { replace: true });
   };
+
+  if (loading) {
+    return <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
