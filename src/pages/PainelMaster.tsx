@@ -295,6 +295,17 @@ export default function PainelMaster() {
         <KpiBox label="Módulos ativos" value={kpi.modulosVendidos} icon={Layers} />
       </div>
 
+      {/* KPIs SaaS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <KpiBox label="MRR estimado" value={brl(saasKpi.mrr)} tone="emerald" />
+        <KpiBox label="Implantação aberta" value={brl(saasKpi.implantacaoAberta)} tone="amber" />
+        <KpiBox label="Cobr. pendentes" value={saasKpi.pendentes} />
+        <KpiBox label="Cobr. vencidas" value={saasKpi.vencidas} tone="red" />
+        <KpiBox label="Inadimplentes" value={saasKpi.basesInadimplentes} tone="red" />
+        <KpiBox label="Armaz. contratado" value={`${saasKpi.armTotalGB.toFixed(1)} GB`} />
+        <KpiBox label="Armaz. usado" value={`${saasKpi.armUsadoGB.toFixed(1)} GB`} />
+        <KpiBox label="Bases >70% arm." value={saasKpi.acimaDe70.length + saasKpi.acimaDe90.length} tone="amber" />
+
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Chart title="Bases por status">
