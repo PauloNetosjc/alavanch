@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone } from "lucide-react";
+import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone, FileSignature } from "lucide-react";
 import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
@@ -40,7 +40,7 @@ type Base = {
   created_at: string;
 };
 
-type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null };
+type Loja = { id: string; nome: string; ativo: boolean | null; base_cliente_id: string | null; cidade?: string | null; uf?: string | null; cnpj?: string | null; email?: string | null; telefone?: string | null; endereco?: string | null };
 type Modulo = { chave: string; nome: string; categoria: string | null; essencial: boolean };
 type ModuloLoja = { loja_id: string; modulo_chave: string; ativo: boolean; contratado: boolean };
 
@@ -87,6 +87,7 @@ export default function GestaoBases() {
   const { user } = useAuth();
   const [bases, setBases] = useState<Base[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
+  const [contratos, setContratos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -101,12 +102,14 @@ export default function GestaoBases() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: b }, { data: l }] = await Promise.all([
+    const [{ data: b }, { data: l }, { data: c }] = await Promise.all([
       supabase.from("bases_clientes" as any).select("*").order("nome"),
-      supabase.from("lojas").select("id,nome,ativo,base_cliente_id").order("nome"),
+      supabase.from("lojas").select("id,nome,ativo,base_cliente_id,cidade,uf,cnpj,email,telefone,endereco").order("nome"),
+      (supabase.from("base_contratos" as any) as any).select("id,base_cliente_id,status"),
     ]);
     setBases((b || []) as any);
     setLojas((l || []) as any);
+    setContratos((c || []) as any);
     setLoading(false);
   };
 
@@ -136,13 +139,15 @@ export default function GestaoBases() {
     });
   }, [bases, busca, filtroStatus, filtroPlano]);
 
+  const STATUS_AGUARDA = ["rascunho", "aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"];
   const kpi = useMemo(() => ({
     total: bases.length,
     ativo: bases.filter((b) => b.status === "ativo").length,
     teste: bases.filter((b) => b.status === "teste").length,
     suspenso: bases.filter((b) => b.status === "suspenso").length,
     cancelado: bases.filter((b) => b.status === "cancelado").length,
-  }), [bases]);
+    contratosAguarda: contratos.filter((c: any) => STATUS_AGUARDA.includes(c.status)).length,
+  }), [bases, contratos]);
 
   const abrirNova = () => { setEditing(null); setForm(emptyForm()); setOpen(true); };
   const abrirEdicao = (b: Base) => {
@@ -236,12 +241,18 @@ export default function GestaoBases() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Total</div><div className="text-2xl font-display mt-1">{kpi.total}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Ativas</div><div className="text-2xl font-display mt-1 text-emerald-700">{kpi.ativo}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Teste</div><div className="text-2xl font-display mt-1 text-blue-700">{kpi.teste}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Suspensas</div><div className="text-2xl font-display mt-1 text-amber-700">{kpi.suspenso}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Canceladas</div><div className="text-2xl font-display mt-1 text-red-700">{kpi.cancelado}</div></Card>
+        <a href="/sistema/gestao-bases/cobrancas" className="block">
+          <Card className={`p-4 transition hover:shadow-md cursor-pointer ${kpi.contratosAguarda > 0 ? "border-amber-400 bg-amber-50/40" : ""}`}>
+            <div className="text-[10px] uppercase text-muted-foreground flex items-center gap-1"><FileSignature className="w-3 h-3"/> Contratos aguardando</div>
+            <div className={`text-2xl font-display mt-1 ${kpi.contratosAguarda > 0 ? "text-amber-700" : ""}`}>{kpi.contratosAguarda}</div>
+          </Card>
+        </a>
       </div>
 
       {/* Filtros */}
@@ -512,24 +523,13 @@ function DetalheBaseSheet({
           </TabsContent>
 
           <TabsContent value="lojas" className="mt-4">
-            {lojas.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhuma loja vinculada a esta base.</div>
-            ) : (
-              <div className="space-y-2">
-                {lojas.map((lj) => (
-                  <Card key={lj.id} className="p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-sm">{lj.nome}</div>
-                      <div className="text-xs text-muted-foreground">{lj.ativo ? "Ativa" : "Inativa"}</div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px]">{usuarios.filter((u) => u.loja_id === lj.id).length} usuários</Badge>
-                  </Card>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-3">
-              Para cadastrar novas lojas, use Administração → Lojas e vincule a esta base.
-            </p>
+            <LojasDaBase
+              baseId={base.id}
+              lojas={lojas}
+              usuarios={usuarios}
+              userId={userId}
+              onChanged={() => { onChanged(); carregarTudo(); }}
+            />
           </TabsContent>
 
           <TabsContent value="usuarios" className="mt-4">
@@ -646,6 +646,177 @@ function Linha({ label, value }: { label: string; value: string | null | undefin
     <div className="grid grid-cols-3 gap-2 py-1 border-b last:border-0">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="col-span-2">{value || <span className="text-muted-foreground">—</span>}</div>
+    </div>
+  );
+}
+
+// ============================================================
+// Aba: Lojas da Base (CRUD direto)
+// ============================================================
+function LojasDaBase({
+  baseId, lojas, usuarios, userId, onChanged,
+}: {
+  baseId: string;
+  lojas: Loja[];
+  usuarios: any[];
+  userId: string | null;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Loja | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Partial<Loja>>({});
+
+  const abrirNova = () => { setEditing(null); setForm({ ativo: true }); setOpen(true); };
+  const abrirEdit = (lj: Loja) => { setEditing(lj); setForm({ ...lj }); setOpen(true); };
+
+  const salvar = async () => {
+    if (!form.nome?.trim()) { toast.error("Nome da loja é obrigatório"); return; }
+    setSaving(true);
+    try {
+      const payload: any = {
+        nome: form.nome,
+        cidade: form.cidade || null,
+        uf: form.uf || null,
+        endereco: form.endereco || null,
+        telefone: form.telefone ? maskPhone(form.telefone) : null,
+        email: form.email || null,
+        cnpj: form.cnpj ? maskCnpj(form.cnpj) : null,
+        ativo: form.ativo ?? true,
+        base_cliente_id: baseId,
+      };
+      if (editing) {
+        const { error } = await supabase.from("lojas").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await supabase.from("bases_clientes_historico" as any).insert({
+          base_id: baseId, evento: "loja_editada",
+          descricao: `Loja "${payload.nome}" atualizada`, usuario_id: userId,
+        } as any);
+        toast.success("Loja atualizada");
+      } else {
+        const { data, error } = await supabase.from("lojas").insert(payload).select("id").single();
+        if (error) throw error;
+        await supabase.from("bases_clientes_historico" as any).insert({
+          base_id: baseId, evento: "loja_criada",
+          descricao: `Loja "${payload.nome}" criada`,
+          detalhes: { loja_id: (data as any).id }, usuario_id: userId,
+        } as any);
+        toast.success("Loja criada");
+      }
+      setOpen(false);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar loja");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAtivo = async (lj: Loja) => {
+    const novo = !lj.ativo;
+    const { error } = await supabase.from("lojas").update({ ativo: novo }).eq("id", lj.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("bases_clientes_historico" as any).insert({
+      base_id: baseId, evento: novo ? "loja_ativada" : "loja_inativada",
+      descricao: `Loja "${lj.nome}" ${novo ? "ativada" : "inativada"}`, usuario_id: userId,
+    } as any);
+    toast.success(novo ? "Loja ativada" : "Loja inativada");
+    onChanged();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs text-muted-foreground">{lojas.length} loja{lojas.length !== 1 ? "s" : ""} vinculada{lojas.length !== 1 ? "s" : ""}</div>
+        <Button size="sm" onClick={abrirNova} className="gap-2"><Plus className="w-3.5 h-3.5"/> Nova loja</Button>
+      </div>
+
+      {lojas.length === 0 ? (
+        <div className="text-sm text-muted-foreground border rounded-md p-6 text-center">
+          Nenhuma loja vinculada. Clique em <strong>Nova loja</strong> para criar a primeira.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {lojas.map((lj) => (
+            <Card key={lj.id} className="p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{lj.nome}</span>
+                  {lj.ativo
+                    ? <Badge className="bg-emerald-100 text-emerald-800 border-0 text-[10px]">Ativa</Badge>
+                    : <Badge className="bg-zinc-200 text-zinc-700 border-0 text-[10px]">Inativa</Badge>}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {[lj.cidade, lj.uf].filter(Boolean).join("/") || "—"}
+                  {lj.cnpj && <> · {maskCnpj(lj.cnpj)}</>}
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{usuarios.filter((u) => u.loja_id === lj.id).length} usuários</Badge>
+              <div className="flex gap-1">
+                <Button size="sm" variant="ghost" onClick={() => abrirEdit(lj)}>Editar</Button>
+                <Button size="sm" variant="ghost" onClick={() => toggleAtivo(lj)}>
+                  {lj.ativo ? "Inativar" : "Ativar"}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar loja" : "Criar loja para esta base"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>Nome da loja *</Label>
+              <Input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+            </div>
+            <div>
+              <Label>Cidade</Label>
+              <Input value={form.cidade || ""} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+            </div>
+            <div>
+              <Label>UF</Label>
+              <Input maxLength={2} value={form.uf || ""} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço</Label>
+              <Input value={form.endereco || ""} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input value={form.telefone || ""} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} />
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>CNPJ</Label>
+              <Input value={form.cnpj || ""} onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={(form.ativo ?? true) ? "ativa" : "inativa"} onValueChange={(v) => setForm({ ...form, ativo: v === "ativa" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativa">Ativa</SelectItem>
+                  <SelectItem value="inativa">Inativa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={salvar} disabled={saving}>
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />}
+              {editing ? "Salvar" : "Criar loja"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
