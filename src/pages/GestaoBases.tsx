@@ -600,6 +600,17 @@ function DetalheBaseSheet({
             )}
           </TabsContent>
 
+          <TabsContent value="cobranca" className="mt-4">
+            <AssinaturaCobrancaTab
+              baseId={base.id}
+              basePlano={base.plano}
+              lojasCount={lojas.length}
+              usuariosCount={usuarios.length}
+              userId={userId}
+              onChanged={onChanged}
+            />
+          </TabsContent>
+
           <TabsContent value="historico" className="mt-4">
             {historico.length === 0 ? (
               <div className="text-sm text-muted-foreground">Nenhum evento registrado.</div>
