@@ -19,6 +19,7 @@ import { RequireModulo } from "@/components/RequireModulo";
 const GestaoModulos = lazy(() => import("@/pages/GestaoModulos"));
 const GestaoBases = lazy(() => import("@/pages/GestaoBases"));
 const PainelMaster = lazy(() => import("@/pages/PainelMaster"));
+const CobrancasSaaS = lazy(() => import("@/pages/CobrancasSaaS"));
 
 // Páginas pesadas em lazy load para reduzir bundle inicial e evitar tela branca
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
