@@ -5991,43 +5991,77 @@ export type Database = {
         Row: {
           ativo: boolean | null
           avatar_url: string | null
+          base_cliente_id: string | null
+          bloqueado_em: string | null
+          cargo_saas: string | null
+          convite_enviado_em: string | null
           created_at: string
           data_nascimento: string | null
           desconto_max_perc: number | null
           id: string
           loja_id: string | null
           nome_completo: string | null
+          observacoes_saas: string | null
+          status_saas: string
           telefone: string | null
+          tipo_usuario: string
+          ultimo_acesso: string | null
           updated_at: string
           user_id: string
+          usuario_saas_ativo: boolean
         }
         Insert: {
           ativo?: boolean | null
           avatar_url?: string | null
+          base_cliente_id?: string | null
+          bloqueado_em?: string | null
+          cargo_saas?: string | null
+          convite_enviado_em?: string | null
           created_at?: string
           data_nascimento?: string | null
           desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
+          observacoes_saas?: string | null
+          status_saas?: string
           telefone?: string | null
+          tipo_usuario?: string
+          ultimo_acesso?: string | null
           updated_at?: string
           user_id: string
+          usuario_saas_ativo?: boolean
         }
         Update: {
           ativo?: boolean | null
           avatar_url?: string | null
+          base_cliente_id?: string | null
+          bloqueado_em?: string | null
+          cargo_saas?: string | null
+          convite_enviado_em?: string | null
           created_at?: string
           data_nascimento?: string | null
           desconto_max_perc?: number | null
           id?: string
           loja_id?: string | null
           nome_completo?: string | null
+          observacoes_saas?: string | null
+          status_saas?: string
           telefone?: string | null
+          tipo_usuario?: string
+          ultimo_acesso?: string | null
           updated_at?: string
           user_id?: string
+          usuario_saas_ativo?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_base_cliente_id_fkey"
+            columns: ["base_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "bases_clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_loja_id_fkey"
             columns: ["loja_id"]
@@ -7206,6 +7240,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saas_usuarios_historico: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          dados: Json | null
+          descricao: string | null
+          evento: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          dados?: Json | null
+          descricao?: string | null
+          evento: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          dados?: Json | null
+          descricao?: string | null
+          evento?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       sistemas_saas: {
         Row: {

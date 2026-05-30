@@ -151,6 +151,7 @@ const moreGroups: Group[] = [
       { label: "Painel Master", path: "/sistema/painel-master", icon: TrendingUp, roles: ["admin"] },
       { label: "Empresa SaaS", path: "/sistema-saas/empresa", icon: Building2, modulo: "sistema.empresa_saas" },
       { label: "Gestão de Bases", path: "/sistema/gestao-bases", icon: Building2, roles: ["admin"] },
+      { label: "Usuários do Sistema", path: "/sistema-saas/usuarios", icon: Users, modulo: "sistema.usuarios_saas" },
       { label: "Financeiro SaaS", path: "/sistema-saas/financeiro", icon: Wallet, modulo: "sistema.financeiro_saas" },
       { label: "CRM SaaS", path: "/sistema-saas/crm", icon: Target, modulo: "sistema.crm_saas" },
       { label: "Agenda SaaS", path: "/sistema-saas/agenda", icon: CalendarClock, modulo: "sistema.agenda_saas" },
