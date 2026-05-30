@@ -2659,6 +2659,273 @@ export type Database = {
           },
         ]
       }
+      fabrica_almoxarifado_itens: {
+        Row: {
+          atualizado_por: string | null
+          codigo_barras: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          estoque_atual: number | null
+          id: string
+          lote_id: string | null
+          observacoes: string | null
+          pedido_id: string
+          quantidade_necessaria: number
+          quantidade_separada: number
+          referencia: string
+          status: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          estoque_atual?: number | null
+          id?: string
+          lote_id?: string | null
+          observacoes?: string | null
+          pedido_id: string
+          quantidade_necessaria?: number
+          quantidade_separada?: number
+          referencia: string
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          estoque_atual?: number | null
+          id?: string
+          lote_id?: string | null
+          observacoes?: string | null
+          pedido_id?: string
+          quantidade_necessaria?: number
+          quantidade_separada?: number
+          referencia?: string
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_almoxarifado_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_arquivos_producao: {
+        Row: {
+          atualizado_por: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          lote_id: string | null
+          mime_type: string | null
+          nome_arquivo: string
+          obrigatorio: boolean
+          observacoes: string | null
+          pedido_id: string
+          processado: boolean
+          tamanho_bytes: number | null
+          tipo_arquivo: string
+          updated_at: string
+          url_arquivo: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lote_id?: string | null
+          mime_type?: string | null
+          nome_arquivo: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          pedido_id: string
+          processado?: boolean
+          tamanho_bytes?: number | null
+          tipo_arquivo: string
+          updated_at?: string
+          url_arquivo: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lote_id?: string | null
+          mime_type?: string | null
+          nome_arquivo?: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          pedido_id?: string
+          processado?: boolean
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string
+          updated_at?: string
+          url_arquivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_arquivos_producao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_modulos: {
+        Row: {
+          ambiente: string | null
+          atualizado_por: string | null
+          codigo_modulo: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          lote_id: string | null
+          nome_modulo: string | null
+          ordem: number | null
+          pedido_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string | null
+          atualizado_por?: string | null
+          codigo_modulo: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          lote_id?: string | null
+          nome_modulo?: string | null
+          ordem?: number | null
+          pedido_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string | null
+          atualizado_por?: string | null
+          codigo_modulo?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          lote_id?: string | null
+          nome_modulo?: string | null
+          ordem?: number | null
+          pedido_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_modulos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_pecas: {
+        Row: {
+          atualizado_por: string | null
+          codigo_barras: string | null
+          codigo_peca: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          lote_id: string | null
+          medida_altura: number | null
+          medida_largura: number | null
+          medida_profundidade: number | null
+          medida_texto: string | null
+          modulo_id: string | null
+          observacoes: string | null
+          pedido_id: string
+          quantidade: number
+          referencia: string | null
+          status: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          codigo_barras?: string | null
+          codigo_peca: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          lote_id?: string | null
+          medida_altura?: number | null
+          medida_largura?: number | null
+          medida_profundidade?: number | null
+          medida_texto?: string | null
+          modulo_id?: string | null
+          observacoes?: string | null
+          pedido_id: string
+          quantidade?: number
+          referencia?: string | null
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          codigo_barras?: string | null
+          codigo_peca?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          lote_id?: string | null
+          medida_altura?: number | null
+          medida_largura?: number | null
+          medida_profundidade?: number | null
+          medida_texto?: string | null
+          modulo_id?: string | null
+          observacoes?: string | null
+          pedido_id?: string
+          quantidade?: number
+          referencia?: string | null
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_pecas_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_modulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_pecas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
