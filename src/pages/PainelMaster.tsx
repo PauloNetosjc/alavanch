@@ -513,23 +513,25 @@ export default function PainelMaster() {
 
 // ============================================================
 
-function KpiBox({ label, value, icon: Icon, tone }: {
-  label: string; value: number | string; icon?: any; tone?: "emerald" | "blue" | "amber" | "red";
+function KpiBox({ label, value, icon: Icon, tone, to }: {
+  label: string; value: number | string; icon?: any; tone?: "emerald" | "blue" | "amber" | "red"; to?: string;
 }) {
   const toneClass = tone === "emerald" ? "text-emerald-700"
     : tone === "blue" ? "text-blue-700"
     : tone === "amber" ? "text-amber-700"
     : tone === "red" ? "text-red-700"
     : "";
-  return (
-    <Card className="p-3">
+  const content = (
+    <Card className={`p-3 ${to ? "hover:shadow-md hover:border-primary/40 transition cursor-pointer" : ""}`}>
       <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground">
         {Icon && <Icon className="w-3 h-3" />}{label}
       </div>
       <div className={`text-2xl font-display mt-1 ${toneClass}`}>{value}</div>
     </Card>
   );
+  return to ? <Link to={to}>{content}</Link> : content;
 }
+
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
