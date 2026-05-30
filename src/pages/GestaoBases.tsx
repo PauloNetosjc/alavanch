@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone } from "lucide-react";
+import { Building2, Plus, Search, Loader2, History, Package, Users, Store, CreditCard, Megaphone, FileSignature } from "lucide-react";
 import { AssinaturaCobrancaTab } from "@/components/saas/AssinaturaCobrancaTab";
 import { maskCnpj, maskPhone } from "@/lib/masks";
 
@@ -87,6 +87,7 @@ export default function GestaoBases() {
   const { user } = useAuth();
   const [bases, setBases] = useState<Base[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
+  const [contratos, setContratos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -101,12 +102,14 @@ export default function GestaoBases() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: b }, { data: l }] = await Promise.all([
+    const [{ data: b }, { data: l }, { data: c }] = await Promise.all([
       supabase.from("bases_clientes" as any).select("*").order("nome"),
-      supabase.from("lojas").select("id,nome,ativo,base_cliente_id").order("nome"),
+      supabase.from("lojas").select("id,nome,ativo,base_cliente_id,cidade,uf,cnpj,email,telefone,endereco").order("nome"),
+      (supabase.from("base_contratos" as any) as any).select("id,base_cliente_id,status"),
     ]);
     setBases((b || []) as any);
     setLojas((l || []) as any);
+    setContratos((c || []) as any);
     setLoading(false);
   };
 
@@ -136,13 +139,15 @@ export default function GestaoBases() {
     });
   }, [bases, busca, filtroStatus, filtroPlano]);
 
+  const STATUS_AGUARDA = ["rascunho", "aguardando_assinatura", "enviado_para_assinatura", "pendente_assinatura"];
   const kpi = useMemo(() => ({
     total: bases.length,
     ativo: bases.filter((b) => b.status === "ativo").length,
     teste: bases.filter((b) => b.status === "teste").length,
     suspenso: bases.filter((b) => b.status === "suspenso").length,
     cancelado: bases.filter((b) => b.status === "cancelado").length,
-  }), [bases]);
+    contratosAguarda: contratos.filter((c: any) => STATUS_AGUARDA.includes(c.status)).length,
+  }), [bases, contratos]);
 
   const abrirNova = () => { setEditing(null); setForm(emptyForm()); setOpen(true); };
   const abrirEdicao = (b: Base) => {
@@ -236,12 +241,18 @@ export default function GestaoBases() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Total</div><div className="text-2xl font-display mt-1">{kpi.total}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Ativas</div><div className="text-2xl font-display mt-1 text-emerald-700">{kpi.ativo}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Teste</div><div className="text-2xl font-display mt-1 text-blue-700">{kpi.teste}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Suspensas</div><div className="text-2xl font-display mt-1 text-amber-700">{kpi.suspenso}</div></Card>
         <Card className="p-4"><div className="text-[10px] uppercase text-muted-foreground">Canceladas</div><div className="text-2xl font-display mt-1 text-red-700">{kpi.cancelado}</div></Card>
+        <a href="/sistema/gestao-bases/cobrancas" className="block">
+          <Card className={`p-4 transition hover:shadow-md cursor-pointer ${kpi.contratosAguarda > 0 ? "border-amber-400 bg-amber-50/40" : ""}`}>
+            <div className="text-[10px] uppercase text-muted-foreground flex items-center gap-1"><FileSignature className="w-3 h-3"/> Contratos aguardando</div>
+            <div className={`text-2xl font-display mt-1 ${kpi.contratosAguarda > 0 ? "text-amber-700" : ""}`}>{kpi.contratosAguarda}</div>
+          </Card>
+        </a>
       </div>
 
       {/* Filtros */}
