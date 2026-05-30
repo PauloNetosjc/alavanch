@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Building2, Plus, Search, Loader2, History, Package, Users, Store } from "lucide-react";
-import { mascararCNPJ, mascararTelefone } from "@/lib/masks";
+import { maskCnpj, maskPhone } from "@/lib/masks";
 
 type Base = {
   id: string;
@@ -294,7 +294,7 @@ export default function GestaoBases() {
                       <div className="font-medium">{b.nome}</div>
                       {b.razao_social && <div className="text-xs text-muted-foreground">{b.razao_social}</div>}
                     </td>
-                    <td className="p-3 text-xs">{b.cnpj ? mascararCNPJ(b.cnpj) : "—"}</td>
+                    <td className="p-3 text-xs">{b.cnpj ? maskCnpj(b.cnpj) : "—"}</td>
                     <td className="p-3 text-xs">
                       <div>{b.responsavel_nome || "—"}</div>
                       {b.email_responsavel && <div className="text-muted-foreground">{b.email_responsavel}</div>}
@@ -341,11 +341,11 @@ export default function GestaoBases() {
             </div>
             <div>
               <Label>CNPJ</Label>
-              <Input value={form.cnpj || ""} onChange={(e) => setForm({ ...form, cnpj: mascararCNPJ(e.target.value) })} />
+              <Input value={form.cnpj || ""} onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })} />
             </div>
             <div>
               <Label>Telefone do responsável</Label>
-              <Input value={form.telefone_responsavel || ""} onChange={(e) => setForm({ ...form, telefone_responsavel: mascararTelefone(e.target.value) })} />
+              <Input value={form.telefone_responsavel || ""} onChange={(e) => setForm({ ...form, telefone_responsavel: maskPhone(e.target.value) })} />
             </div>
             <div>
               <Label>Nome do responsável</Label>
@@ -489,7 +489,7 @@ function DetalheBaseSheet({
           <TabsContent value="dados" className="space-y-2 mt-4 text-sm">
             <Linha label="Razão social" value={base.razao_social} />
             <Linha label="Nome fantasia" value={base.nome_fantasia} />
-            <Linha label="CNPJ" value={base.cnpj ? mascararCNPJ(base.cnpj) : null} />
+            <Linha label="CNPJ" value={base.cnpj ? maskCnpj(base.cnpj) : null} />
             <Linha label="Responsável" value={base.responsavel_nome} />
             <Linha label="E-mail" value={base.email_responsavel} />
             <Linha label="Telefone" value={base.telefone_responsavel} />
