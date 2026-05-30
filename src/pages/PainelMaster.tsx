@@ -139,6 +139,54 @@ export default function PainelMaster() {
     };
   }, [bases, lojas, profiles, ativacoes]);
 
+  // KPIs SaaS (cobrança / armazenamento)
+  const saasKpi = useMemo(() => {
+    const ativas = assinaturas.filter((s) => s.status_assinatura === "ativa");
+    const mrr = ativas.reduce((sum, s) => {
+      const lj = lojasPorBase[s.base_cliente_id]?.length || 0;
+      const us = (lojasPorBase[s.base_cliente_id] || []).reduce((acc, x) => acc + (usuariosPorLoja[x.id] || 0), 0);
+      const adicLojas = Math.max(0, lj - (s.lojas_incluidas || 0)) * Number(s.valor_loja_adicional || 0);
+      const adicUsuarios = Math.max(0, us - (s.usuarios_incluidos || 0)) * Number(s.valor_usuario_adicional || 0);
+      return sum + Number(s.valor_mensal || 0) + adicLojas + adicUsuarios;
+    }, 0);
+    const implantacaoAberta = assinaturas
+      .filter((s) => !s.implantacao_paga)
+      .reduce((sum, s) => sum + Number(s.valor_implantacao || 0), 0);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const pendentes = cobrancas.filter((c) => c.status === "pendente");
+    const vencidas = pendentes.filter((c) => c.data_vencimento && c.data_vencimento < hoje);
+    const basesInadimplentes = new Set(vencidas.map((c) => c.base_cliente_id)).size;
+
+    // Armazenamento
+    let armTotalContratado = 0, armTotalUsado = 0;
+    const acimaDe70: string[] = [];
+    const acimaDe90: string[] = [];
+    assinaturas.forEach((s) => {
+      const tot = Number(s.armazenamento_incluido_mb || 0) + Number(s.armazenamento_adicional_mb || 0);
+      const usado = Number(s.armazenamento_usado_mb || 0);
+      armTotalContratado += tot;
+      armTotalUsado += usado;
+      if (tot > 0) {
+        const perc = (usado / tot) * 100;
+        const baseNome = bases.find((b) => b.id === s.base_cliente_id)?.nome || "—";
+        if (perc >= 90) acimaDe90.push(baseNome);
+        else if (perc >= 70) acimaDe70.push(baseNome);
+      }
+    });
+
+    return {
+      mrr, implantacaoAberta,
+      pendentes: pendentes.length,
+      vencidas: vencidas.length,
+      basesInadimplentes,
+      armTotalGB: armTotalContratado / 1024,
+      armUsadoGB: armTotalUsado / 1024,
+      acimaDe70, acimaDe90,
+    };
+  }, [assinaturas, cobrancas, lojasPorBase, usuariosPorLoja, bases]);
+
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   // Gráfico: bases por status
   const dataStatus = useMemo(() =>
     ["ativo","teste","suspenso","cancelado"].map((s) => ({
