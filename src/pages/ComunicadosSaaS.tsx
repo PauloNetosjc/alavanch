@@ -214,6 +214,15 @@ export default function ComunicadosSaaS() {
     if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
       toast.error("Data final não pode ser anterior à inicial"); return;
     }
+    // Validações de anexo
+    if (form.anexo_tipo !== "nenhum") {
+      if (form.anexo_tipo === "link" || (form.anexo_tipo === "video" && form.anexo_video_modo === "link")) {
+        if (!form.anexo_url.trim()) { toast.error("Informe a URL do anexo"); return; }
+        try { new URL(form.anexo_url); } catch { toast.error("URL inválida"); return; }
+      } else {
+        if (!form.anexo_url) { toast.error("Faça upload do arquivo"); return; }
+      }
+    }
 
     const payload: any = {
       titulo: form.titulo.trim(),
@@ -224,6 +233,12 @@ export default function ComunicadosSaaS() {
       data_inicio: form.data_inicio || null,
       data_fim: form.data_fim || null,
       link_url: form.link_url || null,
+      anexo_tipo: form.anexo_tipo === "nenhum" ? null : form.anexo_tipo,
+      anexo_url: form.anexo_tipo === "nenhum" ? null : (form.anexo_url || null),
+      anexo_nome: form.anexo_tipo === "nenhum" ? null : (form.anexo_nome || null),
+      anexo_mime: form.anexo_tipo === "nenhum" ? null : (form.anexo_mime || null),
+      anexo_tamanho_bytes: form.anexo_tipo === "nenhum" ? null : form.anexo_tamanho_bytes,
+      anexo_texto_botao: form.anexo_tipo === "link" ? (form.anexo_texto_botao || null) : null,
       atualizado_por: user?.id,
     };
 
