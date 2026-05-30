@@ -73,6 +73,7 @@ export function statusFabricaBadgeClass(s: string | null | undefined): string {
     case "em_corte":
     case "em_separacao_pecas":
     case "em_separacao_almoxarifado":
+    case "em_expedicao":
     case "em_producao":
       return "bg-amber-100 text-amber-800 border-amber-200";
     case "arquivos_importados":
