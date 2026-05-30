@@ -12,9 +12,9 @@ export type StatusFabrica =
   | "aguardando_almoxarifado"
   | "em_separacao_almoxarifado"
   | "pronto_para_expedicao"
+  | "em_expedicao"
   | "expedido"
   | "ocorrencia_peca_faltante"
-  // status legados do fluxo de lotes que podem aparecer
   | "liberado_para_lote"
   | "em_producao"
   | "concluido_fabrica";
