@@ -324,7 +324,12 @@ export default function GestaoBases() {
                 {filtradas.map((b) => (
                   <tr key={b.id} className="border-t hover:bg-muted/20">
                     <td className="p-3">
-                      <div className="font-medium">{b.nome}</div>
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        {b.nome}
+                        {contratoPendentePorBase.has(b.id) && (
+                          <Badge className="bg-amber-100 text-amber-800 border-0 text-[10px]">Contrato pendente</Badge>
+                        )}
+                      </div>
                       {b.razao_social && <div className="text-xs text-muted-foreground">{b.razao_social}</div>}
                     </td>
                     <td className="p-3 text-xs">{b.cnpj ? maskCnpj(b.cnpj) : "—"}</td>
