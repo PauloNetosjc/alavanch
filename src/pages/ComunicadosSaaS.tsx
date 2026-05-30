@@ -416,13 +416,14 @@ export default function ComunicadosSaaS() {
                 <th className="text-left px-3 py-2">Destino</th>
                 <th className="text-left px-3 py-2">Início</th>
                 <th className="text-left px-3 py-2">Fim</th>
+                <th className="text-left px-3 py-2">Anexo</th>
                 <th className="text-center px-3 py-2">Pop-up</th>
                 <th className="text-right px-3 py-2">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">Carregando…</td></tr>}
-              {!loading && filtered.length === 0 && <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum comunicado.</td></tr>}
+              {loading && <tr><td colSpan={10} className="text-center py-6 text-muted-foreground">Carregando…</td></tr>}
+              {!loading && filtered.length === 0 && <tr><td colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum comunicado.</td></tr>}
               {filtered.map(c => (
                 <tr key={c.id} className="border-t hover:bg-secondary/30">
                   <td className="px-3 py-2 font-medium">{c.titulo}</td>
@@ -432,6 +433,13 @@ export default function ComunicadosSaaS() {
                   <td className="px-3 py-2 text-[12px] text-muted-foreground">{destinoTexto(c)}</td>
                   <td className="px-3 py-2 text-[12px]">{c.data_inicio ? new Date(c.data_inicio).toLocaleDateString("pt-BR") : "—"}</td>
                   <td className="px-3 py-2 text-[12px]">{c.data_fim ? new Date(c.data_fim).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td className="px-3 py-2 text-[12px]">
+                    {c.anexo_tipo && c.anexo_tipo !== "nenhum" ? (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        {anexoIcon(c.anexo_tipo)} {anexoLabel(c.anexo_tipo)}
+                      </span>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-3 py-2 text-center">{c.exibir_popup ? <Check className="w-3.5 h-3.5 inline text-emerald-600" /> : <X className="w-3.5 h-3.5 inline text-muted-foreground" />}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
