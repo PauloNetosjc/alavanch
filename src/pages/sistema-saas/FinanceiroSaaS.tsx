@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-// removed Link (no longer used)
+import { useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import {
-  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2,
+  Wallet, FileSpreadsheet, Loader2, Plus, FileSignature, Building2, ArrowDownCircle, ArrowUpCircle,
 } from "lucide-react";
 import CobrancasSaaS from "@/pages/CobrancasSaaS";
 import { SaaSLancamentosTab } from "@/components/sistema-saas/SaaSLancamentosTab";
@@ -296,6 +296,33 @@ export default function FinanceiroSaaS() {
     return <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  // ---- Navegação principal (A Receber / A Pagar) e abas secundárias ----
+  const [searchParams, setSearchParams] = useSearchParams();
+  const abaParam = searchParams.get("aba");
+  const initialMain: "receber" | "pagar" | null =
+    abaParam === "receber" ? "receber" : abaParam === "pagar" ? "pagar" : "receber";
+  const [vistaPrincipal, setVistaPrincipal] = useState<"receber" | "pagar" | null>(initialMain);
+  const [abaSecundaria, setAbaSecundaria] = useState<string>("visao-geral");
+
+  useEffect(() => {
+    if (abaParam === "receber" || abaParam === "pagar") {
+      setVistaPrincipal(abaParam);
+    } else if (abaParam) {
+      setVistaPrincipal(null);
+      setAbaSecundaria(abaParam);
+    }
+  }, [abaParam]);
+
+  const selecionarPrincipal = (v: "receber" | "pagar") => {
+    setVistaPrincipal(v);
+    setSearchParams({ aba: v }, { replace: true });
+  };
+  const selecionarSecundaria = (v: string) => {
+    setVistaPrincipal(null);
+    setAbaSecundaria(v);
+    setSearchParams({ aba: v }, { replace: true });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
@@ -309,12 +336,128 @@ export default function FinanceiroSaaS() {
         </div>
       </div>
 
-      <Tabs defaultValue="visao-geral">
+      {/* Botões principais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => selecionarPrincipal("receber")}
+          className={`flex items-center gap-3 rounded-xl border p-4 text-left transition shadow-sm hover:shadow ${
+            vistaPrincipal === "receber"
+              ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200"
+              : "border-border bg-card hover:border-emerald-300"
+          }`}
+        >
+          <div className="w-11 h-11 rounded-lg flex items-center justify-center bg-emerald-100 text-emerald-700">
+            <ArrowDownCircle className="w-6 h-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase text-muted-foreground">Receitas</div>
+            <div className="text-base font-display">A Receber SaaS</div>
+            <div className="text-xs text-muted-foreground">{brl(kpi.aberto)} em aberto • {brl(kpi.vencido)} vencido</div>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => selecionarPrincipal("pagar")}
+          className={`flex items-center gap-3 rounded-xl border p-4 text-left transition shadow-sm hover:shadow ${
+            vistaPrincipal === "pagar"
+              ? "border-red-500 bg-red-50 ring-2 ring-red-200"
+              : "border-border bg-card hover:border-red-300"
+          }`}
+        >
+          <div className="w-11 h-11 rounded-lg flex items-center justify-center bg-red-100 text-red-700">
+            <ArrowUpCircle className="w-6 h-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase text-muted-foreground">Despesas</div>
+            <div className="text-base font-display">A Pagar SaaS</div>
+            <div className="text-xs text-muted-foreground">Lançamentos do tipo despesa</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Conteúdo principal quando A Receber/A Pagar está selecionado */}
+      {vistaPrincipal === "receber" && (
+        <div className="space-y-4">
+          {/* KPIs cobranças */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+            <Kpi label="Previsto no mês" value={brl(kpi.previsto)} />
+            <Kpi label="Recebido no mês" value={brl(kpi.recebido)} tone="emerald" />
+            <Kpi label="Em aberto" value={brl(kpi.aberto)} tone="amber" />
+            <Kpi label="Vencido" value={brl(kpi.vencido)} tone="red" />
+            <Kpi label="Implantação em aberto" value={brl(kpi.implantacao)} />
+            <Kpi label="Mensalidades em aberto" value={brl(kpi.mensalidades)} />
+            <Kpi label="Avulsas em aberto" value={brl(kpi.avulsas)} />
+            <Kpi label="Contratos aguard. assinatura" value={String(kpi.contratosAguarda)} tone="amber" />
+          </div>
+
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Chart title="Receita prevista x recebida (12 meses)">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={dadosMes}>
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => brl(v)} /><Legend />
+                  <Line type="monotone" dataKey="previsto" stroke="#ca8a04" />
+                  <Line type="monotone" dataKey="recebido" stroke="#15803d" />
+                </LineChart>
+              </ResponsiveContainer>
+            </Chart>
+            <Chart title="Cobranças por status">
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={dadosStatus} dataKey="value" nameKey="name" outerRadius={80} label={(d: any) => `${d.name}: ${brl(d.value)}`}>
+                    {dadosStatus.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => brl(v)} /><Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Chart>
+            <Chart title="Receita por tipo de cobrança">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={dadosTipo}>
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => brl(v)} />
+                  <Bar dataKey="value" fill="#15803d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Chart>
+            <Chart title="Inadimplência por base (top 10)">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={inadimplenciaPorBase} layout="vertical" margin={{ left: 30 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
+                  <Tooltip formatter={(v: number) => brl(v)} />
+                  <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Chart>
+          </div>
+
+          {/* Lançamentos a receber (saas_lancamentos_financeiros) */}
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-3">Lançamentos a receber</div>
+            <SaaSLancamentosTab tipo="receita" />
+          </Card>
+
+          {/* Cobranças vinculadas */}
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-3">Cobranças SaaS vinculadas</div>
+            <CobrancasSaaS embedded />
+          </Card>
+        </div>
+      )}
+
+      {vistaPrincipal === "pagar" && (
+        <div className="space-y-4">
+          <SaaSLancamentosTab tipo="despesa" />
+        </div>
+      )}
+
+      {/* Abas secundárias / configurações */}
+      <Tabs value={abaSecundaria} onValueChange={selecionarSecundaria}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="a-receber">A Receber</TabsTrigger>
-          <TabsTrigger value="a-pagar">A Pagar</TabsTrigger>
-          <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
           <TabsTrigger value="compras-avulsas">Compras Avulsas</TabsTrigger>
           <TabsTrigger value="bancos">Bancos</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
@@ -380,22 +523,6 @@ export default function FinanceiroSaaS() {
           </div>
         </TabsContent>
 
-        {/* A RECEBER SAAS — agora usa saas_lancamentos_financeiros */}
-        <TabsContent value="a-receber" className="mt-4">
-          <SaaSLancamentosTab tipo="receita" />
-        </TabsContent>
-
-        {/* A PAGAR SAAS */}
-        <TabsContent value="a-pagar" className="mt-4">
-          <SaaSLancamentosTab tipo="despesa" />
-        </TabsContent>
-
-        {/* COBRANÇAS (tela legada de gerenciamento) */}
-        <TabsContent value="cobrancas" className="mt-4">
-          <Card className="p-4">
-            <CobrancasSaaS embedded />
-          </Card>
-        </TabsContent>
 
         {/* BANCOS */}
         <TabsContent value="bancos" className="mt-4"><SaaSBancosTab /></TabsContent>
