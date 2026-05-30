@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { ComunicadoPopup } from "./comunicados/ComunicadoPopup";
 
 export function AppLayout() {
   const { role } = useAuth();
@@ -39,6 +40,7 @@ export function AppLayout() {
           </ErrorBoundary>
         </main>
       </div>
+      <ComunicadoPopup />
     </div>
   );
 }

@@ -1763,6 +1763,142 @@ export type Database = {
           },
         ]
       }
+      comunicados_saas: {
+        Row: {
+          anexo_url: string | null
+          atualizado_por: string | null
+          created_at: string
+          criado_por: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          exibir_popup: boolean
+          id: string
+          link_url: string | null
+          mensagem: string
+          permitir_fechar: boolean
+          prioridade: string
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          anexo_url?: string | null
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          exibir_popup?: boolean
+          id?: string
+          link_url?: string | null
+          mensagem: string
+          permitir_fechar?: boolean
+          prioridade?: string
+          status?: string
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          anexo_url?: string | null
+          atualizado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          exibir_popup?: boolean
+          id?: string
+          link_url?: string | null
+          mensagem?: string
+          permitir_fechar?: boolean
+          prioridade?: string
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      comunicados_saas_destinatarios: {
+        Row: {
+          base_cliente_id: string | null
+          comunicado_id: string
+          created_at: string
+          enviar_para_todas_bases: boolean
+          id: string
+          loja_id: string | null
+        }
+        Insert: {
+          base_cliente_id?: string | null
+          comunicado_id: string
+          created_at?: string
+          enviar_para_todas_bases?: boolean
+          id?: string
+          loja_id?: string | null
+        }
+        Update: {
+          base_cliente_id?: string | null
+          comunicado_id?: string
+          created_at?: string
+          enviar_para_todas_bases?: boolean
+          id?: string
+          loja_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunicados_saas_destinatarios_comunicado_id_fkey"
+            columns: ["comunicado_id"]
+            isOneToOne: false
+            referencedRelation: "comunicados_saas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunicados_saas_leituras: {
+        Row: {
+          base_cliente_id: string | null
+          comunicado_id: string
+          created_at: string
+          fechado_em: string | null
+          id: string
+          lido: boolean
+          lido_em: string | null
+          loja_id: string | null
+          user_id: string
+        }
+        Insert: {
+          base_cliente_id?: string | null
+          comunicado_id: string
+          created_at?: string
+          fechado_em?: string | null
+          id?: string
+          lido?: boolean
+          lido_em?: string | null
+          loja_id?: string | null
+          user_id: string
+        }
+        Update: {
+          base_cliente_id?: string | null
+          comunicado_id?: string
+          created_at?: string
+          fechado_em?: string | null
+          id?: string
+          lido?: boolean
+          lido_em?: string | null
+          loja_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunicados_saas_leituras_comunicado_id_fkey"
+            columns: ["comunicado_id"]
+            isOneToOne: false
+            referencedRelation: "comunicados_saas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracoes_empresa: {
         Row: {
           assinar_loja_automaticamente: boolean
