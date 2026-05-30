@@ -17,7 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Megaphone, Plus, Search, ArrowLeft, Send, Copy, Eye, Trash2, X, Check } from "lucide-react";
+import { Megaphone, Plus, Search, ArrowLeft, Send, Copy, Eye, Trash2, X, Check, Upload, FileText, Image as ImageIcon, Video, Link as LinkIcon, Paperclip } from "lucide-react";
+import { AnexoView, anexoIcon, anexoLabel } from "@/components/comunicados/AnexoView";
 
 type Comunicado = {
   id: string;
