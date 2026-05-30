@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-// removed Link (no longer used)
+import { useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
