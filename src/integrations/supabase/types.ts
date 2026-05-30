@@ -2894,6 +2894,54 @@ export type Database = {
           },
         ]
       }
+      fabrica_expedicao_historico: {
+        Row: {
+          codigo_bipado: string | null
+          created_at: string
+          id: string
+          mensagem: string | null
+          pedido_id: string
+          resultado: string
+          usuario_id: string | null
+          volume_id: string | null
+        }
+        Insert: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          pedido_id: string
+          resultado: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Update: {
+          codigo_bipado?: string | null
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          pedido_id?: string
+          resultado?: string
+          usuario_id?: string | null
+          volume_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_expedicao_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_expedicao_historico_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_modulos: {
         Row: {
           ambiente: string | null
@@ -3144,14 +3192,18 @@ export type Database = {
       fabrica_volumes: {
         Row: {
           atualizado_por: string | null
+          carregado_em: string | null
+          carregado_por: string | null
           codigo_barras: string
           created_at: string
           criado_por: string | null
           id: string
           lote_id: string | null
           numero_volume: number
+          observacao_expedicao: string | null
           observacoes: string | null
           pedido_id: string
+          problema_expedicao: boolean
           quantidade_pecas: number
           status: string
           tipo_volume: string
@@ -3159,14 +3211,18 @@ export type Database = {
         }
         Insert: {
           atualizado_por?: string | null
+          carregado_em?: string | null
+          carregado_por?: string | null
           codigo_barras: string
           created_at?: string
           criado_por?: string | null
           id?: string
           lote_id?: string | null
           numero_volume: number
+          observacao_expedicao?: string | null
           observacoes?: string | null
           pedido_id: string
+          problema_expedicao?: boolean
           quantidade_pecas?: number
           status?: string
           tipo_volume?: string
@@ -3174,14 +3230,18 @@ export type Database = {
         }
         Update: {
           atualizado_por?: string | null
+          carregado_em?: string | null
+          carregado_por?: string | null
           codigo_barras?: string
           created_at?: string
           criado_por?: string | null
           id?: string
           lote_id?: string | null
           numero_volume?: number
+          observacao_expedicao?: string | null
           observacoes?: string | null
           pedido_id?: string
+          problema_expedicao?: boolean
           quantidade_pecas?: number
           status?: string
           tipo_volume?: string
@@ -5222,6 +5282,8 @@ export type Database = {
           estagio_revisao_id: string | null
           estrelas: number | null
           etapa_atual: string | null
+          fabrica_expedido_em: string | null
+          fabrica_expedido_por: string | null
           id: string
           is_adendo: boolean | null
           is_complemento: boolean
@@ -5277,6 +5339,8 @@ export type Database = {
           estagio_revisao_id?: string | null
           estrelas?: number | null
           etapa_atual?: string | null
+          fabrica_expedido_em?: string | null
+          fabrica_expedido_por?: string | null
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
@@ -5332,6 +5396,8 @@ export type Database = {
           estagio_revisao_id?: string | null
           estrelas?: number | null
           etapa_atual?: string | null
+          fabrica_expedido_em?: string | null
+          fabrica_expedido_por?: string | null
           id?: string
           is_adendo?: boolean | null
           is_complemento?: boolean
