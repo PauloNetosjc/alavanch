@@ -64,10 +64,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [etiquetas, setEtiquetas] = useState<any[]>([]);
   const [pedido, setPedido] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewErroRender, setPreviewErroRender] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
   const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
+  const [reparando, setReparando] = useState(false);
+  const [resumoVinculos, setResumoVinculos] = useState<any>(null);
 
   // Carrega importações e cabeçalho
   useEffect(() => {
