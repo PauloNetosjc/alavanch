@@ -821,14 +821,17 @@ function ArqBtn({
   );
 }
 
-function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, reparando, previewUrl }: {
+function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, onAbrirPreviewCorte, reparando, previewUrl, previewCorteDisponivel, ultimoReparo }: {
   chapa: any;
   arquivos: any[];
   arquivoCatalogado?: any | null;
   onCarregar?: (id: string) => void | Promise<any>;
   onReparar?: () => void | Promise<any>;
+  onAbrirPreviewCorte?: () => void | Promise<any>;
   reparando?: boolean;
   previewUrl?: string | null;
+  previewCorteDisponivel?: boolean;
+  ultimoReparo?: any;
 }) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
