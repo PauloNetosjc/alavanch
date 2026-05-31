@@ -27,6 +27,7 @@ import { ExpedicaoPedidoSheet } from "@/components/fabrica/ExpedicaoPedidoSheet"
 import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
 import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
 import { OcorrenciasPedidoTab } from "@/components/fabrica/OcorrenciasPedidoTab";
+import { PacoteTecnicoPanel } from "@/components/fabrica/PacoteTecnicoPanel";
 
 interface Props {
   open: boolean;
@@ -177,6 +178,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               <TabsTrigger value="expedicao">Expedição</TabsTrigger>
               <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos ({arquivos.length})</TabsTrigger>
+              <TabsTrigger value="tecnico">Técnico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="resumo" className="space-y-3">
@@ -512,6 +514,10 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
                   </tbody>
                 </table>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="tecnico">
+              <PacoteTecnicoPanel pedidoId={pedidoId} />
             </TabsContent>
           </Tabs>
         )}

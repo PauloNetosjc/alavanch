@@ -21,6 +21,7 @@ export default function PainelFabrica() {
   const { selectedLojaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [tec, setTec] = useState({ pacotes: 0, erros: 0, chapas: 0, etiquetas: 0, arquivos: 0 });
 
   async function carregar() {
     setLoading(true);
@@ -33,6 +34,19 @@ export default function PainelFabrica() {
     if (selectedLojaId) q = q.eq("loja_id", selectedLojaId);
     const { data } = await q;
     setPedidos((data as any) || []);
+
+    let qi = (supabase as any).from("fabrica_importacoes_tecnicas").select("status_importacao,total_chapas,total_etiquetas,total_arquivos_tecnicos");
+    if (selectedLojaId) qi = qi.eq("loja_id", selectedLojaId);
+    const { data: imps } = await qi;
+    const list = (imps as any[]) || [];
+    setTec({
+      pacotes: list.length,
+      erros: list.filter((i) => i.status_importacao === "erro").length,
+      chapas: list.reduce((a, i) => a + (i.total_chapas || 0), 0),
+      etiquetas: list.reduce((a, i) => a + (i.total_etiquetas || 0), 0),
+      arquivos: list.reduce((a, i) => a + (i.total_arquivos_tecnicos || 0), 0),
+    });
+
     setLoading(false);
   }
 
@@ -81,6 +95,18 @@ export default function PainelFabrica() {
               );
             })}
           </div>
+
+          <Card className="p-3">
+            <div className="text-xs font-medium mb-2 flex items-center gap-2"><Upload className="h-3 w-3" /> Importações técnicas Promob/Nesting</div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+              <div><div className="text-muted-foreground">Pacotes</div><div className="text-lg font-bold">{tec.pacotes}</div></div>
+              <div><div className="text-muted-foreground">Com erro</div><div className="text-lg font-bold text-red-600">{tec.erros}</div></div>
+              <div><div className="text-muted-foreground">Chapas</div><div className="text-lg font-bold">{tec.chapas}</div></div>
+              <div><div className="text-muted-foreground">Etiquetas</div><div className="text-lg font-bold">{tec.etiquetas}</div></div>
+              <div><div className="text-muted-foreground">Arquivos</div><div className="text-lg font-bold">{tec.arquivos}</div></div>
+            </div>
+          </Card>
+
 
           <Card className="p-0 overflow-hidden">
             <div className="px-4 py-3 border-b text-sm font-medium">Pedidos recentes</div>
