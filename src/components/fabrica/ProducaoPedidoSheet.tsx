@@ -514,6 +514,10 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
                 </table>
               </Card>
             </TabsContent>
+
+            <TabsContent value="tecnico">
+              <PacoteTecnicoPanel pedidoId={pedidoId} />
+            </TabsContent>
           </Tabs>
         )}
       </SheetContent>
