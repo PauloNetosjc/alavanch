@@ -877,6 +877,77 @@ async function materializarPreviewDoZip(importacao: any, basePath: string, cand:
   return data;
 }
 
+function nomeIndicaPreviewCortePdf(caminho: string): boolean {
+  const lower = caminho.toLowerCase();
+  if (!lower.endsWith(".pdf")) return false;
+  const compacto = lower.replace(/[\s_\-]+/g, "");
+  return compacto.includes("previewcorte") || compacto.includes("cuttingplanpreview") || compacto.includes("previewcuttingplan");
+}
+
+export async function materializarPreviewCortePdfDoZip(importacaoId: string): Promise<{
+  ok: boolean;
+  path?: string | null;
+  arquivoId?: string | null;
+  encontradoZip?: boolean;
+  totalArquivosZip?: number;
+  mensagem: string;
+}> {
+  const { data: existente } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id, url_arquivo, status_arquivo")
+    .eq("importacao_id", importacaoId)
+    .eq("tipo_arquivo", "preview_corte_pdf")
+    .not("url_arquivo", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (existente?.url_arquivo) {
+    return { ok: true, path: existente.url_arquivo, arquivoId: existente.id, encontradoZip: false, mensagem: "PreviewCorte.pdf já estava disponível." };
+  }
+
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(importacaoId);
+  const entry = entries.find((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
+  if (!entry) {
+    return { ok: false, encontradoZip: false, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf não encontrado no ZIP original." };
+  }
+
+  const caminho = (entry as any).name.replace(/\\/g, "/");
+  const nome = caminho.split("/").pop() || caminho;
+  const blob = await (entry as any).async("blob");
+  const storagePath = `${basePath}/extracted/${caminho}`;
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true, contentType: "application/pdf" });
+  if (up.error) throw new Error(`Falha ao subir PreviewCorte.pdf: ${up.error.message}`);
+
+  const payload = {
+    importacao_id: importacaoId,
+    pedido_id: imp.pedido_id || null,
+    lote_id: imp.lote_id || null,
+    loja_id: imp.loja_id || null,
+    origem_pasta: detectarOrigem(caminho),
+    tipo_arquivo: "preview_corte_pdf",
+    nome_arquivo: nome,
+    extensao: "pdf",
+    caminho_relativo: caminho,
+    url_arquivo: storagePath,
+    mime_type: "application/pdf",
+    tamanho_bytes: blob.size,
+    status_arquivo: "enviado",
+    processado: true,
+  };
+  const { data: catalogado } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id")
+    .eq("importacao_id", importacaoId)
+    .eq("caminho_relativo", caminho)
+    .maybeSingle();
+  if (catalogado?.id) {
+    await (supabase as any).from("fabrica_arquivos_tecnicos").update(payload).eq("id", catalogado.id);
+    return { ok: true, path: storagePath, arquivoId: catalogado.id, encontradoZip: true, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf encontrado no ZIP e carregado." };
+  }
+  const { data, error } = await (supabase as any).from("fabrica_arquivos_tecnicos").insert(payload).select("id").maybeSingle();
+  if (error) throw new Error(`Falha ao catalogar PreviewCorte.pdf: ${error.message}`);
+  return { ok: true, path: storagePath, arquivoId: data?.id || null, encontradoZip: true, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf encontrado no ZIP e carregado." };
+}
+
 export interface ResumoVinculoPreviews {
   vinculados: number;
   large: number;
