@@ -393,11 +393,8 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
             <Button size="sm" variant="outline" onClick={() => abrirCaminho(findPdfPath("preview_corte_pdf"))} disabled={!findPdfPath("preview_corte_pdf")}>
               <FileText className="h-3 w-3 mr-1" /> PreviewCorte
             </Button>
-            <Button size="sm" variant="outline" onClick={reprocessarVinculosPreviews} title="Reprocessar vínculos de previews">
+            <Button size="sm" variant="outline" onClick={reprocessarPreviewsZip} title="Reprocessar previews pelo ZIP original e atualizar vínculos">
               <RefreshCcw className="h-3 w-3 mr-1" /> Vínculos
-            </Button>
-            <Button size="sm" variant="outline" onClick={reprocessarPreviewsZip} title="Ler o ZIP original, materializar previews ausentes e vincular às chapas">
-              <CloudDownload className="h-3 w-3 mr-1" /> Reprocessar ZIP
             </Button>
             <Button size="sm" variant="outline" onClick={imprimir}><Printer className="h-3 w-3 mr-1" /> Imprimir</Button>
             <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="h-4 w-4" /></Button>
