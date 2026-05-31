@@ -147,6 +147,35 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
                 <li>Vincular PDFs: ListaCorte, PreviewCorte, Relatório de almoxarifado</li>
               </ul>
             </Card>
+
+            {progresso && (
+              <Card className="p-3 text-xs space-y-1 bg-blue-50 border-blue-200">
+                <div className="flex items-center gap-2 font-medium text-blue-900">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {ETAPA_LABELS[progresso.etapa] || progresso.etapa}
+                  {progresso.atual != null && progresso.total != null && (
+                    <span className="text-blue-700">({progresso.atual}/{progresso.total})</span>
+                  )}
+                </div>
+                {progresso.detalhe && <div className="text-blue-700">{progresso.detalhe}</div>}
+                {progresso.atual != null && progresso.total != null && progresso.total > 0 && (
+                  <div className="h-1.5 bg-blue-200 rounded overflow-hidden">
+                    <div className="h-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, (progresso.atual / progresso.total) * 100)}%` }} />
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {erro && (
+              <Card className="p-3 text-xs space-y-1 bg-red-50 border-red-200">
+                <div className="flex items-center gap-2 font-medium text-red-900">
+                  <XCircle className="h-4 w-4" />
+                  Não foi possível concluir a importação técnica.
+                </div>
+                <div className="text-red-700 break-words">{erro}</div>
+                <div className="text-red-600 text-[10px]">O ZIP pode ter sido salvo parcialmente. Verifique a lista de importações na aba Técnico.</div>
+              </Card>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
