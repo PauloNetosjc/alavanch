@@ -55,6 +55,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
+  const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
 
   // Carrega importações e cabeçalho
   useEffect(() => {
