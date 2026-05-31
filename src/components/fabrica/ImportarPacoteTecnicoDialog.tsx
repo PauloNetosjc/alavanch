@@ -90,8 +90,10 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
         clienteNome,
         projetoNome: projetoNome || null,
         ambiente: ambiente || null,
+        modoImportacao: enviarTudo ? "completa" : "rapida",
         onProgress: (ev) => setProgresso(ev),
       });
+
       setResultado(r);
       if (r.status === "processado") toast.success("Pacote técnico importado com sucesso");
       else if (r.status === "processado_com_alertas") toast.warning("Importado com alertas");
