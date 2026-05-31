@@ -1168,6 +1168,9 @@ export interface DiagnosticoPreview {
   totalLarge: number;
   totalSmall: number;
   candidatos: Array<{ id: string; nome: string; tipo: string; status: string; temUrl: boolean }>;
+  previewCortePdfCatalogado: boolean;
+  labelsPdfCatalogado: boolean;
+  listCatalogado: boolean;
   motivoProvavel: string;
 }
 
@@ -1182,6 +1185,9 @@ export function diagnosticarPreviewChapa(chapa: any, arquivosImportacao: any[]):
   });
   const totalLarge = previewsImp.filter((a) => a.tipo_arquivo === "large_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "large").length;
   const totalSmall = previewsImp.filter((a) => a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "small").length;
+  const previewCortePdfCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "preview_corte_pdf");
+  const labelsPdfCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "labels_pdf");
+  const listCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "list");
 
   const candidatos = previewsImp
     .filter((a) => {
@@ -1215,6 +1221,9 @@ export function diagnosticarPreviewChapa(chapa: any, arquivosImportacao: any[]):
     totalLarge,
     totalSmall,
     candidatos,
+    previewCortePdfCatalogado,
+    labelsPdfCatalogado,
+    listCatalogado,
     motivoProvavel: motivo,
   };
 }
