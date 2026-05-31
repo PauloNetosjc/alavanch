@@ -708,3 +708,66 @@ export async function processarArquivoSobDemanda(arquivoId: string): Promise<str
   return storagePath;
 }
 
+/**
+ * Vincula arquivos LargePreview/SmallPreview às chapas correspondentes pelo número
+ * extraído do nome do arquivo. Não duplica nem sobrescreve vínculos existentes.
+ */
+export async function vincularPreviewsChapas(importacaoId: string): Promise<{
+  vinculados: number;
+  large: number;
+  small: number;
+  semChapa: number;
+}> {
+  const [{ data: arqs }, { data: chapas }] = await Promise.all([
+    (supabase as any).from("fabrica_arquivos_tecnicos")
+      .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo")
+      .eq("importacao_id", importacaoId)
+      .in("tipo_arquivo", ["large_preview_cutting_plan", "small_preview_cutting_plan"]),
+    (supabase as any).from("fabrica_chapas_lote")
+      .select("id, numero_chapa, preview_large_id, preview_small_id")
+      .eq("importacao_id", importacaoId),
+  ]);
+
+  const arquivos = (arqs as any[]) || [];
+  const todasChapas = (chapas as any[]) || [];
+  if (!arquivos.length || !todasChapas.length) {
+    return { vinculados: 0, large: 0, small: 0, semChapa: arquivos.length };
+  }
+
+  // Indexa chapas por número normalizado
+  const chapaPorNumero = new Map<string, any>();
+  for (const c of todasChapas) {
+    const k = normalizarNumeroChapa(c.numero_chapa);
+    if (k && !chapaPorNumero.has(k)) chapaPorNumero.set(k, c);
+  }
+
+  let large = 0;
+  let small = 0;
+  let semChapa = 0;
+  // Acumula updates por chapa
+  const updatesPorChapa = new Map<string, { preview_large_id?: string; preview_small_id?: string }>();
+  for (const a of arquivos) {
+    const num = extrairNumeroChapaDoNome(a.nome_arquivo || "");
+    if (!num) { semChapa++; continue; }
+    const chapa = chapaPorNumero.get(num);
+    if (!chapa) { semChapa++; continue; }
+    const upd = updatesPorChapa.get(chapa.id) || {};
+    if (a.tipo_arquivo === "large_preview_cutting_plan" && !chapa.preview_large_id && !upd.preview_large_id) {
+      upd.preview_large_id = a.id;
+      large++;
+    } else if (a.tipo_arquivo === "small_preview_cutting_plan" && !chapa.preview_small_id && !upd.preview_small_id) {
+      upd.preview_small_id = a.id;
+      small++;
+    }
+    if (upd.preview_large_id || upd.preview_small_id) updatesPorChapa.set(chapa.id, upd);
+  }
+
+  for (const [chapaId, upd] of updatesPorChapa) {
+    await (supabase as any).from("fabrica_chapas_lote")
+      .update({ ...upd, updated_at: new Date().toISOString() })
+      .eq("id", chapaId);
+  }
+  return { vinculados: large + small, large, small, semChapa };
+}
+
+
