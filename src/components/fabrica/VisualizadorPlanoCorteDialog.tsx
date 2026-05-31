@@ -396,6 +396,9 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
             <Button size="sm" variant="outline" onClick={reprocessarVinculosPreviews} title="Reprocessar vínculos de previews">
               <RefreshCcw className="h-3 w-3 mr-1" /> Vínculos
             </Button>
+            <Button size="sm" variant="outline" onClick={reprocessarPreviewsZip} title="Ler o ZIP original, materializar previews ausentes e vincular às chapas">
+              <CloudDownload className="h-3 w-3 mr-1" /> Reprocessar ZIP
+            </Button>
             <Button size="sm" variant="outline" onClick={imprimir}><Printer className="h-3 w-3 mr-1" /> Imprimir</Button>
             <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="h-4 w-4" /></Button>
 
@@ -423,6 +426,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 const hasNc = !!c.arquivo_nc_id || arqs.some((a) => a.tipo_arquivo === "nc_chapa");
                 const hasCyc = !!c.arquivo_cyc_id || arqs.some((a) => a.tipo_arquivo === "cyc_chapa");
                 const hasPv = !!c.preview_large_id || !!c.preview_small_id;
+                const hasPvPdf = !hasPv && !!previewCorteArquivo;
                 const etiqs = etiquetasDaChapa(c.id).length;
                 const sel = c.id === chapaSelId;
                 return (
@@ -447,7 +451,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {hasNc && <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">NC</Badge>}
                       {hasCyc && <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">CYC</Badge>}
-                      {hasPv && <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">PV</Badge>}
+                      {hasPv ? (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">PV individual</Badge>
+                      ) : hasPvPdf ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">PV PDF</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">Sem preview</Badge>
+                      )}
                       {etiqs > 0 && <Badge variant="outline" className="text-[10px]">{etiqs} etiq</Badge>}
                     </div>
                   </button>
