@@ -16,7 +16,6 @@ import {
 import {
   getSignedUrlPacoteTecnico,
   processarArquivoSobDemanda,
-  vincularPreviewsChapas,
   extrairNumeroChapaDoNome,
   normalizarNumeroChapa,
   diagnosticarPreviewChapa,
@@ -72,7 +71,6 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
   const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
   const [reparando, setReparando] = useState(false);
-  const [resumoVinculos, setResumoVinculos] = useState<any>(null);
   const [ultimoReparo, setUltimoReparo] = useState<any>(null);
 
   // Carrega importações e cabeçalho
@@ -189,24 +187,6 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     }
   }
 
-  async function reprocessarVinculosPreviews() {
-    if (!impSelId) return;
-    try {
-      toast.loading("Reprocessando vínculos...", { id: "reprocess" });
-      const r = await vincularPreviewsChapas(impSelId);
-      const { data: ch } = await (supabase as any)
-        .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
-      setChapas(ch || []);
-      setResumoVinculos(r);
-      toast.success(
-        `Vinculados: ${r.vinculados} (large ${r.large} • small ${r.small}) • Chapas com preview: ${r.chapasComPreview}/${r.chapasAnalisadas}`,
-        { id: "reprocess", duration: 6000 }
-      );
-    } catch (e: any) {
-      toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
-    }
-  }
-
   async function reprocessarPreviewsZip() {
     if (!impSelId) return;
     try {
@@ -218,7 +198,6 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
       ]);
       setChapas(ch || []);
       setArquivos(ar || []);
-      setResumoVinculos(r);
       toast.success(
         `${r.totalArquivosZip ?? 0} arquivos analisados. ${r.previewsEncontradosZip ?? 0} previews no ZIP. ${r.vinculados} vínculo(s) criado(s). ${r.chapasSemPreview} chapa(s) ainda sem preview${r.previewCortePdfDisponivel ? " com fallback PDF" : ""}.`,
         { id: "reprocess-zip", duration: 8000 }
