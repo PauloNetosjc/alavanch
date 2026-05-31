@@ -19,6 +19,9 @@ import {
   vincularPreviewsChapas,
   extrairNumeroChapaDoNome,
   normalizarNumeroChapa,
+  diagnosticarPreviewChapa,
+  repararPreviewChapa,
+  type DiagnosticoPreview,
 } from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
 import { VisualizadorVetorialChapa } from "@/components/fabrica/VisualizadorVetorialChapa";
@@ -60,10 +63,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [etiquetas, setEtiquetas] = useState<any[]>([]);
   const [pedido, setPedido] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewErroRender, setPreviewErroRender] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
   const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
+  const [reparando, setReparando] = useState(false);
+  const [resumoVinculos, setResumoVinculos] = useState<any>(null);
 
   // Carrega importações e cabeçalho
   useEffect(() => {
@@ -132,6 +138,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
+    setPreviewErroRender(false);
     setZoom(1);
     if (!chapaSel) return;
     const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
@@ -165,7 +172,6 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     try {
       toast.loading("Extraindo arquivo do ZIP original...", { id: "ondemand" });
       const newPath = await processarArquivoSobDemanda(arqId);
-      // recarrega arquivos da importação
       const { data: ar } = await (supabase as any)
         .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000);
       setArquivos(ar || []);
@@ -182,15 +188,45 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     try {
       toast.loading("Reprocessando vínculos...", { id: "reprocess" });
       const r = await vincularPreviewsChapas(impSelId);
-      // recarrega chapas
       const { data: ch } = await (supabase as any)
         .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
       setChapas(ch || []);
-      toast.success(`${r.vinculados} preview(s) vinculado(s) • ${r.large} large • ${r.small} small`, { id: "reprocess" });
+      setResumoVinculos(r);
+      toast.success(
+        `Vinculados: ${r.vinculados} (large ${r.large} • small ${r.small}) • Chapas com preview: ${r.chapasComPreview}/${r.chapasAnalisadas}`,
+        { id: "reprocess", duration: 6000 }
+      );
     } catch (e: any) {
       toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
     }
   }
+
+  async function repararPreviewDaChapa() {
+    if (!chapaSel) return;
+    setReparando(true);
+    try {
+      toast.loading("Procurando preview no ZIP...", { id: "reparar" });
+      const r = await repararPreviewChapa(chapaSel.id);
+      if (!r.ok) {
+        toast.error(r.mensagem, { id: "reparar", duration: 5000 });
+      } else {
+        // recarrega chapas e arquivos
+        const [{ data: ch }, { data: ar }] = await Promise.all([
+          (supabase as any).from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false }),
+          (supabase as any).from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000),
+        ]);
+        setChapas(ch || []);
+        setArquivos(ar || []);
+        toast.success(r.mensagem, { id: "reparar" });
+      }
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "reparar" });
+    } finally {
+      setReparando(false);
+    }
+  }
+
+
 
 
   async function alterarStatusChapa(novo: StatusChapa) {
@@ -399,25 +435,30 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </div>
               </div>
               <div className="flex-1 overflow-auto flex items-center justify-center p-4 print:p-2">
-                {previewUrl ? (
+                {previewUrl && !previewErroRender ? (
                   <img
                     src={previewUrl}
                     alt={`Plano de corte chapa ${chapaSel?.numero_chapa}`}
+                    onError={() => setPreviewErroRender(true)}
                     style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
                     className="max-w-full max-h-full object-contain bg-white shadow-lg transition-transform"
                   />
                 ) : chapaSel ? (
                   <PlaceholderChapa
                     chapa={chapaSel}
+                    arquivos={arquivos}
+                    previewUrl={previewErroRender ? previewUrl : null}
                     arquivoCatalogado={
                       resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
                       || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
                     }
+                    reparando={reparando}
+                    onReparar={repararPreviewDaChapa}
                     onCarregar={async (id) => {
                       const p = await carregarArquivoSobDemanda(id);
                       if (p) {
                         const u = await getSignedUrlPacoteTecnico(p, 3600);
-                        if (u) setPreviewUrl(u);
+                        if (u) { setPreviewUrl(u); setPreviewErroRender(false); }
                       }
                     }}
                   />
@@ -427,6 +468,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
               </div>
             </main>
+
 
             {/* Lateral direita: detalhes / tabs */}
             <aside className="col-span-3 border-l overflow-y-auto print:hidden">
@@ -703,29 +745,71 @@ function ArqBtn({
   );
 }
 
-function PlaceholderChapa({ chapa, arquivoCatalogado, onCarregar }: {
+function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, reparando, previewUrl }: {
   chapa: any;
+  arquivos: any[];
   arquivoCatalogado?: any | null;
   onCarregar?: (id: string) => void | Promise<any>;
+  onReparar?: () => void | Promise<any>;
+  reparando?: boolean;
+  previewUrl?: string | null;
 }) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
   const ratio = w / h;
   const podeCarregar = arquivoCatalogado && !arquivoCatalogado.url_arquivo;
+  const diag: DiagnosticoPreview = diagnosticarPreviewChapa(chapa, arquivos);
+  const erroRender = !!previewUrl;
   return (
     <div className="flex flex-col items-center justify-center gap-2 text-white/80">
       <div
-        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2"
-        style={{ width: 600, height: 600 / ratio }}
+        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2 p-4"
+        style={{ width: 600, height: 600 / ratio, maxWidth: "100%" }}
       >
-        <span>Preview não disponível</span>
-        {podeCarregar && onCarregar && (
-          <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
-            <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
-          </Button>
-        )}
+        <span className="font-medium">
+          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview não disponível"}
+        </span>
+        <div className="flex flex-wrap gap-1 justify-center">
+          {podeCarregar && onCarregar && (
+            <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
+              <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
+            </Button>
+          )}
+          {onReparar && (
+            <Button size="sm" variant="secondary" onClick={() => onReparar()} disabled={reparando}>
+              <RefreshCcw className={`h-3 w-3 mr-1 ${reparando ? "animate-spin" : ""}`} />
+              {reparando ? "Procurando..." : "Reparar preview desta chapa"}
+            </Button>
+          )}
+          {erroRender && previewUrl && (
+            <a href={previewUrl} download className="inline-flex items-center gap-1 text-xs px-2 h-8 rounded bg-white/10 hover:bg-white/20">
+              <Download className="h-3 w-3" /> Baixar preview
+            </a>
+          )}
+        </div>
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
+
+      {/* Diagnóstico do preview */}
+      <details className="text-[11px] text-white/70 bg-white/5 border border-white/10 rounded px-3 py-2 w-full max-w-[600px]">
+        <summary className="cursor-pointer select-none text-white/80">Diagnóstico do preview</summary>
+        <div className="mt-2 space-y-1">
+          <div>Número da chapa: <span className="font-mono">{diag.numeroChapa ?? "—"}</span> (normalizado: <span className="font-mono">{diag.numeroNormalizado ?? "—"}</span>)</div>
+          <div>LargePreview na importação: <span className="font-mono">{diag.totalLarge}</span> • SmallPreview: <span className="font-mono">{diag.totalSmall}</span></div>
+          <div>Candidatos para esta chapa: <span className="font-mono">{diag.candidatos.length}</span></div>
+          {diag.candidatos.slice(0, 5).map((c) => (
+            <div key={c.id} className="font-mono text-[10px] text-white/60 truncate">
+              • {c.nome} <span className="text-white/40">[{c.tipo}]</span>{" "}
+              <span className={
+                c.status === "enviado" ? "text-emerald-300"
+                : c.status === "catalogado_nao_enviado" ? "text-amber-300"
+                : "text-red-300"
+              }>{c.status}</span>
+            </div>
+          ))}
+          <div className="text-white/80 pt-1">Motivo provável: <span className="text-amber-200">{diag.motivoProvavel}</span></div>
+        </div>
+      </details>
     </div>
   );
 }
