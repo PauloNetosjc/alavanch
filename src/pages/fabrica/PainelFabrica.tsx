@@ -21,6 +21,7 @@ export default function PainelFabrica() {
   const { selectedLojaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [tec, setTec] = useState({ pacotes: 0, erros: 0, chapas: 0, etiquetas: 0, arquivos: 0 });
 
   async function carregar() {
     setLoading(true);
@@ -33,6 +34,19 @@ export default function PainelFabrica() {
     if (selectedLojaId) q = q.eq("loja_id", selectedLojaId);
     const { data } = await q;
     setPedidos((data as any) || []);
+
+    let qi = (supabase as any).from("fabrica_importacoes_tecnicas").select("status_importacao,total_chapas,total_etiquetas,total_arquivos_tecnicos");
+    if (selectedLojaId) qi = qi.eq("loja_id", selectedLojaId);
+    const { data: imps } = await qi;
+    const list = (imps as any[]) || [];
+    setTec({
+      pacotes: list.length,
+      erros: list.filter((i) => i.status_importacao === "erro").length,
+      chapas: list.reduce((a, i) => a + (i.total_chapas || 0), 0),
+      etiquetas: list.reduce((a, i) => a + (i.total_etiquetas || 0), 0),
+      arquivos: list.reduce((a, i) => a + (i.total_arquivos_tecnicos || 0), 0),
+    });
+
     setLoading(false);
   }
 
