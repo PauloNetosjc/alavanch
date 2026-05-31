@@ -33,6 +33,8 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   const [clienteNome, setClienteNome] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<{ etapa: string; detalhe?: string; atual?: number; total?: number } | null>(null);
+  const [enviarTudo, setEnviarTudo] = useState(false);
+
 
   useEffect(() => {
     if (!open) {
