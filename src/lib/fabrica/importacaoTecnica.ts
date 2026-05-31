@@ -1013,6 +1013,84 @@ export async function vincularPreviewsChapas(importacaoId: string): Promise<Resu
   };
 }
 
+export async function reprocessarPreviewsPeloZip(importacaoId: string): Promise<ResumoVinculoPreviews> {
+  const [{ data: chapas }, { data: arqsBanco }] = await Promise.all([
+    (supabase as any).from("fabrica_chapas_lote")
+      .select("id, numero_chapa, preview_large_id, preview_small_id")
+      .eq("importacao_id", importacaoId),
+    (supabase as any).from("fabrica_arquivos_tecnicos")
+      .select("id, nome_arquivo, tipo_arquivo, extensao, status_arquivo, url_arquivo")
+      .eq("importacao_id", importacaoId),
+  ]);
+  const todasChapas = (chapas as any[]) || [];
+  const bancoPreviews = ((arqsBanco as any[]) || []).filter((a) =>
+    a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "")
+  );
+
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(importacaoId);
+  const previewsZip = candidatosPreviewDoZip(zip);
+  const previewCortePdfDisponivel = entries.some((e: any) => /preview\s*corte/i.test((e.name || "").replace(/[_-]+/g, " ")) && /\.pdf$/i.test(e.name || ""));
+  const chapaPorNumero = new Map<string, any>();
+  todasChapas.forEach((c: any) => {
+    const n = normalizarNumeroChapa(c.numero_chapa);
+    if (n && !chapaPorNumero.has(n)) chapaPorNumero.set(n, c);
+  });
+
+  let large = 0;
+  let small = 0;
+  let semChapa = 0;
+  let arquivosCarregadosDoZip = 0;
+  const candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }> = [];
+  const updatesPorChapa = new Map<string, { preview_large_id?: string; preview_small_id?: string }>();
+
+  for (const cand of previewsZip) {
+    const chapa = cand.numeroChapa ? chapaPorNumero.get(cand.numeroChapa) : null;
+    if (!chapa) {
+      semChapa++;
+      if (candidatosSemVinculo.length < 10) candidatosSemVinculo.push({ id: cand.caminho, nome: cand.nome, tipo: cand.tipoArquivo });
+      continue;
+    }
+    const upd = updatesPorChapa.get(chapa.id) || {};
+    const precisaLarge = (cand.lado === "large" || cand.lado === "preview") && !chapa.preview_large_id && !upd.preview_large_id;
+    const precisaSmall = cand.lado === "small" && !chapa.preview_small_id && !upd.preview_small_id;
+    if (!precisaLarge && !precisaSmall) continue;
+
+    const arq = await materializarPreviewDoZip(imp, basePath, cand, chapa.id);
+    arquivosCarregadosDoZip++;
+    if (precisaLarge) { upd.preview_large_id = arq.id; large++; }
+    if (precisaSmall) { upd.preview_small_id = arq.id; small++; }
+    updatesPorChapa.set(chapa.id, upd);
+  }
+
+  for (const [chapaId, upd] of updatesPorChapa) {
+    await (supabase as any).from("fabrica_chapas_lote")
+      .update({ ...upd, updated_at: new Date().toISOString() })
+      .eq("id", chapaId);
+  }
+
+  const idsAtualizados = new Set(updatesPorChapa.keys());
+  const chapasComPv = todasChapas.filter((c: any) => c.preview_large_id || c.preview_small_id || idsAtualizados.has(c.id)).length;
+  return {
+    vinculados: large + small,
+    large,
+    small,
+    semChapa,
+    chapasAnalisadas: todasChapas.length,
+    chapasComPreview: chapasComPv,
+    chapasSemPreview: todasChapas.length - chapasComPv,
+    totalLargeEncontrados: previewsZip.filter((c) => c.lado !== "small").length,
+    totalSmallEncontrados: previewsZip.filter((c) => c.lado === "small").length,
+    candidatosSemVinculo,
+    totalArquivosZip: entries.length,
+    previewsEncontradosZip: previewsZip.length,
+    previewsEncontradosBanco: bancoPreviews.length,
+    previewCortePdfDisponivel,
+    chapasComFallbackPdf: previewCortePdfDisponivel ? Math.max(0, todasChapas.length - chapasComPv) : 0,
+    arquivosCarregadosDoZip,
+    ignorados: Math.max(0, previewsZip.length - updatesPorChapa.size),
+  };
+}
+
 export interface DiagnosticoPreview {
   numeroChapa: string | null;
   numeroNormalizado: string | null;
