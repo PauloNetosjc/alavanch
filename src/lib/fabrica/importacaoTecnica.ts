@@ -179,6 +179,27 @@ function ehArquivoIgnorado(caminho: string): boolean {
   return false;
 }
 
+/** Decide se o arquivo é essencial para a primeira importação rápida. */
+function ehArquivoEssencial(origem: OrigemPasta, tipo: TipoArquivo, ext: string): boolean {
+  // Raiz: List + PDFs principais
+  if (tipo === "list" || tipo === "lista_corte_pdf" || tipo === "preview_corte_pdf" || tipo === "relatorio_almoxarifado_pdf") return true;
+  // AutoLabel: previews grandes/pequenos + Labels PDF (não os BMPs individuais)
+  if (tipo === "large_preview_cutting_plan" || tipo === "small_preview_cutting_plan" || tipo === "labels_pdf") return true;
+  // .cyc em xml/ ou NC/ são essenciais (poucos e leves)
+  if (tipo === "cyc_chapa") return true;
+  // NC de chapa: subir (uma por chapa, leve)
+  if (origem === "NC" && ext === "nc") return true;
+  // Tudo o mais (etiquetas individuais BMP, Parts, Profile, nc_peca, etc.) fica catalogado
+  return false;
+}
+
+function tamanhoEntrada(entry: any): number | null {
+  try {
+    return entry?._data?.uncompressedSize ?? null;
+  } catch { return null; }
+}
+
+
 /** Processa entradas em paralelo controlado. */
 async function processarEmLotes<T, R>(items: T[], concurrency: number, fn: (it: T, idx: number) => Promise<R>): Promise<R[]> {
   const results: R[] = new Array(items.length);
