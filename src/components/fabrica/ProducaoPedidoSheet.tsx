@@ -28,6 +28,8 @@ import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
 import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
 import { OcorrenciasPedidoTab } from "@/components/fabrica/OcorrenciasPedidoTab";
 import { PacoteTecnicoPanel } from "@/components/fabrica/PacoteTecnicoPanel";
+import { VisualizadorPlanoCorteDialog } from "@/components/fabrica/VisualizadorPlanoCorteDialog";
+import { Eye } from "lucide-react";
 
 interface Props {
   open: boolean;
