@@ -658,13 +658,14 @@ function Row({ k, v }: { k: string; v: any }) {
 }
 
 function ArqBtn({
-  label, icon: Icon, arqId, arquivos, onAbrir, fallbackTipo, chapaId,
+  label, icon: Icon, arqId, arquivos, onAbrir, onCarregar, fallbackTipo, chapaId,
 }: {
   label: string;
   icon: any;
   arqId: string | null | undefined;
   arquivos: any[];
   onAbrir: (id: string) => void;
+  onCarregar?: (id: string) => Promise<any>;
   fallbackTipo?: string;
   chapaId?: string;
 }) {
@@ -672,26 +673,60 @@ function ArqBtn({
   if (!id && fallbackTipo && chapaId) {
     id = arquivos.find((a) => a.tipo_arquivo === fallbackTipo && a.chapa_id === chapaId)?.id || null;
   }
+  const arq = id ? arquivos.find((a) => a.id === id) : null;
+  const enviado = !!arq?.url_arquivo && (arq?.status_arquivo || "enviado") === "enviado";
+  const catalogado = !!arq && !enviado && (arq?.status_arquivo === "catalogado_nao_enviado" || arq?.status_arquivo === "erro_upload");
+
+  if (!id) {
+    return (
+      <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" disabled>
+        <Icon className="h-3 w-3 mr-1" /> {label}
+        <span className="ml-auto text-muted-foreground text-[10px]">indisponível</span>
+      </Button>
+    );
+  }
+  if (catalogado && onCarregar) {
+    return (
+      <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7"
+        onClick={() => onCarregar(id!)}
+        title="Catalogado no ZIP — carregar do ZIP original">
+        <CloudDownload className="h-3 w-3 mr-1" /> {label}
+        <span className="ml-auto text-amber-700 bg-amber-50 border border-amber-200 rounded px-1 text-[10px]">catalogado</span>
+      </Button>
+    );
+  }
   return (
-    <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" disabled={!id} onClick={() => id && onAbrir(id)}>
-      <Icon className="h-3 w-3 mr-1" /> {label} {!id && <span className="ml-auto text-muted-foreground text-[10px]">indisponível</span>}
+    <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" onClick={() => onAbrir(id!)}>
+      <Icon className="h-3 w-3 mr-1" /> {label}
+      <span className="ml-auto text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 text-[10px]">disponível</span>
     </Button>
   );
 }
 
-function PlaceholderChapa({ chapa }: { chapa: any }) {
+function PlaceholderChapa({ chapa, arquivoCatalogado, onCarregar }: {
+  chapa: any;
+  arquivoCatalogado?: any | null;
+  onCarregar?: (id: string) => void | Promise<any>;
+}) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
   const ratio = w / h;
+  const podeCarregar = arquivoCatalogado && !arquivoCatalogado.url_arquivo;
   return (
     <div className="flex flex-col items-center justify-center gap-2 text-white/80">
       <div
-        className="border-2 border-dashed border-white/30 bg-white/5 flex items-center justify-center text-xs"
+        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2"
         style={{ width: 600, height: 600 / ratio }}
       >
-        Preview não disponível
+        <span>Preview não disponível</span>
+        {podeCarregar && onCarregar && (
+          <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
+            <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
+          </Button>
+        )}
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
     </div>
   );
 }
+
