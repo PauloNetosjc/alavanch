@@ -21,6 +21,8 @@ import {
   normalizarNumeroChapa,
   diagnosticarPreviewChapa,
   repararPreviewChapa,
+  reprocessarPreviewsPeloZip,
+  materializarPreviewCortePdfDoZip,
   type DiagnosticoPreview,
 } from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
@@ -63,6 +65,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [etiquetas, setEtiquetas] = useState<any[]>([]);
   const [pedido, setPedido] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewErroRender, setPreviewErroRender] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
@@ -70,6 +73,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
   const [reparando, setReparando] = useState(false);
   const [resumoVinculos, setResumoVinculos] = useState<any>(null);
+  const [ultimoReparo, setUltimoReparo] = useState<any>(null);
 
   // Carrega importações e cabeçalho
   useEffect(() => {
@@ -138,8 +142,10 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
+    setPreviewPdfUrl(null);
     setPreviewErroRender(false);
     setZoom(1);
+    setUltimoReparo(null);
     if (!chapaSel) return;
     const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
             || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan");
