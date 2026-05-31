@@ -30,9 +30,15 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   const [projetoNome, setProjetoNome] = useState("");
   const [ambiente, setAmbiente] = useState("");
   const [clienteNome, setClienteNome] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<{ etapa: string; detalhe?: string; atual?: number; total?: number } | null>(null);
 
   useEffect(() => {
-    if (!open) { setFile(null); setResultado(null); setProjetoNome(""); setAmbiente(""); setClienteNome(null); return; }
+    if (!open) {
+      setFile(null); setResultado(null); setProjetoNome(""); setAmbiente("");
+      setClienteNome(null); setErro(null); setProgresso(null);
+      return;
+    }
     if (pedidoId) {
       (supabase as any).from("pedidos")
         .select("cliente:clientes(nome), ambiente")
@@ -44,10 +50,28 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
     }
   }, [open, pedidoId]);
 
+  const ETAPA_LABELS: Record<string, string> = {
+    validacao: "Validando arquivo",
+    criando_importacao: "Criando registro de importação",
+    enviando_zip_original: "Enviando ZIP",
+    zip_original_enviado: "ZIP enviado",
+    zip_original_falhou: "Falha ao enviar ZIP",
+    extraindo_zip: "Extraindo arquivos",
+    zip_extraido: "ZIP extraído",
+    enviando_arquivos: "Enviando arquivos extraídos",
+    catalogando_arquivos: "Catalogando arquivos",
+    processando_list: "Processando List",
+    criando_chapas_complementares: "Criando chapas",
+    criando_etiquetas: "Criando etiquetas",
+    finalizando: "Finalizando",
+  };
+
   async function handleImportar() {
     if (!file) { toast.error("Selecione um arquivo .zip"); return; }
     if (!/\.zip$/i.test(file.name)) { toast.error("Arquivo deve ser .zip"); return; }
     setProcessando(true);
+    setErro(null);
+    setProgresso({ etapa: "validacao" });
     try {
       const r = await importarPacoteTecnico({
         pedidoId: pedidoId || null,
@@ -59,15 +83,20 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
         clienteNome,
         projetoNome: projetoNome || null,
         ambiente: ambiente || null,
+        onProgress: (ev) => setProgresso(ev),
       });
       setResultado(r);
       if (r.status === "processado") toast.success("Pacote técnico importado com sucesso");
       else if (r.status === "processado_com_alertas") toast.warning("Importado com alertas");
       onConcluido?.(r);
     } catch (err: any) {
-      toast.error(`Erro: ${err?.message || err}`);
+      const msg = err?.message || String(err);
+      console.error("Erro na importação técnica:", err);
+      setErro(msg);
+      toast.error(`Erro: ${msg}`);
     } finally {
       setProcessando(false);
+      setProgresso(null);
     }
   }
 
