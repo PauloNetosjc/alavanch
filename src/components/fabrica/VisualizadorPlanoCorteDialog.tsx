@@ -461,11 +461,20 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">Arquivos da chapa</div>
-                        <ArqBtn label="NC" icon={Cpu} arqId={chapaSel.arquivo_nc_id} arquivos={arquivos} onAbrir={baixarArquivoId} fallbackTipo="nc_chapa" chapaId={chapaSel.id} />
-                        <ArqBtn label="CYC" icon={FileText} arqId={chapaSel.arquivo_cyc_id} arquivos={arquivos} onAbrir={baixarArquivoId} fallbackTipo="cyc_chapa" chapaId={chapaSel.id} />
-                        <ArqBtn label="Preview Large" icon={ImageIcon} arqId={chapaSel.preview_large_id} arquivos={arquivos} onAbrir={baixarArquivoId} />
-                        <ArqBtn label="Preview Small" icon={ImageIcon} arqId={chapaSel.preview_small_id} arquivos={arquivos} onAbrir={baixarArquivoId} />
+                        <ArqBtn label="NC" icon={Cpu} arqId={chapaSel.arquivo_nc_id} arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda} fallbackTipo="nc_chapa" chapaId={chapaSel.id} />
+                        <ArqBtn label="CYC" icon={FileText} arqId={chapaSel.arquivo_cyc_id} arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda} fallbackTipo="cyc_chapa" chapaId={chapaSel.id} />
+                        <ArqBtn
+                          label="Preview Large" icon={ImageIcon}
+                          arqId={chapaSel.preview_large_id || resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")?.id}
+                          arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda}
+                        />
+                        <ArqBtn
+                          label="Preview Small" icon={ImageIcon}
+                          arqId={chapaSel.preview_small_id || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")?.id}
+                          arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda}
+                        />
                       </div>
+
 
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">Status da chapa</div>
