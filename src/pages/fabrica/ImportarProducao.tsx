@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
-import { Upload, Loader2, FileArchive, Layers, Tag, AlertTriangle } from "lucide-react";
+import { Upload, Loader2, FileArchive, Layers, Tag, AlertTriangle, Eye } from "lucide-react";
 import { statusFabricaBadgeClass, statusFabricaLabel } from "@/lib/fabrica/statusFabrica";
 import { ImportarProducaoDialog } from "@/components/fabrica/ImportarProducaoDialog";
 import { ImportarPacoteTecnicoDialog } from "@/components/fabrica/ImportarPacoteTecnicoDialog";
+import { VisualizadorPlanoCorteDialog } from "@/components/fabrica/VisualizadorPlanoCorteDialog";
 
 export default function ImportarProducao() {
   const { selectedLojaId } = useLoja();
