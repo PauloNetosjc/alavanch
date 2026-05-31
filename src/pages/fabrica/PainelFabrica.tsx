@@ -54,15 +54,11 @@ export default function PainelFabrica() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Factory className="h-6 w-6" /> Painel da Fábrica</h1>
-          <p className="text-sm text-muted-foreground">Visão consolidada dos pedidos em produção.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline"><Link to="/fabrica/importar">Importar produção</Link></Button>
-          <Button asChild><Link to="/fabrica/producao">Produção por pedido</Link></Button>
+          <h2 className="text-base font-semibold flex items-center gap-2"><Factory className="h-4 w-4" /> Painel da Fábrica</h2>
+          <p className="text-xs text-muted-foreground">Visão consolidada dos pedidos em produção.</p>
         </div>
       </div>
 
@@ -99,7 +95,7 @@ export default function PainelFabrica() {
                     <td className="p-2">{p.cliente?.nome || "—"}</td>
                     <td className="p-2"><Badge variant="outline" className={statusFabricaBadgeClass(p.status_fabrica)}>{statusFabricaLabel(p.status_fabrica)}</Badge></td>
                     <td className="p-2 text-xs">{p.updated_at ? new Date(p.updated_at).toLocaleString("pt-BR") : "—"}</td>
-                    <td className="p-2 text-right"><Button size="sm" variant="outline" asChild><Link to={`/fabrica/producao?pedido=${p.id}`}>Abrir</Link></Button></td>
+                    <td className="p-2 text-right"><Button size="sm" variant="outline" asChild><Link to={`/fabrica?aba=producao&pedido=${p.id}`}>Abrir</Link></Button></td>
                   </tr>
                 ))}
                 {pedidos.length === 0 && <tr><td className="p-6 text-center text-muted-foreground" colSpan={5}>Nenhum pedido em produção.</td></tr>}
