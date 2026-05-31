@@ -181,12 +181,35 @@ export default function UsuariosSistema() {
     const rs = rolesByUser.get(p.user_id) || [];
     return rs.some((r) => ROLES_ADMIN_BASE.has(r));
   }
+  /** Bases distintas inferidas pelas lojas vinculadas do usuário. */
+  function basesDasLojas(p: Profile): string[] {
+    const set = new Set<string>();
+    getLojasDoUser(p).forEach((id) => {
+      const l = lojaById.get(id);
+      if (l?.base_cliente_id) set.add(l.base_cliente_id);
+    });
+    return Array.from(set);
+  }
+  /** Base efetiva: a do profile, ou a inferida se houver exatamente uma. */
+  function baseEfetiva(p: Profile): { id: string | null; inferida: boolean; multiplas: boolean } {
+    if (p.base_cliente_id) return { id: p.base_cliente_id, inferida: false, multiplas: false };
+    const inf = basesDasLojas(p);
+    if (inf.length === 1) return { id: inf[0], inferida: true, multiplas: false };
+    if (inf.length > 1) return { id: null, inferida: false, multiplas: true };
+    return { id: null, inferida: false, multiplas: false };
+  }
   function flagSemBase(p: Profile): boolean {
-    return p.tipo_usuario === "usuario_base" && !p.base_cliente_id;
+    if (p.tipo_usuario !== "usuario_base") return false;
+    const be = baseEfetiva(p);
+    return !be.id && !be.multiplas;
+  }
+  function flagMultiplasBases(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && baseEfetiva(p).multiplas;
   }
   function flagSemLoja(p: Profile): boolean {
     return p.tipo_usuario === "usuario_base" && getLojasDoUser(p).length === 0 && !isAdminDaBase(p);
   }
+
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -205,7 +228,8 @@ export default function UsuariosSistema() {
         const hay = `${p.nome_completo || ""} ${p.telefone || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (fBase !== "todas" && p.base_cliente_id !== fBase) return false;
+      const be = baseEfetiva(p);
+      if (fBase !== "todas" && be.id !== fBase) return false;
       if (fLoja !== "todas") {
         const ls = getLojasDoUser(p);
         if (!ls.includes(fLoja)) return false;
@@ -215,12 +239,12 @@ export default function UsuariosSistema() {
         if (!rs.includes(fCargo) && p.cargo_saas !== fCargo) return false;
       }
       if (fSistema !== "todos") {
-        const base = p.base_cliente_id ? baseById.get(p.base_cliente_id) : null;
+        const base = be.id ? baseById.get(be.id) : null;
         if (!base || base.sistema_saas_id !== fSistema) return false;
       }
       return true;
     });
-  }, [profiles, busca, fBase, fLoja, fCargo, fSistema, lojasByUser, rolesByUser, baseById, viewTab, quickSemBase, quickSemLoja]);
+  }, [profiles, busca, fBase, fLoja, fCargo, fSistema, lojasByUser, rolesByUser, baseById, lojaById, viewTab, quickSemBase, quickSemLoja]);
 
   const kpis = useMemo(() => {
     const internos = profiles.filter((p) => p.tipo_usuario === "interno_saas").length;
@@ -230,8 +254,10 @@ export default function UsuariosSistema() {
     const ativos = profiles.filter((p) => p.status_saas === "ativo").length;
     const semBase = profiles.filter(flagSemBase).length;
     const semLoja = profiles.filter(flagSemLoja).length;
-    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, total: profiles.length };
-  }, [profiles, lojasByUser, rolesByUser]);
+    const multiBase = profiles.filter(flagMultiplasBases).length;
+    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, multiBase, total: profiles.length };
+  }, [profiles, lojasByUser, rolesByUser, lojaById]);
+
 
   async function registrarHistorico(user_id: string, evento: string, descricao: string, dados?: any) {
     await supabase.from("saas_usuarios_historico").insert({
@@ -416,13 +442,15 @@ export default function UsuariosSistema() {
               ) : filtered.map((p) => {
                 const rs = rolesByUser.get(p.user_id) || [];
                 const ls = getLojasDoUser(p);
-                const base = p.base_cliente_id ? baseById.get(p.base_cliente_id) : null;
+                const be = baseEfetiva(p);
+                const base = be.id ? baseById.get(be.id) : null;
                 const sistema = base?.sistema_saas_id ? sistemaById.get(base.sistema_saas_id) : null;
                 const cargo = p.tipo_usuario === "interno_saas"
                   ? CARGOS_SAAS.find((c) => c.value === p.cargo_saas)?.label || p.cargo_saas || "—"
                   : rs.map((r) => ROLES_BASE.find((x) => x.value === r)?.label || r).join(", ") || "—";
                 const semBase = flagSemBase(p);
                 const semLoja = flagSemLoja(p);
+                const multiBases = flagMultiplasBases(p);
                 const adminBase = isAdminDaBase(p);
                 const lojasLabel = ls.map((id) => lojaById.get(id)?.nome).filter(Boolean).join(", ");
                 return (
@@ -443,8 +471,27 @@ export default function UsuariosSistema() {
                     <td className="px-3 py-2">
                       {p.tipo_usuario === "interno_saas" ? (
                         <span className="text-muted-foreground text-xs">— (interno)</span>
+                      ) : multiBases ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-amber-100 text-amber-800 border-0 cursor-help">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Múltiplas bases
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>Usuário possui lojas de bases diferentes. Revise os vínculos.</TooltipContent>
+                        </Tooltip>
                       ) : base ? (
-                        <span>{base.nome}</span>
+                        <div className="flex items-center gap-1">
+                          <span>{base.nome}</span>
+                          {be.inferida && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-[10px] py-0 px-1 cursor-help">inferida</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>Base identificada pela loja vinculada.</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -452,13 +499,16 @@ export default function UsuariosSistema() {
                               <AlertTriangle className="h-3 w-3 mr-1" /> Sem base
                             </Badge>
                           </TooltipTrigger>
-                          <TooltipContent>Usuário de base precisa ter uma base vinculada.</TooltipContent>
+                          <TooltipContent>
+                            {ls.length ? "Loja vinculada está sem base. Configure a loja." : "Usuário de base precisa ter uma base vinculada."}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                     </td>
                     <td className="px-3 py-2 text-xs">
                       {sistema ? sistema.nome : <span className="text-muted-foreground">—</span>}
                     </td>
+
                     <td className="px-3 py-2 max-w-[200px]">
                       {ls.length ? (
                         <Tooltip>
@@ -569,10 +619,13 @@ export default function UsuariosSistema() {
       <VincularBaseDialog
         user={vincularBaseUser}
         bases={bases}
+        lojas={lojas}
+        currentLojas={vincularBaseUser ? (lojasByUser.get(vincularBaseUser.user_id) || (vincularBaseUser.loja_id ? [vincularBaseUser.loja_id] : [])) : []}
         onClose={() => setVincularBaseUser(null)}
         onDone={() => { setVincularBaseUser(null); loadAll(); }}
         criadoPor={user?.id || null}
       />
+
 
       <VincularLojasDialog
         user={vincularLojaUser}
@@ -814,15 +867,22 @@ function NovoUsuarioDialog({
 
 /* ============================== Vincular base ============================== */
 function VincularBaseDialog({
-  user, bases, onClose, onDone, criadoPor,
+  user, bases, lojas, currentLojas, onClose, onDone, criadoPor,
 }: {
-  user: Profile | null; bases: Base[];
+  user: Profile | null; bases: Base[]; lojas: Loja[]; currentLojas: string[];
   onClose: () => void; onDone: () => void; criadoPor: string | null;
 }) {
   const [baseId, setBaseId] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(() => { setBaseId(user?.base_cliente_id || ""); }, [user]);
   if (!user) return null;
+
+  // Identifica lojas atuais que pertencem a outra base
+  const lojasUsuario = lojas.filter((l) => currentLojas.includes(l.id));
+  const conflitos = baseId
+    ? lojasUsuario.filter((l) => l.base_cliente_id && l.base_cliente_id !== baseId)
+    : [];
+
   async function salvar() {
     if (!baseId) { toast.error("Selecione uma base"); return; }
     setSaving(true);
@@ -832,12 +892,17 @@ function VincularBaseDialog({
     if (error) { toast.error(error.message); setSaving(false); return; }
     await supabase.from("saas_usuarios_historico").insert({
       user_id: user!.user_id, evento: "vinculo_base",
-      descricao: "Base vinculada", dados: { base_cliente_id: baseId }, criado_por: criadoPor,
+      descricao: "Base vinculada",
+      dados: { base_cliente_id: baseId, conflitos: conflitos.map((l) => l.id) },
+      criado_por: criadoPor,
     });
-    toast.success("Base vinculada");
+    toast.success(conflitos.length
+      ? "Base vinculada. Revise as lojas vinculadas de outras bases."
+      : "Base vinculada");
     setSaving(false);
     onDone();
   }
+
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
@@ -845,7 +910,7 @@ function VincularBaseDialog({
           <DialogTitle>Vincular base</DialogTitle>
           <DialogDescription>{user.nome_completo}</DialogDescription>
         </DialogHeader>
-        <div className="py-2">
+        <div className="py-2 space-y-2">
           <Label>Base</Label>
           <Select value={baseId} onValueChange={setBaseId}>
             <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
@@ -853,6 +918,15 @@ function VincularBaseDialog({
               {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
             </SelectContent>
           </Select>
+          {conflitos.length > 0 && (
+            <div className="text-xs rounded-md bg-amber-50 border border-amber-300 p-2 text-amber-900 flex gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div>
+                Este usuário possui {conflitos.length} loja(s) de outra base:{" "}
+                <strong>{conflitos.map((l) => l.nome).join(", ")}</strong>. Revise os vínculos depois de salvar.
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -877,9 +951,29 @@ function VincularLojasDialog({
   const [saving, setSaving] = useState(false);
   if (!user) return null;
   const base = user.base_cliente_id ? bases.find((b) => b.id === user.base_cliente_id) : null;
-  const lojasDisponiveis = lojas.filter((l) => !user.base_cliente_id || l.base_cliente_id === user.base_cliente_id);
+
+  // Sem base: permite escolher lojas, mas só de UMA base (para inferir).
+  // Com base: restringe às lojas dessa base.
+  const lojasDisponiveis = base
+    ? lojas.filter((l) => l.base_cliente_id === base.id)
+    : lojas.filter((l) => l.base_cliente_id);
+
+  const basesSelecionadas = useMemo(() => {
+    const set = new Set<string>();
+    sel.forEach((id) => {
+      const l = lojas.find((x) => x.id === id);
+      if (l?.base_cliente_id) set.add(l.base_cliente_id);
+    });
+    return Array.from(set);
+  }, [sel, lojas]);
+
+  const inferida = !base && basesSelecionadas.length === 1
+    ? bases.find((b) => b.id === basesSelecionadas[0])
+    : null;
+  const conflito = !base && basesSelecionadas.length > 1;
 
   async function salvar() {
+    if (conflito) { toast.error("Selecione lojas de uma única base."); return; }
     setSaving(true);
     const toAdd = sel.filter((id) => !currentLojas.includes(id));
     const toRemove = currentLojas.filter((id) => !sel.includes(id));
@@ -893,19 +987,23 @@ function VincularLojasDialog({
       const { error } = await supabase.from("user_lojas").insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
     }
-    // mantém profile.loja_id apontando para uma loja válida quando possível
-    if (sel.length && (!user!.loja_id || !sel.includes(user!.loja_id))) {
-      await supabase.from("profiles").update({ loja_id: sel[0] }).eq("user_id", user!.user_id);
-    } else if (!sel.length && user!.loja_id) {
-      await supabase.from("profiles").update({ loja_id: null }).eq("user_id", user!.user_id);
+    // Auto-preenche base do profile quando aplicável
+    const patch: any = {};
+    if (!base && inferida) patch.base_cliente_id = inferida.id;
+    if (sel.length && (!user!.loja_id || !sel.includes(user!.loja_id))) patch.loja_id = sel[0];
+    else if (!sel.length && user!.loja_id) patch.loja_id = null;
+    if (Object.keys(patch).length) {
+      await supabase.from("profiles").update(patch).eq("user_id", user!.user_id);
     }
     await supabase.from("saas_usuarios_historico").insert({
       user_id: user!.user_id, evento: "vinculo_lojas",
-      descricao: "Lojas vinculadas atualizadas",
-      dados: { lojas_ids: sel, adicionadas: toAdd, removidas: toRemove },
+      descricao: inferida
+        ? `Lojas vinculadas; base ${inferida.nome} herdada da loja`
+        : "Lojas vinculadas atualizadas",
+      dados: { lojas_ids: sel, adicionadas: toAdd, removidas: toRemove, base_inferida: inferida?.id || null },
       criado_por: criadoPor,
     });
-    toast.success("Lojas atualizadas");
+    toast.success(inferida ? `Lojas atualizadas. Base ${inferida.nome} vinculada automaticamente.` : "Lojas atualizadas");
     setSaving(false);
     onDone();
   }
@@ -916,35 +1014,50 @@ function VincularLojasDialog({
         <DialogHeader>
           <DialogTitle>Gerenciar lojas</DialogTitle>
           <DialogDescription>
-            {user.nome_completo}{base ? ` — base ${base.nome}` : ""}
+            {user.nome_completo}{base ? ` — base ${base.nome}` : " — sem base vinculada"}
           </DialogDescription>
         </DialogHeader>
-        {!base ? (
+        {lojasDisponiveis.length === 0 ? (
           <div className="text-sm text-muted-foreground py-3">
-            Vincule uma base ao usuário antes de selecionar lojas.
+            {base ? "A base não possui lojas cadastradas." : "Nenhuma loja com base disponível."}
           </div>
         ) : (
           <div className="py-2 border rounded-md p-2 max-h-64 overflow-y-auto space-y-1">
-            {lojasDisponiveis.length === 0 ? (
-              <div className="text-xs text-muted-foreground">A base não possui lojas cadastradas.</div>
-            ) : lojasDisponiveis.map((l) => (
-              <label key={l.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={sel.includes(l.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) setSel([...sel, l.id]);
-                    else setSel(sel.filter((x) => x !== l.id));
-                  }}
-                />
-                {l.nome}
-              </label>
-            ))}
+            {lojasDisponiveis.map((l) => {
+              const lojaBase = bases.find((b) => b.id === l.base_cliente_id);
+              return (
+                <label key={l.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={sel.includes(l.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSel([...sel, l.id]);
+                      else setSel(sel.filter((x) => x !== l.id));
+                    }}
+                  />
+                  <span className="flex-1">{l.nome}</span>
+                  {!base && lojaBase && (
+                    <span className="text-[10px] text-muted-foreground">{lojaBase.nome}</span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        )}
+        {inferida && (
+          <div className="text-xs rounded-md bg-emerald-50 border border-emerald-300 p-2 text-emerald-900">
+            Ao salvar, a base <strong>{inferida.nome}</strong> será vinculada automaticamente ao usuário.
+          </div>
+        )}
+        {conflito && (
+          <div className="text-xs rounded-md bg-red-50 border border-red-300 p-2 text-red-900 flex gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <div>Você selecionou lojas de bases diferentes. Mantenha lojas de uma única base.</div>
           </div>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={salvar} disabled={saving || !base}>
+          <Button onClick={salvar} disabled={saving || conflito}>
             {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Salvar
           </Button>
         </DialogFooter>
@@ -952,6 +1065,7 @@ function VincularLojasDialog({
     </Dialog>
   );
 }
+
 
 /* ============================== Detalhe ============================== */
 function DetalheUsuarioSheet({
