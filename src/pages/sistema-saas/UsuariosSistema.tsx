@@ -326,6 +326,23 @@ export default function UsuariosSistema() {
         ))}
       </div>
 
+      {/* Alerta crítico: administradores sem base */}
+      {kpis.adminSemBase > 0 && (
+        <Card className="p-3 border-red-300 bg-red-50/60 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-red-700 mt-0.5" />
+          <div className="text-sm flex-1">
+            <div className="font-medium text-red-900">Pendência crítica: administradores sem base</div>
+            <div className="text-red-800/90">
+              {kpis.adminSemBase} administrador(es)/diretor(es) de base sem base vinculada. Sem base, não conseguem operar.
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="border-red-300"
+            onClick={() => { setQuickSemBase(true); setQuickSemLoja(false); setViewTab("bases"); }}>
+            Resolver agora
+          </Button>
+        </Card>
+      )}
+
       {/* Alerta administrativo */}
       {(kpis.semBase > 0 || kpis.semLoja > 0) && (
         <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-start gap-3">
@@ -334,7 +351,8 @@ export default function UsuariosSistema() {
             <div className="font-medium text-amber-900">Atenção: usuários sem vínculo</div>
             <div className="text-amber-800/90">
               {kpis.semBase > 0 && <>{kpis.semBase} usuário(s) de base sem base vinculada. </>}
-              {kpis.semLoja > 0 && <>{kpis.semLoja} usuário(s) operacional(is) sem loja.</>}
+              {kpis.semLoja > 0 && <>{kpis.semLoja} usuário(s) operacional(is) sem loja. </>}
+              <span className="text-xs">(Administradores/Diretores da base com acesso à base não contam como pendência de loja.)</span>
             </div>
           </div>
           <div className="flex gap-2">
