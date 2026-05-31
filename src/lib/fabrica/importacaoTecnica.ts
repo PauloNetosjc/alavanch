@@ -163,8 +163,11 @@ export interface ImportarParams {
   clienteNome?: string | null;
   projetoNome?: string | null;
   ambiente?: string | null;
+  /** "rapida" (padrão) sobe apenas essenciais; "completa" sobe tudo */
+  modoImportacao?: "rapida" | "completa";
   onProgress?: (ev: ProgressoEvento) => void;
 }
+
 
 function ehArquivoIgnorado(caminho: string): boolean {
   const lower = caminho.toLowerCase();
