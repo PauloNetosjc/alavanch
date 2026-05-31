@@ -181,12 +181,35 @@ export default function UsuariosSistema() {
     const rs = rolesByUser.get(p.user_id) || [];
     return rs.some((r) => ROLES_ADMIN_BASE.has(r));
   }
+  /** Bases distintas inferidas pelas lojas vinculadas do usuário. */
+  function basesDasLojas(p: Profile): string[] {
+    const set = new Set<string>();
+    getLojasDoUser(p).forEach((id) => {
+      const l = lojaById.get(id);
+      if (l?.base_cliente_id) set.add(l.base_cliente_id);
+    });
+    return Array.from(set);
+  }
+  /** Base efetiva: a do profile, ou a inferida se houver exatamente uma. */
+  function baseEfetiva(p: Profile): { id: string | null; inferida: boolean; multiplas: boolean } {
+    if (p.base_cliente_id) return { id: p.base_cliente_id, inferida: false, multiplas: false };
+    const inf = basesDasLojas(p);
+    if (inf.length === 1) return { id: inf[0], inferida: true, multiplas: false };
+    if (inf.length > 1) return { id: null, inferida: false, multiplas: true };
+    return { id: null, inferida: false, multiplas: false };
+  }
   function flagSemBase(p: Profile): boolean {
-    return p.tipo_usuario === "usuario_base" && !p.base_cliente_id;
+    if (p.tipo_usuario !== "usuario_base") return false;
+    const be = baseEfetiva(p);
+    return !be.id && !be.multiplas;
+  }
+  function flagMultiplasBases(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && baseEfetiva(p).multiplas;
   }
   function flagSemLoja(p: Profile): boolean {
     return p.tipo_usuario === "usuario_base" && getLojasDoUser(p).length === 0 && !isAdminDaBase(p);
   }
+
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
