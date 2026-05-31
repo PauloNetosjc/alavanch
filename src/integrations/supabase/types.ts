@@ -2865,6 +2865,7 @@ export type Database = {
           peca_id: string | null
           pedido_id: string | null
           processado: boolean
+          status_arquivo: string
           tamanho_bytes: number | null
           tipo_arquivo: string
           updated_at: string
@@ -2887,6 +2888,7 @@ export type Database = {
           peca_id?: string | null
           pedido_id?: string | null
           processado?: boolean
+          status_arquivo?: string
           tamanho_bytes?: number | null
           tipo_arquivo?: string
           updated_at?: string
@@ -2909,6 +2911,7 @@ export type Database = {
           peca_id?: string | null
           pedido_id?: string | null
           processado?: boolean
+          status_arquivo?: string
           tamanho_bytes?: number | null
           tipo_arquivo?: string
           updated_at?: string
@@ -3256,6 +3259,7 @@ export type Database = {
           loja_id: string | null
           lote_id: string | null
           mensagem_processamento: string | null
+          modo_importacao: string
           pedido_id: string | null
           projeto_nome: string | null
           status_importacao: string
@@ -3279,6 +3283,7 @@ export type Database = {
           loja_id?: string | null
           lote_id?: string | null
           mensagem_processamento?: string | null
+          modo_importacao?: string
           pedido_id?: string | null
           projeto_nome?: string | null
           status_importacao?: string
@@ -3302,6 +3307,7 @@ export type Database = {
           loja_id?: string | null
           lote_id?: string | null
           mensagem_processamento?: string | null
+          modo_importacao?: string
           pedido_id?: string | null
           projeto_nome?: string | null
           status_importacao?: string

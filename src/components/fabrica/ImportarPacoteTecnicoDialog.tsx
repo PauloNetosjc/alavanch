@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Loader2, Upload, FileArchive, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Upload, FileArchive, CheckCircle2, AlertTriangle, XCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
 import { importarPacoteTecnico, type ResultadoImportacao } from "@/lib/fabrica/importacaoTecnica";
+
 
 interface Props {
   open: boolean;
@@ -32,11 +33,14 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   const [clienteNome, setClienteNome] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<{ etapa: string; detalhe?: string; atual?: number; total?: number } | null>(null);
+  const [enviarTudo, setEnviarTudo] = useState(false);
+
 
   useEffect(() => {
     if (!open) {
       setFile(null); setResultado(null); setProjetoNome(""); setAmbiente("");
-      setClienteNome(null); setErro(null); setProgresso(null);
+      setClienteNome(null); setErro(null); setProgresso(null); setEnviarTudo(false);
+
       return;
     }
     if (pedidoId) {
@@ -51,20 +55,23 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   }, [open, pedidoId]);
 
   const ETAPA_LABELS: Record<string, string> = {
-    validacao: "Validando arquivo",
-    criando_importacao: "Criando registro de importação",
-    enviando_zip_original: "Enviando ZIP",
-    zip_original_enviado: "ZIP enviado",
+    validacao: "Validando ZIP",
+    criando_importacao: "Criando importação",
+    enviando_zip_original: "Enviando ZIP original",
+    zip_original_enviado: "ZIP original enviado",
     zip_original_falhou: "Falha ao enviar ZIP",
-    extraindo_zip: "Extraindo arquivos",
-    zip_extraido: "ZIP extraído",
-    enviando_arquivos: "Enviando arquivos extraídos",
-    catalogando_arquivos: "Catalogando arquivos",
+    extraindo_zip: "Lendo estrutura do pacote",
+    zip_extraido: "Estrutura lida",
+    classificacao: "Selecionando arquivos essenciais",
+    enviando_arquivos: "Processando arquivos essenciais",
+    catalogando_secundarios: "Catalogando arquivos secundários",
+    catalogando_arquivos: "Catalogando no banco",
     processando_list: "Processando List",
     criando_chapas_complementares: "Criando chapas",
     criando_etiquetas: "Criando etiquetas",
     finalizando: "Finalizando",
   };
+
 
   async function handleImportar() {
     if (!file) { toast.error("Selecione um arquivo .zip"); return; }
@@ -83,8 +90,10 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
         clienteNome,
         projetoNome: projetoNome || null,
         ambiente: ambiente || null,
+        modoImportacao: enviarTudo ? "completa" : "rapida",
         onProgress: (ev) => setProgresso(ev),
       });
+
       setResultado(r);
       if (r.status === "processado") toast.success("Pacote técnico importado com sucesso");
       else if (r.status === "processado_com_alertas") toast.warning("Importado com alertas");
@@ -137,16 +146,38 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
               {file && <div className="text-xs text-muted-foreground">Selecionado: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</div>}
             </div>
 
-            <Card className="p-3 text-xs space-y-1 bg-muted/30">
-              <div className="font-medium">O sistema irá:</div>
-              <ul className="list-disc ml-4 text-muted-foreground space-y-0.5">
-                <li>Catalogar arquivos em AutoLabel, NC, Parts, Profile, xml</li>
-                <li>Processar arquivo List (quando existir)</li>
-                <li>Criar chapas iniciais (padrão 2750x1850)</li>
-                <li>Criar etiquetas a partir de nomes (ex.: GAV8252A(1))</li>
-                <li>Vincular PDFs: ListaCorte, PreviewCorte, Relatório de almoxarifado</li>
-              </ul>
+            <Card className="p-3 text-xs space-y-2 bg-muted/30">
+              <div className="flex items-center gap-2 font-medium">
+                <Zap className="h-3.5 w-3.5 text-amber-600" />
+                Importação rápida (recomendado)
+              </div>
+              <div className="text-muted-foreground">
+                Processa apenas os arquivos essenciais (List, previews grandes/pequenos, Labels PDF, .cyc, NC de chapa e PDFs principais).
+                Os arquivos secundários (BMPs individuais, NC de peças, Parts, Profile) ficam catalogados no banco e podem ser
+                processados sob demanda a partir do ZIP original.
+              </div>
+              <label className="flex items-start gap-2 pt-1 cursor-pointer">
+                <Checkbox
+                  checked={enviarTudo}
+                  onCheckedChange={(v) => setEnviarTudo(!!v)}
+                  disabled={processando}
+                  className="mt-0.5"
+                />
+                <span className="text-xs">
+                  <strong>Enviar todos os arquivos extraídos agora</strong>
+                  <span className="block text-muted-foreground">
+                    Modo completo. Pode demorar bastante em pacotes com centenas/milhares de arquivos.
+                  </span>
+                </span>
+              </label>
+              {enviarTudo && (
+                <div className="flex items-start gap-1 text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                  <AlertTriangle className="h-3 w-3 mt-0.5" />
+                  <span>Este pacote possui muitos arquivos. O envio completo pode demorar bastante.</span>
+                </div>
+              )}
             </Card>
+
 
             {progresso && (
               <Card className="p-3 text-xs space-y-1 bg-blue-50 border-blue-200">

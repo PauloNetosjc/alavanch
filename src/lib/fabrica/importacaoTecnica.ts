@@ -163,8 +163,11 @@ export interface ImportarParams {
   clienteNome?: string | null;
   projetoNome?: string | null;
   ambiente?: string | null;
+  /** "rapida" (padrão) sobe apenas essenciais; "completa" sobe tudo */
+  modoImportacao?: "rapida" | "completa";
   onProgress?: (ev: ProgressoEvento) => void;
 }
+
 
 function ehArquivoIgnorado(caminho: string): boolean {
   const lower = caminho.toLowerCase();
@@ -175,6 +178,27 @@ function ehArquivoIgnorado(caminho: string): boolean {
   if (caminho.split("/").pop()?.startsWith(".")) return true;
   return false;
 }
+
+/** Decide se o arquivo é essencial para a primeira importação rápida. */
+function ehArquivoEssencial(origem: OrigemPasta, tipo: TipoArquivo, ext: string): boolean {
+  // Raiz: List + PDFs principais
+  if (tipo === "list" || tipo === "lista_corte_pdf" || tipo === "preview_corte_pdf" || tipo === "relatorio_almoxarifado_pdf") return true;
+  // AutoLabel: previews grandes/pequenos + Labels PDF (não os BMPs individuais)
+  if (tipo === "large_preview_cutting_plan" || tipo === "small_preview_cutting_plan" || tipo === "labels_pdf") return true;
+  // .cyc em xml/ ou NC/ são essenciais (poucos e leves)
+  if (tipo === "cyc_chapa") return true;
+  // NC de chapa: subir (uma por chapa, leve)
+  if (origem === "NC" && ext === "nc") return true;
+  // Tudo o mais (etiquetas individuais BMP, Parts, Profile, nc_peca, etc.) fica catalogado
+  return false;
+}
+
+function tamanhoEntrada(entry: any): number | null {
+  try {
+    return entry?._data?.uncompressedSize ?? null;
+  } catch { return null; }
+}
+
 
 /** Processa entradas em paralelo controlado. */
 async function processarEmLotes<T, R>(items: T[], concurrency: number, fn: (it: T, idx: number) => Promise<R>): Promise<R[]> {
@@ -218,6 +242,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
 
   // 1) cria importação
   log("criando_importacao");
+  const modoImportacao: "rapida" | "completa" = params.modoImportacao || "rapida";
   const { data: impData, error: impErr } = await (supabase as any)
     .from("fabrica_importacoes_tecnicas")
     .insert({
@@ -230,6 +255,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       tipo_importacao: tipoImportacao,
       arquivo_original_nome: arquivoZip.name,
       status_importacao: "recebido",
+      modo_importacao: modoImportacao,
       usuario_importacao: userId,
     })
     .select()
@@ -246,6 +272,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
         .eq("id", importacaoId);
     } catch { /* ignore */ }
   }
+
 
   try {
     // 2) upload do ZIP original
@@ -278,56 +305,115 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       alertas.push("ZIP não contém arquivos processáveis.");
     }
 
-    // 4) Upload paralelo + acumular linhas
-    log("enviando_arquivos", undefined, 0, totalArquivos);
-    let listContent: string | null = null;
-    let uploadsConcluidos = 0;
-    const arquivosParaInserir: any[] = [];
-
-    await processarEmLotes(allEntries, UPLOAD_CONCURRENCY, async (entry) => {
+    // 4) Classifica essenciais vs secundários
+    type Classificado = {
+      entry: any;
+      caminho: string;
+      nome: string;
+      ext: string;
+      origem: OrigemPasta;
+      tipo: TipoArquivo;
+      essencial: boolean;
+    };
+    const classificados: Classificado[] = allEntries.map((entry) => {
       const caminho = entry.name.replace(/\\/g, "/");
       const nome = caminho.split("/").pop() || caminho;
       const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
       const origem = detectarOrigem(caminho);
       const tipo = detectarTipo(nome, origem);
+      const forcarTudo = modoImportacao === "completa";
+      const essencial = forcarTudo ? true : ehArquivoEssencial(origem, tipo, ext);
+      return { entry, caminho, nome, ext, origem, tipo, essencial };
+    });
 
+    const essenciais = classificados.filter((c) => c.essencial);
+    const secundarios = classificados.filter((c) => !c.essencial);
+
+    log("classificacao", `${essenciais.length} essenciais / ${secundarios.length} catalogados`, essenciais.length, totalArquivos);
+
+    // 4a) Upload paralelo dos ESSENCIAIS
+    let listContent: string | null = null;
+    let uploadsConcluidos = 0;
+    const essenciaisParaInserir: any[] = [];
+    log("enviando_arquivos", "essenciais", 0, essenciais.length);
+
+    await processarEmLotes(essenciais, UPLOAD_CONCURRENCY, async (c) => {
       try {
-        const blob = await entry.async("blob");
-        const storagePath = `${basePath}/extracted/${caminho}`;
+        const blob = await c.entry.async("blob");
+        const storagePath = `${basePath}/extracted/${c.caminho}`;
         const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true });
         if (up.error) {
-          alertas.push(`Falha upload ${caminho}: ${up.error.message}`);
+          alertas.push(`Falha upload ${c.caminho}: ${up.error.message}`);
+          essenciaisParaInserir.push({
+            importacao_id: importacaoId,
+            pedido_id: pedidoId || null,
+            lote_id: loteId || null,
+            loja_id: lojaId || null,
+            origem_pasta: c.origem,
+            tipo_arquivo: c.tipo,
+            nome_arquivo: c.nome,
+            extensao: c.ext || null,
+            caminho_relativo: c.caminho,
+            url_arquivo: null,
+            tamanho_bytes: blob.size,
+            status_arquivo: "erro_upload",
+            criado_por: userId,
+            _caminho_key: c.caminho,
+          });
           return;
         }
-        arquivosParaInserir.push({
+        essenciaisParaInserir.push({
           importacao_id: importacaoId,
           pedido_id: pedidoId || null,
           lote_id: loteId || null,
           loja_id: lojaId || null,
-          origem_pasta: origem,
-          tipo_arquivo: tipo,
-          nome_arquivo: nome,
-          extensao: ext || null,
-          caminho_relativo: caminho,
+          origem_pasta: c.origem,
+          tipo_arquivo: c.tipo,
+          nome_arquivo: c.nome,
+          extensao: c.ext || null,
+          caminho_relativo: c.caminho,
           url_arquivo: storagePath,
           tamanho_bytes: blob.size,
+          status_arquivo: "enviado",
           criado_por: userId,
-          _caminho_key: caminho,
+          _caminho_key: c.caminho,
         });
-        if (tipo === "list") {
-          try { listContent = await entry.async("string"); } catch { /* ignore */ }
+        if (c.tipo === "list") {
+          try { listContent = await c.entry.async("string"); } catch { /* ignore */ }
         }
       } catch (e: any) {
-        alertas.push(`Erro ao processar ${caminho}: ${e?.message || e}`);
+        alertas.push(`Erro ao processar ${c.caminho}: ${e?.message || e}`);
       } finally {
         uploadsConcluidos++;
-        if (uploadsConcluidos % 10 === 0 || uploadsConcluidos === totalArquivos) {
-          log("enviando_arquivos", undefined, uploadsConcluidos, totalArquivos);
+        if (uploadsConcluidos % 5 === 0 || uploadsConcluidos === essenciais.length) {
+          log("enviando_arquivos", "essenciais", uploadsConcluidos, essenciais.length);
         }
       }
     });
 
-    // 5) Inserir arquivos em batch
+    // 4b) Catalogar SECUNDÁRIOS (sem blob, sem upload)
+    const secundariosParaInserir = secundarios.map((c) => ({
+      importacao_id: importacaoId,
+      pedido_id: pedidoId || null,
+      lote_id: loteId || null,
+      loja_id: lojaId || null,
+      origem_pasta: c.origem,
+      tipo_arquivo: c.tipo,
+      nome_arquivo: c.nome,
+      extensao: c.ext || null,
+      caminho_relativo: c.caminho,
+      url_arquivo: null,
+      tamanho_bytes: tamanhoEntrada(c.entry),
+      status_arquivo: "catalogado_nao_enviado" as const,
+      criado_por: userId,
+      _caminho_key: c.caminho,
+    }));
+    if (secundariosParaInserir.length) {
+      log("catalogando_secundarios", undefined, 0, secundariosParaInserir.length);
+    }
+
+    // 5) Inserir arquivos em batch (essenciais + secundários)
+    const arquivosParaInserir = [...essenciaisParaInserir, ...secundariosParaInserir];
     log("catalogando_arquivos", undefined, 0, arquivosParaInserir.length);
     const arquivosCriados: Record<string, string> = {};
     let totalArquivosTecnicos = 0;
@@ -346,6 +432,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       totalArquivosTecnicos += (ins as any[] || []).length;
       log("catalogando_arquivos", undefined, Math.min(i + INSERT_BATCH, arquivosParaInserir.length), arquivosParaInserir.length);
     }
+
 
     // 6) chapas a partir do List
     log("processando_list");
@@ -524,3 +611,57 @@ export async function getSignedUrlPacoteTecnico(path: string, expiresIn = 3600):
     return null;
   }
 }
+
+/**
+ * Processa um arquivo catalogado sob demanda:
+ * Baixa o ZIP original da importação, extrai a entrada específica,
+ * faz upload individual e marca status_arquivo = 'enviado'.
+ * Retorna a URL (path no storage) ou null se não conseguiu.
+ */
+export async function processarArquivoSobDemanda(arquivoId: string): Promise<string | null> {
+  const { data: arq, error: arqErr } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id, importacao_id, caminho_relativo, status_arquivo, url_arquivo, loja_id, pedido_id, lote_id")
+    .eq("id", arquivoId)
+    .maybeSingle();
+  if (arqErr || !arq) throw new Error("Arquivo não encontrado");
+  if (arq.status_arquivo === "enviado" && arq.url_arquivo) return arq.url_arquivo;
+
+  const { data: imp, error: impErr } = await (supabase as any)
+    .from("fabrica_importacoes_tecnicas")
+    .select("id, arquivo_original_url, loja_id, pedido_id, lote_id")
+    .eq("id", arq.importacao_id)
+    .maybeSingle();
+  if (impErr || !imp) throw new Error("Importação não encontrada");
+  if (!imp.arquivo_original_url) {
+    throw new Error("ZIP original não disponível para extração sob demanda");
+  }
+
+  // baixa o ZIP do storage
+  const { data: zipBlob, error: dlErr } = await supabase.storage.from(BUCKET).download(imp.arquivo_original_url);
+  if (dlErr || !zipBlob) throw new Error(`Falha ao baixar ZIP original: ${dlErr?.message || "sem dados"}`);
+
+  const zip = await JSZip.loadAsync(zipBlob);
+  // tenta tanto caminho exato quanto invertido
+  const entry = zip.file(arq.caminho_relativo) ||
+    Object.values(zip.files).find((f) => f.name.replace(/\\/g, "/") === arq.caminho_relativo);
+  if (!entry || (entry as any).dir) throw new Error(`Arquivo ${arq.caminho_relativo} não encontrado no ZIP original`);
+
+  const lojaId = imp.loja_id || arq.loja_id;
+  const ref = imp.pedido_id || arq.pedido_id || imp.lote_id || arq.lote_id || "geral";
+  const basePath = `fabrica/${lojaId || "sem-loja"}/${ref}/${imp.id}`;
+  const storagePath = `${basePath}/extracted/${arq.caminho_relativo}`;
+  const blob = await entry.async("blob");
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true });
+  if (up.error) {
+    await (supabase as any).from("fabrica_arquivos_tecnicos")
+      .update({ status_arquivo: "erro_upload" })
+      .eq("id", arquivoId);
+    throw new Error(`Falha upload sob demanda: ${up.error.message}`);
+  }
+  await (supabase as any).from("fabrica_arquivos_tecnicos")
+    .update({ status_arquivo: "enviado", url_arquivo: storagePath, tamanho_bytes: blob.size })
+    .eq("id", arquivoId);
+  return storagePath;
+}
+
