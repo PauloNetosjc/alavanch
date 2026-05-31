@@ -407,10 +407,24 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                     className="max-w-full max-h-full object-contain bg-white shadow-lg transition-transform"
                   />
                 ) : chapaSel ? (
-                  <PlaceholderChapa chapa={chapaSel} />
+                  <PlaceholderChapa
+                    chapa={chapaSel}
+                    arquivoCatalogado={
+                      resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
+                      || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
+                    }
+                    onCarregar={async (id) => {
+                      const p = await carregarArquivoSobDemanda(id);
+                      if (p) {
+                        const u = await getSignedUrlPacoteTecnico(p, 3600);
+                        if (u) setPreviewUrl(u);
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="text-white/60 text-sm">Selecione uma chapa à esquerda.</div>
                 )}
+
               </div>
             </main>
 
