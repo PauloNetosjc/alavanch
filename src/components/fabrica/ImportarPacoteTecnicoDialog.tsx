@@ -55,20 +55,23 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   }, [open, pedidoId]);
 
   const ETAPA_LABELS: Record<string, string> = {
-    validacao: "Validando arquivo",
-    criando_importacao: "Criando registro de importação",
-    enviando_zip_original: "Enviando ZIP",
-    zip_original_enviado: "ZIP enviado",
+    validacao: "Validando ZIP",
+    criando_importacao: "Criando importação",
+    enviando_zip_original: "Enviando ZIP original",
+    zip_original_enviado: "ZIP original enviado",
     zip_original_falhou: "Falha ao enviar ZIP",
-    extraindo_zip: "Extraindo arquivos",
-    zip_extraido: "ZIP extraído",
-    enviando_arquivos: "Enviando arquivos extraídos",
-    catalogando_arquivos: "Catalogando arquivos",
+    extraindo_zip: "Lendo estrutura do pacote",
+    zip_extraido: "Estrutura lida",
+    classificacao: "Selecionando arquivos essenciais",
+    enviando_arquivos: "Processando arquivos essenciais",
+    catalogando_secundarios: "Catalogando arquivos secundários",
+    catalogando_arquivos: "Catalogando no banco",
     processando_list: "Processando List",
     criando_chapas_complementares: "Criando chapas",
     criando_etiquetas: "Criando etiquetas",
     finalizando: "Finalizando",
   };
+
 
   async function handleImportar() {
     if (!file) { toast.error("Selecione um arquivo .zip"); return; }
