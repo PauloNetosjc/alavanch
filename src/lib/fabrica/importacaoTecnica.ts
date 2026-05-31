@@ -611,3 +611,57 @@ export async function getSignedUrlPacoteTecnico(path: string, expiresIn = 3600):
     return null;
   }
 }
+
+/**
+ * Processa um arquivo catalogado sob demanda:
+ * Baixa o ZIP original da importação, extrai a entrada específica,
+ * faz upload individual e marca status_arquivo = 'enviado'.
+ * Retorna a URL (path no storage) ou null se não conseguiu.
+ */
+export async function processarArquivoSobDemanda(arquivoId: string): Promise<string | null> {
+  const { data: arq, error: arqErr } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id, importacao_id, caminho_relativo, status_arquivo, url_arquivo, loja_id, pedido_id, lote_id")
+    .eq("id", arquivoId)
+    .maybeSingle();
+  if (arqErr || !arq) throw new Error("Arquivo não encontrado");
+  if (arq.status_arquivo === "enviado" && arq.url_arquivo) return arq.url_arquivo;
+
+  const { data: imp, error: impErr } = await (supabase as any)
+    .from("fabrica_importacoes_tecnicas")
+    .select("id, arquivo_original_url, loja_id, pedido_id, lote_id")
+    .eq("id", arq.importacao_id)
+    .maybeSingle();
+  if (impErr || !imp) throw new Error("Importação não encontrada");
+  if (!imp.arquivo_original_url) {
+    throw new Error("ZIP original não disponível para extração sob demanda");
+  }
+
+  // baixa o ZIP do storage
+  const { data: zipBlob, error: dlErr } = await supabase.storage.from(BUCKET).download(imp.arquivo_original_url);
+  if (dlErr || !zipBlob) throw new Error(`Falha ao baixar ZIP original: ${dlErr?.message || "sem dados"}`);
+
+  const zip = await JSZip.loadAsync(zipBlob);
+  // tenta tanto caminho exato quanto invertido
+  const entry = zip.file(arq.caminho_relativo) ||
+    Object.values(zip.files).find((f) => f.name.replace(/\\/g, "/") === arq.caminho_relativo);
+  if (!entry || (entry as any).dir) throw new Error(`Arquivo ${arq.caminho_relativo} não encontrado no ZIP original`);
+
+  const lojaId = imp.loja_id || arq.loja_id;
+  const ref = imp.pedido_id || arq.pedido_id || imp.lote_id || arq.lote_id || "geral";
+  const basePath = `fabrica/${lojaId || "sem-loja"}/${ref}/${imp.id}`;
+  const storagePath = `${basePath}/extracted/${arq.caminho_relativo}`;
+  const blob = await entry.async("blob");
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true });
+  if (up.error) {
+    await (supabase as any).from("fabrica_arquivos_tecnicos")
+      .update({ status_arquivo: "erro_upload" })
+      .eq("id", arquivoId);
+    throw new Error(`Falha upload sob demanda: ${up.error.message}`);
+  }
+  await (supabase as any).from("fabrica_arquivos_tecnicos")
+    .update({ status_arquivo: "enviado", url_arquivo: storagePath, tamanho_bytes: blob.size })
+    .eq("id", arquivoId);
+  return storagePath;
+}
+
