@@ -144,6 +144,12 @@ export default function ImportarProducao() {
         pedidosIds={multiIds}
         onConcluido={() => { setTecMultiOpen(false); setMulti({}); carregar(); }}
       />
+
+      <VisualizadorPlanoCorteDialog
+        open={!!verCorte}
+        onOpenChange={(v) => !v && setVerCorte(null)}
+        pedidoId={verCorte?.id || null}
+      />
     </div>
   );
 }
