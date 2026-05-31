@@ -207,14 +207,36 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     }
   }
 
+  async function reprocessarPreviewsZip() {
+    if (!impSelId) return;
+    try {
+      toast.loading("Lendo ZIP original e reprocessando previews...", { id: "reprocess-zip" });
+      const r = await reprocessarPreviewsPeloZip(impSelId);
+      const [{ data: ch }, { data: ar }] = await Promise.all([
+        (supabase as any).from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false }),
+        (supabase as any).from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).order("origem_pasta").limit(2000),
+      ]);
+      setChapas(ch || []);
+      setArquivos(ar || []);
+      setResumoVinculos(r);
+      toast.success(
+        `${r.totalArquivosZip ?? 0} arquivos analisados. ${r.previewsEncontradosZip ?? 0} previews no ZIP. ${r.vinculados} vínculo(s) criado(s). ${r.chapasSemPreview} chapa(s) ainda sem preview${r.previewCortePdfDisponivel ? " com fallback PDF" : ""}.`,
+        { id: "reprocess-zip", duration: 8000 }
+      );
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "reprocess-zip" });
+    }
+  }
+
   async function repararPreviewDaChapa() {
     if (!chapaSel) return;
     setReparando(true);
     try {
       toast.loading("Procurando preview no ZIP...", { id: "reparar" });
       const r = await repararPreviewChapa(chapaSel.id);
+      setUltimoReparo(r);
       if (!r.ok) {
-        toast.error(r.mensagem, { id: "reparar", duration: 5000 });
+        toast.error(r.mensagem, { id: "reparar", duration: 8000 });
       } else {
         // recarrega chapas e arquivos
         const [{ data: ch }, { data: ar }] = await Promise.all([
@@ -223,7 +245,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
         ]);
         setChapas(ch || []);
         setArquivos(ar || []);
-        toast.success(r.mensagem, { id: "reparar" });
+        toast.success(r.mensagem, { id: "reparar", duration: 8000 });
       }
     } catch (e: any) {
       toast.error("Falha: " + (e?.message || e), { id: "reparar" });
@@ -252,6 +274,35 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
   function findPdfPath(tipo: string): string | null {
     return arquivos.find((a) => a.tipo_arquivo === tipo)?.url_arquivo || null;
+  }
+
+  const previewCorteArquivo = useMemo(() => arquivos.find((a) => a.tipo_arquivo === "preview_corte_pdf") || null, [arquivos]);
+
+  async function abrirPreviewCortePdfCentro() {
+    if (!impSelId) return;
+    try {
+      toast.loading("Preparando PreviewCorte.pdf...", { id: "preview-corte" });
+      let path = previewCorteArquivo?.url_arquivo || null;
+      if (!path) {
+        const r = await materializarPreviewCortePdfDoZip(impSelId);
+        if (!r.ok || !r.path) {
+          toast.error(r.mensagem, { id: "preview-corte", duration: 6000 });
+          return;
+        }
+        path = r.path;
+        const { data: ar } = await (supabase as any)
+          .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).order("origem_pasta").limit(2000);
+        setArquivos(ar || []);
+      }
+      const u = await getSignedUrlPacoteTecnico(path, 3600);
+      if (!u) throw new Error("Não foi possível assinar o PreviewCorte.pdf");
+      setPreviewPdfUrl(u);
+      setPreviewUrl(null);
+      setPreviewErroRender(false);
+      toast.success("Preview individual não encontrado. Exibindo PreviewCorte.pdf geral.", { id: "preview-corte", duration: 5000 });
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "preview-corte" });
+    }
   }
 
   // Filtros arquivos
