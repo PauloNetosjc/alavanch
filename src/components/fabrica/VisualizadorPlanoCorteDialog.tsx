@@ -302,6 +302,19 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
               })}
             </aside>
 
+            {visaoCentral === "vetorial" ? (
+              <section className="col-span-9 border-l overflow-hidden flex flex-col min-h-0 print:col-span-12">
+                <VisualizadorVetorialChapa
+                  importacaoId={impSelId}
+                  chapa={chapaSel}
+                  arquivos={arquivos}
+                  etiquetas={etiquetas}
+                  pedido={pedido}
+                  previewUrl={previewUrl}
+                />
+              </section>
+            ) : (
+            <>
             {/* Centro: preview */}
             <main className="col-span-6 flex flex-col overflow-hidden bg-neutral-900/95 print:bg-white print:col-span-12">
               <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between gap-2 bg-neutral-900 text-white text-xs print:hidden">
