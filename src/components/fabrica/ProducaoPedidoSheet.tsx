@@ -519,7 +519,12 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
-            <TabsContent value="tecnico">
+            <TabsContent value="tecnico" className="space-y-3">
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setPlanoCorteOpen(true)}>
+                  <Eye className="h-3 w-3 mr-1" /> Visualizar plano de corte
+                </Button>
+              </div>
               <PacoteTecnicoPanel pedidoId={pedidoId} />
             </TabsContent>
           </Tabs>
