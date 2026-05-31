@@ -209,6 +209,10 @@ export default function UsuariosSistema() {
   function flagSemLoja(p: Profile): boolean {
     return p.tipo_usuario === "usuario_base" && getLojasDoUser(p).length === 0 && !isAdminDaBase(p);
   }
+  /** Admin/Diretor da base sem base vinculada — pendência crítica. */
+  function flagAdminSemBase(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && isAdminDaBase(p) && !baseEfetiva(p).id && !baseEfetiva(p).multiplas;
+  }
 
 
   const filtered = useMemo(() => {
@@ -254,8 +258,9 @@ export default function UsuariosSistema() {
     const ativos = profiles.filter((p) => p.status_saas === "ativo").length;
     const semBase = profiles.filter(flagSemBase).length;
     const semLoja = profiles.filter(flagSemLoja).length;
+    const adminSemBase = profiles.filter(flagAdminSemBase).length;
     const multiBase = profiles.filter(flagMultiplasBases).length;
-    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, multiBase, total: profiles.length };
+    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, adminSemBase, multiBase, total: profiles.length };
   }, [profiles, lojasByUser, rolesByUser, lojaById]);
 
 
@@ -310,7 +315,7 @@ export default function UsuariosSistema() {
           { label: "Ativos", val: kpis.ativos, icon: Unlock, tone: "" },
           { label: "Convites", val: kpis.conv, icon: Mail, tone: kpis.conv ? "text-amber-700" : "" },
           { label: "Bloqueados", val: kpis.bloq, icon: Lock, tone: kpis.bloq ? "text-red-700" : "" },
-          { label: "Sem base/loja", val: kpis.semBase + kpis.semLoja, icon: AlertTriangle, tone: (kpis.semBase + kpis.semLoja) ? "text-red-700" : "" },
+          { label: "Pendências", val: kpis.adminSemBase + kpis.semBase + kpis.semLoja, icon: AlertTriangle, tone: kpis.adminSemBase ? "text-red-700" : ((kpis.semBase + kpis.semLoja) ? "text-amber-700" : "") },
         ].map((k) => (
           <Card key={k.label} className="p-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -321,6 +326,23 @@ export default function UsuariosSistema() {
         ))}
       </div>
 
+      {/* Alerta crítico: administradores sem base */}
+      {kpis.adminSemBase > 0 && (
+        <Card className="p-3 border-red-300 bg-red-50/60 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-red-700 mt-0.5" />
+          <div className="text-sm flex-1">
+            <div className="font-medium text-red-900">Pendência crítica: administradores sem base</div>
+            <div className="text-red-800/90">
+              {kpis.adminSemBase} administrador(es)/diretor(es) de base sem base vinculada. Sem base, não conseguem operar.
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="border-red-300"
+            onClick={() => { setQuickSemBase(true); setQuickSemLoja(false); setViewTab("bases"); }}>
+            Resolver agora
+          </Button>
+        </Card>
+      )}
+
       {/* Alerta administrativo */}
       {(kpis.semBase > 0 || kpis.semLoja > 0) && (
         <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-start gap-3">
@@ -329,7 +351,8 @@ export default function UsuariosSistema() {
             <div className="font-medium text-amber-900">Atenção: usuários sem vínculo</div>
             <div className="text-amber-800/90">
               {kpis.semBase > 0 && <>{kpis.semBase} usuário(s) de base sem base vinculada. </>}
-              {kpis.semLoja > 0 && <>{kpis.semLoja} usuário(s) operacional(is) sem loja.</>}
+              {kpis.semLoja > 0 && <>{kpis.semLoja} usuário(s) operacional(is) sem loja. </>}
+              <span className="text-xs">(Administradores/Diretores da base com acesso à base não contam como pendência de loja.)</span>
             </div>
           </div>
           <div className="flex gap-2">
@@ -492,6 +515,17 @@ export default function UsuariosSistema() {
                             </Tooltip>
                           )}
                         </div>
+                      ) : adminBase ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-red-600 text-white border-0 cursor-help font-semibold">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Administrador sem base
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Administrador/Diretor da base precisa obrigatoriamente de uma base vinculada para operar.
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
