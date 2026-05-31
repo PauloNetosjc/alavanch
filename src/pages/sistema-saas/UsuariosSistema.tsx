@@ -619,10 +619,13 @@ export default function UsuariosSistema() {
       <VincularBaseDialog
         user={vincularBaseUser}
         bases={bases}
+        lojas={lojas}
+        currentLojas={vincularBaseUser ? (lojasByUser.get(vincularBaseUser.user_id) || (vincularBaseUser.loja_id ? [vincularBaseUser.loja_id] : [])) : []}
         onClose={() => setVincularBaseUser(null)}
         onDone={() => { setVincularBaseUser(null); loadAll(); }}
         criadoPor={user?.id || null}
       />
+
 
       <VincularLojasDialog
         user={vincularLojaUser}
