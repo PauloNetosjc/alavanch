@@ -536,6 +536,8 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </TabsContent>
               </Tabs>
             </aside>
+            </>
+            )}
           </div>
         )}
 
