@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Download, FileArchive, Layers, Tag, FileText, ExternalLink } from "lucide-react";
 import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+import { DadosVetoriaisPanel } from "@/components/fabrica/DadosVetoriaisPanel";
 
 interface Props {
   pedidoId?: string | null;
@@ -54,6 +55,10 @@ export function PacoteTecnicoPanel({ pedidoId, loteId }: Props) {
           Nenhuma importação técnica encontrada para {pedidoId ? "este pedido" : "este lote"}.
         </Card>
       ) : (
+        <>
+          {/* Dados vetoriais para a importação mais recente */}
+          {importacoes[0]?.id && <DadosVetoriaisPanel importacaoId={importacoes[0].id} compact />}
+
         <Tabs defaultValue="importacoes" className="space-y-3">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="importacoes"><FileArchive className="h-3 w-3 mr-1" /> Importações ({importacoes.length})</TabsTrigger>
@@ -173,6 +178,7 @@ export function PacoteTecnicoPanel({ pedidoId, loteId }: Props) {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
       )}
     </div>
   );

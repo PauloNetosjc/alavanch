@@ -3777,6 +3777,132 @@ export type Database = {
           },
         ]
       }
+      fabrica_plano_corte_pecas: {
+        Row: {
+          altura: number | null
+          ambiente: string | null
+          chapa_id: string
+          codigo_peca: string | null
+          cor_linha: string | null
+          created_at: string
+          dados_origem: Json | null
+          descricao: string | null
+          espessura: number | null
+          etiqueta_id: string | null
+          id: string
+          importacao_id: string
+          indice_peca: number | null
+          largura: number | null
+          loja_id: string | null
+          lote_id: string | null
+          material: string | null
+          modulo_pai: string | null
+          peca_id: string | null
+          pedido_id: string | null
+          posicao_x: number | null
+          posicao_y: number | null
+          referencia_peca: string | null
+          rotacao: number | null
+          status_item: string
+          tipo_item: string
+          updated_at: string
+        }
+        Insert: {
+          altura?: number | null
+          ambiente?: string | null
+          chapa_id: string
+          codigo_peca?: string | null
+          cor_linha?: string | null
+          created_at?: string
+          dados_origem?: Json | null
+          descricao?: string | null
+          espessura?: number | null
+          etiqueta_id?: string | null
+          id?: string
+          importacao_id: string
+          indice_peca?: number | null
+          largura?: number | null
+          loja_id?: string | null
+          lote_id?: string | null
+          material?: string | null
+          modulo_pai?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          referencia_peca?: string | null
+          rotacao?: number | null
+          status_item?: string
+          tipo_item?: string
+          updated_at?: string
+        }
+        Update: {
+          altura?: number | null
+          ambiente?: string | null
+          chapa_id?: string
+          codigo_peca?: string | null
+          cor_linha?: string | null
+          created_at?: string
+          dados_origem?: Json | null
+          descricao?: string | null
+          espessura?: number | null
+          etiqueta_id?: string | null
+          id?: string
+          importacao_id?: string
+          indice_peca?: number | null
+          largura?: number | null
+          loja_id?: string | null
+          lote_id?: string | null
+          material?: string | null
+          modulo_pai?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          referencia_peca?: string | null
+          rotacao?: number | null
+          status_item?: string
+          tipo_item?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_plano_corte_pecas_chapa_id_fkey"
+            columns: ["chapa_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_chapas_lote"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_plano_corte_pecas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_plano_corte_pecas_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_importacoes_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_plano_corte_pecas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_plano_corte_pecas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_requisicoes_compra: {
         Row: {
           ambiente: string | null

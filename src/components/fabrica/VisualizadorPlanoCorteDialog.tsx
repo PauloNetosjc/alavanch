@@ -13,6 +13,7 @@ import {
   Play, CheckCircle2, ShieldCheck,
 } from "lucide-react";
 import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
 import { toast } from "sonner";
 
 interface Props {
@@ -335,6 +336,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                   <TabsTrigger value="detalhes" className="text-xs">Detalhes</TabsTrigger>
                   <TabsTrigger value="etiquetas" className="text-xs">Etiquetas</TabsTrigger>
                   <TabsTrigger value="pecas" className="text-xs">Peças</TabsTrigger>
+                  <TabsTrigger value="vetorial" className="text-xs">Vetorial</TabsTrigger>
                   <TabsTrigger value="arquivos" className="text-xs">Arquivos</TabsTrigger>
                 </TabsList>
 
@@ -437,6 +439,11 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                     Peças da chapa ainda não interpretadas.<br />
                     Serão preenchidas na próxima fase com leitura estruturada da ListaCorte/Preview.
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="vetorial" className="p-3 space-y-2">
+                  <DadosVetoriaisPanel importacaoId={impSelId} compact />
+                  <DadosVetoriaisTabela importacaoId={impSelId} chapaId={chapaSelId} />
                 </TabsContent>
 
                 <TabsContent value="arquivos" className="p-3 space-y-2">
