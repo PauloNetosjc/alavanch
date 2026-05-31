@@ -101,6 +101,9 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
 
   // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
   if (isImg) {
+    const previewNome = nomeIndicaPreview(nome);
+    if (previewNome === "small") return "small_preview_cutting_plan";
+    if (previewNome === "large" || previewNome === "preview") return "large_preview_cutting_plan";
     if (lower.includes("smallpreviewcuttingplan")) return "small_preview_cutting_plan";
     if (lower.includes("largepreviewcuttingplan")) return "large_preview_cutting_plan";
     // Fallback genérico — variações como "PreviewCuttingPlan", "CuttingPlanPreview"
