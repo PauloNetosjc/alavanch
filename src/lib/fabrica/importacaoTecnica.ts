@@ -153,12 +153,17 @@ export function normalizarNumeroChapa(s: string | number | null | undefined): st
 /** Tenta extrair o número da chapa de nomes diversos. Trata "07", "007", "Chapa 7", etc. */
 export function extrairNumeroChapaDoNome(nome: string): string | null {
   if (!nome) return null;
-  const semExt = nome.replace(/\.[a-z0-9]+$/i, "");
+  const semExt = nome.replace(/\.[a-z0-9]+$/i, "").replace(/[\\/]+/g, " ");
   // "Chapa 13", "Chapa_13", "chapa13"
   let m = semExt.match(/chapa[\s_\-]*0*(\d+)/i);
   if (m) return normalizarNumeroChapa(m[1]);
   // Plate/Board/Prancha
   m = semExt.match(/(?:plate|board|prancha)[\s_\-]*0*(\d+)/i);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Variações de preview: "LargePreviewCuttingPlan08", "CuttingPlan-008", etc.
+  m = semExt.match(/(?:large|small)?\s*preview\s*cutting\s*plan[\s_\-]*0*(\d+)/i)
+    || semExt.match(/cutting\s*plan[\s_\-]*0*(\d+)/i)
+    || semExt.match(/0*(\d+)[\s_\-]*(?:large|small)?\s*preview\s*cutting\s*plan/i);
   if (m) return normalizarNumeroChapa(m[1]);
   // Início numérico tipo "13_..." ou "07-..."
   m = semExt.match(/^0*(\d+)[\s_\-]/);
@@ -183,6 +188,10 @@ export function nomeIndicaPreview(nome: string): "large" | "small" | "preview" |
     if (l.includes("small")) return "small";
     if (l.includes("large")) return "large";
     return "preview";
+  }
+  if (l.includes("cuttingplan") || (l.includes("cutting") && l.includes("plan"))) {
+    if (l.includes("small")) return "small";
+    return "large";
   }
   return null;
 }
