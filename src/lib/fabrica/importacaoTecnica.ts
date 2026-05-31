@@ -99,6 +99,8 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   const semExt = lower.replace(/\.[a-z0-9]+$/, "");
   const isImg = ext === "bmp" || ext === "png" || ext === "jpg" || ext === "jpeg";
 
+  if (ext === "pdf" && lower.includes("previewcorte")) return "preview_corte_pdf";
+
   // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
   if (isImg) {
     const previewNome = nomeIndicaPreview(nome);
