@@ -2847,6 +2847,195 @@ export type Database = {
           },
         ]
       }
+      fabrica_arquivos_tecnicos: {
+        Row: {
+          caminho_relativo: string | null
+          chapa_id: string | null
+          created_at: string
+          criado_por: string | null
+          dados_extraidos: Json | null
+          extensao: string | null
+          id: string
+          importacao_id: string
+          loja_id: string | null
+          lote_id: string | null
+          mime_type: string | null
+          nome_arquivo: string
+          origem_pasta: string
+          peca_id: string | null
+          pedido_id: string | null
+          processado: boolean
+          tamanho_bytes: number | null
+          tipo_arquivo: string
+          updated_at: string
+          url_arquivo: string | null
+        }
+        Insert: {
+          caminho_relativo?: string | null
+          chapa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dados_extraidos?: Json | null
+          extensao?: string | null
+          id?: string
+          importacao_id: string
+          loja_id?: string | null
+          lote_id?: string | null
+          mime_type?: string | null
+          nome_arquivo: string
+          origem_pasta?: string
+          peca_id?: string | null
+          pedido_id?: string | null
+          processado?: boolean
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string
+          updated_at?: string
+          url_arquivo?: string | null
+        }
+        Update: {
+          caminho_relativo?: string | null
+          chapa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dados_extraidos?: Json | null
+          extensao?: string | null
+          id?: string
+          importacao_id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          mime_type?: string | null
+          nome_arquivo?: string
+          origem_pasta?: string
+          peca_id?: string | null
+          pedido_id?: string | null
+          processado?: boolean
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string
+          updated_at?: string
+          url_arquivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_arquivos_tecnicos_chapa_id_fkey"
+            columns: ["chapa_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_chapas_lote"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_arquivos_tecnicos_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_importacoes_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_arquivos_tecnicos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_arquivos_tecnicos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_chapas_lote: {
+        Row: {
+          altura_chapa: number
+          aproveitamento: number | null
+          arquivo_cyc_id: string | null
+          arquivo_nc_id: string | null
+          cor_linha: string | null
+          created_at: string
+          espessura: number | null
+          id: string
+          importacao_id: string
+          largura_chapa: number
+          loja_id: string | null
+          lote_id: string | null
+          material: string | null
+          numero_chapa: string | null
+          ordem_chapa: number | null
+          pedido_id: string | null
+          preview_large_id: string | null
+          preview_small_id: string | null
+          status_chapa: string
+          updated_at: string
+        }
+        Insert: {
+          altura_chapa?: number
+          aproveitamento?: number | null
+          arquivo_cyc_id?: string | null
+          arquivo_nc_id?: string | null
+          cor_linha?: string | null
+          created_at?: string
+          espessura?: number | null
+          id?: string
+          importacao_id: string
+          largura_chapa?: number
+          loja_id?: string | null
+          lote_id?: string | null
+          material?: string | null
+          numero_chapa?: string | null
+          ordem_chapa?: number | null
+          pedido_id?: string | null
+          preview_large_id?: string | null
+          preview_small_id?: string | null
+          status_chapa?: string
+          updated_at?: string
+        }
+        Update: {
+          altura_chapa?: number
+          aproveitamento?: number | null
+          arquivo_cyc_id?: string | null
+          arquivo_nc_id?: string | null
+          cor_linha?: string | null
+          created_at?: string
+          espessura?: number | null
+          id?: string
+          importacao_id?: string
+          largura_chapa?: number
+          loja_id?: string | null
+          lote_id?: string | null
+          material?: string | null
+          numero_chapa?: string | null
+          ordem_chapa?: number | null
+          pedido_id?: string | null
+          preview_large_id?: string | null
+          preview_small_id?: string | null
+          status_chapa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_chapas_lote_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_importacoes_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_chapas_lote_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_chapas_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_conferencia_historico: {
         Row: {
           codigo_bipado: string | null
@@ -2887,6 +3076,119 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fabrica_conferencia_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_etiquetas: {
+        Row: {
+          arquivo_bmp_id: string | null
+          arquivo_etiqueta_id: string | null
+          arquivo_pdf_id: string | null
+          chapa_id: string | null
+          codigo_barras: string | null
+          codigo_etiqueta_completo: string
+          codigo_peca: string | null
+          created_at: string
+          id: string
+          importacao_id: string
+          indice_duplicidade: number | null
+          loja_id: string | null
+          lote_id: string | null
+          peca_id: string | null
+          pedido_id: string | null
+          referencia_peca: string | null
+          sufixo: string | null
+          updated_at: string
+        }
+        Insert: {
+          arquivo_bmp_id?: string | null
+          arquivo_etiqueta_id?: string | null
+          arquivo_pdf_id?: string | null
+          chapa_id?: string | null
+          codigo_barras?: string | null
+          codigo_etiqueta_completo: string
+          codigo_peca?: string | null
+          created_at?: string
+          id?: string
+          importacao_id: string
+          indice_duplicidade?: number | null
+          loja_id?: string | null
+          lote_id?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          referencia_peca?: string | null
+          sufixo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arquivo_bmp_id?: string | null
+          arquivo_etiqueta_id?: string | null
+          arquivo_pdf_id?: string | null
+          chapa_id?: string | null
+          codigo_barras?: string | null
+          codigo_etiqueta_completo?: string
+          codigo_peca?: string | null
+          created_at?: string
+          id?: string
+          importacao_id?: string
+          indice_duplicidade?: number | null
+          loja_id?: string | null
+          lote_id?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          referencia_peca?: string | null
+          sufixo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_etiquetas_arquivo_bmp_id_fkey"
+            columns: ["arquivo_bmp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_arquivos_tecnicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_arquivo_etiqueta_id_fkey"
+            columns: ["arquivo_etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_arquivos_tecnicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_arquivo_pdf_id_fkey"
+            columns: ["arquivo_pdf_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_arquivos_tecnicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_chapa_id_fkey"
+            columns: ["chapa_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_chapas_lote"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_importacoes_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_etiquetas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
@@ -2938,6 +3240,93 @@ export type Database = {
             columns: ["volume_id"]
             isOneToOne: false
             referencedRelation: "fabrica_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_importacoes_tecnicas: {
+        Row: {
+          ambiente: string | null
+          arquivo_original_nome: string | null
+          arquivo_original_url: string | null
+          cliente_nome: string | null
+          created_at: string
+          data_importacao: string
+          id: string
+          loja_id: string | null
+          lote_id: string | null
+          mensagem_processamento: string | null
+          pedido_id: string | null
+          projeto_nome: string | null
+          status_importacao: string
+          tipo_importacao: string
+          total_arquivos: number
+          total_arquivos_tecnicos: number
+          total_chapas: number
+          total_etiquetas: number
+          total_pecas: number
+          updated_at: string
+          usuario_importacao: string | null
+        }
+        Insert: {
+          ambiente?: string | null
+          arquivo_original_nome?: string | null
+          arquivo_original_url?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_importacao?: string
+          id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          mensagem_processamento?: string | null
+          pedido_id?: string | null
+          projeto_nome?: string | null
+          status_importacao?: string
+          tipo_importacao?: string
+          total_arquivos?: number
+          total_arquivos_tecnicos?: number
+          total_chapas?: number
+          total_etiquetas?: number
+          total_pecas?: number
+          updated_at?: string
+          usuario_importacao?: string | null
+        }
+        Update: {
+          ambiente?: string | null
+          arquivo_original_nome?: string | null
+          arquivo_original_url?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_importacao?: string
+          id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          mensagem_processamento?: string | null
+          pedido_id?: string | null
+          projeto_nome?: string | null
+          status_importacao?: string
+          tipo_importacao?: string
+          total_arquivos?: number
+          total_arquivos_tecnicos?: number
+          total_chapas?: number
+          total_etiquetas?: number
+          total_pecas?: number
+          updated_at?: string
+          usuario_importacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_importacoes_tecnicas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_importacoes_tecnicas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]
@@ -3208,6 +3597,95 @@ export type Database = {
             columns: ["ocorrencia_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ocorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_peca_operacoes: {
+        Row: {
+          arquivo_tecnico_id: string | null
+          created_at: string
+          dados_brutos: string | null
+          diametro: number | null
+          face: string | null
+          id: string
+          importacao_id: string
+          loja_id: string | null
+          lote_id: string | null
+          origem_pasta: string | null
+          peca_id: string | null
+          pedido_id: string | null
+          posicao_x: number | null
+          posicao_y: number | null
+          posicao_z: number | null
+          profundidade: number | null
+          tipo_operacao: string
+        }
+        Insert: {
+          arquivo_tecnico_id?: string | null
+          created_at?: string
+          dados_brutos?: string | null
+          diametro?: number | null
+          face?: string | null
+          id?: string
+          importacao_id: string
+          loja_id?: string | null
+          lote_id?: string | null
+          origem_pasta?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          posicao_z?: number | null
+          profundidade?: number | null
+          tipo_operacao: string
+        }
+        Update: {
+          arquivo_tecnico_id?: string | null
+          created_at?: string
+          dados_brutos?: string | null
+          diametro?: number | null
+          face?: string | null
+          id?: string
+          importacao_id?: string
+          loja_id?: string | null
+          lote_id?: string | null
+          origem_pasta?: string | null
+          peca_id?: string | null
+          pedido_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          posicao_z?: number | null
+          profundidade?: number | null
+          tipo_operacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_peca_operacoes_arquivo_tecnico_id_fkey"
+            columns: ["arquivo_tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_arquivos_tecnicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_peca_operacoes_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_importacoes_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_peca_operacoes_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_peca_operacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]
