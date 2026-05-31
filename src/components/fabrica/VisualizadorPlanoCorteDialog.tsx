@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
+import { VisualizadorVetorialChapa } from "@/components/fabrica/VisualizadorVetorialChapa";
 import { toast } from "sonner";
 
 interface Props {
@@ -54,6 +55,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
+  const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
 
   // Carrega importações e cabeçalho
   useEffect(() => {
@@ -218,6 +220,16 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
             )}
           </div>
           <div className="flex items-center gap-1 print:hidden">
+            <div className="inline-flex border rounded overflow-hidden mr-1">
+              <Button size="sm" variant={visaoCentral === "preview" ? "default" : "ghost"}
+                className="h-8 rounded-none text-xs px-2" onClick={() => setVisaoCentral("preview")}>
+                Preview
+              </Button>
+              <Button size="sm" variant={visaoCentral === "vetorial" ? "default" : "ghost"}
+                className="h-8 rounded-none text-xs px-2" onClick={() => setVisaoCentral("vetorial")}>
+                Vetorial
+              </Button>
+            </div>
             {impSel?.arquivo_original_url && (
               <Button size="sm" variant="outline" onClick={() => abrirCaminho(impSel.arquivo_original_url)}>
                 <FileArchive className="h-3 w-3 mr-1" /> ZIP
@@ -290,6 +302,19 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
               })}
             </aside>
 
+            {visaoCentral === "vetorial" ? (
+              <section className="col-span-9 border-l overflow-hidden flex flex-col min-h-0 print:col-span-12">
+                <VisualizadorVetorialChapa
+                  importacaoId={impSelId}
+                  chapa={chapaSel}
+                  arquivos={arquivos}
+                  etiquetas={etiquetas}
+                  pedido={pedido}
+                  previewUrl={previewUrl}
+                />
+              </section>
+            ) : (
+            <>
             {/* Centro: preview */}
             <main className="col-span-6 flex flex-col overflow-hidden bg-neutral-900/95 print:bg-white print:col-span-12">
               <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between gap-2 bg-neutral-900 text-white text-xs print:hidden">
@@ -511,6 +536,8 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </TabsContent>
               </Tabs>
             </aside>
+            </>
+            )}
           </div>
         )}
 
