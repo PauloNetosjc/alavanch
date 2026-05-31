@@ -122,6 +122,7 @@ function parseAttrs(s: string): Record<string, string> {
 
 interface ChapaCtx {
   id: string;
+  numero_chapa: string | null;
   material: string | null;
   cor_linha: string | null;
   espessura: number | null;
