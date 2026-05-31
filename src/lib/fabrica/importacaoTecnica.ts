@@ -100,8 +100,14 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   const isImg = ext === "bmp" || ext === "png" || ext === "jpg" || ext === "jpeg";
 
   // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
-  if (lower.includes("smallpreviewcuttingplan") && isImg) return "small_preview_cutting_plan";
-  if (lower.includes("largepreviewcuttingplan") && isImg) return "large_preview_cutting_plan";
+  if (isImg) {
+    if (lower.includes("smallpreviewcuttingplan")) return "small_preview_cutting_plan";
+    if (lower.includes("largepreviewcuttingplan")) return "large_preview_cutting_plan";
+    // Fallback genérico — variações como "PreviewCuttingPlan", "CuttingPlanPreview"
+    if (lower.includes("previewcuttingplan") || lower.includes("cuttingplanpreview")) {
+      return lower.includes("small") ? "small_preview_cutting_plan" : "large_preview_cutting_plan";
+    }
+  }
 
   if (origem === "raiz") {
     if (semExt === "list") return "list";
@@ -137,7 +143,6 @@ export function normalizarNumeroChapa(s: string | number | null | undefined): st
   if (s == null) return null;
   const txt = String(s).trim();
   if (!txt) return null;
-  // Extrai primeira sequência numérica
   const m = txt.match(/(\d+)/);
   if (!m) return null;
   const n = parseInt(m[1], 10);
@@ -145,18 +150,40 @@ export function normalizarNumeroChapa(s: string | number | null | undefined): st
   return String(n);
 }
 
-/** Tenta extrair o número da chapa de nomes como "Chapa 13 - LargePreviewCuttingPlan - Nesting.bmp". */
+/** Tenta extrair o número da chapa de nomes diversos. Trata "07", "007", "Chapa 7", etc. */
 export function extrairNumeroChapaDoNome(nome: string): string | null {
   if (!nome) return null;
+  const semExt = nome.replace(/\.[a-z0-9]+$/i, "");
   // "Chapa 13", "Chapa_13", "chapa13"
-  const m1 = nome.match(/chapa[\s_-]*(\d+)/i);
-  if (m1) return normalizarNumeroChapa(m1[1]);
-  // "Plate 13", "Plate_13"
-  const m2 = nome.match(/plate[\s_-]*(\d+)/i);
-  if (m2) return normalizarNumeroChapa(m2[1]);
-  // Início numérico tipo "13_..."
-  const m3 = nome.match(/^(\d+)[\s_-]/);
-  if (m3) return normalizarNumeroChapa(m3[1]);
+  let m = semExt.match(/chapa[\s_\-]*0*(\d+)/i);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Plate/Board/Prancha
+  m = semExt.match(/(?:plate|board|prancha)[\s_\-]*0*(\d+)/i);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Início numérico tipo "13_..." ou "07-..."
+  m = semExt.match(/^0*(\d+)[\s_\-]/);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Sufixo numérico final ex.: "...CuttingPlan-07" / "_07"
+  m = semExt.match(/[\s_\-]0*(\d+)$/);
+  if (m) return normalizarNumeroChapa(m[1]);
+  return null;
+}
+
+/** True se o nome do arquivo sugere ser um preview de plano de corte. */
+export function nomeIndicaPreview(nome: string): "large" | "small" | "preview" | null {
+  if (!nome) return null;
+  const l = nome.toLowerCase();
+  if (l.includes("largepreviewcuttingplan")) return "large";
+  if (l.includes("smallpreviewcuttingplan")) return "small";
+  if (l.includes("previewcuttingplan") || l.includes("cuttingplanpreview")) {
+    if (l.includes("small")) return "small";
+    return "large";
+  }
+  if (l.includes("preview") && (l.includes("cutting") || l.includes("plan"))) {
+    if (l.includes("small")) return "small";
+    if (l.includes("large")) return "large";
+    return "preview";
+  }
   return null;
 }
 
