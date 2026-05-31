@@ -744,6 +744,139 @@ export async function processarArquivoSobDemanda(arquivoId: string): Promise<str
   return storagePath;
 }
 
+type PreviewLado = "large" | "small" | "preview";
+type ZipPreviewCandidate = {
+  entry: any;
+  caminho: string;
+  nome: string;
+  ext: string;
+  origem: OrigemPasta;
+  lado: PreviewLado;
+  numeroChapa: string | null;
+  tipoArquivo: "large_preview_cutting_plan" | "small_preview_cutting_plan";
+};
+
+function contentTypePorExt(ext: string): string | undefined {
+  const e = ext.toLowerCase();
+  if (e === "pdf") return "application/pdf";
+  if (e === "png") return "image/png";
+  if (e === "jpg" || e === "jpeg") return "image/jpeg";
+  if (e === "bmp") return "image/bmp";
+  if (e === "zip") return "application/zip";
+  return undefined;
+}
+
+function ehPossivelPreviewIndividual(caminho: string): boolean {
+  const lower = caminho.toLowerCase();
+  const nome = caminho.split("/").pop() || caminho;
+  const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+  if (!["bmp", "png", "jpg", "jpeg"].includes(ext)) return false;
+  if (nomeIndicaPreview(caminho)) return true;
+  return ["largepreviewcuttingplan", "smallpreviewcuttingplan", "previewcuttingplan", "cuttingplan", "preview", "chapa", "nesting"]
+    .some((k) => lower.includes(k));
+}
+
+function candidatosPreviewDoZip(zip: JSZip): ZipPreviewCandidate[] {
+  return Object.values(zip.files)
+    .filter((entry: any) => !entry.dir && !ehArquivoIgnorado(entry.name))
+    .map((entry: any) => {
+      const caminho = entry.name.replace(/\\/g, "/");
+      const nome = caminho.split("/").pop() || caminho;
+      const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+      const lado = nomeIndicaPreview(caminho) || (caminho.toLowerCase().includes("small") ? "small" : "large");
+      return {
+        entry,
+        caminho,
+        nome,
+        ext,
+        origem: detectarOrigem(caminho),
+        lado,
+        numeroChapa: extrairNumeroChapaDoNome(caminho),
+        tipoArquivo: lado === "small" ? "small_preview_cutting_plan" : "large_preview_cutting_plan",
+      } as ZipPreviewCandidate;
+    })
+    .filter((c) => ehPossivelPreviewIndividual(c.caminho));
+}
+
+async function abrirZipOriginal(importacaoId: string) {
+  const { data: imp, error: impErr } = await (supabase as any)
+    .from("fabrica_importacoes_tecnicas")
+    .select("id, arquivo_original_url, loja_id, pedido_id, lote_id")
+    .eq("id", importacaoId)
+    .maybeSingle();
+  if (impErr || !imp) throw new Error("Importação técnica não encontrada");
+  if (!imp.arquivo_original_url) throw new Error("ZIP original não está salvo nesta importação");
+
+  const { data: zipBlob, error: dlErr } = await supabase.storage.from(BUCKET).download(imp.arquivo_original_url);
+  if (dlErr || !zipBlob) throw new Error(`Falha ao baixar ZIP original: ${dlErr?.message || "sem dados"}`);
+  const zip = await JSZip.loadAsync(zipBlob);
+  const entries = Object.values(zip.files).filter((f: any) => !f.dir && !ehArquivoIgnorado(f.name));
+  const ref = imp.pedido_id || imp.lote_id || "geral";
+  const basePath = `fabrica/${imp.loja_id || "sem-loja"}/${ref}/${imp.id}`;
+  return { imp, zip, entries, basePath };
+}
+
+async function materializarPreviewDoZip(importacao: any, basePath: string, cand: ZipPreviewCandidate, chapaId?: string | null) {
+  const { data: existente } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("*")
+    .eq("importacao_id", importacao.id)
+    .eq("caminho_relativo", cand.caminho)
+    .maybeSingle();
+
+  if (existente?.url_arquivo && existente?.status_arquivo === "enviado") {
+    if (chapaId && !existente.chapa_id) {
+      await (supabase as any).from("fabrica_arquivos_tecnicos").update({ chapa_id: chapaId }).eq("id", existente.id);
+    }
+    return { ...existente, chapa_id: existente.chapa_id || chapaId || null };
+  }
+
+  const blob = await cand.entry.async("blob");
+  const storagePath = `${basePath}/extracted/${cand.caminho}`;
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, {
+    upsert: true,
+    contentType: contentTypePorExt(cand.ext),
+  });
+  if (up.error) throw new Error(`Falha ao subir preview ${cand.nome}: ${up.error.message}`);
+
+  const payload = {
+    importacao_id: importacao.id,
+    pedido_id: importacao.pedido_id || null,
+    lote_id: importacao.lote_id || null,
+    loja_id: importacao.loja_id || null,
+    chapa_id: chapaId || null,
+    origem_pasta: cand.origem,
+    tipo_arquivo: cand.tipoArquivo,
+    nome_arquivo: cand.nome,
+    extensao: cand.ext || null,
+    caminho_relativo: cand.caminho,
+    url_arquivo: storagePath,
+    mime_type: contentTypePorExt(cand.ext) || null,
+    tamanho_bytes: blob.size,
+    status_arquivo: "enviado",
+    processado: true,
+  };
+
+  if (existente?.id) {
+    const { data, error } = await (supabase as any)
+      .from("fabrica_arquivos_tecnicos")
+      .update(payload)
+      .eq("id", existente.id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(`Falha ao atualizar catálogo do preview: ${error.message}`);
+    return data || { ...existente, ...payload };
+  }
+
+  const { data, error } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .insert(payload)
+    .select()
+    .maybeSingle();
+  if (error || !data) throw new Error(`Falha ao catalogar preview do ZIP: ${error?.message || "sem retorno"}`);
+  return data;
+}
+
 export interface ResumoVinculoPreviews {
   vinculados: number;
   large: number;
