@@ -97,6 +97,11 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   const lower = nome.toLowerCase();
   const ext = (lower.match(/\.([a-z0-9]+)$/)?.[1] || "").toLowerCase();
   const semExt = lower.replace(/\.[a-z0-9]+$/, "");
+  const isImg = ext === "bmp" || ext === "png" || ext === "jpg" || ext === "jpeg";
+
+  // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
+  if (lower.includes("smallpreviewcuttingplan") && isImg) return "small_preview_cutting_plan";
+  if (lower.includes("largepreviewcuttingplan") && isImg) return "large_preview_cutting_plan";
 
   if (origem === "raiz") {
     if (semExt === "list") return "list";
@@ -105,8 +110,6 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
     if ((lower.includes("relat") && lower.includes("almoxarifado")) && ext === "pdf") return "relatorio_almoxarifado_pdf";
   }
   if (origem === "AutoLabel") {
-    if (lower.includes("smallpreviewcuttingplan") && (ext === "bmp" || ext === "png" || ext === "jpg")) return "small_preview_cutting_plan";
-    if (lower.includes("largepreviewcuttingplan") && (ext === "bmp" || ext === "png" || ext === "jpg")) return "large_preview_cutting_plan";
     if (ext === "pdf" && lower.includes("label")) return "labels_pdf";
     if (ext === "bmp" || ext === "pdf") return "etiqueta_individual";
   }
@@ -128,6 +131,35 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   }
   return "outro";
 }
+
+/** Normaliza número da chapa para comparação ("013" → "13"; "Chapa 13" → "13"). */
+export function normalizarNumeroChapa(s: string | number | null | undefined): string | null {
+  if (s == null) return null;
+  const txt = String(s).trim();
+  if (!txt) return null;
+  // Extrai primeira sequência numérica
+  const m = txt.match(/(\d+)/);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  if (isNaN(n)) return null;
+  return String(n);
+}
+
+/** Tenta extrair o número da chapa de nomes como "Chapa 13 - LargePreviewCuttingPlan - Nesting.bmp". */
+export function extrairNumeroChapaDoNome(nome: string): string | null {
+  if (!nome) return null;
+  // "Chapa 13", "Chapa_13", "chapa13"
+  const m1 = nome.match(/chapa[\s_-]*(\d+)/i);
+  if (m1) return normalizarNumeroChapa(m1[1]);
+  // "Plate 13", "Plate_13"
+  const m2 = nome.match(/plate[\s_-]*(\d+)/i);
+  if (m2) return normalizarNumeroChapa(m2[1]);
+  // Início numérico tipo "13_..."
+  const m3 = nome.match(/^(\d+)[\s_-]/);
+  if (m3) return normalizarNumeroChapa(m3[1]);
+  return null;
+}
+
 
 function parseListXml(content: string): Array<Record<string, string>> {
   const cycles: Array<Record<string, string>> = [];
