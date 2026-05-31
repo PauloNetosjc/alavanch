@@ -21,7 +21,6 @@ import {
   normalizarNumeroChapa,
   diagnosticarPreviewChapa,
   repararPreviewChapa,
-  nomeIndicaPreview,
   type DiagnosticoPreview,
 } from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
