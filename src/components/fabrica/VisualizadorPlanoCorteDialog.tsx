@@ -113,16 +113,32 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const chapaSel = useMemo(() => chapas.find((c) => c.id === chapaSelId) || null, [chapas, chapaSelId]);
   const impSel = useMemo(() => importacoes.find((i) => i.id === impSelId) || null, [importacoes, impSelId]);
 
-  // Resolve preview URL ao trocar chapa
+  // Resolve preview arquivo da chapa: prioriza preview_large_id/preview_small_id,
+  // mas faz fallback por "Chapa N" no nome do arquivo
+  function resolverPreviewArquivo(chapa: any, tipo: "large_preview_cutting_plan" | "small_preview_cutting_plan"): any | null {
+    if (!chapa) return null;
+    const directId = tipo === "large_preview_cutting_plan" ? chapa.preview_large_id : chapa.preview_small_id;
+    if (directId) {
+      const arq = arquivos.find((a) => a.id === directId);
+      if (arq) return arq;
+    }
+    const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
+    if (!numChapa) return null;
+    return arquivos.find((a) =>
+      a.tipo_arquivo === tipo && normalizarNumeroChapa(extrairNumeroChapaDoNome(a.nome_arquivo || "") || "") === numChapa
+    ) || null;
+  }
+
+  // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
     setZoom(1);
     if (!chapaSel) return;
-    const previewId = chapaSel.preview_large_id || chapaSel.preview_small_id;
-    if (!previewId) return;
-    const arq = arquivos.find((a) => a.id === previewId);
+    const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
+            || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan");
     if (!arq?.url_arquivo) return;
     getSignedUrlPacoteTecnico(arq.url_arquivo, 3600).then((u) => setPreviewUrl(u));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapaSel, arquivos]);
 
   function arquivosDaChapa(chapaId: string) {
@@ -144,6 +160,38 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     const u = await getSignedUrlPacoteTecnico(path, 3600);
     if (u) window.open(u, "_blank");
   }
+
+  async function carregarArquivoSobDemanda(arqId: string) {
+    try {
+      toast.loading("Extraindo arquivo do ZIP original...", { id: "ondemand" });
+      const newPath = await processarArquivoSobDemanda(arqId);
+      // recarrega arquivos da importação
+      const { data: ar } = await (supabase as any)
+        .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000);
+      setArquivos(ar || []);
+      toast.success("Arquivo carregado", { id: "ondemand" });
+      return newPath;
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "ondemand" });
+      return null;
+    }
+  }
+
+  async function reprocessarVinculosPreviews() {
+    if (!impSelId) return;
+    try {
+      toast.loading("Reprocessando vínculos...", { id: "reprocess" });
+      const r = await vincularPreviewsChapas(impSelId);
+      // recarrega chapas
+      const { data: ch } = await (supabase as any)
+        .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
+      setChapas(ch || []);
+      toast.success(`${r.vinculados} preview(s) vinculado(s) • ${r.large} large • ${r.small} small`, { id: "reprocess" });
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
+    }
+  }
+
 
   async function alterarStatusChapa(novo: StatusChapa) {
     if (!chapaSel) return;
