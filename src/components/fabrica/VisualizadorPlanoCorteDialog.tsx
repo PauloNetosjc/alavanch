@@ -746,29 +746,71 @@ function ArqBtn({
   );
 }
 
-function PlaceholderChapa({ chapa, arquivoCatalogado, onCarregar }: {
+function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, reparando, previewUrl }: {
   chapa: any;
+  arquivos: any[];
   arquivoCatalogado?: any | null;
   onCarregar?: (id: string) => void | Promise<any>;
+  onReparar?: () => void | Promise<any>;
+  reparando?: boolean;
+  previewUrl?: string | null;
 }) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
   const ratio = w / h;
   const podeCarregar = arquivoCatalogado && !arquivoCatalogado.url_arquivo;
+  const diag: DiagnosticoPreview = diagnosticarPreviewChapa(chapa, arquivos);
+  const erroRender = !!previewUrl;
   return (
     <div className="flex flex-col items-center justify-center gap-2 text-white/80">
       <div
-        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2"
-        style={{ width: 600, height: 600 / ratio }}
+        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2 p-4"
+        style={{ width: 600, height: 600 / ratio, maxWidth: "100%" }}
       >
-        <span>Preview não disponível</span>
-        {podeCarregar && onCarregar && (
-          <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
-            <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
-          </Button>
-        )}
+        <span className="font-medium">
+          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview não disponível"}
+        </span>
+        <div className="flex flex-wrap gap-1 justify-center">
+          {podeCarregar && onCarregar && (
+            <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
+              <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
+            </Button>
+          )}
+          {onReparar && (
+            <Button size="sm" variant="secondary" onClick={() => onReparar()} disabled={reparando}>
+              <RefreshCcw className={`h-3 w-3 mr-1 ${reparando ? "animate-spin" : ""}`} />
+              {reparando ? "Procurando..." : "Reparar preview desta chapa"}
+            </Button>
+          )}
+          {erroRender && previewUrl && (
+            <a href={previewUrl} download className="inline-flex items-center gap-1 text-xs px-2 h-8 rounded bg-white/10 hover:bg-white/20">
+              <Download className="h-3 w-3" /> Baixar preview
+            </a>
+          )}
+        </div>
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
+
+      {/* Diagnóstico do preview */}
+      <details className="text-[11px] text-white/70 bg-white/5 border border-white/10 rounded px-3 py-2 w-full max-w-[600px]">
+        <summary className="cursor-pointer select-none text-white/80">Diagnóstico do preview</summary>
+        <div className="mt-2 space-y-1">
+          <div>Número da chapa: <span className="font-mono">{diag.numeroChapa ?? "—"}</span> (normalizado: <span className="font-mono">{diag.numeroNormalizado ?? "—"}</span>)</div>
+          <div>LargePreview na importação: <span className="font-mono">{diag.totalLarge}</span> • SmallPreview: <span className="font-mono">{diag.totalSmall}</span></div>
+          <div>Candidatos para esta chapa: <span className="font-mono">{diag.candidatos.length}</span></div>
+          {diag.candidatos.slice(0, 5).map((c) => (
+            <div key={c.id} className="font-mono text-[10px] text-white/60 truncate">
+              • {c.nome} <span className="text-white/40">[{c.tipo}]</span>{" "}
+              <span className={
+                c.status === "enviado" ? "text-emerald-300"
+                : c.status === "catalogado_nao_enviado" ? "text-amber-300"
+                : "text-red-300"
+              }>{c.status}</span>
+            </div>
+          ))}
+          <div className="text-white/80 pt-1">Motivo provável: <span className="text-amber-200">{diag.motivoProvavel}</span></div>
+        </div>
+      </details>
     </div>
   );
 }
