@@ -442,13 +442,15 @@ export default function UsuariosSistema() {
               ) : filtered.map((p) => {
                 const rs = rolesByUser.get(p.user_id) || [];
                 const ls = getLojasDoUser(p);
-                const base = p.base_cliente_id ? baseById.get(p.base_cliente_id) : null;
+                const be = baseEfetiva(p);
+                const base = be.id ? baseById.get(be.id) : null;
                 const sistema = base?.sistema_saas_id ? sistemaById.get(base.sistema_saas_id) : null;
                 const cargo = p.tipo_usuario === "interno_saas"
                   ? CARGOS_SAAS.find((c) => c.value === p.cargo_saas)?.label || p.cargo_saas || "—"
                   : rs.map((r) => ROLES_BASE.find((x) => x.value === r)?.label || r).join(", ") || "—";
                 const semBase = flagSemBase(p);
                 const semLoja = flagSemLoja(p);
+                const multiBases = flagMultiplasBases(p);
                 const adminBase = isAdminDaBase(p);
                 const lojasLabel = ls.map((id) => lojaById.get(id)?.nome).filter(Boolean).join(", ");
                 return (
@@ -469,8 +471,27 @@ export default function UsuariosSistema() {
                     <td className="px-3 py-2">
                       {p.tipo_usuario === "interno_saas" ? (
                         <span className="text-muted-foreground text-xs">— (interno)</span>
+                      ) : multiBases ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-amber-100 text-amber-800 border-0 cursor-help">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Múltiplas bases
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>Usuário possui lojas de bases diferentes. Revise os vínculos.</TooltipContent>
+                        </Tooltip>
                       ) : base ? (
-                        <span>{base.nome}</span>
+                        <div className="flex items-center gap-1">
+                          <span>{base.nome}</span>
+                          {be.inferida && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-[10px] py-0 px-1 cursor-help">inferida</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>Base identificada pela loja vinculada.</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -478,13 +499,16 @@ export default function UsuariosSistema() {
                               <AlertTriangle className="h-3 w-3 mr-1" /> Sem base
                             </Badge>
                           </TooltipTrigger>
-                          <TooltipContent>Usuário de base precisa ter uma base vinculada.</TooltipContent>
+                          <TooltipContent>
+                            {ls.length ? "Loja vinculada está sem base. Configure a loja." : "Usuário de base precisa ter uma base vinculada."}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                     </td>
                     <td className="px-3 py-2 text-xs">
                       {sistema ? sistema.nome : <span className="text-muted-foreground">—</span>}
                     </td>
+
                     <td className="px-3 py-2 max-w-[200px]">
                       {ls.length ? (
                         <Tooltip>
