@@ -228,7 +228,8 @@ export default function UsuariosSistema() {
         const hay = `${p.nome_completo || ""} ${p.telefone || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (fBase !== "todas" && p.base_cliente_id !== fBase) return false;
+      const be = baseEfetiva(p);
+      if (fBase !== "todas" && be.id !== fBase) return false;
       if (fLoja !== "todas") {
         const ls = getLojasDoUser(p);
         if (!ls.includes(fLoja)) return false;
@@ -238,12 +239,12 @@ export default function UsuariosSistema() {
         if (!rs.includes(fCargo) && p.cargo_saas !== fCargo) return false;
       }
       if (fSistema !== "todos") {
-        const base = p.base_cliente_id ? baseById.get(p.base_cliente_id) : null;
+        const base = be.id ? baseById.get(be.id) : null;
         if (!base || base.sistema_saas_id !== fSistema) return false;
       }
       return true;
     });
-  }, [profiles, busca, fBase, fLoja, fCargo, fSistema, lojasByUser, rolesByUser, baseById, viewTab, quickSemBase, quickSemLoja]);
+  }, [profiles, busca, fBase, fLoja, fCargo, fSistema, lojasByUser, rolesByUser, baseById, lojaById, viewTab, quickSemBase, quickSemLoja]);
 
   const kpis = useMemo(() => {
     const internos = profiles.filter((p) => p.tipo_usuario === "interno_saas").length;
@@ -253,8 +254,10 @@ export default function UsuariosSistema() {
     const ativos = profiles.filter((p) => p.status_saas === "ativo").length;
     const semBase = profiles.filter(flagSemBase).length;
     const semLoja = profiles.filter(flagSemLoja).length;
-    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, total: profiles.length };
-  }, [profiles, lojasByUser, rolesByUser]);
+    const multiBase = profiles.filter(flagMultiplasBases).length;
+    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, multiBase, total: profiles.length };
+  }, [profiles, lojasByUser, rolesByUser, lojaById]);
+
 
   async function registrarHistorico(user_id: string, evento: string, descricao: string, dados?: any) {
     await supabase.from("saas_usuarios_historico").insert({
