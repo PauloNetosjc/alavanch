@@ -591,7 +591,18 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       totalEtiq += (ins as any[] || []).length;
     }
 
+    // 8.5) Vincular previews às chapas por número de chapa no nome
+    try {
+      const vinc = await vincularPreviewsChapas(importacaoId);
+      if (vinc.vinculados > 0) {
+        log("vinculando_previews", `${vinc.vinculados} preview(s) vinculado(s)`);
+      }
+    } catch (e: any) {
+      alertas.push(`Falha ao vincular previews: ${e?.message || e}`);
+    }
+
     // 9) totais finais
+
     const status: ResultadoImportacao["status"] = alertas.length ? "processado_com_alertas" : "processado";
     const mensagem = alertas.length ? alertas.slice(0, 5).join(" | ") : null;
     log("finalizando", `${totalArquivos} arquivos, ${Object.keys(chapasCriadas).length} chapas, ${totalEtiq} etiquetas`);
