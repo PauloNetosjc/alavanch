@@ -168,6 +168,9 @@ export function extrairNumeroChapaDoNome(nome: string): string | null {
     || semExt.match(/cutting\s*plan[\s_\-]*0*(\d+)/i)
     || semExt.match(/0*(\d+)[\s_\-]*(?:large|small)?\s*preview\s*cutting\s*plan/i);
   if (m) return normalizarNumeroChapa(m[1]);
+  // Pasta numérica antes do arquivo: "AutoLabel/08/LargePreviewCuttingPlan.bmp"
+  m = semExt.match(/(?:^|\s)0*(\d+)(?=\s+(?:large|small)?\s*preview|\s+cutting|\s+nesting)/i);
+  if (m) return normalizarNumeroChapa(m[1]);
   // Início numérico tipo "13_..." ou "07-..."
   m = semExt.match(/^0*(\d+)[\s_\-]/);
   if (m) return normalizarNumeroChapa(m[1]);
@@ -1103,7 +1106,7 @@ export async function reprocessarPreviewsPeloZip(importacaoId: string): Promise<
 
   const { imp, zip, entries, basePath } = await abrirZipOriginal(importacaoId);
   const previewsZip = candidatosPreviewDoZip(zip);
-  const previewCortePdfDisponivel = entries.some((e: any) => /preview\s*corte/i.test((e.name || "").replace(/[_-]+/g, " ")) && /\.pdf$/i.test(e.name || ""));
+  const previewCortePdfDisponivel = entries.some((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
   const chapaPorNumero = new Map<string, any>();
   todasChapas.forEach((c: any) => {
     const n = normalizarNumeroChapa(c.numero_chapa);
