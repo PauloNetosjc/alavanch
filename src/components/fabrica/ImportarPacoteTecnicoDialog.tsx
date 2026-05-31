@@ -39,7 +39,8 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   useEffect(() => {
     if (!open) {
       setFile(null); setResultado(null); setProjetoNome(""); setAmbiente("");
-      setClienteNome(null); setErro(null); setProgresso(null);
+      setClienteNome(null); setErro(null); setProgresso(null); setEnviarTudo(false);
+
       return;
     }
     if (pedidoId) {
