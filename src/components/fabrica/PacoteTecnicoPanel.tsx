@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Download, FileArchive, Layers, Tag, FileText, ExternalLink } from "lucide-react";
 import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+import { DadosVetoriaisPanel } from "@/components/fabrica/DadosVetoriaisPanel";
 
 interface Props {
   pedidoId?: string | null;
