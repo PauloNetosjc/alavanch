@@ -28,6 +28,8 @@ import { ScanBarcode, Printer, PackageOpen, Truck } from "lucide-react";
 import { resumirVolumes, listarHistoricoExp, RESULTADO_EXP_LABEL } from "@/lib/fabrica/expedicao";
 import { OcorrenciasPedidoTab } from "@/components/fabrica/OcorrenciasPedidoTab";
 import { PacoteTecnicoPanel } from "@/components/fabrica/PacoteTecnicoPanel";
+import { VisualizadorPlanoCorteDialog } from "@/components/fabrica/VisualizadorPlanoCorteDialog";
+import { Eye } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -51,6 +53,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [etiquetaVolume, setEtiquetaVolume] = useState<any>(null);
   const [etiquetaPecas, setEtiquetaPecas] = useState<any[]>([]);
   const [almoxOpen, setAlmoxOpen] = useState(false);
+  const [planoCorteOpen, setPlanoCorteOpen] = useState(false);
   const [caixaPreview, setCaixaPreview] = useState<any | null>(null);
   const [caixaPreviewItens, setCaixaPreviewItens] = useState<any[]>([]);
   const [expOpen, setExpOpen] = useState(false);
@@ -516,7 +519,12 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               </Card>
             </TabsContent>
 
-            <TabsContent value="tecnico">
+            <TabsContent value="tecnico" className="space-y-3">
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setPlanoCorteOpen(true)}>
+                  <Eye className="h-3 w-3 mr-1" /> Visualizar plano de corte
+                </Button>
+              </div>
               <PacoteTecnicoPanel pedidoId={pedidoId} />
             </TabsContent>
           </Tabs>
@@ -561,6 +569,11 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
       onOpenChange={(v) => { setExpOpen(v); if (!v) carregar(); }}
       pedido={pedido}
       onChanged={() => { carregar(); onChanged?.(); }}
+    />
+    <VisualizadorPlanoCorteDialog
+      open={planoCorteOpen}
+      onOpenChange={setPlanoCorteOpen}
+      pedidoId={pedidoId}
     />
     </>
   );

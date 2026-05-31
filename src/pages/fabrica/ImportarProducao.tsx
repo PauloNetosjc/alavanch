@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
-import { Upload, Loader2, FileArchive, Layers, Tag, AlertTriangle } from "lucide-react";
+import { Upload, Loader2, FileArchive, Layers, Tag, AlertTriangle, Eye } from "lucide-react";
 import { statusFabricaBadgeClass, statusFabricaLabel } from "@/lib/fabrica/statusFabrica";
 import { ImportarProducaoDialog } from "@/components/fabrica/ImportarProducaoDialog";
 import { ImportarPacoteTecnicoDialog } from "@/components/fabrica/ImportarPacoteTecnicoDialog";
+import { VisualizadorPlanoCorteDialog } from "@/components/fabrica/VisualizadorPlanoCorteDialog";
 
 export default function ImportarProducao() {
   const { selectedLojaId } = useLoja();
@@ -16,6 +17,7 @@ export default function ImportarProducao() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [sel, setSel] = useState<{ id: string; codigo: string | null } | null>(null);
   const [tecSel, setTecSel] = useState<{ id: string; codigo: string | null } | null>(null);
+  const [verCorte, setVerCorte] = useState<{ id: string; codigo: string | null } | null>(null);
   const [multi, setMulti] = useState<Record<string, boolean>>({});
   const [tecMultiOpen, setTecMultiOpen] = useState(false);
   const [resumo, setResumo] = useState({ pacotes: 0, erros: 0, chapas: 0, etiquetas: 0, arquivos: 0 });
@@ -106,6 +108,9 @@ export default function ImportarProducao() {
                     <Button size="sm" onClick={() => setTecSel({ id: p.id, codigo: p.codigo })}>
                       <FileArchive className="h-4 w-4 mr-1" /> Pacote técnico
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setVerCorte({ id: p.id, codigo: p.codigo })}>
+                      <Eye className="h-4 w-4 mr-1" /> Plano de corte
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -138,6 +143,12 @@ export default function ImportarProducao() {
         modo="lote_multi_cliente"
         pedidosIds={multiIds}
         onConcluido={() => { setTecMultiOpen(false); setMulti({}); carregar(); }}
+      />
+
+      <VisualizadorPlanoCorteDialog
+        open={!!verCorte}
+        onOpenChange={(v) => !v && setVerCorte(null)}
+        pedidoId={verCorte?.id || null}
       />
     </div>
   );
