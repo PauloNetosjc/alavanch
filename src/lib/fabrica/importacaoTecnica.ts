@@ -2,6 +2,9 @@ import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 
 const BUCKET = "fabrica-pacotes-tecnicos";
+const MAX_FILE_MB = 200; // limite máximo do ZIP
+const UPLOAD_CONCURRENCY = 6;
+const INSERT_BATCH = 100;
 
 export type OrigemPasta = "AutoLabel" | "NC" | "Parts" | "Profile" | "xml" | "raiz" | "outro";
 export type TipoArquivo =
@@ -31,6 +34,13 @@ export interface ResultadoImportacao {
   mensagem?: string;
 }
 
+export interface ProgressoEvento {
+  etapa: string;
+  detalhe?: string;
+  atual?: number;
+  total?: number;
+}
+
 interface ParseEtiqueta {
   codigo_etiqueta_completo: string;
   referencia_peca: string | null;
@@ -39,7 +49,6 @@ interface ParseEtiqueta {
   indice_duplicidade: number | null;
 }
 
-/** Parses names like GAV8252A(1) or BAS7080A(1).bmp */
 export function parseNomeEtiqueta(nomeOriginal: string): ParseEtiqueta {
   const semExt = nomeOriginal.replace(/\.[a-z0-9]+$/i, "");
   const m = semExt.match(/^([A-Za-z]+)(\d+)([A-Za-z]*)(?:\((\d+)\))?$/);
@@ -53,7 +62,6 @@ export function parseNomeEtiqueta(nomeOriginal: string): ParseEtiqueta {
   };
 }
 
-/** Parses chapa filename like 13_MDP_Cerrado_Bold_25.cyc */
 export function parseNomeChapaCyc(nome: string) {
   const semExt = nome.replace(/\.[a-z0-9]+$/i, "");
   const partes = semExt.split("_").filter(Boolean);
@@ -122,7 +130,6 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
 }
 
 function parseListXml(content: string): Array<Record<string, string>> {
-  // Best-effort parse of <Cycle Name="Cycle_List"> ... <Field Value="..." Name="..."/>
   const cycles: Array<Record<string, string>> = [];
   const cycleRegex = /<Cycle\b[^>]*>([\s\S]*?)<\/Cycle>/gi;
   let m: RegExpExecArray | null;
@@ -156,15 +163,61 @@ export interface ImportarParams {
   clienteNome?: string | null;
   projetoNome?: string | null;
   ambiente?: string | null;
+  onProgress?: (ev: ProgressoEvento) => void;
+}
+
+function ehArquivoIgnorado(caminho: string): boolean {
+  const lower = caminho.toLowerCase();
+  if (lower.includes("__macosx")) return true;
+  if (lower.endsWith("/.ds_store") || lower.endsWith(".ds_store")) return true;
+  if (lower.endsWith("/thumbs.db") || lower.endsWith("thumbs.db")) return true;
+  if (lower.endsWith("/desktop.ini")) return true;
+  if (caminho.split("/").pop()?.startsWith(".")) return true;
+  return false;
+}
+
+/** Processa entradas em paralelo controlado. */
+async function processarEmLotes<T, R>(items: T[], concurrency: number, fn: (it: T, idx: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      try {
+        results[i] = await fn(items[i], i);
+      } catch (e) {
+        results[i] = e as any;
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 export async function importarPacoteTecnico(params: ImportarParams): Promise<ResultadoImportacao> {
-  const { pedidoId, loteId, lojaId, tipoImportacao, arquivoZip } = params;
+  const { pedidoId, loteId, lojaId, tipoImportacao, arquivoZip, onProgress } = params;
   const alertas: string[] = [];
+  const log = (etapa: string, detalhe?: string, atual?: number, total?: number) => {
+    console.log(`[importacaoTecnica] ${etapa}${detalhe ? ` - ${detalhe}` : ""}${atual != null && total != null ? ` (${atual}/${total})` : ""}`);
+    try { onProgress?.({ etapa, detalhe, atual, total }); } catch { /* ignore */ }
+  };
+
+  // Validação básica
+  if (!arquivoZip) throw new Error("Nenhum arquivo selecionado");
+  if (!/\.zip$/i.test(arquivoZip.name)) throw new Error("Arquivo deve ser .zip");
+  const tamMb = arquivoZip.size / 1024 / 1024;
+  if (tamMb > MAX_FILE_MB) {
+    throw new Error(`Arquivo muito grande (${tamMb.toFixed(1)}MB). Limite: ${MAX_FILE_MB}MB.`);
+  }
+
+  log("validacao", `${arquivoZip.name} - ${tamMb.toFixed(2)}MB`);
+
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id || null;
 
   // 1) cria importação
+  log("criando_importacao");
   const { data: impData, error: impErr } = await (supabase as any)
     .from("fabrica_importacoes_tecnicas")
     .insert({
@@ -180,48 +233,73 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       usuario_importacao: userId,
     })
     .select()
-    .single();
-  if (impErr || !impData) throw new Error(impErr?.message || "Falha ao criar importação");
+    .maybeSingle();
+  if (impErr || !impData) throw new Error(impErr?.message || "Falha ao criar registro de importação. Verifique permissões.");
   const importacaoId = impData.id as string;
   const basePath = `fabrica/${lojaId || "sem-loja"}/${pedidoId || loteId || "geral"}/${importacaoId}`;
 
+  // dali pra frente, qualquer erro vai marcar a importacao como erro
+  async function marcarErro(msg: string) {
+    try {
+      await (supabase as any).from("fabrica_importacoes_tecnicas")
+        .update({ status_importacao: "erro", mensagem_processamento: msg })
+        .eq("id", importacaoId);
+    } catch { /* ignore */ }
+  }
+
   try {
     // 2) upload do ZIP original
+    log("enviando_zip_original");
     const zipPath = `${basePath}/original/${arquivoZip.name}`;
-    const upZip = await supabase.storage.from(BUCKET).upload(zipPath, arquivoZip, { upsert: true });
-    if (upZip.error) alertas.push(`Falha ao salvar ZIP original: ${upZip.error.message}`);
+    const upZip = await supabase.storage.from(BUCKET).upload(zipPath, arquivoZip, { upsert: true, contentType: "application/zip" });
+    if (upZip.error) {
+      alertas.push(`Falha ao salvar ZIP original: ${upZip.error.message}`);
+      log("zip_original_falhou", upZip.error.message);
+    } else {
+      log("zip_original_enviado");
+    }
     await (supabase as any).from("fabrica_importacoes_tecnicas")
-      .update({ status_importacao: "processando", arquivo_original_url: zipPath })
+      .update({ status_importacao: "processando", arquivo_original_url: upZip.error ? null : zipPath })
       .eq("id", importacaoId);
 
     // 3) extrair zip
-    const zip = await JSZip.loadAsync(arquivoZip);
-    const entries = Object.values(zip.files).filter((f) => !f.dir);
+    log("extraindo_zip");
+    let zip: JSZip;
+    try {
+      zip = await JSZip.loadAsync(arquivoZip);
+    } catch (e: any) {
+      throw new Error(`Não foi possível ler o arquivo ZIP: ${e?.message || e}`);
+    }
+    const allEntries = Object.values(zip.files).filter((f) => !f.dir && !ehArquivoIgnorado(f.name));
+    log("zip_extraido", `${allEntries.length} arquivo(s)`);
 
-    const arquivosCriados: Record<string, string> = {}; // caminho -> arquivo_tecnico_id
+    const totalArquivos = allEntries.length;
+    if (totalArquivos === 0) {
+      alertas.push("ZIP não contém arquivos processáveis.");
+    }
+
+    // 4) Upload paralelo + acumular linhas
+    log("enviando_arquivos", undefined, 0, totalArquivos);
     let listContent: string | null = null;
-    let totalArquivos = 0;
-    let totalArquivosTecnicos = 0;
+    let uploadsConcluidos = 0;
+    const arquivosParaInserir: any[] = [];
 
-    // First pass: upload + cadastrar arquivos
-    for (const entry of entries) {
+    await processarEmLotes(allEntries, UPLOAD_CONCURRENCY, async (entry) => {
       const caminho = entry.name.replace(/\\/g, "/");
       const nome = caminho.split("/").pop() || caminho;
       const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
       const origem = detectarOrigem(caminho);
       const tipo = detectarTipo(nome, origem);
-      totalArquivos++;
 
-      const blob = await entry.async("blob");
-      const storagePath = `${basePath}/extracted/${caminho}`;
-      const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true });
-      if (up.error) {
-        alertas.push(`Falha upload ${caminho}: ${up.error.message}`);
-      }
-
-      const { data: arqIns, error: arqErr } = await (supabase as any)
-        .from("fabrica_arquivos_tecnicos")
-        .insert({
+      try {
+        const blob = await entry.async("blob");
+        const storagePath = `${basePath}/extracted/${caminho}`;
+        const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true });
+        if (up.error) {
+          alertas.push(`Falha upload ${caminho}: ${up.error.message}`);
+          return;
+        }
+        arquivosParaInserir.push({
           importacao_id: importacaoId,
           pedido_id: pedidoId || null,
           lote_id: loteId || null,
@@ -234,66 +312,95 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
           url_arquivo: storagePath,
           tamanho_bytes: blob.size,
           criado_por: userId,
-        })
-        .select("id")
-        .single();
-      if (arqErr) {
-        alertas.push(`Falha cadastro ${caminho}: ${arqErr.message}`);
+          _caminho_key: caminho,
+        });
+        if (tipo === "list") {
+          try { listContent = await entry.async("string"); } catch { /* ignore */ }
+        }
+      } catch (e: any) {
+        alertas.push(`Erro ao processar ${caminho}: ${e?.message || e}`);
+      } finally {
+        uploadsConcluidos++;
+        if (uploadsConcluidos % 10 === 0 || uploadsConcluidos === totalArquivos) {
+          log("enviando_arquivos", undefined, uploadsConcluidos, totalArquivos);
+        }
+      }
+    });
+
+    // 5) Inserir arquivos em batch
+    log("catalogando_arquivos", undefined, 0, arquivosParaInserir.length);
+    const arquivosCriados: Record<string, string> = {};
+    let totalArquivosTecnicos = 0;
+    for (let i = 0; i < arquivosParaInserir.length; i += INSERT_BATCH) {
+      const slice = arquivosParaInserir.slice(i, i + INSERT_BATCH);
+      const payload = slice.map(({ _caminho_key, ...rest }) => rest);
+      const { data: ins, error: insErr } = await (supabase as any)
+        .from("fabrica_arquivos_tecnicos")
+        .insert(payload)
+        .select("id, caminho_relativo");
+      if (insErr) {
+        alertas.push(`Falha ao catalogar lote (${i}-${i + slice.length}): ${insErr.message}`);
         continue;
       }
-      arquivosCriados[caminho] = arqIns.id;
-      totalArquivosTecnicos++;
-
-      if (tipo === "list") {
-        try { listContent = await entry.async("string"); } catch { /* ignore */ }
-      }
+      (ins as any[] || []).forEach((row) => { arquivosCriados[row.caminho_relativo] = row.id; });
+      totalArquivosTecnicos += (ins as any[] || []).length;
+      log("catalogando_arquivos", undefined, Math.min(i + INSERT_BATCH, arquivosParaInserir.length), arquivosParaInserir.length);
     }
 
-    // 4) chapas a partir do List
-    const chapasCriadas: Record<string, string> = {}; // numero -> chapa_id
+    // 6) chapas a partir do List
+    log("processando_list");
+    const chapasCriadas: Record<string, string> = {};
     if (listContent) {
-      const cycles = parseListXml(listContent);
-      let ordemAuto = 0;
-      for (const c of cycles) {
-        ordemAuto++;
-        const plateId = c["PlateID"] || c["__pos_0"] || "";
-        const labelName = c["LabelName"] || c["__pos_1"] || "";
-        const color = c["Color"] || null;
-        const thickness = c["Thickness"] ? parseFloat(c["Thickness"]) : null;
-        const semExt = (plateId || labelName).replace(/\.[a-z0-9]+$/i, "");
-        const partes = semExt.split("_").filter(Boolean);
-        const numero = partes[0] || String(ordemAuto);
-        const material = partes[1] || null;
+      try {
+        const cycles = parseListXml(listContent);
+        let ordemAuto = 0;
+        for (const c of cycles) {
+          ordemAuto++;
+          const plateId = c["PlateID"] || c["__pos_0"] || "";
+          const labelName = c["LabelName"] || c["__pos_1"] || "";
+          const color = c["Color"] || null;
+          const thickness = c["Thickness"] ? parseFloat(c["Thickness"]) : null;
+          const semExt = (plateId || labelName).replace(/\.[a-z0-9]+$/i, "");
+          const partes = semExt.split("_").filter(Boolean);
+          const numero = partes[0] || String(ordemAuto);
+          const material = partes[1] || null;
 
-        const ncEntry = Object.keys(arquivosCriados).find((k) => k.toLowerCase().endsWith("/" + plateId.toLowerCase()) || k.toLowerCase().endsWith(plateId.toLowerCase()));
-        const cycEntry = Object.keys(arquivosCriados).find((k) => k.toLowerCase().endsWith("/" + labelName.toLowerCase()) || k.toLowerCase().endsWith(labelName.toLowerCase()));
-        const largeEntry = Object.keys(arquivosCriados).find((k) => /large.*preview.*cutting/i.test(k) && k.includes(numero));
-        const smallEntry = Object.keys(arquivosCriados).find((k) => /small.*preview.*cutting/i.test(k) && k.includes(numero));
+          const ncEntry = Object.keys(arquivosCriados).find((k) => k.toLowerCase().endsWith("/" + plateId.toLowerCase()) || k.toLowerCase().endsWith(plateId.toLowerCase()));
+          const cycEntry = Object.keys(arquivosCriados).find((k) => k.toLowerCase().endsWith("/" + labelName.toLowerCase()) || k.toLowerCase().endsWith(labelName.toLowerCase()));
+          const largeEntry = Object.keys(arquivosCriados).find((k) => /large.*preview.*cutting/i.test(k) && k.includes(numero));
+          const smallEntry = Object.keys(arquivosCriados).find((k) => /small.*preview.*cutting/i.test(k) && k.includes(numero));
 
-        const { data: chapaIns } = await (supabase as any)
-          .from("fabrica_chapas_lote")
-          .insert({
-            importacao_id: importacaoId,
-            pedido_id: pedidoId || null,
-            lote_id: loteId || null,
-            loja_id: lojaId || null,
-            numero_chapa: numero,
-            ordem_chapa: /^\d+$/.test(numero) ? parseInt(numero, 10) : ordemAuto,
-            material,
-            cor_linha: color,
-            espessura: thickness,
-            arquivo_nc_id: ncEntry ? arquivosCriados[ncEntry] : null,
-            arquivo_cyc_id: cycEntry ? arquivosCriados[cycEntry] : null,
-            preview_large_id: largeEntry ? arquivosCriados[largeEntry] : null,
-            preview_small_id: smallEntry ? arquivosCriados[smallEntry] : null,
-          })
-          .select("id")
-          .single();
-        if (chapaIns) chapasCriadas[numero] = chapaIns.id;
+          const { data: chapaIns, error: chErr } = await (supabase as any)
+            .from("fabrica_chapas_lote")
+            .insert({
+              importacao_id: importacaoId,
+              pedido_id: pedidoId || null,
+              lote_id: loteId || null,
+              loja_id: lojaId || null,
+              numero_chapa: numero,
+              ordem_chapa: /^\d+$/.test(numero) ? parseInt(numero, 10) : ordemAuto,
+              material,
+              cor_linha: color,
+              espessura: thickness,
+              arquivo_nc_id: ncEntry ? arquivosCriados[ncEntry] : null,
+              arquivo_cyc_id: cycEntry ? arquivosCriados[cycEntry] : null,
+              preview_large_id: largeEntry ? arquivosCriados[largeEntry] : null,
+              preview_small_id: smallEntry ? arquivosCriados[smallEntry] : null,
+            })
+            .select("id")
+            .maybeSingle();
+          if (chErr) alertas.push(`Chapa ${numero}: ${chErr.message}`);
+          else if (chapaIns) chapasCriadas[numero] = chapaIns.id;
+        }
+      } catch (e: any) {
+        alertas.push(`Erro ao processar List: ${e?.message || e}`);
       }
+    } else {
+      alertas.push("Arquivo List não encontrado no ZIP.");
     }
 
-    // 5) Complementar com .cyc do xml/ (caso não tenha List)
+    // 7) Complementar com .cyc do xml/ (caso não tenha List ou faltem chapas)
+    log("criando_chapas_complementares");
     for (const [caminho, arqId] of Object.entries(arquivosCriados)) {
       if (!/\.cyc$/i.test(caminho)) continue;
       const origem = detectarOrigem(caminho);
@@ -302,7 +409,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       const parsed = parseNomeChapaCyc(nome);
       if (!parsed) continue;
       if (chapasCriadas[parsed.numero_chapa]) continue;
-      const { data: chapaIns } = await (supabase as any)
+      const { data: chapaIns, error: chErr } = await (supabase as any)
         .from("fabrica_chapas_lote")
         .insert({
           importacao_id: importacaoId,
@@ -317,13 +424,14 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
           arquivo_cyc_id: arqId,
         })
         .select("id")
-        .single();
-      if (chapaIns) chapasCriadas[parsed.numero_chapa] = chapaIns.id;
+        .maybeSingle();
+      if (chErr) alertas.push(`Chapa ${parsed.numero_chapa}: ${chErr.message}`);
+      else if (chapaIns) chapasCriadas[parsed.numero_chapa] = chapaIns.id;
     }
 
-    // 6) Etiquetas
-    const etiquetasCriadas = new Set<string>();
-    let totalEtiq = 0;
+    // 8) Etiquetas em batch
+    log("criando_etiquetas");
+    const etiquetasUnicas = new Map<string, any>();
     for (const [caminho, arqId] of Object.entries(arquivosCriados)) {
       const origem = detectarOrigem(caminho);
       const nome = caminho.split("/").pop()!;
@@ -333,31 +441,42 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       const parsed = parseNomeEtiqueta(nome);
       if (!parsed.referencia_peca || !parsed.codigo_peca) continue;
       const key = `${parsed.codigo_etiqueta_completo}|${ext}`;
-      if (etiquetasCriadas.has(key)) continue;
-      etiquetasCriadas.add(key);
-      const { error: eErr } = await (supabase as any)
+      if (etiquetasUnicas.has(key)) continue;
+      etiquetasUnicas.set(key, {
+        importacao_id: importacaoId,
+        pedido_id: pedidoId || null,
+        lote_id: loteId || null,
+        loja_id: lojaId || null,
+        codigo_etiqueta_completo: parsed.codigo_etiqueta_completo,
+        referencia_peca: parsed.referencia_peca,
+        codigo_peca: parsed.codigo_peca,
+        sufixo: parsed.sufixo,
+        indice_duplicidade: parsed.indice_duplicidade,
+        arquivo_etiqueta_id: arqId,
+        arquivo_bmp_id: ext === "bmp" ? arqId : null,
+        arquivo_pdf_id: ext === "pdf" ? arqId : null,
+      });
+    }
+    const etiquetasArr = Array.from(etiquetasUnicas.values());
+    let totalEtiq = 0;
+    for (let i = 0; i < etiquetasArr.length; i += INSERT_BATCH) {
+      const slice = etiquetasArr.slice(i, i + INSERT_BATCH);
+      const { data: ins, error: eErr } = await (supabase as any)
         .from("fabrica_etiquetas")
-        .insert({
-          importacao_id: importacaoId,
-          pedido_id: pedidoId || null,
-          lote_id: loteId || null,
-          loja_id: lojaId || null,
-          codigo_etiqueta_completo: parsed.codigo_etiqueta_completo,
-          referencia_peca: parsed.referencia_peca,
-          codigo_peca: parsed.codigo_peca,
-          sufixo: parsed.sufixo,
-          indice_duplicidade: parsed.indice_duplicidade,
-          arquivo_etiqueta_id: arqId,
-          arquivo_bmp_id: ext === "bmp" ? arqId : null,
-          arquivo_pdf_id: ext === "pdf" ? arqId : null,
-        });
-      if (eErr) alertas.push(`Etiqueta ${nome}: ${eErr.message}`);
-      else totalEtiq++;
+        .insert(slice)
+        .select("id");
+      if (eErr) {
+        alertas.push(`Etiquetas lote (${i}): ${eErr.message}`);
+        continue;
+      }
+      totalEtiq += (ins as any[] || []).length;
     }
 
-    // 7) totais
+    // 9) totais finais
     const status: ResultadoImportacao["status"] = alertas.length ? "processado_com_alertas" : "processado";
     const mensagem = alertas.length ? alertas.slice(0, 5).join(" | ") : null;
+    log("finalizando", `${totalArquivos} arquivos, ${Object.keys(chapasCriadas).length} chapas, ${totalEtiq} etiquetas`);
+
     await (supabase as any).from("fabrica_importacoes_tecnicas")
       .update({
         status_importacao: status,
@@ -369,12 +488,13 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       })
       .eq("id", importacaoId);
 
-    // 8) Atualiza status fábrica do pedido (sem quebrar legados)
     if (pedidoId && tipoImportacao === "individual") {
-      await (supabase as any).from("pedidos")
-        .update({ status_fabrica: "arquivos_importados" })
-        .eq("id", pedidoId)
-        .in("status_fabrica", ["liberado_para_lote", "aguardando_arquivos"]);
+      try {
+        await (supabase as any).from("pedidos")
+          .update({ status_fabrica: "arquivos_importados" })
+          .eq("id", pedidoId)
+          .in("status_fabrica", ["liberado_para_lote", "aguardando_arquivos"]);
+      } catch { /* não bloquear conclusão */ }
     }
 
     return {
@@ -388,15 +508,19 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       mensagem: mensagem || undefined,
     };
   } catch (err: any) {
-    await (supabase as any).from("fabrica_importacoes_tecnicas")
-      .update({ status_importacao: "erro", mensagem_processamento: err?.message || String(err) })
-      .eq("id", importacaoId);
-    throw err;
+    const msg = err?.message || String(err);
+    console.error("[importacaoTecnica] ERRO:", err);
+    await marcarErro(msg);
+    throw new Error(msg);
   }
 }
 
 export async function getSignedUrlPacoteTecnico(path: string, expiresIn = 3600): Promise<string | null> {
   if (!path) return null;
-  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn);
-  return data?.signedUrl || null;
+  try {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn);
+    return data?.signedUrl || null;
+  } catch {
+    return null;
+  }
 }

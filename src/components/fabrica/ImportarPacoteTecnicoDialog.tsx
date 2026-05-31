@@ -30,9 +30,15 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
   const [projetoNome, setProjetoNome] = useState("");
   const [ambiente, setAmbiente] = useState("");
   const [clienteNome, setClienteNome] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<{ etapa: string; detalhe?: string; atual?: number; total?: number } | null>(null);
 
   useEffect(() => {
-    if (!open) { setFile(null); setResultado(null); setProjetoNome(""); setAmbiente(""); setClienteNome(null); return; }
+    if (!open) {
+      setFile(null); setResultado(null); setProjetoNome(""); setAmbiente("");
+      setClienteNome(null); setErro(null); setProgresso(null);
+      return;
+    }
     if (pedidoId) {
       (supabase as any).from("pedidos")
         .select("cliente:clientes(nome), ambiente")
@@ -44,10 +50,28 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
     }
   }, [open, pedidoId]);
 
+  const ETAPA_LABELS: Record<string, string> = {
+    validacao: "Validando arquivo",
+    criando_importacao: "Criando registro de importação",
+    enviando_zip_original: "Enviando ZIP",
+    zip_original_enviado: "ZIP enviado",
+    zip_original_falhou: "Falha ao enviar ZIP",
+    extraindo_zip: "Extraindo arquivos",
+    zip_extraido: "ZIP extraído",
+    enviando_arquivos: "Enviando arquivos extraídos",
+    catalogando_arquivos: "Catalogando arquivos",
+    processando_list: "Processando List",
+    criando_chapas_complementares: "Criando chapas",
+    criando_etiquetas: "Criando etiquetas",
+    finalizando: "Finalizando",
+  };
+
   async function handleImportar() {
     if (!file) { toast.error("Selecione um arquivo .zip"); return; }
     if (!/\.zip$/i.test(file.name)) { toast.error("Arquivo deve ser .zip"); return; }
     setProcessando(true);
+    setErro(null);
+    setProgresso({ etapa: "validacao" });
     try {
       const r = await importarPacoteTecnico({
         pedidoId: pedidoId || null,
@@ -59,15 +83,20 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
         clienteNome,
         projetoNome: projetoNome || null,
         ambiente: ambiente || null,
+        onProgress: (ev) => setProgresso(ev),
       });
       setResultado(r);
       if (r.status === "processado") toast.success("Pacote técnico importado com sucesso");
       else if (r.status === "processado_com_alertas") toast.warning("Importado com alertas");
       onConcluido?.(r);
     } catch (err: any) {
-      toast.error(`Erro: ${err?.message || err}`);
+      const msg = err?.message || String(err);
+      console.error("Erro na importação técnica:", err);
+      setErro(msg);
+      toast.error(`Erro: ${msg}`);
     } finally {
       setProcessando(false);
+      setProgresso(null);
     }
   }
 
@@ -118,6 +147,35 @@ export function ImportarPacoteTecnicoDialog({ open, onOpenChange, modo, pedidoId
                 <li>Vincular PDFs: ListaCorte, PreviewCorte, Relatório de almoxarifado</li>
               </ul>
             </Card>
+
+            {progresso && (
+              <Card className="p-3 text-xs space-y-1 bg-blue-50 border-blue-200">
+                <div className="flex items-center gap-2 font-medium text-blue-900">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {ETAPA_LABELS[progresso.etapa] || progresso.etapa}
+                  {progresso.atual != null && progresso.total != null && (
+                    <span className="text-blue-700">({progresso.atual}/{progresso.total})</span>
+                  )}
+                </div>
+                {progresso.detalhe && <div className="text-blue-700">{progresso.detalhe}</div>}
+                {progresso.atual != null && progresso.total != null && progresso.total > 0 && (
+                  <div className="h-1.5 bg-blue-200 rounded overflow-hidden">
+                    <div className="h-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, (progresso.atual / progresso.total) * 100)}%` }} />
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {erro && (
+              <Card className="p-3 text-xs space-y-1 bg-red-50 border-red-200">
+                <div className="flex items-center gap-2 font-medium text-red-900">
+                  <XCircle className="h-4 w-4" />
+                  Não foi possível concluir a importação técnica.
+                </div>
+                <div className="text-red-700 break-words">{erro}</div>
+                <div className="text-red-600 text-[10px]">O ZIP pode ter sido salvo parcialmente. Verifique a lista de importações na aba Técnico.</div>
+              </Card>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
