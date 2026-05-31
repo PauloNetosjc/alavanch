@@ -1,10 +1,12 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Factory, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermissions";
+import { WorkflowFabrica, ETAPAS_WORKFLOW } from "@/components/fabrica/WorkflowFabrica";
+import { AtalhosFabrica, AtalhoFabrica } from "@/components/fabrica/AtalhosFabrica";
 
 const PainelFabrica = lazy(() => import("@/pages/fabrica/PainelFabrica"));
 const ImportarProducao = lazy(() => import("@/pages/fabrica/ImportarProducao"));
@@ -14,89 +16,119 @@ const KanbanFabrica = lazy(() => import("@/pages/KanbanFabrica"));
 const Almoxarifado = lazy(() => import("@/pages/fabrica/Almoxarifado"));
 const Expedicao = lazy(() => import("@/pages/fabrica/Expedicao"));
 const Ocorrencias = lazy(() => import("@/pages/fabrica/Ocorrencias"));
+const RequisicoesCompra = lazy(() => import("@/pages/fabrica/RequisicoesCompra"));
 
-interface AbaDef {
-  value: string;
-  label: string;
-  permissao?: string;
-  render: () => JSX.Element;
-}
+const LOADING = (
+  <div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+);
 
-function EmBreve({ titulo }: { titulo: string }) {
+function ProducaoEtapa() {
+  // Sub-etapas internas: Corte e Fita / Ateliê
+  const [sub, setSub] = useState("corte_fita");
   return (
-    <Card className="p-10 text-center text-muted-foreground">
-      <div className="text-lg font-semibold mb-2">{titulo}</div>
-      <div className="text-sm">Em breve nesta tela.</div>
-    </Card>
+    <div className="space-y-3">
+      <Tabs value={sub} onValueChange={setSub}>
+        <TabsList>
+          <TabsTrigger value="corte_fita">Corte e Fita</TabsTrigger>
+          <TabsTrigger value="atelie">Ateliê</TabsTrigger>
+        </TabsList>
+        <TabsContent value="corte_fita" className="mt-3">
+          <ProducaoPorPedido />
+        </TabsContent>
+        <TabsContent value="atelie" className="mt-3">
+          <Card className="p-6 text-sm text-muted-foreground">
+            <div className="font-medium text-foreground mb-1">Ateliê</div>
+            Peças especiais (ripado, frente provençal, módulos curvos, pintura, montagem manual)
+            aparecerão aqui quando forem enviadas da etapa Corte e Fita.
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
-
-const ABAS: AbaDef[] = [
-  { value: "painel", label: "Painel", permissao: "fabrica_painel", render: () => <PainelFabrica /> },
-  { value: "importar", label: "Importar Produção", permissao: "fabrica_importar_producao", render: () => <ImportarProducao /> },
-  { value: "producao-pedido", label: "Produção por Pedido", permissao: "fabrica_producao_pedido", render: () => <ProducaoPorPedido /> },
-  { value: "conferencia", label: "Conferência", permissao: "fabrica_conferencia", render: () => <ConferenciaFabrica /> },
-  { value: "almoxarifado", label: "Almoxarifado", permissao: "fabrica_almoxarifado", render: () => <Almoxarifado /> },
-  { value: "expedicao", label: "Expedição", permissao: "fabrica_expedicao", render: () => <Expedicao /> },
-  { value: "ocorrencias", label: "Ocorrências", permissao: "fabrica_ocorrencias", render: () => <Ocorrencias /> },
-  { value: "lotes", label: "Kanban / Lotes", permissao: "fabrica_lotes", render: () => <KanbanFabrica /> },
-];
 
 export default function Fabrica() {
   const [params, setParams] = useSearchParams();
   const { can, loading } = usePermissions();
+  const [atalho, setAtalho] = useState<AtalhoFabrica>(null);
 
-  const abasVisiveis = useMemo(
-    () => ABAS.filter((a) => !a.permissao || can(a.permissao, "view")),
-    [can]
-  );
+  const etapaAtiva = params.get("aba") || "importar";
+  const etapaValida = ETAPAS_WORKFLOW.find((e) => e.value === etapaAtiva) || ETAPAS_WORKFLOW[0];
 
-  const abaAtual = params.get("aba") || abasVisiveis[0]?.value || "painel";
-  const abaAtiva = abasVisiveis.find((a) => a.value === abaAtual) || abasVisiveis[0];
+  function selectEtapa(v: string) {
+    setAtalho(null);
+    const next = new URLSearchParams(params);
+    next.set("aba", v);
+    next.delete("atalho");
+    setParams(next, { replace: true });
+  }
+
+  function selectAtalho(v: AtalhoFabrica) {
+    setAtalho(v);
+    const next = new URLSearchParams(params);
+    if (v) next.set("atalho", v); else next.delete("atalho");
+    setParams(next, { replace: true });
+  }
+
+  // hidrata atalho a partir da URL
+  useEffect(() => {
+    const a = params.get("atalho") as AtalhoFabrica | null;
+    if (a && ["almoxarifado", "ocorrencias", "requisicoes"].includes(a)) setAtalho(a);
+  }, []); // eslint-disable-line
+
+  const conteudo = useMemo(() => {
+    if (atalho === "almoxarifado") return <Almoxarifado />;
+    if (atalho === "ocorrencias") return <Ocorrencias />;
+    if (atalho === "requisicoes") return <RequisicoesCompra />;
+    switch (etapaValida.value) {
+      case "importar": return <ImportarProducao />;
+      case "lotes": return <KanbanFabrica />;
+      case "producao": return <ProducaoEtapa />;
+      case "conferencia": return <ConferenciaFabrica />;
+      case "expedicao": return <Expedicao />;
+      default: return null;
+    }
+  }, [atalho, etapaValida]);
+
+  if (loading) {
+    return <div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  }
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-4">
       <PageHeader
         icon={Factory}
         iconVariant="amber"
         title="Fábrica"
-        subtitle="Produção, lotes, conferência, almoxarifado e expedição."
+        subtitle="Produção, lotes, conferência, almoxarifado, expedição e ocorrências."
       />
 
-      {loading ? (
-        <div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-      ) : abasVisiveis.length === 0 ? (
-        <Card className="p-10 text-center text-muted-foreground text-sm">
-          Você não possui permissão para acessar nenhuma área do módulo Fábrica.
-        </Card>
-      ) : (
-        <Tabs
-          value={abaAtiva?.value}
-          onValueChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set("aba", v);
-            setParams(next, { replace: true });
-          }}
-        >
-          <div className="overflow-x-auto -mx-1 px-1 mb-4">
-            <TabsList className="h-auto flex-wrap gap-1">
-              {abasVisiveis.map((a) => (
-                <TabsTrigger key={a.value} value={a.value} className="text-xs sm:text-sm">
-                  {a.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+      {/* Atalhos superiores */}
+      <AtalhosFabrica active={atalho} onSelect={selectAtalho} />
 
-          {abasVisiveis.map((a) => (
-            <TabsContent key={a.value} value={a.value} className="mt-0">
-              <Suspense fallback={<div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
-                {abaAtiva?.value === a.value ? a.render() : null}
-              </Suspense>
-            </TabsContent>
-          ))}
-        </Tabs>
+      {/* Painel fixo (só fora dos atalhos) */}
+      {!atalho && (
+        <Card className="p-0 overflow-hidden">
+          <Suspense fallback={LOADING}>
+            <PainelFabrica />
+          </Suspense>
+        </Card>
       )}
+
+      {/* Workflow sequencial */}
+      {!atalho && (
+        <div className="space-y-2">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium px-1">
+            Workflow da fábrica
+          </div>
+          <WorkflowFabrica active={etapaValida.value} onSelect={selectEtapa} />
+        </div>
+      )}
+
+      {/* Conteúdo da etapa / atalho */}
+      <div className="pt-2">
+        <Suspense fallback={LOADING}>{conteudo}</Suspense>
+      </div>
     </div>
   );
 }
