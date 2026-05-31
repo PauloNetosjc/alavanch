@@ -735,30 +735,66 @@ export async function processarArquivoSobDemanda(arquivoId: string): Promise<str
   return storagePath;
 }
 
-/**
- * Vincula arquivos LargePreview/SmallPreview às chapas correspondentes pelo número
- * extraído do nome do arquivo. Não duplica nem sobrescreve vínculos existentes.
- */
-export async function vincularPreviewsChapas(importacaoId: string): Promise<{
+export interface ResumoVinculoPreviews {
   vinculados: number;
   large: number;
   small: number;
   semChapa: number;
-}> {
-  const [{ data: arqs }, { data: chapas }] = await Promise.all([
+  chapasAnalisadas: number;
+  chapasComPreview: number;
+  chapasSemPreview: number;
+  totalLargeEncontrados: number;
+  totalSmallEncontrados: number;
+  candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }>;
+}
+
+/**
+ * Vincula arquivos LargePreview/SmallPreview às chapas correspondentes.
+ * Busca por tipo_arquivo E por nome (LargePreviewCuttingPlan, SmallPreviewCuttingPlan, PreviewCuttingPlan, CuttingPlan, Preview).
+ * Não sobrescreve vínculos existentes.
+ */
+export async function vincularPreviewsChapas(importacaoId: string): Promise<ResumoVinculoPreviews> {
+  const [{ data: arqsTipo }, { data: arqsNome }, { data: chapas }] = await Promise.all([
     (supabase as any).from("fabrica_arquivos_tecnicos")
-      .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo")
+      .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo, extensao")
       .eq("importacao_id", importacaoId)
       .in("tipo_arquivo", ["large_preview_cutting_plan", "small_preview_cutting_plan"]),
+    (supabase as any).from("fabrica_arquivos_tecnicos")
+      .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo, extensao")
+      .eq("importacao_id", importacaoId)
+      .or("nome_arquivo.ilike.%previewcuttingplan%,nome_arquivo.ilike.%cuttingplan%,nome_arquivo.ilike.%preview%"),
     (supabase as any).from("fabrica_chapas_lote")
       .select("id, numero_chapa, preview_large_id, preview_small_id")
       .eq("importacao_id", importacaoId),
   ]);
 
-  const arquivos = (arqs as any[]) || [];
+  // unifica candidatos
+  const mapaArq = new Map<string, any>();
+  for (const a of ((arqsTipo as any[]) || [])) mapaArq.set(a.id, a);
+  for (const a of ((arqsNome as any[]) || [])) {
+    const ext = (a.extensao || "").toLowerCase();
+    // somente imagens são candidatos
+    if (!["bmp", "png", "jpg", "jpeg"].includes(ext)) continue;
+    if (!nomeIndicaPreview(a.nome_arquivo || "")) continue;
+    if (!mapaArq.has(a.id)) mapaArq.set(a.id, a);
+  }
+  const arquivos = Array.from(mapaArq.values());
+
   const todasChapas = (chapas as any[]) || [];
+  const totalLarge = arquivos.filter((a) => a.tipo_arquivo === "large_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "large").length;
+  const totalSmall = arquivos.filter((a) => a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "small").length;
+
   if (!arquivos.length || !todasChapas.length) {
-    return { vinculados: 0, large: 0, small: 0, semChapa: arquivos.length };
+    const chapasComPv = todasChapas.filter((c: any) => c.preview_large_id || c.preview_small_id).length;
+    return {
+      vinculados: 0, large: 0, small: 0, semChapa: arquivos.length,
+      chapasAnalisadas: todasChapas.length,
+      chapasComPreview: chapasComPv,
+      chapasSemPreview: todasChapas.length - chapasComPv,
+      totalLargeEncontrados: totalLarge,
+      totalSmallEncontrados: totalSmall,
+      candidatosSemVinculo: arquivos.slice(0, 10).map((a) => ({ id: a.id, nome: a.nome_arquivo, tipo: a.tipo_arquivo })),
+    };
   }
 
   // Indexa chapas por número normalizado
@@ -771,18 +807,31 @@ export async function vincularPreviewsChapas(importacaoId: string): Promise<{
   let large = 0;
   let small = 0;
   let semChapa = 0;
-  // Acumula updates por chapa
+  const candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }> = [];
   const updatesPorChapa = new Map<string, { preview_large_id?: string; preview_small_id?: string }>();
+
   for (const a of arquivos) {
     const num = extrairNumeroChapaDoNome(a.nome_arquivo || "");
-    if (!num) { semChapa++; continue; }
+    if (!num) {
+      semChapa++;
+      if (candidatosSemVinculo.length < 10) candidatosSemVinculo.push({ id: a.id, nome: a.nome_arquivo, tipo: a.tipo_arquivo });
+      continue;
+    }
     const chapa = chapaPorNumero.get(num);
-    if (!chapa) { semChapa++; continue; }
+    if (!chapa) {
+      semChapa++;
+      if (candidatosSemVinculo.length < 10) candidatosSemVinculo.push({ id: a.id, nome: a.nome_arquivo, tipo: a.tipo_arquivo });
+      continue;
+    }
+    // Determina lado (large/small) por tipo_arquivo ou nome
+    const lado = a.tipo_arquivo === "large_preview_cutting_plan" ? "large"
+      : a.tipo_arquivo === "small_preview_cutting_plan" ? "small"
+      : nomeIndicaPreview(a.nome_arquivo || "");
     const upd = updatesPorChapa.get(chapa.id) || {};
-    if (a.tipo_arquivo === "large_preview_cutting_plan" && !chapa.preview_large_id && !upd.preview_large_id) {
+    if ((lado === "large" || lado === "preview") && !chapa.preview_large_id && !upd.preview_large_id) {
       upd.preview_large_id = a.id;
       large++;
-    } else if (a.tipo_arquivo === "small_preview_cutting_plan" && !chapa.preview_small_id && !upd.preview_small_id) {
+    } else if (lado === "small" && !chapa.preview_small_id && !upd.preview_small_id) {
       upd.preview_small_id = a.id;
       small++;
     }
@@ -794,7 +843,167 @@ export async function vincularPreviewsChapas(importacaoId: string): Promise<{
       .update({ ...upd, updated_at: new Date().toISOString() })
       .eq("id", chapaId);
   }
-  return { vinculados: large + small, large, small, semChapa };
+
+  // Recalcula chapas com preview após updates
+  const idsAtualizados = new Set(updatesPorChapa.keys());
+  const chapasComPv = todasChapas.filter((c: any) =>
+    c.preview_large_id || c.preview_small_id || idsAtualizados.has(c.id)
+  ).length;
+
+  return {
+    vinculados: large + small,
+    large,
+    small,
+    semChapa,
+    chapasAnalisadas: todasChapas.length,
+    chapasComPreview: chapasComPv,
+    chapasSemPreview: todasChapas.length - chapasComPv,
+    totalLargeEncontrados: totalLarge,
+    totalSmallEncontrados: totalSmall,
+    candidatosSemVinculo,
+  };
+}
+
+export interface DiagnosticoPreview {
+  numeroChapa: string | null;
+  numeroNormalizado: string | null;
+  totalLarge: number;
+  totalSmall: number;
+  candidatos: Array<{ id: string; nome: string; tipo: string; status: string; temUrl: boolean }>;
+  motivoProvavel: string;
+}
+
+/** Gera diagnóstico do preview de uma chapa a partir dos arquivos já carregados em memória. */
+export function diagnosticarPreviewChapa(chapa: any, arquivosImportacao: any[]): DiagnosticoPreview {
+  const numNorm = normalizarNumeroChapa(chapa?.numero_chapa);
+  const previewsImp = (arquivosImportacao || []).filter((a) => {
+    if (a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan") return true;
+    const ext = (a.extensao || "").toLowerCase();
+    if (!["bmp", "png", "jpg", "jpeg"].includes(ext)) return false;
+    return !!nomeIndicaPreview(a.nome_arquivo || "");
+  });
+  const totalLarge = previewsImp.filter((a) => a.tipo_arquivo === "large_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "large").length;
+  const totalSmall = previewsImp.filter((a) => a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "small").length;
+
+  const candidatos = previewsImp
+    .filter((a) => {
+      const n = extrairNumeroChapaDoNome(a.nome_arquivo || "");
+      return n && numNorm && n === numNorm;
+    })
+    .map((a) => ({
+      id: a.id,
+      nome: a.nome_arquivo,
+      tipo: a.tipo_arquivo,
+      status: a.status_arquivo || (a.url_arquivo ? "enviado" : "indisponivel"),
+      temUrl: !!a.url_arquivo,
+    }));
+
+  let motivo = "";
+  if (!previewsImp.length) {
+    motivo = "Nenhum arquivo de preview encontrado na importação.";
+  } else if (!candidatos.length) {
+    motivo = "Existem previews na importação, mas nenhum casa com o número desta chapa.";
+  } else if (candidatos.every((c) => !c.temUrl)) {
+    motivo = "Preview catalogado, mas ainda não enviado ao storage.";
+  } else if (candidatos.some((c) => c.temUrl)) {
+    motivo = "Preview encontrado mas não vinculado à chapa — use 'Reparar preview'.";
+  } else {
+    motivo = "Motivo desconhecido.";
+  }
+
+  return {
+    numeroChapa: chapa?.numero_chapa ?? null,
+    numeroNormalizado: numNorm,
+    totalLarge,
+    totalSmall,
+    candidatos,
+    motivoProvavel: motivo,
+  };
+}
+
+/**
+ * Repara o preview de uma chapa específica:
+ *  - Procura candidatos por tipo, nome e número normalizado.
+ *  - Se o candidato estiver catalogado_nao_enviado, materializa do ZIP.
+ *  - Atualiza preview_large_id / preview_small_id da chapa.
+ */
+export async function repararPreviewChapa(chapaId: string): Promise<{
+  ok: boolean;
+  large?: string;
+  small?: string;
+  mensagem: string;
+}> {
+  const { data: chapa, error: chErr } = await (supabase as any)
+    .from("fabrica_chapas_lote")
+    .select("id, importacao_id, numero_chapa, preview_large_id, preview_small_id")
+    .eq("id", chapaId)
+    .maybeSingle();
+  if (chErr || !chapa) return { ok: false, mensagem: "Chapa não encontrada" };
+
+  const { data: arqs } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo, extensao")
+    .eq("importacao_id", chapa.importacao_id);
+
+  const candidatos = ((arqs as any[]) || []).filter((a) => {
+    const ehTipoPv = a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan";
+    const ext = (a.extensao || "").toLowerCase();
+    const ehImg = ["bmp", "png", "jpg", "jpeg"].includes(ext);
+    if (!ehTipoPv && !(ehImg && nomeIndicaPreview(a.nome_arquivo || ""))) return false;
+    const numNome = extrairNumeroChapaDoNome(a.nome_arquivo || "");
+    const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
+    return numNome && numChapa && numNome === numChapa;
+  });
+
+  if (!candidatos.length) {
+    return { ok: false, mensagem: "Nenhum preview foi encontrado para esta chapa no ZIP." };
+  }
+
+  // Classifica lado
+  const findLado = (lado: "large" | "small") =>
+    candidatos.find((c) => {
+      if (lado === "large" && c.tipo_arquivo === "large_preview_cutting_plan") return true;
+      if (lado === "small" && c.tipo_arquivo === "small_preview_cutting_plan") return true;
+      return nomeIndicaPreview(c.nome_arquivo || "") === lado;
+    });
+
+  // Prefere large; se só houver small, usa small como fallback de large também
+  let largeArq = findLado("large") || candidatos.find((c) => nomeIndicaPreview(c.nome_arquivo || "") === "preview") || null;
+  let smallArq = findLado("small") || null;
+  if (!largeArq && smallArq) largeArq = smallArq;
+
+  const materializarSeNecessario = async (a: any): Promise<any> => {
+    if (a.url_arquivo) return a;
+    try {
+      const newPath = await processarArquivoSobDemanda(a.id);
+      return { ...a, url_arquivo: newPath, status_arquivo: "enviado" };
+    } catch (e: any) {
+      return a;
+    }
+  };
+
+  const updates: any = {};
+  if (largeArq && !chapa.preview_large_id) {
+    largeArq = await materializarSeNecessario(largeArq);
+    if (largeArq.url_arquivo) updates.preview_large_id = largeArq.id;
+  }
+  if (smallArq && !chapa.preview_small_id) {
+    smallArq = await materializarSeNecessario(smallArq);
+    if (smallArq.url_arquivo) updates.preview_small_id = smallArq.id;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { ok: false, mensagem: "Candidatos encontrados, mas não foi possível materializar nem vincular." };
+  }
+  updates.updated_at = new Date().toISOString();
+  await (supabase as any).from("fabrica_chapas_lote").update(updates).eq("id", chapaId);
+
+  return {
+    ok: true,
+    large: updates.preview_large_id,
+    small: updates.preview_small_id,
+    mensagem: `Preview vinculado (${updates.preview_large_id ? "large" : ""}${updates.preview_large_id && updates.preview_small_id ? " + " : ""}${updates.preview_small_id ? "small" : ""}).`,
+  };
 }
 
 
