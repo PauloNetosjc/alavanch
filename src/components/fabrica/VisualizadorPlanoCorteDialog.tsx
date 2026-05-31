@@ -502,7 +502,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </div>
               </div>
               <div className="flex-1 overflow-auto flex items-center justify-center p-4 print:p-2">
-                {previewUrl && !previewErroRender ? (
+                {previewPdfUrl ? (
+                  <iframe
+                    title="PreviewCorte.pdf"
+                    src={previewPdfUrl}
+                    className="w-full h-full bg-white rounded shadow-lg"
+                  />
+                ) : previewUrl && !previewErroRender ? (
                   <img
                     src={previewUrl}
                     alt={`Plano de corte chapa ${chapaSel?.numero_chapa}`}
@@ -519,8 +525,11 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                       resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
                       || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
                     }
+                    previewCorteDisponivel={!!previewCorteArquivo || !!ultimoReparo?.previewCortePdfDisponivel}
+                    ultimoReparo={ultimoReparo}
                     reparando={reparando}
                     onReparar={repararPreviewDaChapa}
+                    onAbrirPreviewCorte={abrirPreviewCortePdfCentro}
                     onCarregar={async (id) => {
                       const p = await carregarArquivoSobDemanda(id);
                       if (p) {
