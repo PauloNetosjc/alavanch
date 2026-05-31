@@ -139,6 +139,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
+    setPreviewErroRender(false);
     setZoom(1);
     if (!chapaSel) return;
     const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
@@ -172,7 +173,6 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     try {
       toast.loading("Extraindo arquivo do ZIP original...", { id: "ondemand" });
       const newPath = await processarArquivoSobDemanda(arqId);
-      // recarrega arquivos da importação
       const { data: ar } = await (supabase as any)
         .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000);
       setArquivos(ar || []);
@@ -189,15 +189,45 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     try {
       toast.loading("Reprocessando vínculos...", { id: "reprocess" });
       const r = await vincularPreviewsChapas(impSelId);
-      // recarrega chapas
       const { data: ch } = await (supabase as any)
         .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
       setChapas(ch || []);
-      toast.success(`${r.vinculados} preview(s) vinculado(s) • ${r.large} large • ${r.small} small`, { id: "reprocess" });
+      setResumoVinculos(r);
+      toast.success(
+        `Vinculados: ${r.vinculados} (large ${r.large} • small ${r.small}) • Chapas com preview: ${r.chapasComPreview}/${r.chapasAnalisadas}`,
+        { id: "reprocess", duration: 6000 }
+      );
     } catch (e: any) {
       toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
     }
   }
+
+  async function repararPreviewDaChapa() {
+    if (!chapaSel) return;
+    setReparando(true);
+    try {
+      toast.loading("Procurando preview no ZIP...", { id: "reparar" });
+      const r = await repararPreviewChapa(chapaSel.id);
+      if (!r.ok) {
+        toast.error(r.mensagem, { id: "reparar", duration: 5000 });
+      } else {
+        // recarrega chapas e arquivos
+        const [{ data: ch }, { data: ar }] = await Promise.all([
+          (supabase as any).from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false }),
+          (supabase as any).from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000),
+        ]);
+        setChapas(ch || []);
+        setArquivos(ar || []);
+        toast.success(r.mensagem, { id: "reparar" });
+      }
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "reparar" });
+    } finally {
+      setReparando(false);
+    }
+  }
+
+
 
 
   async function alterarStatusChapa(novo: StatusChapa) {
