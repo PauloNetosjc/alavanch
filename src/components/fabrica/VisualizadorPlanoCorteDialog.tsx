@@ -13,6 +13,7 @@ import {
   Play, CheckCircle2, ShieldCheck,
 } from "lucide-react";
 import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
 import { toast } from "sonner";
 
 interface Props {
