@@ -12,10 +12,17 @@ import {
   FileText, FileArchive, Tag as TagIcon, Layers, Image as ImageIcon, Cpu,
   Play, CheckCircle2, ShieldCheck,
 } from "lucide-react";
-import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+import {
+  getSignedUrlPacoteTecnico,
+  processarArquivoSobDemanda,
+  vincularPreviewsChapas,
+  extrairNumeroChapaDoNome,
+  normalizarNumeroChapa,
+} from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
 import { VisualizadorVetorialChapa } from "@/components/fabrica/VisualizadorVetorialChapa";
 import { toast } from "sonner";
+
 
 interface Props {
   open: boolean;
