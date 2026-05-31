@@ -17,6 +17,7 @@ export default function ImportarProducao() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [sel, setSel] = useState<{ id: string; codigo: string | null } | null>(null);
   const [tecSel, setTecSel] = useState<{ id: string; codigo: string | null } | null>(null);
+  const [verCorte, setVerCorte] = useState<{ id: string; codigo: string | null } | null>(null);
   const [multi, setMulti] = useState<Record<string, boolean>>({});
   const [tecMultiOpen, setTecMultiOpen] = useState(false);
   const [resumo, setResumo] = useState({ pacotes: 0, erros: 0, chapas: 0, etiquetas: 0, arquivos: 0 });
