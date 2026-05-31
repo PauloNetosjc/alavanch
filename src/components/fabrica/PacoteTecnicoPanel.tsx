@@ -178,6 +178,7 @@ export function PacoteTecnicoPanel({ pedidoId, loteId }: Props) {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
       )}
     </div>
   );
