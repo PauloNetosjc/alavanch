@@ -242,6 +242,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
 
   // 1) cria importação
   log("criando_importacao");
+  const modoImportacao: "rapida" | "completa" = params.modoImportacao || "rapida";
   const { data: impData, error: impErr } = await (supabase as any)
     .from("fabrica_importacoes_tecnicas")
     .insert({
@@ -254,6 +255,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       tipo_importacao: tipoImportacao,
       arquivo_original_nome: arquivoZip.name,
       status_importacao: "recebido",
+      modo_importacao: modoImportacao,
       usuario_importacao: userId,
     })
     .select()
@@ -270,6 +272,7 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
         .eq("id", importacaoId);
     } catch { /* ignore */ }
   }
+
 
   try {
     // 2) upload do ZIP original
