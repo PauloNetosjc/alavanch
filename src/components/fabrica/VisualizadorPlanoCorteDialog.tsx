@@ -436,25 +436,30 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </div>
               </div>
               <div className="flex-1 overflow-auto flex items-center justify-center p-4 print:p-2">
-                {previewUrl ? (
+                {previewUrl && !previewErroRender ? (
                   <img
                     src={previewUrl}
                     alt={`Plano de corte chapa ${chapaSel?.numero_chapa}`}
+                    onError={() => setPreviewErroRender(true)}
                     style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
                     className="max-w-full max-h-full object-contain bg-white shadow-lg transition-transform"
                   />
                 ) : chapaSel ? (
                   <PlaceholderChapa
                     chapa={chapaSel}
+                    arquivos={arquivos}
+                    previewUrl={previewErroRender ? previewUrl : null}
                     arquivoCatalogado={
                       resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
                       || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
                     }
+                    reparando={reparando}
+                    onReparar={repararPreviewDaChapa}
                     onCarregar={async (id) => {
                       const p = await carregarArquivoSobDemanda(id);
                       if (p) {
                         const u = await getSignedUrlPacoteTecnico(p, 3600);
-                        if (u) setPreviewUrl(u);
+                        if (u) { setPreviewUrl(u); setPreviewErroRender(false); }
                       }
                     }}
                   />
@@ -464,6 +469,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
               </div>
             </main>
+
 
             {/* Lateral direita: detalhes / tabs */}
             <aside className="col-span-3 border-l overflow-y-auto print:hidden">
