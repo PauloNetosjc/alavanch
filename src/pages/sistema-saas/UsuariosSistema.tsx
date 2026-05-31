@@ -515,6 +515,17 @@ export default function UsuariosSistema() {
                             </Tooltip>
                           )}
                         </div>
+                      ) : adminBase ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-red-600 text-white border-0 cursor-help font-semibold">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Administrador sem base
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Administrador/Diretor da base precisa obrigatoriamente de uma base vinculada para operar.
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
