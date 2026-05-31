@@ -440,6 +440,11 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                   </Card>
                 </TabsContent>
 
+                <TabsContent value="vetorial" className="p-3 space-y-2">
+                  <DadosVetoriaisPanel importacaoId={impSelId} compact />
+                  <DadosVetoriaisTabela importacaoId={impSelId} chapaId={chapaSelId} />
+                </TabsContent>
+
                 <TabsContent value="arquivos" className="p-3 space-y-2">
                   <div className="grid grid-cols-2 gap-1">
                     <Select value={filtroArq.pasta || "all"} onValueChange={(v) => setFiltroArq((s) => ({ ...s, pasta: v === "all" ? "" : v }))}>
