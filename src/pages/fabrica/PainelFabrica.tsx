@@ -95,7 +95,7 @@ export default function PainelFabrica() {
                     <td className="p-2">{p.cliente?.nome || "—"}</td>
                     <td className="p-2"><Badge variant="outline" className={statusFabricaBadgeClass(p.status_fabrica)}>{statusFabricaLabel(p.status_fabrica)}</Badge></td>
                     <td className="p-2 text-xs">{p.updated_at ? new Date(p.updated_at).toLocaleString("pt-BR") : "—"}</td>
-                    <td className="p-2 text-right"><Button size="sm" variant="outline" asChild><Link to={`/fabrica/producao?pedido=${p.id}`}>Abrir</Link></Button></td>
+                    <td className="p-2 text-right"><Button size="sm" variant="outline" asChild><Link to={`/fabrica?aba=producao&pedido=${p.id}`}>Abrir</Link></Button></td>
                   </tr>
                 ))}
                 {pedidos.length === 0 && <tr><td className="p-6 text-center text-muted-foreground" colSpan={5}>Nenhum pedido em produção.</td></tr>}
