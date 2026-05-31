@@ -177,6 +177,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
               <TabsTrigger value="expedicao">Expedição</TabsTrigger>
               <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos ({arquivos.length})</TabsTrigger>
+              <TabsTrigger value="tecnico">Técnico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="resumo" className="space-y-3">
