@@ -1238,6 +1238,13 @@ export async function repararPreviewChapa(chapaId: string): Promise<{
   ok: boolean;
   large?: string;
   small?: string;
+  totalArquivosZip?: number;
+  previewsEncontradosZip?: number;
+  candidatosChapa?: number;
+  arquivosVinculados?: number;
+  arquivosIgnorados?: number;
+  previewCortePdfDisponivel?: boolean;
+  candidatos?: Array<{ nome: string; caminho: string; tipo: string; status: string }>;
   mensagem: string;
 }> {
   const { data: chapa, error: chErr } = await (supabase as any)
@@ -1247,69 +1254,70 @@ export async function repararPreviewChapa(chapaId: string): Promise<{
     .maybeSingle();
   if (chErr || !chapa) return { ok: false, mensagem: "Chapa não encontrada" };
 
-  const { data: arqs } = await (supabase as any)
-    .from("fabrica_arquivos_tecnicos")
-    .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo, extensao")
-    .eq("importacao_id", chapa.importacao_id);
-
-  const candidatos = ((arqs as any[]) || []).filter((a) => {
-    const ehTipoPv = a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan";
-    const ext = (a.extensao || "").toLowerCase();
-    const ehImg = ["bmp", "png", "jpg", "jpeg"].includes(ext);
-    if (!ehTipoPv && !(ehImg && nomeIndicaPreview(a.nome_arquivo || ""))) return false;
-    const numNome = extrairNumeroChapaDoNome(a.nome_arquivo || "");
-    const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
-    return numNome && numChapa && numNome === numChapa;
-  });
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(chapa.importacao_id);
+  const previewsZip = candidatosPreviewDoZip(zip);
+  const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
+  const candidatos = previewsZip.filter((c) => c.numeroChapa && numChapa && c.numeroChapa === numChapa);
+  const previewCortePdfDisponivel = entries.some((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
 
   if (!candidatos.length) {
-    return { ok: false, mensagem: "Nenhum preview foi encontrado para esta chapa no ZIP." };
+    return {
+      ok: false,
+      totalArquivosZip: entries.length,
+      previewsEncontradosZip: previewsZip.length,
+      candidatosChapa: 0,
+      arquivosVinculados: 0,
+      arquivosIgnorados: previewsZip.length,
+      previewCortePdfDisponivel,
+      candidatos: [],
+      mensagem: `${entries.length} arquivos analisados. ${previewsZip.length} previews encontrados. Nenhum preview encontrado para Chapa ${chapa.numero_chapa}. ${previewCortePdfDisponivel ? "Use PreviewCorte.pdf como fallback." : "PreviewCorte.pdf também não foi encontrado."}`,
+    };
   }
 
-  // Classifica lado
-  const findLado = (lado: "large" | "small") =>
-    candidatos.find((c) => {
-      if (lado === "large" && c.tipo_arquivo === "large_preview_cutting_plan") return true;
-      if (lado === "small" && c.tipo_arquivo === "small_preview_cutting_plan") return true;
-      return nomeIndicaPreview(c.nome_arquivo || "") === lado;
-    });
-
-  // Prefere large; se só houver small, usa small como fallback de large também
-  let largeArq = findLado("large") || candidatos.find((c) => nomeIndicaPreview(c.nome_arquivo || "") === "preview") || null;
+  const findLado = (lado: "large" | "small") => candidatos.find((c) => c.lado === lado);
+  let largeArq = findLado("large") || candidatos.find((c) => c.lado === "preview") || null;
   let smallArq = findLado("small") || null;
   if (!largeArq && smallArq) largeArq = smallArq;
 
-  const materializarSeNecessario = async (a: any): Promise<any> => {
-    if (a.url_arquivo) return a;
-    try {
-      const newPath = await processarArquivoSobDemanda(a.id);
-      return { ...a, url_arquivo: newPath, status_arquivo: "enviado" };
-    } catch (e: any) {
-      return a;
-    }
-  };
-
   const updates: any = {};
   if (largeArq && !chapa.preview_large_id) {
-    largeArq = await materializarSeNecessario(largeArq);
-    if (largeArq.url_arquivo) updates.preview_large_id = largeArq.id;
+    const arq = await materializarPreviewDoZip(imp, basePath, largeArq, chapa.id);
+    if (arq?.url_arquivo) updates.preview_large_id = arq.id;
   }
   if (smallArq && !chapa.preview_small_id) {
-    smallArq = await materializarSeNecessario(smallArq);
-    if (smallArq.url_arquivo) updates.preview_small_id = smallArq.id;
+    const arq = await materializarPreviewDoZip(imp, basePath, smallArq, chapa.id);
+    if (arq?.url_arquivo) updates.preview_small_id = arq.id;
   }
 
   if (Object.keys(updates).length === 0) {
-    return { ok: false, mensagem: "Candidatos encontrados, mas não foi possível materializar nem vincular." };
+    return {
+      ok: false,
+      totalArquivosZip: entries.length,
+      previewsEncontradosZip: previewsZip.length,
+      candidatosChapa: candidatos.length,
+      arquivosVinculados: 0,
+      arquivosIgnorados: Math.max(0, previewsZip.length - candidatos.length),
+      previewCortePdfDisponivel,
+      candidatos: candidatos.slice(0, 8).map((c) => ({ nome: c.nome, caminho: c.caminho, tipo: c.tipoArquivo, status: c.ext === "bmp" ? "bmp" : "enviado" })),
+      mensagem: `${entries.length} arquivos analisados. ${previewsZip.length} previews encontrados; ${candidatos.length} para Chapa ${chapa.numero_chapa}. Nenhum vínculo novo foi necessário ou possível.`,
+    };
   }
   updates.updated_at = new Date().toISOString();
   await (supabase as any).from("fabrica_chapas_lote").update(updates).eq("id", chapaId);
 
+  const primeiro = candidatos[0];
   return {
     ok: true,
     large: updates.preview_large_id,
     small: updates.preview_small_id,
-    mensagem: `Preview vinculado (${updates.preview_large_id ? "large" : ""}${updates.preview_large_id && updates.preview_small_id ? " + " : ""}${updates.preview_small_id ? "small" : ""}).`,
+    totalArquivosZip: entries.length,
+    previewsEncontradosZip: previewsZip.length,
+    candidatosChapa: candidatos.length,
+    arquivosVinculados: Object.keys(updates).filter((k) => k.startsWith("preview_")).length,
+    arquivosIgnorados: Math.max(0, previewsZip.length - candidatos.length),
+    previewCortePdfDisponivel,
+    candidatos: candidatos.slice(0, 8).map((c) => ({ nome: c.nome, caminho: c.caminho, tipo: c.tipoArquivo, status: c.ext === "bmp" ? "bmp" : "enviado" })),
+    mensagem: `Preview encontrado: ${primeiro.caminho}. Arquivo carregado e vinculado. ${entries.length} arquivos analisados; ${previewsZip.length} previews no ZIP; ${candidatos.length} candidato(s) para Chapa ${chapa.numero_chapa}.`,
   };
 }
 
