@@ -97,6 +97,11 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   const lower = nome.toLowerCase();
   const ext = (lower.match(/\.([a-z0-9]+)$/)?.[1] || "").toLowerCase();
   const semExt = lower.replace(/\.[a-z0-9]+$/, "");
+  const isImg = ext === "bmp" || ext === "png" || ext === "jpg" || ext === "jpeg";
+
+  // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
+  if (lower.includes("smallpreviewcuttingplan") && isImg) return "small_preview_cutting_plan";
+  if (lower.includes("largepreviewcuttingplan") && isImg) return "large_preview_cutting_plan";
 
   if (origem === "raiz") {
     if (semExt === "list") return "list";
@@ -105,8 +110,6 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
     if ((lower.includes("relat") && lower.includes("almoxarifado")) && ext === "pdf") return "relatorio_almoxarifado_pdf";
   }
   if (origem === "AutoLabel") {
-    if (lower.includes("smallpreviewcuttingplan") && (ext === "bmp" || ext === "png" || ext === "jpg")) return "small_preview_cutting_plan";
-    if (lower.includes("largepreviewcuttingplan") && (ext === "bmp" || ext === "png" || ext === "jpg")) return "large_preview_cutting_plan";
     if (ext === "pdf" && lower.includes("label")) return "labels_pdf";
     if (ext === "bmp" || ext === "pdf") return "etiqueta_individual";
   }
@@ -128,6 +131,35 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   }
   return "outro";
 }
+
+/** Normaliza número da chapa para comparação ("013" → "13"; "Chapa 13" → "13"). */
+export function normalizarNumeroChapa(s: string | number | null | undefined): string | null {
+  if (s == null) return null;
+  const txt = String(s).trim();
+  if (!txt) return null;
+  // Extrai primeira sequência numérica
+  const m = txt.match(/(\d+)/);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  if (isNaN(n)) return null;
+  return String(n);
+}
+
+/** Tenta extrair o número da chapa de nomes como "Chapa 13 - LargePreviewCuttingPlan - Nesting.bmp". */
+export function extrairNumeroChapaDoNome(nome: string): string | null {
+  if (!nome) return null;
+  // "Chapa 13", "Chapa_13", "chapa13"
+  const m1 = nome.match(/chapa[\s_-]*(\d+)/i);
+  if (m1) return normalizarNumeroChapa(m1[1]);
+  // "Plate 13", "Plate_13"
+  const m2 = nome.match(/plate[\s_-]*(\d+)/i);
+  if (m2) return normalizarNumeroChapa(m2[1]);
+  // Início numérico tipo "13_..."
+  const m3 = nome.match(/^(\d+)[\s_-]/);
+  if (m3) return normalizarNumeroChapa(m3[1]);
+  return null;
+}
+
 
 function parseListXml(content: string): Array<Record<string, string>> {
   const cycles: Array<Record<string, string>> = [];
@@ -559,7 +591,18 @@ export async function importarPacoteTecnico(params: ImportarParams): Promise<Res
       totalEtiq += (ins as any[] || []).length;
     }
 
+    // 8.5) Vincular previews às chapas por número de chapa no nome
+    try {
+      const vinc = await vincularPreviewsChapas(importacaoId);
+      if (vinc.vinculados > 0) {
+        log("vinculando_previews", `${vinc.vinculados} preview(s) vinculado(s)`);
+      }
+    } catch (e: any) {
+      alertas.push(`Falha ao vincular previews: ${e?.message || e}`);
+    }
+
     // 9) totais finais
+
     const status: ResultadoImportacao["status"] = alertas.length ? "processado_com_alertas" : "processado";
     const mensagem = alertas.length ? alertas.slice(0, 5).join(" | ") : null;
     log("finalizando", `${totalArquivos} arquivos, ${Object.keys(chapasCriadas).length} chapas, ${totalEtiq} etiquetas`);
@@ -664,4 +707,67 @@ export async function processarArquivoSobDemanda(arquivoId: string): Promise<str
     .eq("id", arquivoId);
   return storagePath;
 }
+
+/**
+ * Vincula arquivos LargePreview/SmallPreview às chapas correspondentes pelo número
+ * extraído do nome do arquivo. Não duplica nem sobrescreve vínculos existentes.
+ */
+export async function vincularPreviewsChapas(importacaoId: string): Promise<{
+  vinculados: number;
+  large: number;
+  small: number;
+  semChapa: number;
+}> {
+  const [{ data: arqs }, { data: chapas }] = await Promise.all([
+    (supabase as any).from("fabrica_arquivos_tecnicos")
+      .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo")
+      .eq("importacao_id", importacaoId)
+      .in("tipo_arquivo", ["large_preview_cutting_plan", "small_preview_cutting_plan"]),
+    (supabase as any).from("fabrica_chapas_lote")
+      .select("id, numero_chapa, preview_large_id, preview_small_id")
+      .eq("importacao_id", importacaoId),
+  ]);
+
+  const arquivos = (arqs as any[]) || [];
+  const todasChapas = (chapas as any[]) || [];
+  if (!arquivos.length || !todasChapas.length) {
+    return { vinculados: 0, large: 0, small: 0, semChapa: arquivos.length };
+  }
+
+  // Indexa chapas por número normalizado
+  const chapaPorNumero = new Map<string, any>();
+  for (const c of todasChapas) {
+    const k = normalizarNumeroChapa(c.numero_chapa);
+    if (k && !chapaPorNumero.has(k)) chapaPorNumero.set(k, c);
+  }
+
+  let large = 0;
+  let small = 0;
+  let semChapa = 0;
+  // Acumula updates por chapa
+  const updatesPorChapa = new Map<string, { preview_large_id?: string; preview_small_id?: string }>();
+  for (const a of arquivos) {
+    const num = extrairNumeroChapaDoNome(a.nome_arquivo || "");
+    if (!num) { semChapa++; continue; }
+    const chapa = chapaPorNumero.get(num);
+    if (!chapa) { semChapa++; continue; }
+    const upd = updatesPorChapa.get(chapa.id) || {};
+    if (a.tipo_arquivo === "large_preview_cutting_plan" && !chapa.preview_large_id && !upd.preview_large_id) {
+      upd.preview_large_id = a.id;
+      large++;
+    } else if (a.tipo_arquivo === "small_preview_cutting_plan" && !chapa.preview_small_id && !upd.preview_small_id) {
+      upd.preview_small_id = a.id;
+      small++;
+    }
+    if (upd.preview_large_id || upd.preview_small_id) updatesPorChapa.set(chapa.id, upd);
+  }
+
+  for (const [chapaId, upd] of updatesPorChapa) {
+    await (supabase as any).from("fabrica_chapas_lote")
+      .update({ ...upd, updated_at: new Date().toISOString() })
+      .eq("id", chapaId);
+  }
+  return { vinculados: large + small, large, small, semChapa };
+}
+
 

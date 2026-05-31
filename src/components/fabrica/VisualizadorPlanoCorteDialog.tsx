@@ -10,12 +10,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, Download, Printer, X, ZoomIn, ZoomOut, Maximize, ExternalLink,
   FileText, FileArchive, Tag as TagIcon, Layers, Image as ImageIcon, Cpu,
-  Play, CheckCircle2, ShieldCheck,
+  Play, CheckCircle2, ShieldCheck, RefreshCcw, CloudDownload,
 } from "lucide-react";
-import { getSignedUrlPacoteTecnico } from "@/lib/fabrica/importacaoTecnica";
+
+import {
+  getSignedUrlPacoteTecnico,
+  processarArquivoSobDemanda,
+  vincularPreviewsChapas,
+  extrairNumeroChapaDoNome,
+  normalizarNumeroChapa,
+} from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
 import { VisualizadorVetorialChapa } from "@/components/fabrica/VisualizadorVetorialChapa";
 import { toast } from "sonner";
+
 
 interface Props {
   open: boolean;
@@ -105,16 +113,32 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const chapaSel = useMemo(() => chapas.find((c) => c.id === chapaSelId) || null, [chapas, chapaSelId]);
   const impSel = useMemo(() => importacoes.find((i) => i.id === impSelId) || null, [importacoes, impSelId]);
 
-  // Resolve preview URL ao trocar chapa
+  // Resolve preview arquivo da chapa: prioriza preview_large_id/preview_small_id,
+  // mas faz fallback por "Chapa N" no nome do arquivo
+  function resolverPreviewArquivo(chapa: any, tipo: "large_preview_cutting_plan" | "small_preview_cutting_plan"): any | null {
+    if (!chapa) return null;
+    const directId = tipo === "large_preview_cutting_plan" ? chapa.preview_large_id : chapa.preview_small_id;
+    if (directId) {
+      const arq = arquivos.find((a) => a.id === directId);
+      if (arq) return arq;
+    }
+    const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
+    if (!numChapa) return null;
+    return arquivos.find((a) =>
+      a.tipo_arquivo === tipo && normalizarNumeroChapa(extrairNumeroChapaDoNome(a.nome_arquivo || "") || "") === numChapa
+    ) || null;
+  }
+
+  // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
     setZoom(1);
     if (!chapaSel) return;
-    const previewId = chapaSel.preview_large_id || chapaSel.preview_small_id;
-    if (!previewId) return;
-    const arq = arquivos.find((a) => a.id === previewId);
+    const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
+            || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan");
     if (!arq?.url_arquivo) return;
     getSignedUrlPacoteTecnico(arq.url_arquivo, 3600).then((u) => setPreviewUrl(u));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapaSel, arquivos]);
 
   function arquivosDaChapa(chapaId: string) {
@@ -136,6 +160,38 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     const u = await getSignedUrlPacoteTecnico(path, 3600);
     if (u) window.open(u, "_blank");
   }
+
+  async function carregarArquivoSobDemanda(arqId: string) {
+    try {
+      toast.loading("Extraindo arquivo do ZIP original...", { id: "ondemand" });
+      const newPath = await processarArquivoSobDemanda(arqId);
+      // recarrega arquivos da importação
+      const { data: ar } = await (supabase as any)
+        .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).limit(2000);
+      setArquivos(ar || []);
+      toast.success("Arquivo carregado", { id: "ondemand" });
+      return newPath;
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "ondemand" });
+      return null;
+    }
+  }
+
+  async function reprocessarVinculosPreviews() {
+    if (!impSelId) return;
+    try {
+      toast.loading("Reprocessando vínculos...", { id: "reprocess" });
+      const r = await vincularPreviewsChapas(impSelId);
+      // recarrega chapas
+      const { data: ch } = await (supabase as any)
+        .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
+      setChapas(ch || []);
+      toast.success(`${r.vinculados} preview(s) vinculado(s) • ${r.large} large • ${r.small} small`, { id: "reprocess" });
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
+    }
+  }
+
 
   async function alterarStatusChapa(novo: StatusChapa) {
     if (!chapaSel) return;
@@ -244,8 +300,12 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
             <Button size="sm" variant="outline" onClick={() => abrirCaminho(findPdfPath("preview_corte_pdf"))} disabled={!findPdfPath("preview_corte_pdf")}>
               <FileText className="h-3 w-3 mr-1" /> PreviewCorte
             </Button>
+            <Button size="sm" variant="outline" onClick={reprocessarVinculosPreviews} title="Reprocessar vínculos de previews">
+              <RefreshCcw className="h-3 w-3 mr-1" /> Vínculos
+            </Button>
             <Button size="sm" variant="outline" onClick={imprimir}><Printer className="h-3 w-3 mr-1" /> Imprimir</Button>
             <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="h-4 w-4" /></Button>
+
           </div>
         </div>
 
@@ -347,10 +407,24 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                     className="max-w-full max-h-full object-contain bg-white shadow-lg transition-transform"
                   />
                 ) : chapaSel ? (
-                  <PlaceholderChapa chapa={chapaSel} />
+                  <PlaceholderChapa
+                    chapa={chapaSel}
+                    arquivoCatalogado={
+                      resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
+                      || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
+                    }
+                    onCarregar={async (id) => {
+                      const p = await carregarArquivoSobDemanda(id);
+                      if (p) {
+                        const u = await getSignedUrlPacoteTecnico(p, 3600);
+                        if (u) setPreviewUrl(u);
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="text-white/60 text-sm">Selecione uma chapa à esquerda.</div>
                 )}
+
               </div>
             </main>
 
@@ -387,11 +461,20 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">Arquivos da chapa</div>
-                        <ArqBtn label="NC" icon={Cpu} arqId={chapaSel.arquivo_nc_id} arquivos={arquivos} onAbrir={baixarArquivoId} fallbackTipo="nc_chapa" chapaId={chapaSel.id} />
-                        <ArqBtn label="CYC" icon={FileText} arqId={chapaSel.arquivo_cyc_id} arquivos={arquivos} onAbrir={baixarArquivoId} fallbackTipo="cyc_chapa" chapaId={chapaSel.id} />
-                        <ArqBtn label="Preview Large" icon={ImageIcon} arqId={chapaSel.preview_large_id} arquivos={arquivos} onAbrir={baixarArquivoId} />
-                        <ArqBtn label="Preview Small" icon={ImageIcon} arqId={chapaSel.preview_small_id} arquivos={arquivos} onAbrir={baixarArquivoId} />
+                        <ArqBtn label="NC" icon={Cpu} arqId={chapaSel.arquivo_nc_id} arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda} fallbackTipo="nc_chapa" chapaId={chapaSel.id} />
+                        <ArqBtn label="CYC" icon={FileText} arqId={chapaSel.arquivo_cyc_id} arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda} fallbackTipo="cyc_chapa" chapaId={chapaSel.id} />
+                        <ArqBtn
+                          label="Preview Large" icon={ImageIcon}
+                          arqId={chapaSel.preview_large_id || resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")?.id}
+                          arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda}
+                        />
+                        <ArqBtn
+                          label="Preview Small" icon={ImageIcon}
+                          arqId={chapaSel.preview_small_id || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")?.id}
+                          arquivos={arquivos} onAbrir={baixarArquivoId} onCarregar={carregarArquivoSobDemanda}
+                        />
                       </div>
+
 
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">Status da chapa</div>
@@ -575,13 +658,14 @@ function Row({ k, v }: { k: string; v: any }) {
 }
 
 function ArqBtn({
-  label, icon: Icon, arqId, arquivos, onAbrir, fallbackTipo, chapaId,
+  label, icon: Icon, arqId, arquivos, onAbrir, onCarregar, fallbackTipo, chapaId,
 }: {
   label: string;
   icon: any;
   arqId: string | null | undefined;
   arquivos: any[];
   onAbrir: (id: string) => void;
+  onCarregar?: (id: string) => Promise<any>;
   fallbackTipo?: string;
   chapaId?: string;
 }) {
@@ -589,26 +673,60 @@ function ArqBtn({
   if (!id && fallbackTipo && chapaId) {
     id = arquivos.find((a) => a.tipo_arquivo === fallbackTipo && a.chapa_id === chapaId)?.id || null;
   }
+  const arq = id ? arquivos.find((a) => a.id === id) : null;
+  const enviado = !!arq?.url_arquivo && (arq?.status_arquivo || "enviado") === "enviado";
+  const catalogado = !!arq && !enviado && (arq?.status_arquivo === "catalogado_nao_enviado" || arq?.status_arquivo === "erro_upload");
+
+  if (!id) {
+    return (
+      <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" disabled>
+        <Icon className="h-3 w-3 mr-1" /> {label}
+        <span className="ml-auto text-muted-foreground text-[10px]">indisponível</span>
+      </Button>
+    );
+  }
+  if (catalogado && onCarregar) {
+    return (
+      <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7"
+        onClick={() => onCarregar(id!)}
+        title="Catalogado no ZIP — carregar do ZIP original">
+        <CloudDownload className="h-3 w-3 mr-1" /> {label}
+        <span className="ml-auto text-amber-700 bg-amber-50 border border-amber-200 rounded px-1 text-[10px]">catalogado</span>
+      </Button>
+    );
+  }
   return (
-    <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" disabled={!id} onClick={() => id && onAbrir(id)}>
-      <Icon className="h-3 w-3 mr-1" /> {label} {!id && <span className="ml-auto text-muted-foreground text-[10px]">indisponível</span>}
+    <Button size="sm" variant="outline" className="w-full justify-start text-xs h-7" onClick={() => onAbrir(id!)}>
+      <Icon className="h-3 w-3 mr-1" /> {label}
+      <span className="ml-auto text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 text-[10px]">disponível</span>
     </Button>
   );
 }
 
-function PlaceholderChapa({ chapa }: { chapa: any }) {
+function PlaceholderChapa({ chapa, arquivoCatalogado, onCarregar }: {
+  chapa: any;
+  arquivoCatalogado?: any | null;
+  onCarregar?: (id: string) => void | Promise<any>;
+}) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
   const ratio = w / h;
+  const podeCarregar = arquivoCatalogado && !arquivoCatalogado.url_arquivo;
   return (
     <div className="flex flex-col items-center justify-center gap-2 text-white/80">
       <div
-        className="border-2 border-dashed border-white/30 bg-white/5 flex items-center justify-center text-xs"
+        className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2"
         style={{ width: 600, height: 600 / ratio }}
       >
-        Preview não disponível
+        <span>Preview não disponível</span>
+        {podeCarregar && onCarregar && (
+          <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
+            <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
+          </Button>
+        )}
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
     </div>
   );
 }
+
