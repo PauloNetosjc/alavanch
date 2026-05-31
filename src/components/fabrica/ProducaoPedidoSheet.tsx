@@ -53,6 +53,7 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
   const [etiquetaVolume, setEtiquetaVolume] = useState<any>(null);
   const [etiquetaPecas, setEtiquetaPecas] = useState<any[]>([]);
   const [almoxOpen, setAlmoxOpen] = useState(false);
+  const [planoCorteOpen, setPlanoCorteOpen] = useState(false);
   const [caixaPreview, setCaixaPreview] = useState<any | null>(null);
   const [caixaPreviewItens, setCaixaPreviewItens] = useState<any[]>([]);
   const [expOpen, setExpOpen] = useState(false);
