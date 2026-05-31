@@ -99,8 +99,13 @@ function detectarTipo(nome: string, origem: OrigemPasta): TipoArquivo {
   const semExt = lower.replace(/\.[a-z0-9]+$/, "");
   const isImg = ext === "bmp" || ext === "png" || ext === "jpg" || ext === "jpeg";
 
+  if (ext === "pdf" && lower.includes("previewcorte")) return "preview_corte_pdf";
+
   // Previews são reconhecidos pelo nome, INDEPENDENTE da pasta
   if (isImg) {
+    const previewNome = nomeIndicaPreview(nome);
+    if (previewNome === "small") return "small_preview_cutting_plan";
+    if (previewNome === "large" || previewNome === "preview") return "large_preview_cutting_plan";
     if (lower.includes("smallpreviewcuttingplan")) return "small_preview_cutting_plan";
     if (lower.includes("largepreviewcuttingplan")) return "large_preview_cutting_plan";
     // Fallback genérico — variações como "PreviewCuttingPlan", "CuttingPlanPreview"
@@ -153,12 +158,20 @@ export function normalizarNumeroChapa(s: string | number | null | undefined): st
 /** Tenta extrair o número da chapa de nomes diversos. Trata "07", "007", "Chapa 7", etc. */
 export function extrairNumeroChapaDoNome(nome: string): string | null {
   if (!nome) return null;
-  const semExt = nome.replace(/\.[a-z0-9]+$/i, "");
+  const semExt = nome.replace(/\.[a-z0-9]+$/i, "").replace(/[\\/]+/g, " ");
   // "Chapa 13", "Chapa_13", "chapa13"
   let m = semExt.match(/chapa[\s_\-]*0*(\d+)/i);
   if (m) return normalizarNumeroChapa(m[1]);
   // Plate/Board/Prancha
   m = semExt.match(/(?:plate|board|prancha)[\s_\-]*0*(\d+)/i);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Variações de preview: "LargePreviewCuttingPlan08", "CuttingPlan-008", etc.
+  m = semExt.match(/(?:large|small)?\s*preview\s*cutting\s*plan[\s_\-]*0*(\d+)/i)
+    || semExt.match(/cutting\s*plan[\s_\-]*0*(\d+)/i)
+    || semExt.match(/0*(\d+)[\s_\-]*(?:large|small)?\s*preview\s*cutting\s*plan/i);
+  if (m) return normalizarNumeroChapa(m[1]);
+  // Pasta numérica antes do arquivo: "AutoLabel/08/LargePreviewCuttingPlan.bmp"
+  m = semExt.match(/(?:^|\s)0*(\d+)(?=\s+(?:large|small)?\s*preview|\s+cutting|\s+nesting)/i);
   if (m) return normalizarNumeroChapa(m[1]);
   // Início numérico tipo "13_..." ou "07-..."
   m = semExt.match(/^0*(\d+)[\s_\-]/);
@@ -183,6 +196,10 @@ export function nomeIndicaPreview(nome: string): "large" | "small" | "preview" |
     if (l.includes("small")) return "small";
     if (l.includes("large")) return "large";
     return "preview";
+  }
+  if (l.includes("cuttingplan") || (l.includes("cutting") && l.includes("plan"))) {
+    if (l.includes("small")) return "small";
+    return "large";
   }
   return null;
 }
@@ -735,6 +752,210 @@ export async function processarArquivoSobDemanda(arquivoId: string): Promise<str
   return storagePath;
 }
 
+type PreviewLado = "large" | "small" | "preview";
+type ZipPreviewCandidate = {
+  entry: any;
+  caminho: string;
+  nome: string;
+  ext: string;
+  origem: OrigemPasta;
+  lado: PreviewLado;
+  numeroChapa: string | null;
+  tipoArquivo: "large_preview_cutting_plan" | "small_preview_cutting_plan";
+};
+
+function contentTypePorExt(ext: string): string | undefined {
+  const e = ext.toLowerCase();
+  if (e === "pdf") return "application/pdf";
+  if (e === "png") return "image/png";
+  if (e === "jpg" || e === "jpeg") return "image/jpeg";
+  if (e === "bmp") return "image/bmp";
+  if (e === "zip") return "application/zip";
+  return undefined;
+}
+
+function ehPossivelPreviewIndividual(caminho: string): boolean {
+  const lower = caminho.toLowerCase();
+  const nome = caminho.split("/").pop() || caminho;
+  const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+  if (!["bmp", "png", "jpg", "jpeg"].includes(ext)) return false;
+  if (nomeIndicaPreview(caminho)) return true;
+  return ["largepreviewcuttingplan", "smallpreviewcuttingplan", "previewcuttingplan", "cuttingplan", "preview", "chapa", "nesting"]
+    .some((k) => lower.includes(k));
+}
+
+function candidatosPreviewDoZip(zip: JSZip): ZipPreviewCandidate[] {
+  return Object.values(zip.files)
+    .filter((entry: any) => !entry.dir && !ehArquivoIgnorado(entry.name))
+    .map((entry: any) => {
+      const caminho = entry.name.replace(/\\/g, "/");
+      const nome = caminho.split("/").pop() || caminho;
+      const ext = (nome.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+      const lado = nomeIndicaPreview(caminho) || (caminho.toLowerCase().includes("small") ? "small" : "large");
+      return {
+        entry,
+        caminho,
+        nome,
+        ext,
+        origem: detectarOrigem(caminho),
+        lado,
+        numeroChapa: extrairNumeroChapaDoNome(caminho),
+        tipoArquivo: lado === "small" ? "small_preview_cutting_plan" : "large_preview_cutting_plan",
+      } as ZipPreviewCandidate;
+    })
+    .filter((c) => ehPossivelPreviewIndividual(c.caminho));
+}
+
+async function abrirZipOriginal(importacaoId: string) {
+  const { data: imp, error: impErr } = await (supabase as any)
+    .from("fabrica_importacoes_tecnicas")
+    .select("id, arquivo_original_url, loja_id, pedido_id, lote_id")
+    .eq("id", importacaoId)
+    .maybeSingle();
+  if (impErr || !imp) throw new Error("Importação técnica não encontrada");
+  if (!imp.arquivo_original_url) throw new Error("ZIP original não está salvo nesta importação");
+
+  const { data: zipBlob, error: dlErr } = await supabase.storage.from(BUCKET).download(imp.arquivo_original_url);
+  if (dlErr || !zipBlob) throw new Error(`Falha ao baixar ZIP original: ${dlErr?.message || "sem dados"}`);
+  const zip = await JSZip.loadAsync(zipBlob);
+  const entries = Object.values(zip.files).filter((f: any) => !f.dir && !ehArquivoIgnorado(f.name));
+  const ref = imp.pedido_id || imp.lote_id || "geral";
+  const basePath = `fabrica/${imp.loja_id || "sem-loja"}/${ref}/${imp.id}`;
+  return { imp, zip, entries, basePath };
+}
+
+async function materializarPreviewDoZip(importacao: any, basePath: string, cand: ZipPreviewCandidate, chapaId?: string | null) {
+  const { data: existente } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("*")
+    .eq("importacao_id", importacao.id)
+    .eq("caminho_relativo", cand.caminho)
+    .maybeSingle();
+
+  if (existente?.url_arquivo && existente?.status_arquivo === "enviado") {
+    if (chapaId && !existente.chapa_id) {
+      await (supabase as any).from("fabrica_arquivos_tecnicos").update({ chapa_id: chapaId }).eq("id", existente.id);
+    }
+    return { ...existente, chapa_id: existente.chapa_id || chapaId || null };
+  }
+
+  const blob = await cand.entry.async("blob");
+  const storagePath = `${basePath}/extracted/${cand.caminho}`;
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, {
+    upsert: true,
+    contentType: contentTypePorExt(cand.ext),
+  });
+  if (up.error) throw new Error(`Falha ao subir preview ${cand.nome}: ${up.error.message}`);
+
+  const payload = {
+    importacao_id: importacao.id,
+    pedido_id: importacao.pedido_id || null,
+    lote_id: importacao.lote_id || null,
+    loja_id: importacao.loja_id || null,
+    chapa_id: chapaId || null,
+    origem_pasta: cand.origem,
+    tipo_arquivo: cand.tipoArquivo,
+    nome_arquivo: cand.nome,
+    extensao: cand.ext || null,
+    caminho_relativo: cand.caminho,
+    url_arquivo: storagePath,
+    mime_type: contentTypePorExt(cand.ext) || null,
+    tamanho_bytes: blob.size,
+    status_arquivo: "enviado",
+    processado: true,
+  };
+
+  if (existente?.id) {
+    const { data, error } = await (supabase as any)
+      .from("fabrica_arquivos_tecnicos")
+      .update(payload)
+      .eq("id", existente.id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(`Falha ao atualizar catálogo do preview: ${error.message}`);
+    return data || { ...existente, ...payload };
+  }
+
+  const { data, error } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .insert(payload)
+    .select()
+    .maybeSingle();
+  if (error || !data) throw new Error(`Falha ao catalogar preview do ZIP: ${error?.message || "sem retorno"}`);
+  return data;
+}
+
+function nomeIndicaPreviewCortePdf(caminho: string): boolean {
+  const lower = caminho.toLowerCase();
+  if (!lower.endsWith(".pdf")) return false;
+  const compacto = lower.replace(/[\s_\-]+/g, "");
+  return compacto.includes("previewcorte") || compacto.includes("cuttingplanpreview") || compacto.includes("previewcuttingplan");
+}
+
+export async function materializarPreviewCortePdfDoZip(importacaoId: string): Promise<{
+  ok: boolean;
+  path?: string | null;
+  arquivoId?: string | null;
+  encontradoZip?: boolean;
+  totalArquivosZip?: number;
+  mensagem: string;
+}> {
+  const { data: existente } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id, url_arquivo, status_arquivo")
+    .eq("importacao_id", importacaoId)
+    .eq("tipo_arquivo", "preview_corte_pdf")
+    .not("url_arquivo", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (existente?.url_arquivo) {
+    return { ok: true, path: existente.url_arquivo, arquivoId: existente.id, encontradoZip: false, mensagem: "PreviewCorte.pdf já estava disponível." };
+  }
+
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(importacaoId);
+  const entry = entries.find((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
+  if (!entry) {
+    return { ok: false, encontradoZip: false, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf não encontrado no ZIP original." };
+  }
+
+  const caminho = (entry as any).name.replace(/\\/g, "/");
+  const nome = caminho.split("/").pop() || caminho;
+  const blob = await (entry as any).async("blob");
+  const storagePath = `${basePath}/extracted/${caminho}`;
+  const up = await supabase.storage.from(BUCKET).upload(storagePath, blob, { upsert: true, contentType: "application/pdf" });
+  if (up.error) throw new Error(`Falha ao subir PreviewCorte.pdf: ${up.error.message}`);
+
+  const payload = {
+    importacao_id: importacaoId,
+    pedido_id: imp.pedido_id || null,
+    lote_id: imp.lote_id || null,
+    loja_id: imp.loja_id || null,
+    origem_pasta: detectarOrigem(caminho),
+    tipo_arquivo: "preview_corte_pdf",
+    nome_arquivo: nome,
+    extensao: "pdf",
+    caminho_relativo: caminho,
+    url_arquivo: storagePath,
+    mime_type: "application/pdf",
+    tamanho_bytes: blob.size,
+    status_arquivo: "enviado",
+    processado: true,
+  };
+  const { data: catalogado } = await (supabase as any)
+    .from("fabrica_arquivos_tecnicos")
+    .select("id")
+    .eq("importacao_id", importacaoId)
+    .eq("caminho_relativo", caminho)
+    .maybeSingle();
+  if (catalogado?.id) {
+    await (supabase as any).from("fabrica_arquivos_tecnicos").update(payload).eq("id", catalogado.id);
+    return { ok: true, path: storagePath, arquivoId: catalogado.id, encontradoZip: true, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf encontrado no ZIP e carregado." };
+  }
+  const { data, error } = await (supabase as any).from("fabrica_arquivos_tecnicos").insert(payload).select("id").maybeSingle();
+  if (error) throw new Error(`Falha ao catalogar PreviewCorte.pdf: ${error.message}`);
+  return { ok: true, path: storagePath, arquivoId: data?.id || null, encontradoZip: true, totalArquivosZip: entries.length, mensagem: "PreviewCorte.pdf encontrado no ZIP e carregado." };
+}
+
 export interface ResumoVinculoPreviews {
   vinculados: number;
   large: number;
@@ -746,6 +967,13 @@ export interface ResumoVinculoPreviews {
   totalLargeEncontrados: number;
   totalSmallEncontrados: number;
   candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }>;
+  totalArquivosZip?: number;
+  previewsEncontradosZip?: number;
+  previewsEncontradosBanco?: number;
+  previewCortePdfDisponivel?: boolean;
+  chapasComFallbackPdf?: number;
+  arquivosCarregadosDoZip?: number;
+  ignorados?: number;
 }
 
 /**
@@ -864,12 +1092,93 @@ export async function vincularPreviewsChapas(importacaoId: string): Promise<Resu
   };
 }
 
+export async function reprocessarPreviewsPeloZip(importacaoId: string): Promise<ResumoVinculoPreviews> {
+  const [{ data: chapas }, { data: arqsBanco }] = await Promise.all([
+    (supabase as any).from("fabrica_chapas_lote")
+      .select("id, numero_chapa, preview_large_id, preview_small_id")
+      .eq("importacao_id", importacaoId),
+    (supabase as any).from("fabrica_arquivos_tecnicos")
+      .select("id, nome_arquivo, tipo_arquivo, extensao, status_arquivo, url_arquivo")
+      .eq("importacao_id", importacaoId),
+  ]);
+  const todasChapas = (chapas as any[]) || [];
+  const bancoPreviews = ((arqsBanco as any[]) || []).filter((a) =>
+    a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "")
+  );
+
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(importacaoId);
+  const previewsZip = candidatosPreviewDoZip(zip);
+  const previewCortePdfDisponivel = entries.some((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
+  const chapaPorNumero = new Map<string, any>();
+  todasChapas.forEach((c: any) => {
+    const n = normalizarNumeroChapa(c.numero_chapa);
+    if (n && !chapaPorNumero.has(n)) chapaPorNumero.set(n, c);
+  });
+
+  let large = 0;
+  let small = 0;
+  let semChapa = 0;
+  let arquivosCarregadosDoZip = 0;
+  const candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }> = [];
+  const updatesPorChapa = new Map<string, { preview_large_id?: string; preview_small_id?: string }>();
+
+  for (const cand of previewsZip) {
+    const chapa = cand.numeroChapa ? chapaPorNumero.get(cand.numeroChapa) : null;
+    if (!chapa) {
+      semChapa++;
+      if (candidatosSemVinculo.length < 10) candidatosSemVinculo.push({ id: cand.caminho, nome: cand.nome, tipo: cand.tipoArquivo });
+      continue;
+    }
+    const upd = updatesPorChapa.get(chapa.id) || {};
+    const precisaLarge = (cand.lado === "large" || cand.lado === "preview") && !chapa.preview_large_id && !upd.preview_large_id;
+    const precisaSmall = cand.lado === "small" && !chapa.preview_small_id && !upd.preview_small_id;
+    if (!precisaLarge && !precisaSmall) continue;
+
+    const arq = await materializarPreviewDoZip(imp, basePath, cand, chapa.id);
+    arquivosCarregadosDoZip++;
+    if (precisaLarge) { upd.preview_large_id = arq.id; large++; }
+    if (precisaSmall) { upd.preview_small_id = arq.id; small++; }
+    updatesPorChapa.set(chapa.id, upd);
+  }
+
+  for (const [chapaId, upd] of updatesPorChapa) {
+    await (supabase as any).from("fabrica_chapas_lote")
+      .update({ ...upd, updated_at: new Date().toISOString() })
+      .eq("id", chapaId);
+  }
+
+  const idsAtualizados = new Set(updatesPorChapa.keys());
+  const chapasComPv = todasChapas.filter((c: any) => c.preview_large_id || c.preview_small_id || idsAtualizados.has(c.id)).length;
+  return {
+    vinculados: large + small,
+    large,
+    small,
+    semChapa,
+    chapasAnalisadas: todasChapas.length,
+    chapasComPreview: chapasComPv,
+    chapasSemPreview: todasChapas.length - chapasComPv,
+    totalLargeEncontrados: previewsZip.filter((c) => c.lado !== "small").length,
+    totalSmallEncontrados: previewsZip.filter((c) => c.lado === "small").length,
+    candidatosSemVinculo,
+    totalArquivosZip: entries.length,
+    previewsEncontradosZip: previewsZip.length,
+    previewsEncontradosBanco: bancoPreviews.length,
+    previewCortePdfDisponivel,
+    chapasComFallbackPdf: previewCortePdfDisponivel ? Math.max(0, todasChapas.length - chapasComPv) : 0,
+    arquivosCarregadosDoZip,
+    ignorados: Math.max(0, previewsZip.length - updatesPorChapa.size),
+  };
+}
+
 export interface DiagnosticoPreview {
   numeroChapa: string | null;
   numeroNormalizado: string | null;
   totalLarge: number;
   totalSmall: number;
   candidatos: Array<{ id: string; nome: string; tipo: string; status: string; temUrl: boolean }>;
+  previewCortePdfCatalogado: boolean;
+  labelsPdfCatalogado: boolean;
+  listCatalogado: boolean;
   motivoProvavel: string;
 }
 
@@ -884,6 +1193,9 @@ export function diagnosticarPreviewChapa(chapa: any, arquivosImportacao: any[]):
   });
   const totalLarge = previewsImp.filter((a) => a.tipo_arquivo === "large_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "large").length;
   const totalSmall = previewsImp.filter((a) => a.tipo_arquivo === "small_preview_cutting_plan" || nomeIndicaPreview(a.nome_arquivo || "") === "small").length;
+  const previewCortePdfCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "preview_corte_pdf");
+  const labelsPdfCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "labels_pdf");
+  const listCatalogado = (arquivosImportacao || []).some((a) => a.tipo_arquivo === "list");
 
   const candidatos = previewsImp
     .filter((a) => {
@@ -917,6 +1229,9 @@ export function diagnosticarPreviewChapa(chapa: any, arquivosImportacao: any[]):
     totalLarge,
     totalSmall,
     candidatos,
+    previewCortePdfCatalogado,
+    labelsPdfCatalogado,
+    listCatalogado,
     motivoProvavel: motivo,
   };
 }
@@ -931,6 +1246,13 @@ export async function repararPreviewChapa(chapaId: string): Promise<{
   ok: boolean;
   large?: string;
   small?: string;
+  totalArquivosZip?: number;
+  previewsEncontradosZip?: number;
+  candidatosChapa?: number;
+  arquivosVinculados?: number;
+  arquivosIgnorados?: number;
+  previewCortePdfDisponivel?: boolean;
+  candidatos?: Array<{ nome: string; caminho: string; tipo: string; status: string }>;
   mensagem: string;
 }> {
   const { data: chapa, error: chErr } = await (supabase as any)
@@ -940,69 +1262,70 @@ export async function repararPreviewChapa(chapaId: string): Promise<{
     .maybeSingle();
   if (chErr || !chapa) return { ok: false, mensagem: "Chapa não encontrada" };
 
-  const { data: arqs } = await (supabase as any)
-    .from("fabrica_arquivos_tecnicos")
-    .select("id, nome_arquivo, tipo_arquivo, url_arquivo, status_arquivo, extensao")
-    .eq("importacao_id", chapa.importacao_id);
-
-  const candidatos = ((arqs as any[]) || []).filter((a) => {
-    const ehTipoPv = a.tipo_arquivo === "large_preview_cutting_plan" || a.tipo_arquivo === "small_preview_cutting_plan";
-    const ext = (a.extensao || "").toLowerCase();
-    const ehImg = ["bmp", "png", "jpg", "jpeg"].includes(ext);
-    if (!ehTipoPv && !(ehImg && nomeIndicaPreview(a.nome_arquivo || ""))) return false;
-    const numNome = extrairNumeroChapaDoNome(a.nome_arquivo || "");
-    const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
-    return numNome && numChapa && numNome === numChapa;
-  });
+  const { imp, zip, entries, basePath } = await abrirZipOriginal(chapa.importacao_id);
+  const previewsZip = candidatosPreviewDoZip(zip);
+  const numChapa = normalizarNumeroChapa(chapa.numero_chapa);
+  const candidatos = previewsZip.filter((c) => c.numeroChapa && numChapa && c.numeroChapa === numChapa);
+  const previewCortePdfDisponivel = entries.some((e: any) => nomeIndicaPreviewCortePdf(e.name || ""));
 
   if (!candidatos.length) {
-    return { ok: false, mensagem: "Nenhum preview foi encontrado para esta chapa no ZIP." };
+    return {
+      ok: false,
+      totalArquivosZip: entries.length,
+      previewsEncontradosZip: previewsZip.length,
+      candidatosChapa: 0,
+      arquivosVinculados: 0,
+      arquivosIgnorados: previewsZip.length,
+      previewCortePdfDisponivel,
+      candidatos: [],
+      mensagem: `${entries.length} arquivos analisados. ${previewsZip.length} previews encontrados. Nenhum preview encontrado para Chapa ${chapa.numero_chapa}. ${previewCortePdfDisponivel ? "Use PreviewCorte.pdf como fallback." : "PreviewCorte.pdf também não foi encontrado."}`,
+    };
   }
 
-  // Classifica lado
-  const findLado = (lado: "large" | "small") =>
-    candidatos.find((c) => {
-      if (lado === "large" && c.tipo_arquivo === "large_preview_cutting_plan") return true;
-      if (lado === "small" && c.tipo_arquivo === "small_preview_cutting_plan") return true;
-      return nomeIndicaPreview(c.nome_arquivo || "") === lado;
-    });
-
-  // Prefere large; se só houver small, usa small como fallback de large também
-  let largeArq = findLado("large") || candidatos.find((c) => nomeIndicaPreview(c.nome_arquivo || "") === "preview") || null;
+  const findLado = (lado: "large" | "small") => candidatos.find((c) => c.lado === lado);
+  let largeArq = findLado("large") || candidatos.find((c) => c.lado === "preview") || null;
   let smallArq = findLado("small") || null;
   if (!largeArq && smallArq) largeArq = smallArq;
 
-  const materializarSeNecessario = async (a: any): Promise<any> => {
-    if (a.url_arquivo) return a;
-    try {
-      const newPath = await processarArquivoSobDemanda(a.id);
-      return { ...a, url_arquivo: newPath, status_arquivo: "enviado" };
-    } catch (e: any) {
-      return a;
-    }
-  };
-
   const updates: any = {};
   if (largeArq && !chapa.preview_large_id) {
-    largeArq = await materializarSeNecessario(largeArq);
-    if (largeArq.url_arquivo) updates.preview_large_id = largeArq.id;
+    const arq = await materializarPreviewDoZip(imp, basePath, largeArq, chapa.id);
+    if (arq?.url_arquivo) updates.preview_large_id = arq.id;
   }
   if (smallArq && !chapa.preview_small_id) {
-    smallArq = await materializarSeNecessario(smallArq);
-    if (smallArq.url_arquivo) updates.preview_small_id = smallArq.id;
+    const arq = await materializarPreviewDoZip(imp, basePath, smallArq, chapa.id);
+    if (arq?.url_arquivo) updates.preview_small_id = arq.id;
   }
 
   if (Object.keys(updates).length === 0) {
-    return { ok: false, mensagem: "Candidatos encontrados, mas não foi possível materializar nem vincular." };
+    return {
+      ok: false,
+      totalArquivosZip: entries.length,
+      previewsEncontradosZip: previewsZip.length,
+      candidatosChapa: candidatos.length,
+      arquivosVinculados: 0,
+      arquivosIgnorados: Math.max(0, previewsZip.length - candidatos.length),
+      previewCortePdfDisponivel,
+      candidatos: candidatos.slice(0, 8).map((c) => ({ nome: c.nome, caminho: c.caminho, tipo: c.tipoArquivo, status: c.ext === "bmp" ? "bmp" : "enviado" })),
+      mensagem: `${entries.length} arquivos analisados. ${previewsZip.length} previews encontrados; ${candidatos.length} para Chapa ${chapa.numero_chapa}. Nenhum vínculo novo foi necessário ou possível.`,
+    };
   }
   updates.updated_at = new Date().toISOString();
   await (supabase as any).from("fabrica_chapas_lote").update(updates).eq("id", chapaId);
 
+  const primeiro = candidatos[0];
   return {
     ok: true,
     large: updates.preview_large_id,
     small: updates.preview_small_id,
-    mensagem: `Preview vinculado (${updates.preview_large_id ? "large" : ""}${updates.preview_large_id && updates.preview_small_id ? " + " : ""}${updates.preview_small_id ? "small" : ""}).`,
+    totalArquivosZip: entries.length,
+    previewsEncontradosZip: previewsZip.length,
+    candidatosChapa: candidatos.length,
+    arquivosVinculados: Object.keys(updates).filter((k) => k.startsWith("preview_")).length,
+    arquivosIgnorados: Math.max(0, previewsZip.length - candidatos.length),
+    previewCortePdfDisponivel,
+    candidatos: candidatos.slice(0, 8).map((c) => ({ nome: c.nome, caminho: c.caminho, tipo: c.tipoArquivo, status: c.ext === "bmp" ? "bmp" : "enviado" })),
+    mensagem: `Preview encontrado: ${primeiro.caminho}. Arquivo carregado e vinculado. ${entries.length} arquivos analisados; ${previewsZip.length} previews no ZIP; ${candidatos.length} candidato(s) para Chapa ${chapa.numero_chapa}.`,
   };
 }
 

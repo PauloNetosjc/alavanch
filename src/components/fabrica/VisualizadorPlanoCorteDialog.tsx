@@ -16,11 +16,12 @@ import {
 import {
   getSignedUrlPacoteTecnico,
   processarArquivoSobDemanda,
-  vincularPreviewsChapas,
   extrairNumeroChapaDoNome,
   normalizarNumeroChapa,
   diagnosticarPreviewChapa,
   repararPreviewChapa,
+  reprocessarPreviewsPeloZip,
+  materializarPreviewCortePdfDoZip,
   type DiagnosticoPreview,
 } from "@/lib/fabrica/importacaoTecnica";
 import { DadosVetoriaisPanel, DadosVetoriaisTabela } from "@/components/fabrica/DadosVetoriaisPanel";
@@ -63,13 +64,14 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   const [etiquetas, setEtiquetas] = useState<any[]>([]);
   const [pedido, setPedido] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewErroRender, setPreviewErroRender] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [filtroEtiq, setFiltroEtiq] = useState("");
   const [filtroArq, setFiltroArq] = useState({ pasta: "", tipo: "", ext: "", nome: "" });
   const [visaoCentral, setVisaoCentral] = useState<"preview" | "vetorial">("preview");
   const [reparando, setReparando] = useState(false);
-  const [resumoVinculos, setResumoVinculos] = useState<any>(null);
+  const [ultimoReparo, setUltimoReparo] = useState<any>(null);
 
   // Carrega importações e cabeçalho
   useEffect(() => {
@@ -138,8 +140,10 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
   // Resolve preview URL ao trocar chapa (com fallback)
   useEffect(() => {
     setPreviewUrl(null);
+    setPreviewPdfUrl(null);
     setPreviewErroRender(false);
     setZoom(1);
+    setUltimoReparo(null);
     if (!chapaSel) return;
     const arq = resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
             || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan");
@@ -183,21 +187,23 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     }
   }
 
-  async function reprocessarVinculosPreviews() {
+  async function reprocessarPreviewsZip() {
     if (!impSelId) return;
     try {
-      toast.loading("Reprocessando vínculos...", { id: "reprocess" });
-      const r = await vincularPreviewsChapas(impSelId);
-      const { data: ch } = await (supabase as any)
-        .from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false });
+      toast.loading("Lendo ZIP original e reprocessando previews...", { id: "reprocess-zip" });
+      const r = await reprocessarPreviewsPeloZip(impSelId);
+      const [{ data: ch }, { data: ar }] = await Promise.all([
+        (supabase as any).from("fabrica_chapas_lote").select("*").eq("importacao_id", impSelId).order("ordem_chapa", { ascending: true, nullsFirst: false }),
+        (supabase as any).from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).order("origem_pasta").limit(2000),
+      ]);
       setChapas(ch || []);
-      setResumoVinculos(r);
+      setArquivos(ar || []);
       toast.success(
-        `Vinculados: ${r.vinculados} (large ${r.large} • small ${r.small}) • Chapas com preview: ${r.chapasComPreview}/${r.chapasAnalisadas}`,
-        { id: "reprocess", duration: 6000 }
+        `${r.totalArquivosZip ?? 0} arquivos analisados. ${r.previewsEncontradosZip ?? 0} previews no ZIP. ${r.vinculados} vínculo(s) criado(s). ${r.chapasSemPreview} chapa(s) ainda sem preview${r.previewCortePdfDisponivel ? " com fallback PDF" : ""}.`,
+        { id: "reprocess-zip", duration: 8000 }
       );
     } catch (e: any) {
-      toast.error("Falha: " + (e?.message || e), { id: "reprocess" });
+      toast.error("Falha: " + (e?.message || e), { id: "reprocess-zip" });
     }
   }
 
@@ -207,8 +213,9 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
     try {
       toast.loading("Procurando preview no ZIP...", { id: "reparar" });
       const r = await repararPreviewChapa(chapaSel.id);
+      setUltimoReparo(r);
       if (!r.ok) {
-        toast.error(r.mensagem, { id: "reparar", duration: 5000 });
+        toast.error(r.mensagem, { id: "reparar", duration: 8000 });
       } else {
         // recarrega chapas e arquivos
         const [{ data: ch }, { data: ar }] = await Promise.all([
@@ -217,7 +224,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
         ]);
         setChapas(ch || []);
         setArquivos(ar || []);
-        toast.success(r.mensagem, { id: "reparar" });
+        toast.success(r.mensagem, { id: "reparar", duration: 8000 });
       }
     } catch (e: any) {
       toast.error("Falha: " + (e?.message || e), { id: "reparar" });
@@ -246,6 +253,35 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
 
   function findPdfPath(tipo: string): string | null {
     return arquivos.find((a) => a.tipo_arquivo === tipo)?.url_arquivo || null;
+  }
+
+  const previewCorteArquivo = useMemo(() => arquivos.find((a) => a.tipo_arquivo === "preview_corte_pdf") || null, [arquivos]);
+
+  async function abrirPreviewCortePdfCentro() {
+    if (!impSelId) return;
+    try {
+      toast.loading("Preparando PreviewCorte.pdf...", { id: "preview-corte" });
+      let path = previewCorteArquivo?.url_arquivo || null;
+      if (!path) {
+        const r = await materializarPreviewCortePdfDoZip(impSelId);
+        if (!r.ok || !r.path) {
+          toast.error(r.mensagem, { id: "preview-corte", duration: 6000 });
+          return;
+        }
+        path = r.path;
+        const { data: ar } = await (supabase as any)
+          .from("fabrica_arquivos_tecnicos").select("*").eq("importacao_id", impSelId).order("origem_pasta").limit(2000);
+        setArquivos(ar || []);
+      }
+      const u = await getSignedUrlPacoteTecnico(path, 3600);
+      if (!u) throw new Error("Não foi possível assinar o PreviewCorte.pdf");
+      setPreviewPdfUrl(u);
+      setPreviewUrl(null);
+      setPreviewErroRender(false);
+      toast.success("Preview individual não encontrado. Exibindo PreviewCorte.pdf geral.", { id: "preview-corte", duration: 5000 });
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || e), { id: "preview-corte" });
+    }
   }
 
   // Filtros arquivos
@@ -336,7 +372,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
             <Button size="sm" variant="outline" onClick={() => abrirCaminho(findPdfPath("preview_corte_pdf"))} disabled={!findPdfPath("preview_corte_pdf")}>
               <FileText className="h-3 w-3 mr-1" /> PreviewCorte
             </Button>
-            <Button size="sm" variant="outline" onClick={reprocessarVinculosPreviews} title="Reprocessar vínculos de previews">
+            <Button size="sm" variant="outline" onClick={reprocessarPreviewsZip} title="Reprocessar previews pelo ZIP original e atualizar vínculos">
               <RefreshCcw className="h-3 w-3 mr-1" /> Vínculos
             </Button>
             <Button size="sm" variant="outline" onClick={imprimir}><Printer className="h-3 w-3 mr-1" /> Imprimir</Button>
@@ -366,6 +402,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 const hasNc = !!c.arquivo_nc_id || arqs.some((a) => a.tipo_arquivo === "nc_chapa");
                 const hasCyc = !!c.arquivo_cyc_id || arqs.some((a) => a.tipo_arquivo === "cyc_chapa");
                 const hasPv = !!c.preview_large_id || !!c.preview_small_id;
+                const hasPvPdf = !hasPv && !!previewCorteArquivo;
                 const etiqs = etiquetasDaChapa(c.id).length;
                 const sel = c.id === chapaSelId;
                 return (
@@ -390,7 +427,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {hasNc && <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">NC</Badge>}
                       {hasCyc && <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">CYC</Badge>}
-                      {hasPv && <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">PV</Badge>}
+                      {hasPv ? (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">PV individual</Badge>
+                      ) : hasPvPdf ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">PV PDF</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">Sem preview</Badge>
+                      )}
                       {etiqs > 0 && <Badge variant="outline" className="text-[10px]">{etiqs} etiq</Badge>}
                     </div>
                   </button>
@@ -435,7 +478,13 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                 </div>
               </div>
               <div className="flex-1 overflow-auto flex items-center justify-center p-4 print:p-2">
-                {previewUrl && !previewErroRender ? (
+                {previewPdfUrl ? (
+                  <iframe
+                    title="PreviewCorte.pdf"
+                    src={previewPdfUrl}
+                    className="w-full h-full bg-white rounded shadow-lg"
+                  />
+                ) : previewUrl && !previewErroRender ? (
                   <img
                     src={previewUrl}
                     alt={`Plano de corte chapa ${chapaSel?.numero_chapa}`}
@@ -452,8 +501,11 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                       resolverPreviewArquivo(chapaSel, "large_preview_cutting_plan")
                       || resolverPreviewArquivo(chapaSel, "small_preview_cutting_plan")
                     }
+                    previewCorteDisponivel={!!previewCorteArquivo || !!ultimoReparo?.previewCortePdfDisponivel}
+                    ultimoReparo={ultimoReparo}
                     reparando={reparando}
                     onReparar={repararPreviewDaChapa}
+                    onAbrirPreviewCorte={abrirPreviewCortePdfCentro}
                     onCarregar={async (id) => {
                       const p = await carregarArquivoSobDemanda(id);
                       if (p) {
@@ -745,14 +797,17 @@ function ArqBtn({
   );
 }
 
-function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, reparando, previewUrl }: {
+function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onReparar, onAbrirPreviewCorte, reparando, previewUrl, previewCorteDisponivel, ultimoReparo }: {
   chapa: any;
   arquivos: any[];
   arquivoCatalogado?: any | null;
   onCarregar?: (id: string) => void | Promise<any>;
   onReparar?: () => void | Promise<any>;
+  onAbrirPreviewCorte?: () => void | Promise<any>;
   reparando?: boolean;
   previewUrl?: string | null;
+  previewCorteDisponivel?: boolean;
+  ultimoReparo?: any;
 }) {
   const w = Number(chapa.largura_chapa) || 2750;
   const h = Number(chapa.altura_chapa) || 1850;
@@ -766,10 +821,20 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
         className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2 p-4"
         style={{ width: 600, height: 600 / ratio, maxWidth: "100%" }}
       >
-        <span className="font-medium">
-          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview não disponível"}
+        <span className="font-medium text-center">
+          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview individual não encontrado para esta chapa."}
         </span>
+        {!erroRender && (
+          <span className="text-white/60 text-center max-w-md">
+            Use o PreviewCorte.pdf geral ou tente reparar buscando diretamente dentro do ZIP original.
+          </span>
+        )}
         <div className="flex flex-wrap gap-1 justify-center">
+          {onAbrirPreviewCorte && (
+            <Button size="sm" variant="secondary" onClick={() => onAbrirPreviewCorte()}>
+              <FileText className="h-3 w-3 mr-1" /> {previewCorteDisponivel ? "Abrir PreviewCorte.pdf" : "Usar PreviewCorte.pdf"}
+            </Button>
+          )}
           {podeCarregar && onCarregar && (
             <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
               <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
@@ -783,10 +848,15 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
           )}
           {erroRender && previewUrl && (
             <a href={previewUrl} download className="inline-flex items-center gap-1 text-xs px-2 h-8 rounded bg-white/10 hover:bg-white/20">
-              <Download className="h-3 w-3" /> Baixar preview
+              <Download className="h-3 w-3" /> {arquivoCatalogado?.extensao === "bmp" ? "Baixar BMP" : "Baixar preview"}
             </a>
           )}
         </div>
+        {(arquivoCatalogado?.extensao === "bmp" || ultimoReparo?.candidatos?.some?.((c: any) => c.status === "bmp")) && (
+          <div className="text-[11px] text-amber-200 text-center max-w-md">
+            Arquivo BMP encontrado, mas o navegador pode não exibir este formato. Use baixar BMP se a imagem não abrir.
+          </div>
+        )}
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
 
@@ -796,6 +866,10 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
         <div className="mt-2 space-y-1">
           <div>Número da chapa: <span className="font-mono">{diag.numeroChapa ?? "—"}</span> (normalizado: <span className="font-mono">{diag.numeroNormalizado ?? "—"}</span>)</div>
           <div>LargePreview na importação: <span className="font-mono">{diag.totalLarge}</span> • SmallPreview: <span className="font-mono">{diag.totalSmall}</span></div>
+          <div>Banco: PreviewCorte.pdf <span className="font-mono">{diag.previewCortePdfCatalogado ? "sim" : "não"}</span> • Labels PDF <span className="font-mono">{diag.labelsPdfCatalogado ? "sim" : "não"}</span> • List <span className="font-mono">{diag.listCatalogado ? "sim" : "não"}</span></div>
+          {ultimoReparo && (
+            <div>ZIP: <span className="font-mono">{ultimoReparo.totalArquivosZip ?? "—"}</span> arquivos • <span className="font-mono">{ultimoReparo.previewsEncontradosZip ?? "—"}</span> previews • <span className="font-mono">{ultimoReparo.candidatosChapa ?? "—"}</span> para esta chapa • PreviewCorte <span className="font-mono">{ultimoReparo.previewCortePdfDisponivel ? "sim" : "não"}</span></div>
+          )}
           <div>Candidatos para esta chapa: <span className="font-mono">{diag.candidatos.length}</span></div>
           {diag.candidatos.slice(0, 5).map((c) => (
             <div key={c.id} className="font-mono text-[10px] text-white/60 truncate">
@@ -807,7 +881,13 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
               }>{c.status}</span>
             </div>
           ))}
+          {ultimoReparo?.candidatos?.slice?.(0, 5).map((c: any) => (
+            <div key={c.caminho} className="font-mono text-[10px] text-white/60 truncate">
+              • ZIP: {c.caminho} <span className="text-white/40">[{c.tipo}]</span>
+            </div>
+          ))}
           <div className="text-white/80 pt-1">Motivo provável: <span className="text-amber-200">{diag.motivoProvavel}</span></div>
+          {ultimoReparo?.mensagem && <div className="text-white/80 pt-1">Última busca no ZIP: <span className="text-amber-200">{ultimoReparo.mensagem}</span></div>}
         </div>
       </details>
     </div>
