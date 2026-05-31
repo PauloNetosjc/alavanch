@@ -888,6 +888,13 @@ export interface ResumoVinculoPreviews {
   totalLargeEncontrados: number;
   totalSmallEncontrados: number;
   candidatosSemVinculo: Array<{ id: string; nome: string; tipo: string }>;
+  totalArquivosZip?: number;
+  previewsEncontradosZip?: number;
+  previewsEncontradosBanco?: number;
+  previewCortePdfDisponivel?: boolean;
+  chapasComFallbackPdf?: number;
+  arquivosCarregadosDoZip?: number;
+  ignorados?: number;
 }
 
 /**
