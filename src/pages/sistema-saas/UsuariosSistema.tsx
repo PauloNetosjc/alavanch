@@ -209,6 +209,10 @@ export default function UsuariosSistema() {
   function flagSemLoja(p: Profile): boolean {
     return p.tipo_usuario === "usuario_base" && getLojasDoUser(p).length === 0 && !isAdminDaBase(p);
   }
+  /** Admin/Diretor da base sem base vinculada — pendência crítica. */
+  function flagAdminSemBase(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && isAdminDaBase(p) && !baseEfetiva(p).id && !baseEfetiva(p).multiplas;
+  }
 
 
   const filtered = useMemo(() => {
