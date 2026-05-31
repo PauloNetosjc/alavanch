@@ -845,10 +845,20 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
         className="border-2 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center text-xs gap-2 p-4"
         style={{ width: 600, height: 600 / ratio, maxWidth: "100%" }}
       >
-        <span className="font-medium">
-          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview não disponível"}
+        <span className="font-medium text-center">
+          {erroRender ? "Preview não pôde ser renderizado pelo navegador" : "Preview individual não encontrado para esta chapa."}
         </span>
+        {!erroRender && (
+          <span className="text-white/60 text-center max-w-md">
+            Use o PreviewCorte.pdf geral ou tente reparar buscando diretamente dentro do ZIP original.
+          </span>
+        )}
         <div className="flex flex-wrap gap-1 justify-center">
+          {onAbrirPreviewCorte && (
+            <Button size="sm" variant="secondary" onClick={() => onAbrirPreviewCorte()}>
+              <FileText className="h-3 w-3 mr-1" /> {previewCorteDisponivel ? "Abrir PreviewCorte.pdf" : "Usar PreviewCorte.pdf"}
+            </Button>
+          )}
           {podeCarregar && onCarregar && (
             <Button size="sm" variant="secondary" onClick={() => onCarregar(arquivoCatalogado.id)}>
               <CloudDownload className="h-3 w-3 mr-1" /> Carregar preview do ZIP
@@ -862,10 +872,15 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
           )}
           {erroRender && previewUrl && (
             <a href={previewUrl} download className="inline-flex items-center gap-1 text-xs px-2 h-8 rounded bg-white/10 hover:bg-white/20">
-              <Download className="h-3 w-3" /> Baixar preview
+              <Download className="h-3 w-3" /> {arquivoCatalogado?.extensao === "bmp" ? "Baixar BMP" : "Baixar preview"}
             </a>
           )}
         </div>
+        {(arquivoCatalogado?.extensao === "bmp" || ultimoReparo?.candidatos?.some?.((c: any) => c.status === "bmp")) && (
+          <div className="text-[11px] text-amber-200 text-center max-w-md">
+            Arquivo BMP encontrado, mas o navegador pode não exibir este formato. Use baixar BMP se a imagem não abrir.
+          </div>
+        )}
       </div>
       <div className="text-[11px] text-white/60">{chapa.material} • {chapa.cor_linha} • {chapa.espessura}mm • {w}x{h}mm</div>
 
@@ -875,6 +890,10 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
         <div className="mt-2 space-y-1">
           <div>Número da chapa: <span className="font-mono">{diag.numeroChapa ?? "—"}</span> (normalizado: <span className="font-mono">{diag.numeroNormalizado ?? "—"}</span>)</div>
           <div>LargePreview na importação: <span className="font-mono">{diag.totalLarge}</span> • SmallPreview: <span className="font-mono">{diag.totalSmall}</span></div>
+          <div>Banco: PreviewCorte.pdf <span className="font-mono">{diag.previewCortePdfCatalogado ? "sim" : "não"}</span> • Labels PDF <span className="font-mono">{diag.labelsPdfCatalogado ? "sim" : "não"}</span> • List <span className="font-mono">{diag.listCatalogado ? "sim" : "não"}</span></div>
+          {ultimoReparo && (
+            <div>ZIP: <span className="font-mono">{ultimoReparo.totalArquivosZip ?? "—"}</span> arquivos • <span className="font-mono">{ultimoReparo.previewsEncontradosZip ?? "—"}</span> previews • <span className="font-mono">{ultimoReparo.candidatosChapa ?? "—"}</span> para esta chapa • PreviewCorte <span className="font-mono">{ultimoReparo.previewCortePdfDisponivel ? "sim" : "não"}</span></div>
+          )}
           <div>Candidatos para esta chapa: <span className="font-mono">{diag.candidatos.length}</span></div>
           {diag.candidatos.slice(0, 5).map((c) => (
             <div key={c.id} className="font-mono text-[10px] text-white/60 truncate">
@@ -886,7 +905,13 @@ function PlaceholderChapa({ chapa, arquivos, arquivoCatalogado, onCarregar, onRe
               }>{c.status}</span>
             </div>
           ))}
+          {ultimoReparo?.candidatos?.slice?.(0, 5).map((c: any) => (
+            <div key={c.caminho} className="font-mono text-[10px] text-white/60 truncate">
+              • ZIP: {c.caminho} <span className="text-white/40">[{c.tipo}]</span>
+            </div>
+          ))}
           <div className="text-white/80 pt-1">Motivo provável: <span className="text-amber-200">{diag.motivoProvavel}</span></div>
+          {ultimoReparo?.mensagem && <div className="text-white/80 pt-1">Última busca no ZIP: <span className="text-amber-200">{ultimoReparo.mensagem}</span></div>}
         </div>
       </details>
     </div>
