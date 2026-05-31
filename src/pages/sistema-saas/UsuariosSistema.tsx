@@ -258,8 +258,9 @@ export default function UsuariosSistema() {
     const ativos = profiles.filter((p) => p.status_saas === "ativo").length;
     const semBase = profiles.filter(flagSemBase).length;
     const semLoja = profiles.filter(flagSemLoja).length;
+    const adminSemBase = profiles.filter(flagAdminSemBase).length;
     const multiBase = profiles.filter(flagMultiplasBases).length;
-    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, multiBase, total: profiles.length };
+    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, adminSemBase, multiBase, total: profiles.length };
   }, [profiles, lojasByUser, rolesByUser, lojaById]);
 
 
