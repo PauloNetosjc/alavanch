@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, Download, Printer, X, ZoomIn, ZoomOut, Maximize, ExternalLink,
   FileText, FileArchive, Tag as TagIcon, Layers, Image as ImageIcon, Cpu,
-  Play, CheckCircle2, ShieldCheck,
+  Play, CheckCircle2, ShieldCheck, RefreshCcw, CloudDownload,
 } from "lucide-react";
+
 import {
   getSignedUrlPacoteTecnico,
   processarArquivoSobDemanda,
