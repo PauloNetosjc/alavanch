@@ -570,6 +570,11 @@ export function ProducaoPedidoSheet({ open, onOpenChange, pedidoId, onChanged }:
       pedido={pedido}
       onChanged={() => { carregar(); onChanged?.(); }}
     />
+    <VisualizadorPlanoCorteDialog
+      open={planoCorteOpen}
+      onOpenChange={setPlanoCorteOpen}
+      pedidoId={pedidoId}
+    />
     </>
   );
 }
