@@ -3299,6 +3299,81 @@ export type Database = {
           },
         ]
       }
+      fabrica_requisicoes_compra: {
+        Row: {
+          ambiente: string | null
+          anexos: Json
+          cliente_nome: string | null
+          comprovante_url: string | null
+          created_at: string
+          created_by: string | null
+          data_prevista: string | null
+          descricao: string | null
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          item: string
+          liberado_em: string | null
+          liberado_por: string | null
+          liberado_sem_item: boolean
+          loja_id: string | null
+          observacoes: string | null
+          pedido_id: string | null
+          quantidade: number
+          status: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string | null
+          anexos?: Json
+          cliente_nome?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          item: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          liberado_sem_item?: boolean
+          loja_id?: string | null
+          observacoes?: string | null
+          pedido_id?: string | null
+          quantidade?: number
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string | null
+          anexos?: Json
+          cliente_nome?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          item?: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          liberado_sem_item?: boolean
+          loja_id?: string | null
+          observacoes?: string | null
+          pedido_id?: string | null
+          quantidade?: number
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fabrica_volume_almoxarifado_itens: {
         Row: {
           almoxarifado_item_id: string
