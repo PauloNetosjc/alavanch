@@ -335,6 +335,7 @@ export function VisualizadorPlanoCorteDialog({ open, onOpenChange, pedidoId, lot
                   <TabsTrigger value="detalhes" className="text-xs">Detalhes</TabsTrigger>
                   <TabsTrigger value="etiquetas" className="text-xs">Etiquetas</TabsTrigger>
                   <TabsTrigger value="pecas" className="text-xs">Peças</TabsTrigger>
+                  <TabsTrigger value="vetorial" className="text-xs">Vetorial</TabsTrigger>
                   <TabsTrigger value="arquivos" className="text-xs">Arquivos</TabsTrigger>
                 </TabsList>
 
