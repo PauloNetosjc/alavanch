@@ -315,7 +315,7 @@ export default function UsuariosSistema() {
           { label: "Ativos", val: kpis.ativos, icon: Unlock, tone: "" },
           { label: "Convites", val: kpis.conv, icon: Mail, tone: kpis.conv ? "text-amber-700" : "" },
           { label: "Bloqueados", val: kpis.bloq, icon: Lock, tone: kpis.bloq ? "text-red-700" : "" },
-          { label: "Sem base/loja", val: kpis.semBase + kpis.semLoja, icon: AlertTriangle, tone: (kpis.semBase + kpis.semLoja) ? "text-red-700" : "" },
+          { label: "Pendências", val: kpis.adminSemBase + kpis.semBase + kpis.semLoja, icon: AlertTriangle, tone: kpis.adminSemBase ? "text-red-700" : ((kpis.semBase + kpis.semLoja) ? "text-amber-700" : "") },
         ].map((k) => (
           <Card key={k.label} className="p-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
