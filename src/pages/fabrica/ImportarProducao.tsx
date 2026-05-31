@@ -108,6 +108,9 @@ export default function ImportarProducao() {
                     <Button size="sm" onClick={() => setTecSel({ id: p.id, codigo: p.codigo })}>
                       <FileArchive className="h-4 w-4 mr-1" /> Pacote técnico
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setVerCorte({ id: p.id, codigo: p.codigo })}>
+                      <Eye className="h-4 w-4 mr-1" /> Plano de corte
+                    </Button>
                   </td>
                 </tr>
               ))}
