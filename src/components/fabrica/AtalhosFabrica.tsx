@@ -24,8 +24,8 @@ export function AtalhosFabrica({
         // Ocorrências abertas
         let qOc = (supabase as any)
           .from("fabrica_ocorrencias")
-          .select("id, prioridade, status", { count: "exact" })
-          .in("status", ["aberta", "em_analise", "em_andamento", "pendente"]);
+          .select("id, prioridade, status")
+          .in("status", ["aberta", "em_analise", "em_reproducao", "aguardando_compra", "aguardando_resolucao"]);
         if (selectedLojaId) qOc = qOc.eq("loja_id", selectedLojaId);
         const { data: oc } = await qOc;
         const criticas = (oc || []).filter((o: any) => o.prioridade === "alta" || o.prioridade === "critica").length;
