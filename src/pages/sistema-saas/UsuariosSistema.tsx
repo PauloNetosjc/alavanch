@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -17,15 +17,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Users, UserPlus, Search, Loader2, Shield, History, Lock,
-  Unlock, Mail, Building2, Store, MoreHorizontal, KeyRound,
+  Unlock, Mail, Building2, Store, MoreHorizontal, AlertTriangle, Link2, Package,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type Profile = {
   user_id: string;
@@ -48,7 +51,7 @@ type Profile = {
 type Base = { id: string; nome: string; sistema_saas_id: string | null };
 type Loja = { id: string; nome: string; base_cliente_id: string | null };
 type Sistema = { id: string; nome: string };
-type Role = { user_id: string; role: string };
+type RoleRow = { user_id: string; role: string };
 type UserLoja = { user_id: string; loja_id: string };
 type HistoricoItem = {
   id: string; user_id: string; evento: string; descricao: string | null;
@@ -77,6 +80,8 @@ const ROLES_BASE = [
   { value: "assistencia", label: "Assistência" },
 ];
 
+const ROLES_ADMIN_BASE = new Set(["admin", "diretor"]);
+
 const STATUS_OPTS = [
   { value: "ativo", label: "Ativo", color: "bg-emerald-100 text-emerald-800" },
   { value: "inativo", label: "Inativo", color: "bg-zinc-200 text-zinc-700" },
@@ -94,6 +99,8 @@ function fmtDate(d: string | null) {
   try { return new Date(d).toLocaleString("pt-BR"); } catch { return "—"; }
 }
 
+type ViewTab = "todos" | "internos" | "bases" | "convites" | "bloqueados";
+
 export default function UsuariosSistema() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -101,21 +108,26 @@ export default function UsuariosSistema() {
   const [bases, setBases] = useState<Base[]>([]);
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [sistemas, setSistemas] = useState<Sistema[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<RoleRow[]>([]);
   const [userLojas, setUserLojas] = useState<UserLoja[]>([]);
+
+  // tabs e filtros rápidos
+  const [viewTab, setViewTab] = useState<ViewTab>("todos");
+  const [quickSemBase, setQuickSemBase] = useState(false);
+  const [quickSemLoja, setQuickSemLoja] = useState(false);
 
   // filters
   const [busca, setBusca] = useState("");
-  const [fTipo, setFTipo] = useState<string>("todos");
   const [fBase, setFBase] = useState<string>("todas");
   const [fLoja, setFLoja] = useState<string>("todas");
-  const [fStatus, setFStatus] = useState<string>("todos");
   const [fCargo, setFCargo] = useState<string>("todos");
   const [fSistema, setFSistema] = useState<string>("todos");
 
   // dialogs
   const [novoOpen, setNovoOpen] = useState(false);
   const [detalheUser, setDetalheUser] = useState<Profile | null>(null);
+  const [vincularBaseUser, setVincularBaseUser] = useState<Profile | null>(null);
+  const [vincularLojaUser, setVincularLojaUser] = useState<Profile | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -160,18 +172,42 @@ export default function UsuariosSistema() {
   const lojaById = useMemo(() => new Map(lojas.map((l) => [l.id, l])), [lojas]);
   const sistemaById = useMemo(() => new Map(sistemas.map((s) => [s.id, s])), [sistemas]);
 
+  function getLojasDoUser(p: Profile): string[] {
+    const ls = lojasByUser.get(p.user_id) || [];
+    if (ls.length) return ls;
+    return p.loja_id ? [p.loja_id] : [];
+  }
+  function isAdminDaBase(p: Profile): boolean {
+    const rs = rolesByUser.get(p.user_id) || [];
+    return rs.some((r) => ROLES_ADMIN_BASE.has(r));
+  }
+  function flagSemBase(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && !p.base_cliente_id;
+  }
+  function flagSemLoja(p: Profile): boolean {
+    return p.tipo_usuario === "usuario_base" && getLojasDoUser(p).length === 0 && !isAdminDaBase(p);
+  }
+
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return profiles.filter((p) => {
+      // tab
+      if (viewTab === "internos" && p.tipo_usuario !== "interno_saas") return false;
+      if (viewTab === "bases" && p.tipo_usuario !== "usuario_base") return false;
+      if (viewTab === "convites" && p.status_saas !== "convite_pendente") return false;
+      if (viewTab === "bloqueados" && p.status_saas !== "bloqueado") return false;
+
+      // quick
+      if (quickSemBase && !flagSemBase(p)) return false;
+      if (quickSemLoja && !flagSemLoja(p)) return false;
+
       if (q) {
         const hay = `${p.nome_completo || ""} ${p.telefone || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (fTipo !== "todos" && p.tipo_usuario !== fTipo) return false;
       if (fBase !== "todas" && p.base_cliente_id !== fBase) return false;
-      if (fStatus !== "todos" && p.status_saas !== fStatus) return false;
       if (fLoja !== "todas") {
-        const ls = lojasByUser.get(p.user_id) || (p.loja_id ? [p.loja_id] : []);
+        const ls = getLojasDoUser(p);
         if (!ls.includes(fLoja)) return false;
       }
       if (fCargo !== "todos") {
@@ -184,17 +220,18 @@ export default function UsuariosSistema() {
       }
       return true;
     });
-  }, [profiles, busca, fTipo, fBase, fLoja, fStatus, fCargo, fSistema, lojasByUser, rolesByUser, baseById]);
+  }, [profiles, busca, fBase, fLoja, fCargo, fSistema, lojasByUser, rolesByUser, baseById, viewTab, quickSemBase, quickSemLoja]);
 
   const kpis = useMemo(() => {
-    const total = profiles.length;
     const internos = profiles.filter((p) => p.tipo_usuario === "interno_saas").length;
     const bases_ = profiles.filter((p) => p.tipo_usuario === "usuario_base").length;
     const conv = profiles.filter((p) => p.status_saas === "convite_pendente").length;
     const bloq = profiles.filter((p) => p.status_saas === "bloqueado").length;
     const ativos = profiles.filter((p) => p.status_saas === "ativo").length;
-    return { total, internos, bases: bases_, conv, bloq, ativos };
-  }, [profiles]);
+    const semBase = profiles.filter(flagSemBase).length;
+    const semLoja = profiles.filter(flagSemLoja).length;
+    return { internos, bases: bases_, conv, bloq, ativos, semBase, semLoja, total: profiles.length };
+  }, [profiles, lojasByUser, rolesByUser]);
 
   async function registrarHistorico(user_id: string, evento: string, descricao: string, dados?: any) {
     await supabase.from("saas_usuarios_historico").insert({
@@ -215,8 +252,6 @@ export default function UsuariosSistema() {
   }
 
   async function reenviarConvite(p: Profile) {
-    if (!p.nome_completo) { toast.error("Sem e-mail vinculado"); return; }
-    // sinaliza convite enviado; envio real via auth/admin pode ser plugado depois
     const patch = { convite_enviado_em: new Date().toISOString(), status_saas: "convite_pendente" as const };
     const { error } = await supabase.from("profiles").update(patch).eq("user_id", p.user_id);
     if (error) { toast.error(error.message); return; }
@@ -226,75 +261,91 @@ export default function UsuariosSistema() {
   }
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Usuários do Sistema</h1>
-          <p className="text-sm text-muted-foreground">Gerencie usuários internos do SaaS e usuários das bases.</p>
+          <p className="text-sm text-muted-foreground">
+            Central master: gerencie usuários internos do SaaS e usuários das bases/clientes.
+          </p>
         </div>
         <Button onClick={() => setNovoOpen(true)}>
           <UserPlus className="h-4 w-4 mr-1.5" /> Novo usuário
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
-          { label: "Total", val: kpis.total, icon: Users },
-          { label: "Internos SaaS", val: kpis.internos, icon: Shield },
-          { label: "De bases", val: kpis.bases, icon: Building2 },
-          { label: "Convites pendentes", val: kpis.conv, icon: Mail },
-          { label: "Bloqueados", val: kpis.bloq, icon: Lock },
-          { label: "Ativos", val: kpis.ativos, icon: Unlock },
+          { label: "Total", val: kpis.total, icon: Users, tone: "" },
+          { label: "Internos SaaS", val: kpis.internos, icon: Shield, tone: "" },
+          { label: "De bases", val: kpis.bases, icon: Building2, tone: "" },
+          { label: "Ativos", val: kpis.ativos, icon: Unlock, tone: "" },
+          { label: "Convites", val: kpis.conv, icon: Mail, tone: kpis.conv ? "text-amber-700" : "" },
+          { label: "Bloqueados", val: kpis.bloq, icon: Lock, tone: kpis.bloq ? "text-red-700" : "" },
+          { label: "Sem base/loja", val: kpis.semBase + kpis.semLoja, icon: AlertTriangle, tone: (kpis.semBase + kpis.semLoja) ? "text-red-700" : "" },
         ].map((k) => (
           <Card key={k.label} className="p-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <k.icon className="h-3.5 w-3.5" /> {k.label}
             </div>
-            <div className="text-2xl font-semibold mt-1">{k.val}</div>
+            <div className={cn("text-2xl font-semibold mt-1", k.tone)}>{k.val}</div>
           </Card>
         ))}
       </div>
 
-      <Card className="p-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Buscar nome…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      {/* Alerta administrativo */}
+      {(kpis.semBase > 0 || kpis.semLoja > 0) && (
+        <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-700 mt-0.5" />
+          <div className="text-sm flex-1">
+            <div className="font-medium text-amber-900">Atenção: usuários sem vínculo</div>
+            <div className="text-amber-800/90">
+              {kpis.semBase > 0 && <>{kpis.semBase} usuário(s) de base sem base vinculada. </>}
+              {kpis.semLoja > 0 && <>{kpis.semLoja} usuário(s) operacional(is) sem loja.</>}
+            </div>
           </div>
-          <Select value={fTipo} onValueChange={setFTipo}>
-            <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              <SelectItem value="interno_saas">Interno SaaS</SelectItem>
-              <SelectItem value="usuario_base">Usuário de base</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            {kpis.semBase > 0 && (
+              <Button size="sm" variant="outline"
+                onClick={() => { setQuickSemBase(true); setQuickSemLoja(false); setViewTab("bases"); }}>
+                Ver sem base
+              </Button>
+            )}
+            {kpis.semLoja > 0 && (
+              <Button size="sm" variant="outline"
+                onClick={() => { setQuickSemLoja(true); setQuickSemBase(false); setViewTab("bases"); }}>
+                Ver sem loja
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Tabs */}
+      <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as ViewTab)}>
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="todos">Todos ({kpis.total})</TabsTrigger>
+          <TabsTrigger value="internos">Internos SaaS ({kpis.internos})</TabsTrigger>
+          <TabsTrigger value="bases">Usuários das Bases ({kpis.bases})</TabsTrigger>
+          <TabsTrigger value="convites">Convites ({kpis.conv})</TabsTrigger>
+          <TabsTrigger value="bloqueados">Bloqueados ({kpis.bloq})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Filtros */}
+      <Card className="p-3 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-8" placeholder="Buscar nome ou telefone…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          </div>
           <Select value={fBase} onValueChange={setFBase}>
             <SelectTrigger><SelectValue placeholder="Base" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as bases</SelectItem>
               {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={fLoja} onValueChange={setFLoja}>
-            <SelectTrigger><SelectValue placeholder="Loja" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as lojas</SelectItem>
-              {lojas.map((l) => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={fStatus} onValueChange={setFStatus}>
-            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {STATUS_OPTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={fCargo} onValueChange={setFCargo}>
-            <SelectTrigger><SelectValue placeholder="Cargo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os cargos</SelectItem>
-              {[...CARGOS_SAAS, ...ROLES_BASE].map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={fSistema} onValueChange={setFSistema}>
@@ -304,21 +355,56 @@ export default function UsuariosSistema() {
               {sistemas.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={fLoja} onValueChange={setFLoja}>
+            <SelectTrigger><SelectValue placeholder="Loja" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as lojas</SelectItem>
+              {lojas.map((l) => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={fCargo} onValueChange={setFCargo}>
+            <SelectTrigger><SelectValue placeholder="Cargo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os cargos</SelectItem>
+              {[...CARGOS_SAAS, ...ROLES_BASE].map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-wrap gap-1.5 text-xs">
+          <span className="text-muted-foreground mr-1 self-center">Filtros rápidos:</span>
+          <Badge
+            variant={quickSemBase ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setQuickSemBase(!quickSemBase)}
+          >Sem base ({kpis.semBase})</Badge>
+          <Badge
+            variant={quickSemLoja ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setQuickSemLoja(!quickSemLoja)}
+          >Sem loja ({kpis.semLoja})</Badge>
+          {(quickSemBase || quickSemLoja || fBase !== "todas" || fLoja !== "todas" || fCargo !== "todos" || fSistema !== "todos" || busca) && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs"
+              onClick={() => {
+                setQuickSemBase(false); setQuickSemLoja(false);
+                setFBase("todas"); setFLoja("todas"); setFCargo("todos"); setFSistema("todos"); setBusca("");
+              }}>Limpar</Button>
+          )}
         </div>
       </Card>
 
+      {/* Tabela */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="text-left px-3 py-2">Nome</th>
+                <th className="text-left px-3 py-2">Nome / contato</th>
                 <th className="text-left px-3 py-2">Tipo</th>
                 <th className="text-left px-3 py-2">Base</th>
+                <th className="text-left px-3 py-2">Sistema</th>
                 <th className="text-left px-3 py-2">Loja(s)</th>
-                <th className="text-left px-3 py-2">Cargo/Perfil</th>
+                <th className="text-left px-3 py-2">Perfil</th>
                 <th className="text-left px-3 py-2">Status</th>
-                <th className="text-left px-3 py-2">Último acesso</th>
                 <th className="text-right px-3 py-2">Ações</th>
               </tr>
             </thead>
@@ -329,55 +415,125 @@ export default function UsuariosSistema() {
                 <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum usuário encontrado</td></tr>
               ) : filtered.map((p) => {
                 const rs = rolesByUser.get(p.user_id) || [];
-                const ls = lojasByUser.get(p.user_id) || (p.loja_id ? [p.loja_id] : []);
+                const ls = getLojasDoUser(p);
                 const base = p.base_cliente_id ? baseById.get(p.base_cliente_id) : null;
+                const sistema = base?.sistema_saas_id ? sistemaById.get(base.sistema_saas_id) : null;
                 const cargo = p.tipo_usuario === "interno_saas"
                   ? CARGOS_SAAS.find((c) => c.value === p.cargo_saas)?.label || p.cargo_saas || "—"
                   : rs.map((r) => ROLES_BASE.find((x) => x.value === r)?.label || r).join(", ") || "—";
+                const semBase = flagSemBase(p);
+                const semLoja = flagSemLoja(p);
+                const adminBase = isAdminDaBase(p);
+                const lojasLabel = ls.map((id) => lojaById.get(id)?.nome).filter(Boolean).join(", ");
                 return (
-                  <tr key={p.user_id} className="border-t hover:bg-muted/30">
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{p.nome_completo || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{p.telefone || ""}</div>
+                  <tr key={p.user_id} className="border-t hover:bg-muted/30 align-top">
+                    <td className="px-3 py-2 min-w-[200px]">
+                      <button className="font-medium hover:underline text-left" onClick={() => setDetalheUser(p)}>
+                        {p.nome_completo || "—"}
+                      </button>
+                      {p.telefone && (
+                        <div className="text-xs text-muted-foreground">{p.telefone}</div>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       {p.tipo_usuario === "interno_saas"
-                        ? <Badge variant="secondary">Interno SaaS</Badge>
-                        : <Badge variant="outline">Base</Badge>}
+                        ? <Badge className="bg-indigo-100 text-indigo-800 border-0">Interno SaaS</Badge>
+                        : <Badge className="bg-sky-100 text-sky-800 border-0">Base</Badge>}
                     </td>
-                    <td className="px-3 py-2">{base?.nome || "—"}</td>
-                    <td className="px-3 py-2 max-w-[180px] truncate">
-                      {ls.length ? ls.map((id) => lojaById.get(id)?.nome).filter(Boolean).join(", ") : "—"}
+                    <td className="px-3 py-2">
+                      {p.tipo_usuario === "interno_saas" ? (
+                        <span className="text-muted-foreground text-xs">— (interno)</span>
+                      ) : base ? (
+                        <span>{base.nome}</span>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-red-100 text-red-800 border-0 cursor-help">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Sem base
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>Usuário de base precisa ter uma base vinculada.</TooltipContent>
+                        </Tooltip>
+                      )}
                     </td>
-                    <td className="px-3 py-2">{cargo}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {sistema ? sistema.nome : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="px-3 py-2 max-w-[200px]">
+                      {ls.length ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="truncate">{lojasLabel}</div>
+                          </TooltipTrigger>
+                          <TooltipContent>{lojasLabel}</TooltipContent>
+                        </Tooltip>
+                      ) : p.tipo_usuario === "interno_saas" ? (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      ) : semLoja ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-amber-100 text-amber-800 border-0 cursor-help">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Sem loja
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>Usuário operacional precisa ao menos de uma loja.</TooltipContent>
+                        </Tooltip>
+                      ) : adminBase ? (
+                        <Badge variant="outline" className="text-xs">Acesso à base</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs">{cargo}</td>
                     <td className="px-3 py-2">{statusBadge(p.status_saas)}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{fmtDate(p.ultimo_acesso)}</td>
                     <td className="px-3 py-2 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setDetalheUser(p)}>Ver detalhes</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {p.status_saas !== "ativo" && (
-                            <DropdownMenuItem onClick={() => alterarStatus(p, "ativo")}>
-                              <Unlock className="h-3.5 w-3.5 mr-2" /> Ativar
+                      <div className="flex items-center justify-end gap-1">
+                        {(semBase || semLoja) && (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => semBase ? setVincularBaseUser(p) : setVincularLojaUser(p)}
+                          >
+                            <Link2 className="h-3 w-3 mr-1" />
+                            {semBase ? "Vincular base" : "Vincular loja"}
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setDetalheUser(p)}>Ver detalhes</DropdownMenuItem>
+                            {p.tipo_usuario === "usuario_base" && (
+                              <>
+                                <DropdownMenuItem onClick={() => setVincularBaseUser(p)}>
+                                  <Building2 className="h-3.5 w-3.5 mr-2" /> Vincular base
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setVincularLojaUser(p)}>
+                                  <Store className="h-3.5 w-3.5 mr-2" /> Gerenciar lojas
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
+                            {p.status_saas !== "ativo" && (
+                              <DropdownMenuItem onClick={() => alterarStatus(p, "ativo")}>
+                                <Unlock className="h-3.5 w-3.5 mr-2" /> Ativar
+                              </DropdownMenuItem>
+                            )}
+                            {p.status_saas !== "inativo" && (
+                              <DropdownMenuItem onClick={() => alterarStatus(p, "inativo")}>Inativar</DropdownMenuItem>
+                            )}
+                            {p.status_saas !== "bloqueado" && (
+                              <DropdownMenuItem onClick={() => alterarStatus(p, "bloqueado")} className="text-red-600">
+                                <Lock className="h-3.5 w-3.5 mr-2" /> Bloquear
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => reenviarConvite(p)}>
+                              <Mail className="h-3.5 w-3.5 mr-2" /> Reenviar convite
                             </DropdownMenuItem>
-                          )}
-                          {p.status_saas !== "inativo" && (
-                            <DropdownMenuItem onClick={() => alterarStatus(p, "inativo")}>Inativar</DropdownMenuItem>
-                          )}
-                          {p.status_saas !== "bloqueado" && (
-                            <DropdownMenuItem onClick={() => alterarStatus(p, "bloqueado")} className="text-red-600">
-                              <Lock className="h-3.5 w-3.5 mr-2" /> Bloquear
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => reenviarConvite(p)}>
-                            <Mail className="h-3.5 w-3.5 mr-2" /> Reenviar convite
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -392,6 +548,7 @@ export default function UsuariosSistema() {
         onOpenChange={setNovoOpen}
         bases={bases}
         lojas={lojas}
+        sistemas={sistemas}
         onCreated={() => { setNovoOpen(false); loadAll(); }}
       />
 
@@ -406,18 +563,39 @@ export default function UsuariosSistema() {
         onChanged={loadAll}
         onAlterarStatus={alterarStatus}
         onReenviarConvite={reenviarConvite}
+        onAbrirVincularLojas={(u) => setVincularLojaUser(u)}
+      />
+
+      <VincularBaseDialog
+        user={vincularBaseUser}
+        bases={bases}
+        onClose={() => setVincularBaseUser(null)}
+        onDone={() => { setVincularBaseUser(null); loadAll(); }}
+        criadoPor={user?.id || null}
+      />
+
+      <VincularLojasDialog
+        user={vincularLojaUser}
+        bases={bases}
+        lojas={lojas}
+        currentLojas={vincularLojaUser ? (lojasByUser.get(vincularLojaUser.user_id) || []) : []}
+        onClose={() => setVincularLojaUser(null)}
+        onDone={() => { setVincularLojaUser(null); loadAll(); }}
+        criadoPor={user?.id || null}
       />
     </div>
+    </TooltipProvider>
   );
 }
 
 /* ============================== Novo usuário ============================== */
 function NovoUsuarioDialog({
-  open, onOpenChange, bases, lojas, onCreated,
+  open, onOpenChange, bases, lojas, sistemas, onCreated,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
-  bases: Base[]; lojas: Loja[]; onCreated: () => void;
+  bases: Base[]; lojas: Loja[]; sistemas: Sistema[]; onCreated: () => void;
 }) {
+  const [step, setStep] = useState<"tipo" | "form">("tipo");
   const [tipo, setTipo] = useState<"interno_saas" | "usuario_base">("usuario_base");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -434,8 +612,15 @@ function NovoUsuarioDialog({
     () => lojas.filter((l) => !baseId || l.base_cliente_id === baseId),
     [lojas, baseId]
   );
+  const sistemaDaBase = useMemo(() => {
+    if (!baseId) return null;
+    const b = bases.find((x) => x.id === baseId);
+    if (!b?.sistema_saas_id) return null;
+    return sistemas.find((s) => s.id === b.sistema_saas_id) || null;
+  }, [baseId, bases, sistemas]);
 
   function reset() {
+    setStep("tipo");
     setTipo("usuario_base"); setNome(""); setEmail(""); setTelefone(""); setSenha("");
     setCargoSaas(""); setRoleBase("vendedor"); setBaseId(""); setLojasSel([]);
     setStatusInicial("ativo");
@@ -446,19 +631,18 @@ function NovoUsuarioDialog({
     if (!senha || senha.length < 6) { toast.error("Senha mínima de 6 caracteres"); return; }
     if (tipo === "interno_saas" && !cargoSaas) { toast.error("Selecione o cargo interno"); return; }
     if (tipo === "usuario_base" && !baseId) { toast.error("Selecione a base"); return; }
+    if (tipo === "usuario_base" && !ROLES_ADMIN_BASE.has(roleBase) && lojasSel.length === 0) {
+      toast.error("Selecione ao menos uma loja para usuário operacional");
+      return;
+    }
 
     setSaving(true);
     try {
       const role = tipo === "interno_saas" ? "admin" : roleBase;
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
-          email,
-          password: senha,
-          full_name: nome,
-          telefone,
-          role,
-          store_id: lojasSel[0] || null,
-          lojas_ids: lojasSel,
+          email, password: senha, full_name: nome, telefone,
+          role, store_id: lojasSel[0] || null, lojas_ids: lojasSel,
         },
       });
       if (error || (data as any)?.error) {
@@ -495,91 +679,273 @@ function NovoUsuarioDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>Novo usuário</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
-          <div className="md:col-span-2">
-            <Label>Tipo de usuário</Label>
-            <Select value={tipo} onValueChange={(v: any) => setTipo(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="interno_saas">Usuário interno SaaS</SelectItem>
-                <SelectItem value="usuario_base">Usuário de base</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div><Label>Nome *</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-          <div><Label>E-mail *</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-          <div><Label>Telefone</Label><Input value={telefone} onChange={(e) => setTelefone(e.target.value)} /></div>
-          <div><Label>Senha inicial *</Label><Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} /></div>
+        <DialogHeader>
+          <DialogTitle>Novo usuário</DialogTitle>
+          <DialogDescription>
+            {step === "tipo"
+              ? "Escolha o tipo de usuário. Internos administram o SaaS; usuários de base operam o sistema contratado."
+              : tipo === "interno_saas" ? "Usuário interno SaaS" : "Usuário de base/cliente"}
+          </DialogDescription>
+        </DialogHeader>
 
-          {tipo === "interno_saas" ? (
+        {step === "tipo" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+            <button
+              type="button"
+              onClick={() => { setTipo("interno_saas"); setStep("form"); }}
+              className="text-left border rounded-lg p-4 hover:border-primary hover:bg-muted/40 transition"
+            >
+              <div className="flex items-center gap-2 mb-1"><Shield className="h-4 w-4 text-indigo-600" /><span className="font-medium">Interno SaaS</span></div>
+              <p className="text-xs text-muted-foreground">
+                Empresa dona do sistema. Acessa Painel Master, Bases, Financeiro SaaS, CRM SaaS etc. Não precisa de loja.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTipo("usuario_base"); setStep("form"); }}
+              className="text-left border rounded-lg p-4 hover:border-primary hover:bg-muted/40 transition"
+            >
+              <div className="flex items-center gap-2 mb-1"><Building2 className="h-4 w-4 text-sky-600" /><span className="font-medium">Usuário de Base</span></div>
+              <p className="text-xs text-muted-foreground">
+                Pertence a uma base/cliente. Acessa apenas o sistema contratado da base. Precisa de base e, em geral, de loja.
+              </p>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+            <div><Label>Nome *</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+            <div><Label>E-mail *</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div><Label>Telefone</Label><Input value={telefone} onChange={(e) => setTelefone(e.target.value)} /></div>
+            <div><Label>Senha inicial *</Label><Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} /></div>
+
+            {tipo === "interno_saas" ? (
+              <div className="md:col-span-2">
+                <Label>Função interna *</Label>
+                <Select value={cargoSaas} onValueChange={setCargoSaas}>
+                  <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                  <SelectContent>
+                    {CARGOS_SAAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label>Base *</Label>
+                  <Select value={baseId} onValueChange={(v) => { setBaseId(v); setLojasSel([]); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                    <SelectContent>
+                      {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {sistemaDaBase && (
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <Package className="h-3 w-3" /> Sistema contratado: <strong>{sistemaDaBase.nome}</strong>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label>Cargo/Perfil</Label>
+                  <Select value={roleBase} onValueChange={setRoleBase}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ROLES_BASE.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>
+                    Lojas vinculadas {!ROLES_ADMIN_BASE.has(roleBase) && <span className="text-red-600">*</span>}
+                  </Label>
+                  <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+                    {lojasDaBase.length === 0 ? (
+                      <div className="text-xs text-muted-foreground">Selecione uma base primeiro</div>
+                    ) : lojasDaBase.map((l) => (
+                      <label key={l.id} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={lojasSel.includes(l.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setLojasSel([...lojasSel, l.id]);
+                            else setLojasSel(lojasSel.filter((x) => x !== l.id));
+                          }}
+                        />
+                        {l.nome}
+                      </label>
+                    ))}
+                  </div>
+                  {ROLES_ADMIN_BASE.has(roleBase) && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Administrador/Diretor pode ficar sem loja específica (tem acesso à base toda).
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="md:col-span-2">
-              <Label>Função interna *</Label>
-              <Select value={cargoSaas} onValueChange={setCargoSaas}>
-                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+              <Label>Status inicial</Label>
+              <Select value={statusInicial} onValueChange={(v: any) => setStatusInicial(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CARGOS_SAAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="convite_pendente">Convite pendente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          ) : (
-            <>
-              <div>
-                <Label>Base *</Label>
-                <Select value={baseId} onValueChange={(v) => { setBaseId(v); setLojasSel([]); }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-                  <SelectContent>
-                    {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Cargo/Perfil</Label>
-                <Select value={roleBase} onValueChange={setRoleBase}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ROLES_BASE.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Label>Lojas vinculadas</Label>
-                <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
-                  {lojasDaBase.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Selecione uma base primeiro</div>
-                  ) : lojasDaBase.map((l) => (
-                    <label key={l.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={lojasSel.includes(l.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) setLojasSel([...lojasSel, l.id]);
-                          else setLojasSel(lojasSel.filter((x) => x !== l.id));
-                        }}
-                      />
-                      {l.nome}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="md:col-span-2">
-            <Label>Status inicial</Label>
-            <Select value={statusInicial} onValueChange={(v: any) => setStatusInicial(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="convite_pendente">Convite pendente</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+        )}
+
+        <DialogFooter>
+          {step === "form" && (
+            <Button variant="ghost" onClick={() => setStep("tipo")}>Voltar</Button>
+          )}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {step === "form" && (
+            <Button onClick={salvar} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Criar usuário
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================== Vincular base ============================== */
+function VincularBaseDialog({
+  user, bases, onClose, onDone, criadoPor,
+}: {
+  user: Profile | null; bases: Base[];
+  onClose: () => void; onDone: () => void; criadoPor: string | null;
+}) {
+  const [baseId, setBaseId] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setBaseId(user?.base_cliente_id || ""); }, [user]);
+  if (!user) return null;
+  async function salvar() {
+    if (!baseId) { toast.error("Selecione uma base"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("profiles")
+      .update({ base_cliente_id: baseId, tipo_usuario: "usuario_base" })
+      .eq("user_id", user!.user_id);
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    await supabase.from("saas_usuarios_historico").insert({
+      user_id: user!.user_id, evento: "vinculo_base",
+      descricao: "Base vinculada", dados: { base_cliente_id: baseId }, criado_por: criadoPor,
+    });
+    toast.success("Base vinculada");
+    setSaving(false);
+    onDone();
+  }
+  return (
+    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Vincular base</DialogTitle>
+          <DialogDescription>{user.nome_completo}</DialogDescription>
+        </DialogHeader>
+        <div className="py-2">
+          <Label>Base</Label>
+          <Select value={baseId} onValueChange={setBaseId}>
+            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+            <SelectContent>
+              {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={salvar} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Criar usuário
+            {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================== Vincular lojas ============================== */
+function VincularLojasDialog({
+  user, bases, lojas, currentLojas, onClose, onDone, criadoPor,
+}: {
+  user: Profile | null; bases: Base[]; lojas: Loja[]; currentLojas: string[];
+  onClose: () => void; onDone: () => void; criadoPor: string | null;
+}) {
+  const [sel, setSel] = useState<string[]>([]);
+  useEffect(() => { setSel(currentLojas); }, [user?.user_id, currentLojas.join(",")]);
+  const [saving, setSaving] = useState(false);
+  if (!user) return null;
+  const base = user.base_cliente_id ? bases.find((b) => b.id === user.base_cliente_id) : null;
+  const lojasDisponiveis = lojas.filter((l) => !user.base_cliente_id || l.base_cliente_id === user.base_cliente_id);
+
+  async function salvar() {
+    setSaving(true);
+    const toAdd = sel.filter((id) => !currentLojas.includes(id));
+    const toRemove = currentLojas.filter((id) => !sel.includes(id));
+    if (toRemove.length) {
+      const { error } = await supabase.from("user_lojas")
+        .delete().eq("user_id", user!.user_id).in("loja_id", toRemove);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    if (toAdd.length) {
+      const rows = toAdd.map((loja_id) => ({ user_id: user!.user_id, loja_id }));
+      const { error } = await supabase.from("user_lojas").insert(rows);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    // mantém profile.loja_id apontando para uma loja válida quando possível
+    if (sel.length && (!user!.loja_id || !sel.includes(user!.loja_id))) {
+      await supabase.from("profiles").update({ loja_id: sel[0] }).eq("user_id", user!.user_id);
+    } else if (!sel.length && user!.loja_id) {
+      await supabase.from("profiles").update({ loja_id: null }).eq("user_id", user!.user_id);
+    }
+    await supabase.from("saas_usuarios_historico").insert({
+      user_id: user!.user_id, evento: "vinculo_lojas",
+      descricao: "Lojas vinculadas atualizadas",
+      dados: { lojas_ids: sel, adicionadas: toAdd, removidas: toRemove },
+      criado_por: criadoPor,
+    });
+    toast.success("Lojas atualizadas");
+    setSaving(false);
+    onDone();
+  }
+
+  return (
+    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Gerenciar lojas</DialogTitle>
+          <DialogDescription>
+            {user.nome_completo}{base ? ` — base ${base.nome}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {!base ? (
+          <div className="text-sm text-muted-foreground py-3">
+            Vincule uma base ao usuário antes de selecionar lojas.
+          </div>
+        ) : (
+          <div className="py-2 border rounded-md p-2 max-h-64 overflow-y-auto space-y-1">
+            {lojasDisponiveis.length === 0 ? (
+              <div className="text-xs text-muted-foreground">A base não possui lojas cadastradas.</div>
+            ) : lojasDisponiveis.map((l) => (
+              <label key={l.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sel.includes(l.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) setSel([...sel, l.id]);
+                    else setSel(sel.filter((x) => x !== l.id));
+                  }}
+                />
+                {l.nome}
+              </label>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={salvar} disabled={saving || !base}>
+            {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Salvar
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -590,7 +956,7 @@ function NovoUsuarioDialog({
 /* ============================== Detalhe ============================== */
 function DetalheUsuarioSheet({
   user, onClose, bases, lojas, sistemas, rolesByUser, lojasByUser, onChanged,
-  onAlterarStatus, onReenviarConvite,
+  onAlterarStatus, onReenviarConvite, onAbrirVincularLojas,
 }: {
   user: Profile | null; onClose: () => void;
   bases: Base[]; lojas: Loja[]; sistemas: Sistema[];
@@ -598,6 +964,7 @@ function DetalheUsuarioSheet({
   onChanged: () => void;
   onAlterarStatus: (p: Profile, s: Profile["status_saas"]) => void;
   onReenviarConvite: (p: Profile) => void;
+  onAbrirVincularLojas: (p: Profile) => void;
 }) {
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [perms, setPerms] = useState<{ modulo: string; acao: string }[]>([]);
@@ -646,16 +1013,19 @@ function DetalheUsuarioSheet({
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+          <SheetTitle className="flex items-center gap-2 flex-wrap">
             {user.nome_completo || "Usuário"}
             {statusBadge(user.status_saas)}
+            {user.tipo_usuario === "interno_saas"
+              ? <Badge className="bg-indigo-100 text-indigo-800 border-0">Interno SaaS</Badge>
+              : <Badge className="bg-sky-100 text-sky-800 border-0">Base</Badge>}
           </SheetTitle>
         </SheetHeader>
 
         <Tabs defaultValue="dados" className="mt-4">
           <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="dados">Dados</TabsTrigger>
-            <TabsTrigger value="bases">Bases/Lojas</TabsTrigger>
+            <TabsTrigger value="bases">Base/Lojas</TabsTrigger>
             <TabsTrigger value="perms">Permissões</TabsTrigger>
             <TabsTrigger value="hist">Histórico</TabsTrigger>
             <TabsTrigger value="seg">Segurança</TabsTrigger>
@@ -711,12 +1081,23 @@ function DetalheUsuarioSheet({
           <TabsContent value="bases" className="space-y-3 mt-3 text-sm">
             <Card className="p-3">
               <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground"><Building2 className="h-3.5 w-3.5" /> Base</div>
-              <div className="mt-1 font-medium">{base?.nome || "—"}</div>
-              {sistema && <div className="text-xs text-muted-foreground mt-1">Sistema contratado: {sistema.nome}</div>}
+              <div className="mt-1 font-medium">{base?.nome || <span className="text-red-700">Sem base vinculada</span>}</div>
+              {sistema && (
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Sistema contratado: {sistema.nome}
+                </div>
+              )}
             </Card>
             <Card className="p-3">
-              <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground"><Store className="h-3.5 w-3.5" /> Lojas vinculadas</div>
-              {ls.length === 0 ? <div className="text-muted-foreground mt-1">Nenhuma</div> : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground"><Store className="h-3.5 w-3.5" /> Lojas vinculadas</div>
+                {user.tipo_usuario === "usuario_base" && (
+                  <Button size="sm" variant="outline" onClick={() => onAbrirVincularLojas(user)}>
+                    <Link2 className="h-3 w-3 mr-1" /> Gerenciar
+                  </Button>
+                )}
+              </div>
+              {ls.length === 0 ? <div className="text-muted-foreground mt-2">Nenhuma loja vinculada</div> : (
                 <ul className="mt-2 space-y-1">
                   {ls.map((id) => <li key={id}>• {lojas.find((l) => l.id === id)?.nome || id}</li>)}
                 </ul>
