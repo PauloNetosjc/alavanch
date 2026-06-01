@@ -66,7 +66,7 @@ export default function Administracao() {
 
   const FINANCEIRO_TABS = ["descontos", "juros", "bancos", "pagamentos", "categorias"];
   const isFinanceiro = FINANCEIRO_TABS.includes(tab);
-  const hideHeader = isFinanceiro || tab === "contrato";
+  const hideHeader = isFinanceiro || tab === "contrato" || tab === "orcamento";
 
   return (
     <div>
