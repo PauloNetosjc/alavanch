@@ -1370,18 +1370,84 @@ export default function ComercialNegociacao() {
   };
 
   /* ------------------------- gerar proposta (HTML print) ------------------------- */
-  const gerarProposta = () => {
+  const gerarProposta = async () => {
     if (!orc) return;
+
+    // Carrega template ativo da loja
+    let tplOrc: any = null;
+    if (orc.loja_id) {
+      const { data } = await (supabase as any)
+        .from("orcamento_templates")
+        .select("*")
+        .eq("loja_id", orc.loja_id)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      tplOrc = data || null;
+    }
+    const cfg = {
+      titulo: tplOrc?.titulo || "PROPOSTA COMERCIAL",
+      subtitulo: tplOrc?.subtitulo || "",
+      mostrar_logo: tplOrc?.mostrar_logo ?? true,
+      mostrar_dados_empresa: tplOrc?.mostrar_dados_empresa ?? true,
+      mostrar_dados_cliente: tplOrc?.mostrar_dados_cliente ?? true,
+      mostrar_descricao_ambientes: tplOrc?.mostrar_descricao_ambientes ?? false,
+      mostrar_itens_tecnicos: tplOrc?.mostrar_itens_tecnicos ?? false,
+      mostrar_resumo_descontos: tplOrc?.mostrar_resumo_descontos ?? true,
+      mostrar_forma_pagamento: tplOrc?.mostrar_forma_pagamento ?? true,
+      mostrar_condicoes_gerais: tplOrc?.mostrar_condicoes_gerais ?? true,
+      condicoes_gerais_html: tplOrc?.condicoes_gerais_html || "",
+      rodape_html: tplOrc?.rodape_html || "",
+    };
+
+    // Dados de empresa (loja + branding)
+    let empresa: any = { nome: "Alavanch", cnpj: "", endereco: "", telefone: "", email: "", logo_url: "" };
+    if (orc.loja_id) {
+      const { data: loja } = await supabase
+        .from("lojas")
+        .select("nome, cnpj, endereco, telefone, email")
+        .eq("id", orc.loja_id)
+        .maybeSingle();
+      if (loja) empresa = { ...empresa, ...loja };
+      const { data: brand } = await (supabase as any)
+        .from("configuracoes_empresa")
+        .select("nome_empresa, nome_fantasia, logo_url")
+        .eq("loja_id", orc.loja_id)
+        .maybeSingle();
+      if (brand) {
+        empresa.nome = brand.nome_fantasia || brand.nome_empresa || empresa.nome;
+        empresa.logo_url = brand.logo_url || "";
+      }
+    }
+
+    // Limpa o nome do método de pagamento removendo faixas de parcelamento
+    const formatarModalidadePagamento = (nome: string) => {
+      if (!nome) return "—";
+      return String(nome)
+        .replace(/\s*\d+\s*x\s*a\s*\d+\s*x\s*/gi, " ")
+        .replace(/\s*\(\s*\d+x\s*a\s*\d+x\s*\)\s*/gi, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    };
+
     const itensPorAmb = ambientes.map((a) => ({
       amb: a, items: itens.filter((it) => it.ambiente_id === a.id),
     }));
+
+    const descTotal = (descValorAplicado || 0) + (descontoMetodoValor || 0) + (descontoEntradaValor || 0);
+    const descTotalPerc = valorInicial > 0 ? (descTotal / valorInicial) * 100 : 0;
+
+    const escapeHtml = (s: string) => String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Proposta ${orc.codigo}</title>
     <style>
       @page { margin: 18mm; }
       body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color:#1a1a1a; font-size:13px; line-height:1.4; }
       h1 { font-size:22px; margin:0 0 4px; }
       h2 { font-size:14px; margin:18px 0 6px; padding-bottom:4px; border-bottom:1px solid #ddd; color:#1F5235; text-transform:uppercase; letter-spacing:.5px; }
-      .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:2px solid #1F5235; margin-bottom:18px; }
+      .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:2px solid #1F5235; margin-bottom:18px; gap:16px; }
+      .header .logo img { max-height:64px; max-width:200px; object-fit:contain; }
       .muted { color:#6B6760; font-size:11px; }
       table { width:100%; border-collapse:collapse; margin-top:8px; }
       th, td { padding:6px 8px; text-align:left; font-size:12px; border-bottom:1px solid #eee; }
@@ -1390,44 +1456,52 @@ export default function ComercialNegociacao() {
       .totais { margin-top:18px; padding:14px; background:#F4F6FA; border-radius:8px; }
       .totais .row { display:flex; justify-content:space-between; padding:4px 0; }
       .totais .total { font-size:18px; font-weight:600; border-top:1px solid #ccc; padding-top:8px; margin-top:8px; color:#1F5235; }
-      .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
       .box { border:1px solid #e5e5e5; border-radius:8px; padding:10px; }
       .box .label { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#6B6760; margin-bottom:2px; }
       .pag { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #eee; font-size:12px; }
       .footer { margin-top:32px; font-size:11px; color:#6B6760; border-top:1px solid #eee; padding-top:10px; }
       .sig { margin-top:48px; display:flex; justify-content:space-between; gap:40px; }
       .sig div { flex:1; border-top:1px solid #333; padding-top:6px; text-align:center; font-size:11px; }
+      .cond { font-size:12px; color:#333; }
+      .cond p { margin: 4px 0; }
     </style></head><body>
     <div class="header">
-      <div>
-        <h1>Proposta Comercial</h1>
-        <div class="muted">Nº ${orc.codigo} · Emitido em ${new Date().toLocaleDateString("pt-BR")}</div>
-        <div class="muted">Projeto: <b>${orc.nome_projeto || "—"}</b></div>
+      <div style="flex:1; display:flex; align-items:center; gap:14px;">
+        ${cfg.mostrar_logo && empresa.logo_url ? `<div class="logo"><img src="${escapeHtml(empresa.logo_url)}" alt="logo"/></div>` : ""}
+        <div>
+          <h1>${escapeHtml(cfg.titulo)}</h1>
+          ${cfg.subtitulo ? `<div class="muted">${escapeHtml(cfg.subtitulo)}</div>` : ""}
+          <div class="muted">Nº ${orc.codigo} · Emitido em ${new Date().toLocaleDateString("pt-BR")}</div>
+          <div class="muted">Projeto: <b>${escapeHtml(orc.nome_projeto || "—")}</b></div>
+        </div>
       </div>
-      <div style="text-align:right">
-        <div style="font-weight:600">Alavanch</div>
-        <div class="muted">contato@planejadospro.com.br</div>
-      </div>
+      ${cfg.mostrar_dados_empresa ? `<div style="text-align:right; min-width:220px;">
+        <div style="font-weight:600">${escapeHtml(empresa.nome)}</div>
+        ${empresa.cnpj ? `<div class="muted">CNPJ: ${escapeHtml(empresa.cnpj)}</div>` : ""}
+        ${empresa.endereco ? `<div class="muted">${escapeHtml(empresa.endereco)}</div>` : ""}
+        ${empresa.telefone ? `<div class="muted">Tel: ${escapeHtml(empresa.telefone)}</div>` : ""}
+        ${empresa.email ? `<div class="muted">${escapeHtml(empresa.email)}</div>` : ""}
+      </div>` : ""}
     </div>
 
-    <div class="box">
+    ${cfg.mostrar_dados_cliente ? `<div class="box">
       <div class="label">Cliente</div>
-      <div><b>${cliente?.nome || "—"}</b></div>
-      <div class="muted">${cliente?.cpf_cnpj || ""}</div>
-      <div class="muted">${cliente?.email || ""} · ${cliente?.telefone || ""}</div>
-      <div class="muted">${cliente?.endereco_cobranca || ""}</div>
-    </div>
+      <div><b>${escapeHtml(cliente?.nome || "—")}</b></div>
+      <div class="muted">${escapeHtml(cliente?.cpf_cnpj || "")}</div>
+      <div class="muted">${escapeHtml(cliente?.email || "")} ${cliente?.telefone ? "· " + escapeHtml(cliente.telefone) : ""}</div>
+      <div class="muted">${escapeHtml(cliente?.endereco_cobranca || "")}</div>
+    </div>` : ""}
 
     <h2>Ambientes</h2>
     ${itensPorAmb.map(({ amb, items }) => `
       <div style="margin-bottom:14px">
-        <div style="font-weight:600; font-size:13px;">${amb.nome.toUpperCase()} — <span style="color:#1F5235">${fmtBrl(Number(amb.preco_sugerido) || 0)}</span></div>
-        ${amb.descricao ? `<div class="muted" style="margin-bottom:4px">${amb.descricao}</div>` : ""}
-        ${items.length ? `<table>
+        <div style="font-weight:600; font-size:13px;">${escapeHtml(amb.nome.toUpperCase())} — <span style="color:#1F5235">${fmtBrl(Number(amb.preco_sugerido) || 0)}</span></div>
+        ${cfg.mostrar_descricao_ambientes && amb.descricao ? `<div class="muted" style="margin-bottom:4px">${escapeHtml(amb.descricao)}</div>` : ""}
+        ${cfg.mostrar_itens_tecnicos && items.length ? `<table>
           <thead><tr><th>Descrição</th><th class="right">Qtd</th><th class="right">Unit.</th><th class="right">Total</th></tr></thead>
           <tbody>
             ${items.map((it) => `<tr>
-              <td>${it.descricao || "—"}</td>
+              <td>${escapeHtml(it.descricao || "—")}</td>
               <td class="right">${it.quantidade}</td>
               <td class="right">${fmtBrl(Number(it.custo_cliente) || 0)}</td>
               <td class="right">${fmtBrl((Number(it.custo_cliente) || 0) * (it.quantidade || 0))}</td>
@@ -1437,44 +1511,43 @@ export default function ComercialNegociacao() {
       </div>
     `).join("")}
 
-    <div class="totais">
-      <div class="row"><span>Subtotal</span><b>${fmtBrl(subtotalAmbientes)}</b></div>
-      ${descValorAplicado ? `<div class="row" style="color:#7A2222"><span>Desconto (${descPercAplicado.toFixed(2)}%)</span><b>-${fmtBrl(descValorAplicado)}</b></div>` : ""}
+    ${cfg.mostrar_resumo_descontos ? `<div class="totais">
+      <div class="row"><span>Subtotal</span><b>${fmtBrl(valorInicial)}</b></div>
+      ${descValorAplicado > 0.01 ? `<div class="row" style="color:#7A2222"><span>Desconto aplicado</span><b>-${fmtBrl(descValorAplicado)}</b></div>` : ""}
+      ${descontoMetodoValor > 0.01 ? `<div class="row" style="color:#7A2222"><span>Desconto forma de pagamento</span><b>-${fmtBrl(descontoMetodoValor)}</b></div>` : ""}
+      ${descontoEntradaValor > 0.01 ? `<div class="row" style="color:#7A2222"><span>Desconto da entrada</span><b>-${fmtBrl(descontoEntradaValor)}</b></div>` : ""}
+      ${descTotal > 0.01 ? `<div class="row" style="color:#1F5235; font-weight:600; border-top:1px dashed #ccc; padding-top:6px; margin-top:4px;"><span>Desconto Total (${descTotalPerc.toFixed(2)}%)</span><b>-${fmtBrl(descTotal)}</b></div>` : ""}
       ${jurosRepassado > 0.01 ? `<div class="row"><span>Juros repassado ao cliente</span><b>+${fmtBrl(jurosRepassado)}</b></div>` : ""}
       <div class="row total"><span>Total da Proposta</span><span>${fmtBrl(totalContrato)}</span></div>
-    </div>
+    </div>` : ""}
 
-    <h2>Forma de Pagamento</h2>
+    ${cfg.mostrar_forma_pagamento ? `<h2>Forma de Pagamento</h2>
     ${pagamentos.length ? pagamentos.map((p) => {
       const j = calcJurosDoPagamento(p);
       const valorFinal = j.repassar && Number(p.valor) > 0 ? Number(p.valor) + j.valor : Number(p.valor);
+      const nome = formatarModalidadePagamento(p.metodo);
       return `<div class="pag">
-        <span><b>${p.metodo}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
+        <span><b>${escapeHtml(nome)}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
         <b>${fmtBrl(valorFinal)}</b>
       </div>`;
-    }).join("") : `<div class="muted">A definir</div>`}
+    }).join("") : `<div class="muted">A definir</div>`}` : ""}
 
-    <h2>Condições Gerais</h2>
-    <div class="muted">
-      1. Esta proposta tem validade de 15 dias a contar da data de emissão.<br/>
-      2. Os prazos de produção e entrega serão definidos após a assinatura do caderno técnico.<br/>
-      3. Eventuais alterações de projeto após a assinatura podem implicar revisão de valores e prazos.<br/>
-      4. O presente documento poderá ser convertido em contrato mediante aceite das partes.
-    </div>
+    ${cfg.mostrar_condicoes_gerais && cfg.condicoes_gerais_html ? `<h2>Condições Gerais</h2>
+    <div class="cond">${cfg.condicoes_gerais_html}</div>` : ""}
 
     <div class="sig">
-      <div>Cliente<br/><span class="muted">${cliente?.nome || ""}</span></div>
-      <div>Empresa<br/><span class="muted">Alavanch</span></div>
+      <div>Cliente<br/><span class="muted">${escapeHtml(cliente?.nome || "")}</span></div>
+      <div>Empresa<br/><span class="muted">${escapeHtml(empresa.nome)}</span></div>
     </div>
 
-    <div class="footer">Documento gerado automaticamente em ${new Date().toLocaleString("pt-BR")}.</div>
+    <div class="footer">${cfg.rodape_html ? cfg.rodape_html + "<br/>" : ""}Documento gerado automaticamente em ${new Date().toLocaleString("pt-BR")}.</div>
     </body></html>`;
 
     const w = window.open("", "_blank", "width=900,height=900");
     if (!w) return toast.error("Bloqueador de pop-up impediu a impressão");
     w.document.write(html);
     w.document.close();
-    setTimeout(() => w.print(), 350);
+    setTimeout(() => w.print(), 450);
   };
 
   /* ------------------------- cliente saved ------------------------- */
