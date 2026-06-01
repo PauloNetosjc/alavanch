@@ -1042,6 +1042,8 @@ export default function ComercialNovo() {
             preco_sugerido: a.preco_sugerido,
             markup: a.markup,
             aplicar_desconto: a.aplicar_desconto !== false,
+            origem_ambiente: a.origem_ambiente || "manual",
+
           } as any)
           .select("id")
           .single();
