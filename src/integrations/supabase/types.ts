@@ -4286,6 +4286,271 @@ export type Database = {
           },
         ]
       }
+      fiscal_cfops: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          observacoes: string | null
+          tipo_movimento: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          tipo_movimento: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          tipo_movimento?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fiscal_configuracoes_tributarias: {
+        Row: {
+          adicionar_frete_base_icms: boolean
+          adicionar_ipi_base_icms: boolean
+          adicionar_outras_despesas_base_icms: boolean
+          adicionar_seguro_base_icms: boolean
+          ativo: boolean
+          cfop_id: string | null
+          codigo_cfop: string | null
+          cofins_aliquota: number | null
+          cofins_base_calculo: number | null
+          cofins_cst: string | null
+          consumidor_final: boolean
+          contribuinte_icms: boolean
+          created_at: string
+          destino_uf: string | null
+          grupo_tributario: string
+          icms_aliquota: number | null
+          icms_aliquota_st: number | null
+          icms_credito_simples_aliquota: number | null
+          icms_csosn: string | null
+          icms_cst: string | null
+          icms_fcp_aliquota: number | null
+          icms_interestadual_aliquota: number | null
+          icms_interno_aliquota: number | null
+          icms_modalidade_bc: string | null
+          icms_mva: number | null
+          icms_origem: string | null
+          icms_partilha_modo_calculo: string | null
+          icms_reducao_bc: number | null
+          icms_reducao_bc_st: number | null
+          id: string
+          indicador_ie_destinatario: string | null
+          ipi_aliquota: number | null
+          ipi_cst: string | null
+          ipi_enquadramento: string | null
+          loja_id: string
+          observacoes: string | null
+          operacao_fiscal_id: string
+          pis_aliquota: number | null
+          pis_base_calculo: number | null
+          pis_cst: string | null
+          updated_at: string
+        }
+        Insert: {
+          adicionar_frete_base_icms?: boolean
+          adicionar_ipi_base_icms?: boolean
+          adicionar_outras_despesas_base_icms?: boolean
+          adicionar_seguro_base_icms?: boolean
+          ativo?: boolean
+          cfop_id?: string | null
+          codigo_cfop?: string | null
+          cofins_aliquota?: number | null
+          cofins_base_calculo?: number | null
+          cofins_cst?: string | null
+          consumidor_final?: boolean
+          contribuinte_icms?: boolean
+          created_at?: string
+          destino_uf?: string | null
+          grupo_tributario?: string
+          icms_aliquota?: number | null
+          icms_aliquota_st?: number | null
+          icms_credito_simples_aliquota?: number | null
+          icms_csosn?: string | null
+          icms_cst?: string | null
+          icms_fcp_aliquota?: number | null
+          icms_interestadual_aliquota?: number | null
+          icms_interno_aliquota?: number | null
+          icms_modalidade_bc?: string | null
+          icms_mva?: number | null
+          icms_origem?: string | null
+          icms_partilha_modo_calculo?: string | null
+          icms_reducao_bc?: number | null
+          icms_reducao_bc_st?: number | null
+          id?: string
+          indicador_ie_destinatario?: string | null
+          ipi_aliquota?: number | null
+          ipi_cst?: string | null
+          ipi_enquadramento?: string | null
+          loja_id: string
+          observacoes?: string | null
+          operacao_fiscal_id: string
+          pis_aliquota?: number | null
+          pis_base_calculo?: number | null
+          pis_cst?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adicionar_frete_base_icms?: boolean
+          adicionar_ipi_base_icms?: boolean
+          adicionar_outras_despesas_base_icms?: boolean
+          adicionar_seguro_base_icms?: boolean
+          ativo?: boolean
+          cfop_id?: string | null
+          codigo_cfop?: string | null
+          cofins_aliquota?: number | null
+          cofins_base_calculo?: number | null
+          cofins_cst?: string | null
+          consumidor_final?: boolean
+          contribuinte_icms?: boolean
+          created_at?: string
+          destino_uf?: string | null
+          grupo_tributario?: string
+          icms_aliquota?: number | null
+          icms_aliquota_st?: number | null
+          icms_credito_simples_aliquota?: number | null
+          icms_csosn?: string | null
+          icms_cst?: string | null
+          icms_fcp_aliquota?: number | null
+          icms_interestadual_aliquota?: number | null
+          icms_interno_aliquota?: number | null
+          icms_modalidade_bc?: string | null
+          icms_mva?: number | null
+          icms_origem?: string | null
+          icms_partilha_modo_calculo?: string | null
+          icms_reducao_bc?: number | null
+          icms_reducao_bc_st?: number | null
+          id?: string
+          indicador_ie_destinatario?: string | null
+          ipi_aliquota?: number | null
+          ipi_cst?: string | null
+          ipi_enquadramento?: string | null
+          loja_id?: string
+          observacoes?: string | null
+          operacao_fiscal_id?: string
+          pis_aliquota?: number | null
+          pis_base_calculo?: number | null
+          pis_cst?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_configuracoes_tributarias_cfop_id_fkey"
+            columns: ["cfop_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_cfops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_configuracoes_tributarias_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_configuracoes_tributarias_operacao_fiscal_id_fkey"
+            columns: ["operacao_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_operacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_operacoes: {
+        Row: {
+          ativo: boolean
+          cfop_id: string | null
+          codigo_cfop: string | null
+          created_at: string
+          descricao: string | null
+          exige_pedido: boolean
+          finalidade_nfe: string
+          id: string
+          loja_id: string | null
+          movimenta_estoque: boolean
+          movimenta_financeiro: boolean
+          nome: string
+          observacoes: string | null
+          padrao: boolean
+          remessa_industrializacao: boolean
+          tipo_nota: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cfop_id?: string | null
+          codigo_cfop?: string | null
+          created_at?: string
+          descricao?: string | null
+          exige_pedido?: boolean
+          finalidade_nfe?: string
+          id?: string
+          loja_id?: string | null
+          movimenta_estoque?: boolean
+          movimenta_financeiro?: boolean
+          nome: string
+          observacoes?: string | null
+          padrao?: boolean
+          remessa_industrializacao?: boolean
+          tipo_nota?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cfop_id?: string | null
+          codigo_cfop?: string | null
+          created_at?: string
+          descricao?: string | null
+          exige_pedido?: boolean
+          finalidade_nfe?: string
+          id?: string
+          loja_id?: string | null
+          movimenta_estoque?: boolean
+          movimenta_financeiro?: boolean
+          nome?: string
+          observacoes?: string | null
+          padrao?: boolean
+          remessa_industrializacao?: boolean
+          tipo_nota?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_operacoes_cfop_id_fkey"
+            columns: ["cfop_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_cfops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_operacoes_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -5111,6 +5376,7 @@ export type Database = {
           chave_acesso: string | null
           cliente_id: string | null
           codigo_retorno: string | null
+          configuracao_tributaria_id: string | null
           contrato_id: string | null
           created_at: string
           created_by: string | null
@@ -5130,6 +5396,7 @@ export type Database = {
           numero_lote: string | null
           numero_nf: number | null
           numero_recibo: string | null
+          operacao_fiscal_id: string | null
           pdf_storage_path: string | null
           pedido_id: string | null
           protocolo: string | null
@@ -5156,6 +5423,7 @@ export type Database = {
           chave_acesso?: string | null
           cliente_id?: string | null
           codigo_retorno?: string | null
+          configuracao_tributaria_id?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -5175,6 +5443,7 @@ export type Database = {
           numero_lote?: string | null
           numero_nf?: number | null
           numero_recibo?: string | null
+          operacao_fiscal_id?: string | null
           pdf_storage_path?: string | null
           pedido_id?: string | null
           protocolo?: string | null
@@ -5201,6 +5470,7 @@ export type Database = {
           chave_acesso?: string | null
           cliente_id?: string | null
           codigo_retorno?: string | null
+          configuracao_tributaria_id?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -5220,6 +5490,7 @@ export type Database = {
           numero_lote?: string | null
           numero_nf?: number | null
           numero_recibo?: string | null
+          operacao_fiscal_id?: string | null
           pdf_storage_path?: string | null
           pedido_id?: string | null
           protocolo?: string | null
@@ -5239,7 +5510,22 @@ export type Database = {
           xml_storage_path?: string | null
           xml_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_configuracao_tributaria_id_fkey"
+            columns: ["configuracao_tributaria_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_configuracoes_tributarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_operacao_fiscal_id_fkey"
+            columns: ["operacao_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_operacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notas_fiscais_eventos: {
         Row: {
@@ -7047,6 +7333,7 @@ export type Database = {
           ativo: boolean
           cest: string | null
           cfop_padrao: string | null
+          configuracao_tributaria_padrao_id: string | null
           created_at: string
           csosn: string | null
           cst_cofins: string | null
@@ -7054,10 +7341,12 @@ export type Database = {
           cst_ipi: string | null
           cst_pis: string | null
           descricao: string | null
+          grupo_tributario: string | null
           id: string
           loja_id: string | null
           ncm: string | null
           nome: string
+          operacao_fiscal_padrao_id: string | null
           origem_mercadoria: number | null
           unidade_comercial: string | null
           unidade_tributavel: string | null
@@ -7071,6 +7360,7 @@ export type Database = {
           ativo?: boolean
           cest?: string | null
           cfop_padrao?: string | null
+          configuracao_tributaria_padrao_id?: string | null
           created_at?: string
           csosn?: string | null
           cst_cofins?: string | null
@@ -7078,10 +7368,12 @@ export type Database = {
           cst_ipi?: string | null
           cst_pis?: string | null
           descricao?: string | null
+          grupo_tributario?: string | null
           id?: string
           loja_id?: string | null
           ncm?: string | null
           nome: string
+          operacao_fiscal_padrao_id?: string | null
           origem_mercadoria?: number | null
           unidade_comercial?: string | null
           unidade_tributavel?: string | null
@@ -7095,6 +7387,7 @@ export type Database = {
           ativo?: boolean
           cest?: string | null
           cfop_padrao?: string | null
+          configuracao_tributaria_padrao_id?: string | null
           created_at?: string
           csosn?: string | null
           cst_cofins?: string | null
@@ -7102,10 +7395,12 @@ export type Database = {
           cst_ipi?: string | null
           cst_pis?: string | null
           descricao?: string | null
+          grupo_tributario?: string | null
           id?: string
           loja_id?: string | null
           ncm?: string | null
           nome?: string
+          operacao_fiscal_padrao_id?: string | null
           origem_mercadoria?: number | null
           unidade_comercial?: string | null
           unidade_tributavel?: string | null
@@ -7113,10 +7408,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "produtos_fiscais_configuracao_tributaria_padrao_id_fkey"
+            columns: ["configuracao_tributaria_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_configuracoes_tributarias"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "produtos_fiscais_loja_id_fkey"
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fiscais_operacao_fiscal_padrao_id_fkey"
+            columns: ["operacao_fiscal_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_operacoes"
             referencedColumns: ["id"]
           },
         ]
