@@ -927,6 +927,20 @@ function TemplateOrcamento() {
       condicoes_gerais_html: tpl.condicoes_gerais_html ?? "",
       rodape_html: tpl.rodape_html ?? "",
       observacoes_internas: tpl.observacoes_internas ?? "",
+      mostrar_gatilhos_venda: !!tpl.mostrar_gatilhos_venda,
+      mostrar_gatilhos_na_negociacao: !!tpl.mostrar_gatilhos_na_negociacao,
+      mostrar_gatilhos_na_impressao: !!tpl.mostrar_gatilhos_na_impressao,
+      usar_gatilho_escassez: !!tpl.usar_gatilho_escassez,
+      titulo_escassez: tpl.titulo_escassez ?? "Contratos restantes",
+      quantidade_contratos_total: tpl.quantidade_contratos_total ?? null,
+      quantidade_contratos_restantes: tpl.quantidade_contratos_restantes ?? null,
+      texto_escassez: tpl.texto_escassez ?? "",
+      usar_gatilho_urgencia: !!tpl.usar_gatilho_urgencia,
+      tipo_validade: tpl.tipo_validade || "horas",
+      validade_horas: tpl.validade_horas ?? null,
+      validade_data_hora: tpl.validade_data_hora ?? null,
+      texto_urgencia: tpl.texto_urgencia ?? "",
+      sugestao_texto_fechamento: tpl.sugestao_texto_fechamento ?? "",
     };
     const op = tpl.id
       ? (supabase as any).from("orcamento_templates").update(payload).eq("id", tpl.id).select().maybeSingle()
