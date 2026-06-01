@@ -322,7 +322,11 @@ function ResumoFinanceiroDialog({
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
-            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <Row label="Custo CMV" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <div className="pl-4 -mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Custo Fábrica <span className="italic">(referência interna)</span></span>
+              <span className="text-mono">{fmtBrl(custoFabricaReferencia)}</span>
+            </div>
             {itensCusto.map((i) => (
               <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
             ))}
