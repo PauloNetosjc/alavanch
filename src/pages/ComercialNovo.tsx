@@ -1916,14 +1916,6 @@ export default function ComercialNovo() {
             <Button variant="outline" onClick={() => navigate("/comercial")}>Fechar</Button>
           ) : (
 
-            <Button
-              onClick={() => setStep(step + 1)}
-              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
-              className="bg-[#2D6BE5] hover:bg-[#2459C9]"
-            >
-              Avançar <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          ) : (
             <div className="flex gap-2">
               <Button
                 onClick={() => finish(false)}
