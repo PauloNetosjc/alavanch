@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -567,19 +567,58 @@ export default function ComercialNegociacao() {
     window.dispatchEvent(new CustomEvent("sidebar:set-collapsed", { detail: { collapsed: true } }));
   }, []);
 
-  // Modo tela cheia
+  // Modo tela cheia (Fullscreen API real do navegador)
+  const negociacaoRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  async function entrarTelaCheia() {
+    const el = negociacaoRef.current;
+    if (el && el.requestFullscreen) {
+      try {
+        await el.requestFullscreen();
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[fullscreen] requestFullscreen falhou", err);
+        setIsFullscreen(true); // fallback CSS
+      }
+    } else {
+      if (import.meta.env.DEV) console.warn("[fullscreen] API indisponível, usando fallback CSS");
+      setIsFullscreen(true);
+    }
+  }
+
+  async function sairTelaCheia() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn("[fullscreen] exitFullscreen falhou", err);
+    }
+    setIsFullscreen(false);
+  }
+
+  // Sincronizar estado com mudanças do navegador (ESC nativo etc.)
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // ENTER fora de campos sai da tela cheia (ESC já é tratado pelo navegador)
   useEffect(() => {
     if (!isFullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsFullscreen(false);
-        return;
-      }
       if (e.key === "Enter") {
         const tag = (document.activeElement?.tagName || "").toLowerCase();
-        const isEditable = tag === "input" || tag === "textarea" || tag === "select" || tag === "button" || (document.activeElement as HTMLElement | null)?.isContentEditable;
-        if (!isEditable) setIsFullscreen(false);
+        const isEditable =
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          tag === "button" ||
+          (document.activeElement as HTMLElement | null)?.isContentEditable;
+        if (!isEditable) sairTelaCheia();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1770,21 +1809,33 @@ export default function ComercialNegociacao() {
   }
 
   return (
-    <div className={isFullscreen ? "fixed inset-0 z-[60] bg-background overflow-auto p-4 sm:p-6 md:p-8" : ""}>
+    <div
+      ref={negociacaoRef}
+      className={
+        "negociacao-fullscreen-container " +
+        (isFullscreen
+          ? "fixed inset-0 z-[60] w-screen h-screen overflow-auto bg-background p-4 sm:p-6 md:p-8"
+          : "")
+      }
+    >
     <div className="grid grid-cols-12 gap-6">
       {/* ---------- LEFT ---------- */}
       <div className="col-span-12 lg:col-span-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <Link
-            to={`/comercial/${id}`}
-            onClick={() => setIsFullscreen(false)}
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              await sairTelaCheia();
+              navigate(`/comercial/${id}`);
+            }}
             className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4" /> Voltar para Orçamento
-          </Link>
+          </button>
           <button
             type="button"
-            onClick={() => setIsFullscreen((v) => !v)}
+            onClick={() => (isFullscreen ? sairTelaCheia() : entrarTelaCheia())}
             title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
             aria-label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
             className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-[#D0CCC8] bg-white text-[#1A1A1A] hover:bg-[#F7F6F4] transition-colors"
