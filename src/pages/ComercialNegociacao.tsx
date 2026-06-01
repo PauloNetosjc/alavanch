@@ -25,6 +25,7 @@ import { renderContratoHtml, type ContratoTemplate, type ContratoCtx } from "@/l
 import { dispatchKanbanTrigger } from "@/lib/kanbanTriggers";
 import { getLegacyPublicContractUrl } from "@/lib/publicLinks";
 import { prepararContratoParaAssinatura } from "@/lib/contratoAssinaturaDoc";
+import { calcularValidade, tempoRestante, formatarValidade, isVencida, resolverTexto, type GatilhosTemplate } from "@/lib/gatilhosVenda";
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
