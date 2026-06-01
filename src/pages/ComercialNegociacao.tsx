@@ -2324,6 +2324,21 @@ export default function ComercialNegociacao() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmTrocaMetodo} onOpenChange={(o) => { if (!o) setConfirmTrocaMetodo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar método de pagamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Alterar o método de pagamento irá limpar as parcelas, entrada e descontos calculados anteriormente. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmTrocaMetodo(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarTrocaMetodo}>Sim, alterar método</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
