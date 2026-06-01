@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2, ChevronDown, Lock,
+  Check, AlertCircle, Loader2, ChevronDown, Lock, Handshake,
 } from "lucide-react";
 import OrcamentoNegociacaoTab from "@/components/OrcamentoNegociacaoTab";
 
@@ -2008,10 +2008,24 @@ export default function ComercialNovo() {
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> {step === 1 ? "Cancelar" : "Voltar"}
           </Button>
-          {step < 3 || (step === 3 && temNegociacao) ? (
+          {step === 3 && temNegociacao ? (
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="text-[12px] text-[#6B6760]">
+                Revise os ambientes e valores desta versão. Para definir condições comerciais, avance para a negociação.
+              </span>
+              <Button
+                onClick={() => finish(true)}
+                disabled={saving}
+                className="bg-[#2D6BE5] hover:bg-[#2459C9]"
+              >
+                <Handshake className="w-4 h-4 mr-1.5" />
+                {saving ? "Salvando…" : "Negociar"}
+              </Button>
+            </div>
+          ) : step < 3 ? (
             <Button
               onClick={() => setStep(step + 1)}
-              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2) || (step === 3 && !temNegociacao)}
+              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
               className="bg-[#2D6BE5] hover:bg-[#2459C9]"
             >
               Avançar <ArrowRight className="w-4 h-4 ml-1.5" />
