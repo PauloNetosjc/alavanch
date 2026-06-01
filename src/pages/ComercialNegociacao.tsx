@@ -649,6 +649,19 @@ export default function ComercialNegociacao() {
         : ({ data: null } as any);
       setTplContrato((tplLoja ?? null) as ContratoTemplate | null);
 
+      // Template de orçamento da loja (gatilhos de venda + impressão)
+      if (o?.loja_id) {
+        const { data: tplOrc } = await (supabase as any)
+          .from("orcamento_templates")
+          .select("*")
+          .eq("loja_id", o.loja_id)
+          .eq("ativo", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setTplOrcamento(tplOrc || null);
+      }
+
       // Configurações da empresa (composição de custos e markup)
       const lojaId = (o as any)?.loja_id;
       if (lojaId) {
