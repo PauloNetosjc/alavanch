@@ -51,28 +51,34 @@ export function EventosAuditoriaPanel() {
           <div className="p-8 text-center text-sm text-muted-foreground">Nenhum evento registrado ainda.</div>
         ) : (
           <ul className="divide-y">
-            {evs.map((e) => (
-              <li key={e.id} className="py-2.5">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      {e.nota ? `${e.nota.tipo.toUpperCase()} ${e.nota.numero || "(sem número)"}` : "Nota removida"}
-                      <Badge variant="outline" className="text-[10px]">{e.tipo_evento}</Badge>
-                    </div>
-                    {e.mensagem && <div className="text-xs text-muted-foreground mt-0.5">{e.mensagem}</div>}
-                    {(e.status_anterior || e.status_novo) && (
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {e.status_anterior || "—"} → <strong>{e.status_novo || "—"}</strong>
+            {evs.map((e) => {
+              const isGw = ["gateway_mtls_chamado","gateway_mtls_respondeu","gateway_mtls_erro","sefaz_retorno_recebido"].includes(e.tipo_evento);
+              const isErr = e.tipo_evento === "gateway_mtls_erro" || e.tipo_evento.startsWith("erro");
+              return (
+                <li key={e.id} className={`py-2.5 px-2 -mx-2 rounded ${isErr ? "bg-red-50" : isGw ? "bg-emerald-50/50" : ""}`}>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        {e.nota ? `${e.nota.tipo.toUpperCase()} ${e.nota.numero || "(sem número)"}` : "Nota removida"}
+                        <Badge variant={isErr ? "destructive" : isGw ? "default" : "outline"} className="text-[10px]">
+                          {e.tipo_evento}
+                        </Badge>
                       </div>
-                    )}
+                      {e.mensagem && <div className="text-xs text-muted-foreground mt-0.5">{e.mensagem}</div>}
+                      {(e.status_anterior || e.status_novo) && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {e.status_anterior || "—"} → <strong>{e.status_novo || "—"}</strong>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground text-right">
+                      {new Date(e.created_at).toLocaleString("pt-BR")}
+                      {e.protocolo && <div>Protocolo: {e.protocolo}</div>}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground text-right">
-                    {new Date(e.created_at).toLocaleString("pt-BR")}
-                    {e.protocolo && <div>Protocolo: {e.protocolo}</div>}
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>
