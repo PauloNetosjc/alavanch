@@ -694,16 +694,26 @@ export default function ComercialNegociacao() {
   const baseDescontavel = isAdendo ? 0 : (subtotalComDesconto + subtotalComDesconto * (parceiroPerc / 100));
   const descValorEfetivo = isAdendo ? 0 : Math.min(descValorAplicado, baseDescontavel);
   // Desconto adicional vindo da forma de pagamento (parcelas_config[parcelas].desconto_perc)
-  // incide sobre o saldo a parcelar (após entrada e descontos manuais).
+  // incide sobre o valor bruto (após desconto manual), SEM descontar a entrada.
   const metodoSelecionado = metodos.find((m) => m.nome === novoMetodo);
   const cfgParcelaSel = metodoSelecionado?.parcelas_config?.find((p) => Number(p.numero) === Number(novoParcelas));
   const descontoMetodoPerc = Number(cfgParcelaSel?.desconto_perc) || 0;
   const _somaEntradasAdicionadas = pagamentos.reduce((s, p: any) => s + (p.is_entrada ? (p.valor || 0) : 0), 0);
-  const baseParaMetodo = Math.max(0, (isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo)) - (entrada || 0) - _somaEntradasAdicionadas);
+  // Base do desconto da forma de pagamento = valor bruto (após desconto manual). Entrada NÃO reduz a base.
+  const baseParaMetodo = Math.max(0, isAdendo ? adendoValor : Math.max(0, valorInicial - descValorEfetivo));
   const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
-  const totalProposta = isAdendo
-    ? Math.max(0, adendoValor - descontoMetodoValor)
-    : Math.max(0, valorInicial - descValorEfetivo - descontoMetodoValor);
+  // Subtotal após desconto da forma de pagamento (antes do desconto adicional da entrada).
+  const subtotalAposFormaPag = Math.max(0, baseParaMetodo - descontoMetodoValor);
+  // Desconto adicional gerado pela entrada: aplicado sobre o valor da entrada (preserva a entrada).
+  // Percentual default = desconto do Boleto 1x; se não houver, 20%.
+  const metodoBoleto = metodos.find((m) => /boleto/i.test(m.nome || ""));
+  const cfgBoleto1x = metodoBoleto?.parcelas_config?.find((p) => Number(p.numero) === 1);
+  const descontoEntradaPerc = Number(cfgBoleto1x?.desconto_perc) || 20;
+  const totalEntrada = (entrada || 0) + _somaEntradasAdicionadas;
+  const descontoEntradaValor = totalEntrada > 0 ? totalEntrada * (descontoEntradaPerc / 100) : 0;
+  // Valor final negociado: subtotal - desconto da entrada. A entrada continua preservada.
+  const totalProposta = Math.max(0, subtotalAposFormaPag - descontoEntradaValor);
+  const saldoAParcelar = Math.max(0, totalProposta - totalEntrada);
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
@@ -1833,11 +1843,14 @@ export default function ComercialNegociacao() {
                 />
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
+                A entrada é preservada com o valor lançado. Gera um desconto adicional de <b>{descontoEntradaPerc.toFixed(2)}%</b> sobre o valor da entrada, abatido do total do pedido.<br />
                 {_somaEntradasAdicionadas > 0 && (
                   <span className="block">Entradas já adicionadas: <b className="text-foreground">{fmtBrl(_somaEntradasAdicionadas)}</b></span>
                 )}
-                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - _somaEntradasAdicionadas - entrada))}</span>
+                {totalEntrada > 0 && (
+                  <span className="block text-emerald-700">Desconto da entrada ({descontoEntradaPerc.toFixed(2)}% × {fmtBrl(totalEntrada)}): -{fmtBrl(descontoEntradaValor)}</span>
+                )}
+                <span className="font-medium text-foreground">Saldo a parcelar: {fmtBrl(saldoAParcelar)}</span>
               </div>
               <Button
                 type="button"
