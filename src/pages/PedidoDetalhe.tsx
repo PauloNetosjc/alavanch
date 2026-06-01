@@ -14,9 +14,12 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart, Download,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart, Download, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PreNotaDialog } from "@/components/fiscal/PreNotaDialog";
+import { useModulosLoja } from "@/hooks/useModulosLoja";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
