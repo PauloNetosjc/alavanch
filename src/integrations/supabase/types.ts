@@ -1563,7 +1563,11 @@ export type Database = {
           loja_id: string | null
           nome: string
           razao_social_certificado: string | null
+          senha_algoritmo: string | null
+          senha_cifrada: string | null
           senha_encrypted: string | null
+          senha_iv: string | null
+          senha_tag: string | null
           status: string
           storage_path: string
           tipo_certificado: string
@@ -1582,7 +1586,11 @@ export type Database = {
           loja_id?: string | null
           nome: string
           razao_social_certificado?: string | null
+          senha_algoritmo?: string | null
+          senha_cifrada?: string | null
           senha_encrypted?: string | null
+          senha_iv?: string | null
+          senha_tag?: string | null
           status?: string
           storage_path: string
           tipo_certificado?: string
@@ -1601,7 +1609,11 @@ export type Database = {
           loja_id?: string | null
           nome?: string
           razao_social_certificado?: string | null
+          senha_algoritmo?: string | null
+          senha_cifrada?: string | null
           senha_encrypted?: string | null
+          senha_iv?: string | null
+          senha_tag?: string | null
           status?: string
           storage_path?: string
           tipo_certificado?: string
@@ -5096,15 +5108,18 @@ export type Database = {
           ambiente: string | null
           atualizado_por: string | null
           chave: string | null
+          chave_acesso: string | null
           cliente_id: string | null
           codigo_retorno: string | null
           contrato_id: string | null
           created_at: string
           created_by: string | null
           danfe_storage_path: string | null
+          danfe_url: string | null
           data_autorizacao: string | null
           data_cancelamento: string | null
           data_emissao: string | null
+          digest_value: string | null
           id: string
           loja_id: string | null
           mensagem_retorno: string | null
@@ -5112,11 +5127,16 @@ export type Database = {
           motivo_rejeicao: string | null
           natureza_operacao: string | null
           numero: string | null
+          numero_lote: string | null
+          numero_nf: number | null
+          numero_recibo: string | null
           pdf_storage_path: string | null
           pedido_id: string | null
           protocolo: string | null
+          protocolo_autorizacao: string | null
           provider: string | null
           provider_id: string | null
+          retorno_sefaz_url: string | null
           serie: string | null
           status: string
           tipo: string
@@ -5125,21 +5145,26 @@ export type Database = {
           valor_produtos: number | null
           valor_servicos: number | null
           valor_total: number
+          xml_autorizado_url: string | null
           xml_storage_path: string | null
+          xml_url: string | null
         }
         Insert: {
           ambiente?: string | null
           atualizado_por?: string | null
           chave?: string | null
+          chave_acesso?: string | null
           cliente_id?: string | null
           codigo_retorno?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
           danfe_storage_path?: string | null
+          danfe_url?: string | null
           data_autorizacao?: string | null
           data_cancelamento?: string | null
           data_emissao?: string | null
+          digest_value?: string | null
           id?: string
           loja_id?: string | null
           mensagem_retorno?: string | null
@@ -5147,11 +5172,16 @@ export type Database = {
           motivo_rejeicao?: string | null
           natureza_operacao?: string | null
           numero?: string | null
+          numero_lote?: string | null
+          numero_nf?: number | null
+          numero_recibo?: string | null
           pdf_storage_path?: string | null
           pedido_id?: string | null
           protocolo?: string | null
+          protocolo_autorizacao?: string | null
           provider?: string | null
           provider_id?: string | null
+          retorno_sefaz_url?: string | null
           serie?: string | null
           status?: string
           tipo?: string
@@ -5160,21 +5190,26 @@ export type Database = {
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
+          xml_autorizado_url?: string | null
           xml_storage_path?: string | null
+          xml_url?: string | null
         }
         Update: {
           ambiente?: string | null
           atualizado_por?: string | null
           chave?: string | null
+          chave_acesso?: string | null
           cliente_id?: string | null
           codigo_retorno?: string | null
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
           danfe_storage_path?: string | null
+          danfe_url?: string | null
           data_autorizacao?: string | null
           data_cancelamento?: string | null
           data_emissao?: string | null
+          digest_value?: string | null
           id?: string
           loja_id?: string | null
           mensagem_retorno?: string | null
@@ -5182,11 +5217,16 @@ export type Database = {
           motivo_rejeicao?: string | null
           natureza_operacao?: string | null
           numero?: string | null
+          numero_lote?: string | null
+          numero_nf?: number | null
+          numero_recibo?: string | null
           pdf_storage_path?: string | null
           pedido_id?: string | null
           protocolo?: string | null
+          protocolo_autorizacao?: string | null
           provider?: string | null
           provider_id?: string | null
+          retorno_sefaz_url?: string | null
           serie?: string | null
           status?: string
           tipo?: string
@@ -5195,7 +5235,9 @@ export type Database = {
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
+          xml_autorizado_url?: string | null
           xml_storage_path?: string | null
+          xml_url?: string | null
         }
         Relationships: []
       }
@@ -5327,6 +5369,50 @@ export type Database = {
             columns: ["servico_fiscal_id"]
             isOneToOne: false
             referencedRelation: "servicos_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_fiscais_logs_tecnicos: {
+        Row: {
+          created_at: string
+          duracao_ms: number | null
+          erro: string | null
+          etapa: string
+          id: string
+          loja_id: string | null
+          nota_fiscal_id: string
+          payload_resumido: Json | null
+          retorno_resumido: Json | null
+        }
+        Insert: {
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          etapa: string
+          id?: string
+          loja_id?: string | null
+          nota_fiscal_id: string
+          payload_resumido?: Json | null
+          retorno_resumido?: Json | null
+        }
+        Update: {
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          etapa?: string
+          id?: string
+          loja_id?: string | null
+          nota_fiscal_id?: string
+          payload_resumido?: Json | null
+          retorno_resumido?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_logs_tecnicos_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
             referencedColumns: ["id"]
           },
         ]
