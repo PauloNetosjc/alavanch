@@ -1815,7 +1815,7 @@ export default function ComercialNegociacao() {
         </div>` : "";
       const cardUrg = usarUrgPrint && gValidade ? `
         <div style="background:#F8E8EA;border:1px solid #D8A5AB;border-radius:8px;padding:10px 12px;margin-top:8px">
-          <div style="font-size:10px;letter-spacing:0.14em;color:#7A2833;font-weight:600;text-transform:uppercase">Urgência</div>
+          
           <div style="margin-top:2px;font-size:20px;font-weight:700;color:#7A2833;line-height:1">${escapeHtml(tempoRestante(gValidade))}</div>
           <div style="font-size:10.5px;color:#2A2A2A;opacity:0.85;margin-top:3px">Proposta válida até ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " (vencida)" : ""}</div>
         </div>` : "";
