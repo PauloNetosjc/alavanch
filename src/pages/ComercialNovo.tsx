@@ -1957,7 +1957,7 @@ export default function ComercialNovo() {
 
         {/* ============================ STEP 4 — Negociação ============================ */}
         {step === 4 && temNegociacao && editId && (
-          <OrcamentoNegociacaoTab orcamentoId={editId} />
+          <OrcamentoNegociacaoTab orcamentoId={editId} onNovaVersao={() => setStep(2)} />
         )}
 
         {/* ============================ Footer nav ============================ */}
