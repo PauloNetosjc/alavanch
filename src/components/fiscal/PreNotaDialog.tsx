@@ -20,6 +20,7 @@ type Item = {
   quantidade: number;
   unidade?: string;
   valor_unitario: number;
+  cfop?: string;
 };
 
 export function PreNotaDialog({
