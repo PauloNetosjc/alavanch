@@ -183,23 +183,60 @@ export function NotasEmitidasPanel() {
               <Linha k="Mensagem" v={detalhe.mensagem_retorno || detalhe.motivo_rejeicao}/>
 
               <div className="flex flex-wrap gap-2 pt-3 border-t">
-                <Button size="sm" variant="outline" className="gap-1" disabled={!detalhe.xml_storage_path}
-                  onClick={() => baixarArquivo("notas-fiscais", detalhe.xml_storage_path)}>
+                <Button size="sm" variant="outline" className="gap-1"
+                  disabled={!(detalhe.xml_autorizado_url || detalhe.xml_url || detalhe.xml_storage_path)}
+                  onClick={() => baixarArquivo("notas-fiscais", detalhe.xml_autorizado_url || detalhe.xml_url || detalhe.xml_storage_path)}>
                   <Download className="w-3.5 h-3.5"/> XML
                 </Button>
-                <Button size="sm" variant="outline" className="gap-1" disabled={!detalhe.pdf_storage_path && !detalhe.danfe_storage_path}
-                  onClick={() => baixarArquivo("notas-fiscais", detalhe.pdf_storage_path || detalhe.danfe_storage_path)}>
+                <Button size="sm" variant="outline" className="gap-1"
+                  disabled={!(detalhe.danfe_url || detalhe.pdf_storage_path || detalhe.danfe_storage_path)}
+                  onClick={() => baixarArquivo("notas-fiscais", detalhe.danfe_url || detalhe.pdf_storage_path || detalhe.danfe_storage_path)}>
                   <Download className="w-3.5 h-3.5"/> {detalhe.tipo === "nfse" ? "PDF" : "DANFE"}
                 </Button>
-                <DisabledAcao icon={<Send className="w-3.5 h-3.5"/>} label="Emitir"/>
-                <DisabledAcao icon={<RefreshCw className="w-3.5 h-3.5"/>} label="Consultar status"/>
-                <DisabledAcao icon={<XCircle className="w-3.5 h-3.5"/>} label="Cancelar"/>
+                <EmitirHomologButton nota={detalhe} onDone={async () => { await load(); setDetalhe(null); }} />
+                <DisabledAcao icon={<RefreshCw className="w-3.5 h-3.5"/>} label="Consultar status (em breve)"/>
+                <DisabledAcao icon={<XCircle className="w-3.5 h-3.5"/>} label="Cancelar (próxima fase)"/>
+                <DisabledAcao icon={<Send className="w-3.5 h-3.5"/>} label="Emitir em Produção (bloqueado)"/>
               </div>
             </div>
           </SheetContent>
         </Sheet>
       )}
     </div>
+  );
+}
+
+function EmitirHomologButton({ nota, onDone }: { nota: NF; onDone: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const habilitado = podeEmitirNfe({ tipo: nota.tipo, ambiente: nota.ambiente ?? "homologacao", status: nota.status });
+  if (!habilitado) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span><Button size="sm" variant="outline" className="gap-1" disabled>
+              <Send className="w-3.5 h-3.5"/> Emitir NF-e Homologação
+            </Button></span>
+          </TooltipTrigger>
+          <TooltipContent>Disponível apenas para NF-e em homologação no status rascunho ou pronta para emitir.</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return (
+    <Button size="sm" className="gap-1" disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        const r = await emitirNfeHomologacao(nota.id);
+        setLoading(false);
+        if (r.ok && r.status === "autorizada") toast.success(`NF-e autorizada! Protocolo ${r.protocolo ?? ""}`);
+        else if (r.ok) toast.info(`Status: ${r.status} — ${r.mensagem ?? ""}`);
+        else toast.error(`Falha: ${r.mensagem ?? r.erro ?? r.status}`);
+        onDone();
+      }}>
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Send className="w-3.5 h-3.5"/>}
+      Emitir NF-e Homologação
+    </Button>
   );
 }
 
