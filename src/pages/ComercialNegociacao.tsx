@@ -40,6 +40,7 @@ type Ambiente = {
   descricao: string | null;
   preco_sugerido: number | null;
   custo_aquisicao?: number | null;
+  custo_fabrica?: number | null;
   negociavel?: boolean;        // incluir no orçamento
   aplicar_desconto?: boolean;  // recebe desconto rateado
 };
