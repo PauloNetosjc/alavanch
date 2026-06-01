@@ -360,6 +360,8 @@ function ResumoFinanceiroDialog({
               const margemCmvFab = custoCmv > 0 ? ((custoCmv - custoFab) / custoCmv) * 100 : null;
               const totalCustosSimulado = totalCustos - custoCmv + custoFab;
               const custoCmvFabrica = totalVPL - totalCustosSimulado;
+              const markupLoja = totalCustos > 0 ? totalVPL / totalCustos : null;
+              const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[13px]">
@@ -374,6 +376,10 @@ function ResumoFinanceiroDialog({
                     <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
                     <div className="text-[24px] font-semibold text-emerald-600 text-mono">{fmtBrl(lucro)}</div>
                   </div>
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="text-muted-foreground">Markup Loja</span>
+                    <span className="text-mono font-semibold">{markupLoja !== null ? `${markupLoja.toFixed(2).replace(".", ",")}x` : "—"}</span>
+                  </div>
                   <div className="border-t border-border pt-2 space-y-1.5">
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">Custo CMV Fábrica</span>
@@ -381,11 +387,17 @@ function ResumoFinanceiroDialog({
                     </div>
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-muted-foreground">Markup CMV/Fábrica</span>
-                      <span className="text-mono">{markupCmvFab !== null ? `${markupCmvFab.toFixed(2)}x` : "—"}</span>
+                      <span className="text-mono">{markupCmvFab !== null ? `${markupCmvFab.toFixed(2).replace(".", ",")}x` : "—"}</span>
                     </div>
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-muted-foreground">Margem CMV/Fábrica</span>
-                      <span className="text-mono">{margemCmvFab !== null ? `${margemCmvFab.toFixed(2)}%` : "—"}</span>
+                      <span className="text-mono">{margemCmvFab !== null ? `${margemCmvFab.toFixed(2).replace(".", ",")}%` : "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-muted-foreground">Lucro Fábrica</span>
+                      <span className={`text-mono font-semibold ${lucroFabrica !== null && lucroFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                        {lucroFabrica !== null ? fmtBrl(lucroFabrica) : "—"}
+                      </span>
                     </div>
                   </div>
                 </div>
