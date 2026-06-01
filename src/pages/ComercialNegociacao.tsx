@@ -1221,19 +1221,24 @@ export default function ComercialNegociacao() {
     if (!cfgEnt?.forma_pagamento) {
       return toast.error("Nenhuma forma de entrada ativa cadastrada.");
     }
+    const valor = Number(entrada) || 0;
+    if (valor <= 0) {
+      return toast.error("Informe o valor da entrada antes de adicionar.");
+    }
     const hoje = new Date().toISOString().slice(0, 10);
     setPagamentos((prev) => [
       ...prev,
       {
         metodo: cfgEnt.forma_pagamento,
-        valor: 0,
+        valor,
         parcelas: 1,
         data_vencimento: novoVenc || hoje,
         parcelas_detalhe: null,
         is_entrada: true,
       } as any,
     ]);
-    toast.success("Entrada adicionada — informe o valor e a forma na parcela.");
+    setEntrada(0);
+    toast.success("Entrada adicionada.");
   };
 
 
