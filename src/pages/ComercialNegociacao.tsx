@@ -2161,17 +2161,20 @@ export default function ComercialNegociacao() {
                         <div className="text-[13px] font-semibold uppercase">
                           {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
                         </div>
-                        <div className="mt-1">
-                          {todasConf ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3" /> Datas confirmadas
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-300">
-                              <AlertTriangle className="w-3 h-3" /> Datas pendentes ({totalParc - confCount}/{totalParc})
-                            </span>
-                          )}
-                        </div>
+                        {config?.obrigar_informar_vencimento && (
+                          <div className="mt-1">
+                            {todasConf ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" /> Datas confirmadas
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-300">
+                                <AlertTriangle className="w-3 h-3" /> Datas pendentes ({totalParc - confCount}/{totalParc})
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                       </div>
                       <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
                       <TooltipProvider>
