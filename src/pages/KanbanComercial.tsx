@@ -268,7 +268,7 @@ export default function KanbanComercial() {
     if (!detalheCard) return;
     setDetalheOpen(false);
     if (detalheCard.pedido_id) navigate(`/pedidos/${detalheCard.pedido_id}`);
-    else navigate(`/comercial/${detalheCard.id}/negociacao`);
+    else navigate(`/comercial/${detalheCard.id}?aba=negociacao`);
   };
 
   return (

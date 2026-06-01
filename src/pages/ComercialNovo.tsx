@@ -542,6 +542,11 @@ export default function ComercialNovo() {
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [temNegociacao, setTemNegociacao] = useState<boolean>(false);
+  const [ultimaNegociacao, setUltimaNegociacao] = useState<{
+    versao: number;
+    status: string;
+    valor_final_negociado: number;
+  } | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [orcCodigo, setOrcCodigo] = useState<string>("");
@@ -761,13 +766,21 @@ export default function ComercialNovo() {
         origem_ambiente: (a.origem_ambiente as any) || "manual",
       })));
 
-      // Detecta negociação existente para liberar aba 04
-      const { count: negCount } = await supabase
+      // Detecta negociação existente para liberar aba 04 + carrega resumo
+      const { data: negs } = await supabase
         .from("orcamento_negociacoes" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("orcamento_id", editId);
-      const tem = (negCount || 0) > 0;
+        .select("versao,status,valor_final_negociado")
+        .eq("orcamento_id", editId)
+        .order("versao", { ascending: false });
+      const lista = (negs || []) as any[];
+      const tem = lista.length > 0;
       setTemNegociacao(tem);
+      const ativa = lista.find((n) => n.status === "ativa") || lista[0] || null;
+      setUltimaNegociacao(ativa ? {
+        versao: Number(ativa.versao || 0),
+        status: String(ativa.status || ""),
+        valor_final_negociado: Number(ativa.valor_final_negociado || 0),
+      } : null);
       if (tem && (abaParam === "negociacao" || abaParam === "4")) {
         setStep(4);
       }
@@ -785,6 +798,10 @@ export default function ComercialNovo() {
     [subtotalAmbientes, parceiroPerc],
   );
   const total = subtotalAmbientes + acrescimoParceiro;
+  const custoAmbientes = useMemo(
+    () => isAdendo ? 0 : ambientes.reduce((s, a) => s + (a.custo_aquisicao || 0), 0),
+    [ambientes, isAdendo],
+  );
 
   /* ----------------------------- step 1 helpers --------------------------- */
   const cliente = clientes.find((c) => c.id === clienteId);
@@ -1160,6 +1177,32 @@ export default function ComercialNovo() {
             </div>
           </div>
         </>
+      )}
+
+      {ultimaNegociacao && (
+        <div className="border-t border-border pt-3">
+          <div className="text-muted-foreground text-[11px] mb-1">Última negociação</div>
+          <div className="flex items-center justify-between gap-2 text-[12px]">
+            <span className="font-semibold">v{ultimaNegociacao.versao}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              ultimaNegociacao.status === "ativa" ? "bg-emerald-100 text-emerald-700"
+              : ultimaNegociacao.status === "aprovada" ? "bg-blue-100 text-blue-700"
+              : "bg-muted text-muted-foreground"
+            }`}>{ultimaNegociacao.status}</span>
+          </div>
+          <div className="flex justify-between text-[13px] mt-1">
+            <span className="text-muted-foreground">Valor final</span>
+            <span className="text-mono font-semibold">{fmtBrl(ultimaNegociacao.valor_final_negociado)}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full mt-2 h-8 text-[12px]"
+            onClick={() => setStep(4)}
+          >
+            Ir para negociação
+          </Button>
+        </div>
       )}
 
     </div>
@@ -1879,6 +1922,20 @@ export default function ComercialNovo() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ind</span>
                     <span className="text-mono font-medium text-[#2D6BE5]">+ {fmtBrl(acrescimoParceiro)}</span>
+                  </div>
+                )}
+                {!isAdendo && podeVerCusto && custoAmbientes > 0 && (
+                  <div className="border-t border-dashed border-border pt-2 mt-2">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                      Composição de despesas
+                    </div>
+                    <div className="flex justify-between text-[13px]">
+                      <span className="text-muted-foreground">Fábrica (custo dos ambientes)</span>
+                      <span className="text-mono">{fmtBrl(custoAmbientes)}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1 italic">
+                      O custo dos ambientes (XML / TXT / Excel / manual) já representa o custo de fábrica — não duplicar em outros lançamentos.
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-between text-[18px] font-semibold pt-2 border-t border-border">
