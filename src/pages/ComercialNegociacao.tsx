@@ -1757,69 +1757,63 @@ export default function ComercialNegociacao() {
               </div>
             </div>
           ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {ambientes.map((a) => {
               const incluido = a.negociavel !== false;
               const recebeDesconto = a.aplicar_desconto !== false;
               const fatorIndicador = 1 + (parceiroPerc / 100);
-              // Preço exibido já com o percentual do indicador acrescido
               const precoBase = (Number(a.preco_sugerido) || 0) * fatorIndicador;
-              // Base descontável também com indicador, mantendo o rateio proporcional
               const baseRateioDesc = subtotalComDesconto * fatorIndicador;
-              const fator = recebeDesconto && baseRateioDesc > 0
-                ? precoBase / baseRateioDesc
-                : 0;
+              const fator = recebeDesconto && baseRateioDesc > 0 ? precoBase / baseRateioDesc : 0;
               const descontoAplicadoNoAmb = recebeDesconto ? descValorEfetivo * fator : 0;
               const precoFinal = incluido ? Math.max(0, precoBase - descontoAplicadoNoAmb) : 0;
               const desconto = precoBase - precoFinal;
               return (
-                <div key={a.id} className={`border-2 rounded-lg px-4 py-4 ${incluido ? "border-emerald-100" : "border-slate-200 bg-slate-50/60 opacity-70"}`}>
-                  <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="flex flex-col gap-1.5 mt-0.5">
-                          <label className="flex items-center gap-1.5 cursor-pointer" title="Incluir este ambiente no orçamento">
-                            <input
-                              type="checkbox"
-                              checked={incluido}
-                              onChange={async (e) => {
-                                const v = e.target.checked;
-                                setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
-                                await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
-                              }}
-                              className="w-4 h-4 accent-emerald-600"
-                            />
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
-                          </label>
-                          {/* Indicador read-only: a elegibilidade a desconto é definida na tela
-                              de Ambientes (Orçamento). Aqui apenas mostramos o status. */}
-                          {a.aplicar_desconto === false && (
-                            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium" title="Definido na tela de Orçamento">sem desconto</span>
-                          )}
-                        </div>
-                      <div className="min-w-0">
-                        <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
-                        {!incluido && <div className="text-[11px] text-slate-500 mt-1 italic">Não incluído no orçamento</div>}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Preço</div>
-                      {!incluido ? (
-                        <div className="text-[13px] text-muted-foreground line-through">{fmtBrl(precoBase)}</div>
-                      ) : desconto > 0.01 ? (
-                        <>
-                          <div className="text-[12px] text-muted-foreground line-through">de {fmtBrl(precoBase)}</div>
-                          <div className="text-[15px] font-semibold text-mono text-emerald-700">por {fmtBrl(precoFinal)}</div>
-                        </>
-                      ) : (
-                        <div className="text-[15px] font-semibold text-mono">{fmtBrl(precoFinal)}</div>
-                      )}
-                    </div>
+                <div
+                  key={a.id}
+                  className={`border rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3 flex-wrap ${incluido ? "border-emerald-200 bg-white" : "border-slate-200 bg-slate-50/60 opacity-70"}`}
+                  style={{ minHeight: 56 }}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Incluir este ambiente no orçamento">
+                      <input
+                        type="checkbox"
+                        checked={incluido}
+                        onChange={async (e) => {
+                          const v = e.target.checked;
+                          setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
+                          await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
+                        }}
+                        className="w-4 h-4 accent-emerald-600"
+                      />
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
+                    </label>
+                    <div className="text-[14px] font-semibold uppercase tracking-tight truncate">{a.nome}</div>
+                    {a.aplicar_desconto === false && (
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium shrink-0" title="Definido na tela de Orçamento">sem desconto</span>
+                    )}
+                    {!incluido && (
+                      <span className="text-[10px] text-slate-500 italic shrink-0">Não incluído</span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-3 shrink-0 whitespace-nowrap text-right">
+                    {!incluido ? (
+                      <span className="text-[13px] text-muted-foreground line-through text-mono">{fmtBrl(precoBase)}</span>
+                    ) : desconto > 0.01 ? (
+                      <>
+                        <span className="text-[12px] text-muted-foreground line-through text-mono">de {fmtBrl(precoBase)}</span>
+                        <span className="text-[15px] font-semibold text-mono text-[#1F5235]">por {fmtBrl(precoFinal)}</span>
+                      </>
+                    ) : (
+                      <span className="text-[15px] font-semibold text-mono">{fmtBrl(precoFinal)}</span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
           )}
+
 
           <div className="border-t border-border pt-4 space-y-3">
             <div className="flex items-start justify-between gap-4 flex-wrap">
