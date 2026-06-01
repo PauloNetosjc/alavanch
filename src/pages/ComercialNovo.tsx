@@ -766,13 +766,21 @@ export default function ComercialNovo() {
         origem_ambiente: (a.origem_ambiente as any) || "manual",
       })));
 
-      // Detecta negociação existente para liberar aba 04
-      const { count: negCount } = await supabase
+      // Detecta negociação existente para liberar aba 04 + carrega resumo
+      const { data: negs } = await supabase
         .from("orcamento_negociacoes" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("orcamento_id", editId);
-      const tem = (negCount || 0) > 0;
+        .select("versao,status,valor_final_negociado")
+        .eq("orcamento_id", editId)
+        .order("versao", { ascending: false });
+      const lista = (negs || []) as any[];
+      const tem = lista.length > 0;
       setTemNegociacao(tem);
+      const ativa = lista.find((n) => n.status === "ativa") || lista[0] || null;
+      setUltimaNegociacao(ativa ? {
+        versao: Number(ativa.versao || 0),
+        status: String(ativa.status || ""),
+        valor_final_negociado: Number(ativa.valor_final_negociado || 0),
+      } : null);
       if (tem && (abaParam === "negociacao" || abaParam === "4")) {
         setStep(4);
       }
