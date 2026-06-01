@@ -35,18 +35,31 @@ export function PreNotaDialog({
   const [naturezaOperacao, setNaturezaOperacao] = useState("Venda");
   const [produtos, setProdutos] = useState<any[]>([]);
   const [servicos, setServicos] = useState<any[]>([]);
+  const [operacoes, setOperacoes] = useState<any[]>([]);
+  const [operacaoFiscalId, setOperacaoFiscalId] = useState<string>("");
+  const [configsTrib, setConfigsTrib] = useState<any[]>([]);
   const [itens, setItens] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open || !selectedLojaId) return;
     (async () => {
-      const [{ data: p }, { data: s }] = await Promise.all([
-        supabase.from("produtos_fiscais" as any).select("id,nome,unidade_comercial,ncm,cfop_padrao").eq("ativo", true).or(`loja_id.eq.${selectedLojaId},loja_id.is.null`),
+      const [{ data: p }, { data: s }, { data: o }, { data: ct }] = await Promise.all([
+        supabase.from("produtos_fiscais" as any).select("id,nome,unidade_comercial,ncm,cfop_padrao,operacao_fiscal_padrao_id,configuracao_tributaria_padrao_id").eq("ativo", true).or(`loja_id.eq.${selectedLojaId},loja_id.is.null`),
         supabase.from("servicos_fiscais" as any).select("id,nome,codigo_lc116,aliquota_iss").eq("ativo", true).or(`loja_id.eq.${selectedLojaId},loja_id.is.null`),
+        supabase.from("fiscal_operacoes" as any).select("id,nome,codigo_cfop,tipo_nota,padrao").eq("ativo", true).or(`loja_id.eq.${selectedLojaId},loja_id.is.null`).order("padrao", { ascending: false }).order("nome"),
+        supabase.from("fiscal_configuracoes_tributarias" as any).select("id,operacao_fiscal_id,codigo_cfop").eq("loja_id", selectedLojaId).eq("ativo", true),
       ]);
       setProdutos(p || []);
       setServicos(s || []);
+      const ops = (o as any[]) || [];
+      setOperacoes(ops);
+      setConfigsTrib((ct as any) || []);
+      const padrao = ops.find((x) => x.padrao && x.tipo_nota === (tipo === "nfe" ? "saida" : "saida"));
+      if (padrao && !operacaoFiscalId) {
+        setOperacaoFiscalId(padrao.id);
+        setNaturezaOperacao(padrao.nome);
+      }
     })();
     if (open && itens.length === 0 && valorSugerido) {
       setItens([{
@@ -56,6 +69,17 @@ export function PreNotaDialog({
       }]);
     }
   }, [open, selectedLojaId]);
+
+  // ao escolher operação fiscal, preencher CFOP nos itens
+  useEffect(() => {
+    if (!operacaoFiscalId) return;
+    const op = operacoes.find((o) => o.id === operacaoFiscalId);
+    if (!op) return;
+    setNaturezaOperacao(op.nome);
+    if (op.codigo_cfop) {
+      setItens((arr) => arr.map((it) => ({ ...it, cfop: op.codigo_cfop } as any)));
+    }
+  }, [operacaoFiscalId]);
 
   const total = itens.reduce((s, it) => s + (Number(it.quantidade) || 0) * (Number(it.valor_unitario) || 0), 0);
 
