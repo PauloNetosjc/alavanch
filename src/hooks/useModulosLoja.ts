@@ -36,6 +36,9 @@ export function useModulosLoja() {
 
   useEffect(() => {
     load();
+    const handler = () => load();
+    window.addEventListener("modulos-loja-updated", handler);
+    return () => window.removeEventListener("modulos-loja-updated", handler);
   }, [load]);
 
   const isModuloAtivo = useCallback(
