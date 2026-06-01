@@ -11,8 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2, ChevronDown,
+  Check, AlertCircle, Loader2, ChevronDown, Lock,
 } from "lucide-react";
+import OrcamentoNegociacaoTab from "@/components/OrcamentoNegociacaoTab";
+
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
 import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
