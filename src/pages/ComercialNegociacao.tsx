@@ -62,6 +62,7 @@ type Pagamento = {
   parcelas_vencimentos?: (string | null)[];
   parcelas_formas?: string[];
   parcelas_locked?: boolean[];
+  parcelas_confirmadas?: boolean[];
 };
 type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
 type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[]; juros_modo?: "absorver" | "repassar" | string };
