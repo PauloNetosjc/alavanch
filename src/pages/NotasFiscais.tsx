@@ -76,6 +76,7 @@ export default function NotasFiscais() {
           <TabT v="servicos" i={<Wrench className="w-4 h-4 mr-1.5"/>}>Serviços Fiscais</TabT>
           <TabT v="certificado" i={<Shield className="w-4 h-4 mr-1.5"/>}>Certificado</TabT>
           <TabT v="config" i={<Settings className="w-4 h-4 mr-1.5"/>}>Configurações Fiscais</TabT>
+          <TabT v="status" i={<Activity className="w-4 h-4 mr-1.5"/>}>Status Backend</TabT>
           <TabT v="eventos" i={<History className="w-4 h-4 mr-1.5"/>}>Eventos / Auditoria</TabT>
         </TabsList>
 
