@@ -567,19 +567,58 @@ export default function ComercialNegociacao() {
     window.dispatchEvent(new CustomEvent("sidebar:set-collapsed", { detail: { collapsed: true } }));
   }, []);
 
-  // Modo tela cheia
+  // Modo tela cheia (Fullscreen API real do navegador)
+  const negociacaoRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  async function entrarTelaCheia() {
+    const el = negociacaoRef.current;
+    if (el && el.requestFullscreen) {
+      try {
+        await el.requestFullscreen();
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[fullscreen] requestFullscreen falhou", err);
+        setIsFullscreen(true); // fallback CSS
+      }
+    } else {
+      if (import.meta.env.DEV) console.warn("[fullscreen] API indisponível, usando fallback CSS");
+      setIsFullscreen(true);
+    }
+  }
+
+  async function sairTelaCheia() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn("[fullscreen] exitFullscreen falhou", err);
+    }
+    setIsFullscreen(false);
+  }
+
+  // Sincronizar estado com mudanças do navegador (ESC nativo etc.)
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // ENTER fora de campos sai da tela cheia (ESC já é tratado pelo navegador)
   useEffect(() => {
     if (!isFullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsFullscreen(false);
-        return;
-      }
       if (e.key === "Enter") {
         const tag = (document.activeElement?.tagName || "").toLowerCase();
-        const isEditable = tag === "input" || tag === "textarea" || tag === "select" || tag === "button" || (document.activeElement as HTMLElement | null)?.isContentEditable;
-        if (!isEditable) setIsFullscreen(false);
+        const isEditable =
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          tag === "button" ||
+          (document.activeElement as HTMLElement | null)?.isContentEditable;
+        if (!isEditable) sairTelaCheia();
       }
     };
     window.addEventListener("keydown", onKey);
