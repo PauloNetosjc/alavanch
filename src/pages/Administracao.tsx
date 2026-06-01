@@ -30,6 +30,7 @@ import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
 import { FormasPagamentoEntradaAdmin } from "@/components/FormasPagamentoEntradaAdmin";
+import { ConfiguracaoVencimentoToggle } from "@/components/ConfiguracaoVencimentoToggle";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 import { TransferirResponsabilidadesDialog } from "@/components/TransferirResponsabilidadesDialog";
 
