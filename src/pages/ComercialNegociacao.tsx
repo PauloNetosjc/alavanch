@@ -2169,10 +2169,33 @@ export default function ComercialNegociacao() {
 
           {/* Descrição de pagamento */}
           <div className="border-t border-border pt-4">
-            <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
-              <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
+                <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={adicionarEntradaCard}
+                        disabled={entradasCfg.length === 0}
+                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar entrada
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {entradasCfg.length === 0 && (
+                    <TooltipContent>Nenhuma forma de entrada ativa cadastrada.</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
+
 
 
           {/* lista de pagamentos */}
