@@ -77,7 +77,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
 function StepsCard({
-  step, setStep, canGoTo, summary, title, adendoMode,
+  step, setStep, canGoTo, summary, title, adendoMode, hasNegociacao,
 }: {
   step: number;
   setStep: (n: number) => void;
@@ -85,12 +85,15 @@ function StepsCard({
   summary: React.ReactNode;
   title?: string;
   adendoMode?: boolean;
+  hasNegociacao?: boolean;
 }) {
   const items = [
     { n: 1, label: "Cliente" },
     { n: 2, label: adendoMode ? "Adendo" : "Ambientes" },
     { n: 3, label: "Resumo" },
+    ...(hasNegociacao ? [{ n: 4, label: "Negociação" }] : []),
   ];
+
   return (
     <div className="surface-card p-5 sticky top-4">
       <div className="text-[18px] font-semibold mb-4">{title || "Novo Orçamento"}</div>
