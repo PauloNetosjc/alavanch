@@ -1707,9 +1707,7 @@ export default function ComercialNegociacao() {
                 );
               })()}
 
-                  </div>
-                );
-              })()}
+
             </div>
           </div>
 
