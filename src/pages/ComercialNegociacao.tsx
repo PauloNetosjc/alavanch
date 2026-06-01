@@ -1012,12 +1012,15 @@ export default function ComercialNegociacao() {
 
   const aplicarEntrada = () => {
     if (!entrada || entrada <= 0) return toast.error("Informe o valor da entrada");
-    if (!novoMetodo) return toast.error("Selecione o método de pagamento da entrada");
+    const cfgEnt = entradaCfgSelecionada;
+    if (!cfgEnt?.forma_pagamento) {
+      return toast.error("Selecione um Tipo de Entrada cadastrado em Formas de Pagamento > Entrada");
+    }
     setPagamentos((prev) => {
       const hoje = new Date().toISOString().slice(0, 10);
       return [
         ...prev,
-        { metodo: novoMetodo, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
+        { metodo: cfgEnt.forma_pagamento, valor: entrada, parcelas: 1, data_vencimento: novoVenc || hoje, parcelas_detalhe: null, is_entrada: true } as any,
       ];
     });
     setEntrada(0);
