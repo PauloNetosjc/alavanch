@@ -1062,6 +1062,19 @@ function TemplateOrcamento() {
                     <Toggle k="mostrar_gatilhos_na_impressao" label="Mostrar na proposta impressa" />
                   </div>
 
+                  <div className="rounded-md border bg-white p-3">
+                    <Label className="text-[12px]">Título da campanha / painel</Label>
+                    <Input
+                      value={tpl.titulo_painel_fechamento ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, titulo_painel_fechamento: e.target.value })}
+                      placeholder="Ex.: Semana do Consumidor | Feirão de Planejados | Condição Especial Junho"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Se vazio, será exibido "Painel de Fechamento" como título padrão.
+                    </p>
+                  </div>
+
+
                   <div className="rounded-md border bg-white p-3 space-y-3">
                     <label className="flex items-center gap-2 text-[13px] cursor-pointer">
                       <Switch
