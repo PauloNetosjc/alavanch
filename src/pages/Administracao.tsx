@@ -1035,6 +1035,134 @@ function TemplateOrcamento() {
               </div>
             </div>
 
+            {/* ---------- GATILHOS DE VENDA ---------- */}
+            <div className="rounded-lg border border-[#d9cbb0] bg-[#fbf7ee] p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-[#3a2f1a]">Gatilhos de Venda</h3>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    Configure escassez, urgência e textos comerciais usados na negociação e na proposta.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-[13px] bg-white border rounded-md px-3 py-2 cursor-pointer">
+                  <Switch
+                    checked={!!tpl.mostrar_gatilhos_venda}
+                    onCheckedChange={(v) => setTpl({ ...tpl, mostrar_gatilhos_venda: v })}
+                  />
+                  <span>Ativar gatilhos de venda</span>
+                </label>
+              </div>
+
+              {tpl.mostrar_gatilhos_venda && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <Toggle k="mostrar_gatilhos_na_negociacao" label="Mostrar na tela de negociação" />
+                    <Toggle k="mostrar_gatilhos_na_impressao" label="Mostrar na proposta impressa" />
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-3">
+                    <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                      <Switch
+                        checked={!!tpl.usar_gatilho_escassez}
+                        onCheckedChange={(v) => setTpl({ ...tpl, usar_gatilho_escassez: v })}
+                      />
+                      <span className="font-semibold text-[#7c5a1e]">Usar escassez (contratos restantes)</span>
+                    </label>
+                    {tpl.usar_gatilho_escassez && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-[12px]">Título do gatilho</Label>
+                          <Input value={tpl.titulo_escassez ?? ""} onChange={(e) => setTpl({ ...tpl, titulo_escassez: e.target.value })} />
+                        </div>
+                        <div>
+                          <Label className="text-[12px]">Quantidade total</Label>
+                          <Input type="number" min={0}
+                            value={tpl.quantidade_contratos_total ?? ""}
+                            onChange={(e) => setTpl({ ...tpl, quantidade_contratos_total: e.target.value === "" ? null : Number(e.target.value) })} />
+                        </div>
+                        <div>
+                          <Label className="text-[12px]">Quantidade restante</Label>
+                          <Input type="number" min={0}
+                            value={tpl.quantidade_contratos_restantes ?? ""}
+                            onChange={(e) => setTpl({ ...tpl, quantidade_contratos_restantes: e.target.value === "" ? null : Number(e.target.value) })} />
+                        </div>
+                        <div className="md:col-span-3">
+                          <Label className="text-[12px]">Texto de apoio</Label>
+                          <Textarea rows={2} value={tpl.texto_escassez ?? ""} onChange={(e) => setTpl({ ...tpl, texto_escassez: e.target.value })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-3">
+                    <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                      <Switch
+                        checked={!!tpl.usar_gatilho_urgencia}
+                        onCheckedChange={(v) => setTpl({ ...tpl, usar_gatilho_urgencia: v })}
+                      />
+                      <span className="font-semibold text-[#7a2b3a]">Usar urgência / validade da proposta</span>
+                    </label>
+                    {tpl.usar_gatilho_urgencia && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-[12px]">Tipo de validade</Label>
+                          <Select value={tpl.tipo_validade || "horas"} onValueChange={(v) => setTpl({ ...tpl, tipo_validade: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="horas">Por horas após emissão</SelectItem>
+                              <SelectItem value="data_hora_fixa">Data e hora fixa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {(tpl.tipo_validade || "horas") === "horas" ? (
+                          <div>
+                            <Label className="text-[12px]">Validade em horas</Label>
+                            <Input type="number" min={1}
+                              value={tpl.validade_horas ?? ""}
+                              onChange={(e) => setTpl({ ...tpl, validade_horas: e.target.value === "" ? null : Number(e.target.value) })} />
+                          </div>
+                        ) : (
+                          <div>
+                            <Label className="text-[12px]">Data/hora da validade</Label>
+                            <Input type="datetime-local"
+                              value={tpl.validade_data_hora ? String(tpl.validade_data_hora).slice(0, 16) : ""}
+                              onChange={(e) => setTpl({ ...tpl, validade_data_hora: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                          </div>
+                        )}
+                        <div className="md:col-span-3">
+                          <Label className="text-[12px]">Texto de apoio</Label>
+                          <Textarea rows={2} value={tpl.texto_urgencia ?? ""} onChange={(e) => setTpl({ ...tpl, texto_urgencia: e.target.value })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-2">
+                    <Label className="text-[13px] font-semibold">Sugestão de texto comercial</Label>
+                    <Textarea rows={3}
+                      value={tpl.sugestao_texto_fechamento ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, sugestao_texto_fechamento: e.target.value })} />
+                    <p className="text-[11px] text-muted-foreground">
+                      Variáveis: <code className="bg-muted px-1 rounded">{`{{validade}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{tempo_restante}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{contratos_restantes}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{contratos_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{valor_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{desconto_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{cliente_nome}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{numero_orcamento}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{nome_projeto}}`}</code>.
+                    </p>
+                  </div>
+
+                  <p className="text-[11px] text-[#7c5a1e] bg-[#fff4d6] border border-[#e9d68a] rounded px-3 py-2">
+                    Use gatilhos de escassez apenas quando a quantidade for real e controlada pela empresa.
+                  </p>
+                </div>
+              )}
+            </div>
+
+
             <div>
               <Label>Condições gerais do orçamento</Label>
               <div className="bg-white rounded-md border border-input mt-1">
