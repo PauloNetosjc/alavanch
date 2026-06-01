@@ -133,6 +133,9 @@ export default function NotasFiscais() {
         <TabsContent value="emitidas" className="mt-6"><NotasEmitidasPanel/></TabsContent>
         <TabsContent value="produtos" className="mt-6"><ProdutosFiscaisPanel/></TabsContent>
         <TabsContent value="servicos" className="mt-6"><ServicosFiscaisPanel/></TabsContent>
+        <TabsContent value="cfops" className="mt-6"><CfopsPanel/></TabsContent>
+        <TabsContent value="operacoes" className="mt-6"><OperacoesFiscaisPanel/></TabsContent>
+        <TabsContent value="tributarias" className="mt-6"><ConfiguracoesTributariasPanel/></TabsContent>
         <TabsContent value="certificado" className="mt-6"><CertificadoPanel/></TabsContent>
         <TabsContent value="config" className="mt-6"><ConfiguracoesFiscaisPanel/></TabsContent>
         <TabsContent value="status" className="mt-6"><StatusBackendFiscalPanel/></TabsContent>
