@@ -720,10 +720,16 @@ export default function ComercialNegociacao() {
   // Subtotal após desconto da forma de pagamento (antes do desconto adicional da entrada).
   const subtotalAposFormaPag = Math.max(0, baseParaMetodo - descontoMetodoValor);
   // Desconto adicional gerado pela entrada: aplicado sobre o valor da entrada (preserva a entrada).
-  // Percentual default = desconto do Boleto 1x; se não houver, 20%.
-  const metodoBoleto = metodos.find((m) => /boleto/i.test(m.nome || ""));
-  const cfgBoleto1x = metodoBoleto?.parcelas_config?.find((p) => Number(p.numero) === 1);
-  const descontoEntradaPerc = Number(cfgBoleto1x?.desconto_perc) || 20;
+  // Percentual vem da tabela formas_pagamento_entrada. Prioridade:
+  //   1) configuração selecionada manualmente; 2) configuração vinculada ao método escolhido;
+  //   3) primeira ativa; 4) fallback 20%.
+  const entradaCfgSelecionada =
+    entradasCfg.find((c) => c.id === entradaCfgId) ||
+    entradasCfg.find((c) => novoMetodo && c.forma_pagamento?.toLowerCase() === novoMetodo.toLowerCase()) ||
+    entradasCfg[0] ||
+    null;
+  const descontoEntradaPerc = Number(entradaCfgSelecionada?.percentual_desconto) || 20;
+  const descontoEntradaSemConfig = entradasCfg.length === 0;
   const totalEntrada = (entrada || 0) + _somaEntradasAdicionadas;
   const descontoEntradaValor = totalEntrada > 0 ? totalEntrada * (descontoEntradaPerc / 100) : 0;
   // Valor final negociado: subtotal - desconto da entrada. A entrada continua preservada.
