@@ -52,6 +52,7 @@ import {
   Target,
   CalendarClock,
   ScanBarcode,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -96,6 +97,7 @@ const sections: Section[] = [
     items: [
       { label: "Financeiro", path: "/financeiro", icon: Wallet, modulo: "lancamentos" },
       { label: "Notas Fiscais", path: "/notas-fiscais", icon: FileText, modulo: "notas_fiscais", moduloLoja: "notas_fiscais" },
+      { label: "WhatsApp", path: "/whatsapp", icon: MessageCircle, modulo: "whatsapp", moduloLoja: "whatsapp" },
       { label: "RH", path: "/rh", icon: ContactRound, modulo: "rh", moduloLoja: "rh" },
       { label: "Bater Ponto", path: "/bater-ponto", icon: Fingerprint, modulo: "bater_ponto", moduloLoja: "bater_ponto" },
     ],
