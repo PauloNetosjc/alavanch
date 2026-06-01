@@ -81,6 +81,7 @@ export default function Administracao() {
         <TabsContent value="etiquetas" className="mt-4"><EtiquetasAdmin /></TabsContent>
         <TabsContent value="mensagens" className="mt-4"><TemplatesMensagem /></TabsContent>
         <TabsContent value="contrato" className="mt-4"><TemplateContrato /></TabsContent>
+        <TabsContent value="orcamento" className="mt-4"><TemplateOrcamento /></TabsContent>
         <TabsContent value="crm" className="mt-4"><CrmEstagiosAdmin /></TabsContent>
         <TabsContent value="agenda" className="mt-4"><AgendaAdmin /></TabsContent>
 
