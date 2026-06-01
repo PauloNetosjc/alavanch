@@ -1567,15 +1567,44 @@ export default function ComercialNegociacao() {
     </div>` : ""}
 
     ${cfg.mostrar_forma_pagamento ? `<h2>Forma de Pagamento</h2>
-    ${pagamentos.length ? pagamentos.map((p) => {
-      const j = calcJurosDoPagamento(p);
-      const valorFinal = j.repassar && Number(p.valor) > 0 ? Number(p.valor) + j.valor : Number(p.valor);
-      const nome = formatarModalidadePagamento(p.metodo);
-      return `<div class="pag">
-        <span><b>${escapeHtml(nome)}</b> · ${p.parcelas}x ${p.data_vencimento ? "· venc. " + new Date(p.data_vencimento).toLocaleDateString("pt-BR") : ""}</span>
-        <b>${fmtBrl(valorFinal)}</b>
-      </div>`;
-    }).join("") : `<div class="muted">A definir</div>`}` : ""}
+    ${pagamentos.length ? (() => {
+      const entradasPg = pagamentos.filter((p: any) => p.is_entrada);
+      const parceladosPg = pagamentos.filter((p: any) => !p.is_entrada);
+      const renderEntrada = (p: any) => {
+        const nome = formatarModalidadePagamento(p.metodo);
+        const venc = p.data_vencimento ? new Date(p.data_vencimento).toLocaleDateString("pt-BR") : "";
+        return `<div class="pag">
+          <span><b>${escapeHtml(nome)}</b> · entrada${venc ? " · venc. " + venc : ""}</span>
+          <b>${fmtBrl(Number(p.valor) || 0)}</b>
+        </div>`;
+      };
+      const renderParc = (p: any) => {
+        const j = calcJurosDoPagamento(p);
+        const valorTotal = j.repassar && Number(p.valor) > 0 ? Number(p.valor) + j.valor : Number(p.valor);
+        const nome = formatarModalidadePagamento(p.metodo);
+        const n = Math.max(1, Number(p.parcelas) || 1);
+        const det: number[] = Array.isArray(p.parcelas_detalhe) ? p.parcelas_detalhe : [];
+        const vencs: (string | null)[] = Array.isArray(p.parcelas_vencimentos) ? p.parcelas_vencimentos : [];
+        const valorParcela = det[0] && det[0] > 0 ? det[0] : valorTotal / n;
+        const primVenc = vencs[0] || p.data_vencimento;
+        const primVencStr = primVenc ? new Date(primVenc).toLocaleDateString("pt-BR") : "";
+        const detalhesLinhas = (det.length === n && vencs.length === n) ? `
+          <div class="muted" style="margin-top:4px; font-size:11px; padding-left:6px;">
+            ${det.map((v, i) => {
+              const vs = vencs[i] ? new Date(vencs[i] as string).toLocaleDateString("pt-BR") : "—";
+              return `${i + 1}/${n} — venc. ${vs} — ${fmtBrl(Number(v) || 0)}`;
+            }).join("<br/>")}
+          </div>` : "";
+        return `<div class="pag" style="flex-direction:column; align-items:stretch; gap:2px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span><b>${escapeHtml(nome)}</b> · ${n}x · ${fmtBrl(valorParcela)}${primVencStr ? " · 1º venc. " + primVencStr : ""}</span>
+            <b>Total ${fmtBrl(valorTotal)}</b>
+          </div>
+          ${n > 1 ? detalhesLinhas : ""}
+        </div>`;
+      };
+      return entradasPg.map(renderEntrada).join("") + parceladosPg.map(renderParc).join("");
+    })() : `<div class="muted">A definir</div>`}` : ""}
 
     ${cfg.mostrar_condicoes_gerais && cfg.condicoes_gerais_html ? `<h2>Condições Gerais</h2>
     <div class="cond">${cfg.condicoes_gerais_html}</div>` : ""}
