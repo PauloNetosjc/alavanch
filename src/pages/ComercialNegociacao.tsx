@@ -2584,66 +2584,8 @@ export default function ComercialNegociacao() {
           </div>
         </div>
 
-        {/* Entrada */}
-        <div className="surface-card p-5 mt-4">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Entrada</div>
-          <div className="space-y-3">
-            <div>
-              <Label>Entrada (à vista, sem juros)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">R$</span>
-                <Input
-                  type="number" min={0} step="0.01"
-                  value={entrada || ""}
-                  onChange={(e) => setEntrada(Number(e.target.value) || 0)}
-                  placeholder="0,00"
-                  className="pl-9 text-right"
-                />
-              </div>
-              {entradasCfg.length > 0 && (
-                <div className="mt-2">
-                  <Label className="text-[11px]">Tipo de entrada</Label>
-                  <Select value={entradaCfgId || entradaCfgSelecionada?.id || ""} onValueChange={setEntradaCfgId}>
-                    <SelectTrigger className="h-8 text-[12px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {entradasCfg.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome} · {c.forma_pagamento} · {c.percentual_desconto.toFixed(2)}%
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
-              <Button
-                type="button"
-                size="sm"
-                className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg transition-all font-semibold"
-                onClick={aplicarEntrada}
-                disabled={!entrada || entrada <= 0 || !entradaCfgSelecionada}
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada
-              </Button>
 
-              {descontoEntradaSemConfig && (
-                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-                  Configuração de entrada não encontrada. Usando 20% padrão.
-                </div>
-              )}
-
-              <div className="text-[11px] text-muted-foreground mt-2 leading-snug">
-                A entrada mantém o valor informado e gera desconto adicional conforme a configuração selecionada.
-              </div>
-
-              {saldoAParcelar > 0.01 && (
-                <div className="text-[12px] font-medium text-foreground mt-2">
-                  Saldo a parcelar: <span className="text-mono">{fmtBrl(saldoAParcelar)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
 
         {/* Resumo / Ações */}
