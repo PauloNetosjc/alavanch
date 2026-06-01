@@ -600,9 +600,16 @@ function MetodosPagamento() {
       </div>
       <MetodosPagamentoAdmin />
       <FormasPagamentoEntradaAdmin />
+      <div className="pt-2">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 px-1">
+          Configurações de Vencimento
+        </div>
+        <ConfiguracaoVencimentoToggle />
+      </div>
     </div>
   );
 }
+
 
 function Parceiros() {
   return <SimpleCrud title="Parceiros / Indicadores" subtitle="Arquitetos e parceiros com comissão" icon={Handshake} table="parceiros"
