@@ -95,11 +95,17 @@ export function PreNotaDialog({
 
   const salvar = async () => {
     if (!selectedLojaId) return;
+    if (tipo === "nfe" && !operacaoFiscalId) {
+      toast.error("Selecione uma operação fiscal para gerar a nota.");
+      return;
+    }
     if (itens.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
     try {
       const valorProdutos = itens.filter((i) => i.tipo_item === "produto").reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
       const valorServicos = itens.filter((i) => i.tipo_item === "servico").reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
+      const op = operacoes.find((o) => o.id === operacaoFiscalId);
+      const cfgTrib = configsTrib.find((c) => c.operacao_fiscal_id === operacaoFiscalId);
 
       const { data: nota, error } = await supabase.from("notas_fiscais" as any).insert({
         loja_id: selectedLojaId,
@@ -113,6 +119,8 @@ export function PreNotaDialog({
         valor_total: total,
         valor_produtos: valorProdutos,
         valor_servicos: valorServicos,
+        operacao_fiscal_id: operacaoFiscalId || null,
+        configuracao_tributaria_id: cfgTrib?.id || null,
         created_by: user?.id ?? null,
       } as any).select("id").single();
       if (error) throw error;
@@ -128,6 +136,7 @@ export function PreNotaDialog({
         unidade: it.unidade || "UN",
         valor_unitario: it.valor_unitario,
         valor_total: it.quantidade * it.valor_unitario,
+        cfop: it.cfop || op?.codigo_cfop || null,
       }));
       if (linhas.length) {
         const { error: e2 } = await supabase.from("notas_fiscais_itens" as any).insert(linhas);
