@@ -9188,6 +9188,318 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_contas: {
+        Row: {
+          ativo: boolean
+          cloud_api_business_account_id: string | null
+          cloud_api_phone_number_id: string | null
+          cloud_api_token: string | null
+          cloud_api_webhook_verify_token: string | null
+          created_at: string
+          created_by: string | null
+          historico_sync_mensagem: string | null
+          historico_sync_status: Database["public"]["Enums"]["whatsapp_historico_status"]
+          id: string
+          jid: string | null
+          loja_id: string
+          nome: string
+          numero_conectado: string | null
+          qr_atualizado_em: string | null
+          qr_code: string | null
+          sessao_ref: string | null
+          sincronizar_historico: boolean
+          status_conexao: Database["public"]["Enums"]["whatsapp_status_conexao"]
+          tipo_integracao: Database["public"]["Enums"]["whatsapp_tipo_integracao"]
+          ultima_conexao_em: string | null
+          ultima_desconexao_em: string | null
+          ultima_sincronizacao_historico_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cloud_api_business_account_id?: string | null
+          cloud_api_phone_number_id?: string | null
+          cloud_api_token?: string | null
+          cloud_api_webhook_verify_token?: string | null
+          created_at?: string
+          created_by?: string | null
+          historico_sync_mensagem?: string | null
+          historico_sync_status?: Database["public"]["Enums"]["whatsapp_historico_status"]
+          id?: string
+          jid?: string | null
+          loja_id: string
+          nome: string
+          numero_conectado?: string | null
+          qr_atualizado_em?: string | null
+          qr_code?: string | null
+          sessao_ref?: string | null
+          sincronizar_historico?: boolean
+          status_conexao?: Database["public"]["Enums"]["whatsapp_status_conexao"]
+          tipo_integracao?: Database["public"]["Enums"]["whatsapp_tipo_integracao"]
+          ultima_conexao_em?: string | null
+          ultima_desconexao_em?: string | null
+          ultima_sincronizacao_historico_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cloud_api_business_account_id?: string | null
+          cloud_api_phone_number_id?: string | null
+          cloud_api_token?: string | null
+          cloud_api_webhook_verify_token?: string | null
+          created_at?: string
+          created_by?: string | null
+          historico_sync_mensagem?: string | null
+          historico_sync_status?: Database["public"]["Enums"]["whatsapp_historico_status"]
+          id?: string
+          jid?: string | null
+          loja_id?: string
+          nome?: string
+          numero_conectado?: string | null
+          qr_atualizado_em?: string | null
+          qr_code?: string | null
+          sessao_ref?: string | null
+          sincronizar_historico?: boolean
+          status_conexao?: Database["public"]["Enums"]["whatsapp_status_conexao"]
+          tipo_integracao?: Database["public"]["Enums"]["whatsapp_tipo_integracao"]
+          ultima_conexao_em?: string | null
+          ultima_desconexao_em?: string | null
+          ultima_sincronizacao_historico_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_contas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_contatos: {
+        Row: {
+          avatar_url: string | null
+          cliente_id: string | null
+          conta_id: string
+          created_at: string
+          id: string
+          loja_id: string
+          nome: string | null
+          numero: string | null
+          push_name: string | null
+          updated_at: string
+          wa_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          cliente_id?: string | null
+          conta_id: string
+          created_at?: string
+          id?: string
+          loja_id: string
+          nome?: string | null
+          numero?: string | null
+          push_name?: string | null
+          updated_at?: string
+          wa_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          cliente_id?: string | null
+          conta_id?: string
+          created_at?: string
+          id?: string
+          loja_id?: string
+          nome?: string | null
+          numero?: string | null
+          push_name?: string | null
+          updated_at?: string
+          wa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_contatos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_conversas: {
+        Row: {
+          arquivado: boolean
+          conta_id: string
+          contato_id: string | null
+          created_at: string
+          id: string
+          is_group: boolean
+          loja_id: string
+          nao_lidas: number
+          titulo: string | null
+          ultima_mensagem_em: string | null
+          ultima_mensagem_preview: string | null
+          updated_at: string
+          wa_chat_id: string
+        }
+        Insert: {
+          arquivado?: boolean
+          conta_id: string
+          contato_id?: string | null
+          created_at?: string
+          id?: string
+          is_group?: boolean
+          loja_id: string
+          nao_lidas?: number
+          titulo?: string | null
+          ultima_mensagem_em?: string | null
+          ultima_mensagem_preview?: string | null
+          updated_at?: string
+          wa_chat_id: string
+        }
+        Update: {
+          arquivado?: boolean
+          conta_id?: string
+          contato_id?: string | null
+          created_at?: string
+          id?: string
+          is_group?: boolean
+          loja_id?: string
+          nao_lidas?: number
+          titulo?: string | null
+          ultima_mensagem_em?: string | null
+          ultima_mensagem_preview?: string | null
+          updated_at?: string
+          wa_chat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversas_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversas_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_eventos: {
+        Row: {
+          conta_id: string | null
+          created_at: string
+          id: string
+          loja_id: string | null
+          mensagem: string | null
+          payload: Json | null
+          tipo: string
+        }
+        Insert: {
+          conta_id?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          mensagem?: string | null
+          payload?: Json | null
+          tipo: string
+        }
+        Update: {
+          conta_id?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          mensagem?: string | null
+          payload?: Json | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_eventos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_mensagens: {
+        Row: {
+          conta_id: string
+          conversa_id: string | null
+          created_at: string
+          direcao: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
+          enviado_em: string
+          id: string
+          loja_id: string
+          media_url: string | null
+          mime_type: string | null
+          origem: string
+          payload_bruto: Json | null
+          status: string | null
+          texto: string | null
+          tipo: string
+          wa_chat_id: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          conta_id: string
+          conversa_id?: string | null
+          created_at?: string
+          direcao: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
+          enviado_em?: string
+          id?: string
+          loja_id: string
+          media_url?: string | null
+          mime_type?: string | null
+          origem?: string
+          payload_bruto?: Json | null
+          status?: string | null
+          texto?: string | null
+          tipo?: string
+          wa_chat_id: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          conta_id?: string
+          conversa_id?: string | null
+          created_at?: string
+          direcao?: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
+          enviado_em?: string
+          id?: string
+          loja_id?: string
+          media_url?: string | null
+          mime_type?: string | null
+          origem?: string
+          payload_bruto?: Json | null
+          status?: string | null
+          texto?: string | null
+          tipo?: string
+          wa_chat_id?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensagens_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       v_my_permissions: {
@@ -9513,6 +9825,20 @@ export type Database = {
         | "concluido"
         | "cancelado"
       urgencia_nivel: "baixa" | "media" | "alta"
+      whatsapp_historico_status:
+        | "nao_iniciado"
+        | "sincronizando"
+        | "sincronizado"
+        | "parcial"
+        | "erro"
+      whatsapp_mensagem_direcao: "entrada" | "saida"
+      whatsapp_status_conexao:
+        | "desconectado"
+        | "aguardando_qr"
+        | "conectando"
+        | "conectado"
+        | "erro"
+      whatsapp_tipo_integracao: "whatsapp_web" | "cloud_api"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9705,6 +10031,22 @@ export const Constants = {
         "cancelado",
       ],
       urgencia_nivel: ["baixa", "media", "alta"],
+      whatsapp_historico_status: [
+        "nao_iniciado",
+        "sincronizando",
+        "sincronizado",
+        "parcial",
+        "erro",
+      ],
+      whatsapp_mensagem_direcao: ["entrada", "saida"],
+      whatsapp_status_conexao: [
+        "desconectado",
+        "aguardando_qr",
+        "conectando",
+        "conectado",
+        "erro",
+      ],
+      whatsapp_tipo_integracao: ["whatsapp_web", "cloud_api"],
     },
   },
 } as const
