@@ -3312,6 +3312,11 @@ function PedidoAcoesMenu({
               <FileText className="w-4 h-4 mr-2 text-emerald-700" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
             </DropdownMenuItem>
           )}
+          {fiscalDisponivel && (
+            <DropdownMenuItem onClick={abrirFiscal}>
+              <Receipt className="w-4 h-4 mr-2 text-blue-700" /> Fiscal / Emitir nota
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className="text-red-600 focus:text-red-700"
             onClick={() => { setConfirmText(""); setCancelOpen(true); }}
@@ -3320,6 +3325,22 @@ function PedidoAcoesMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {fiscalDisponivel && (
+        <PreNotaDialog
+          open={fiscalOpen}
+          onClose={() => setFiscalOpen(false)}
+          pedidoId={pedido?.id}
+          clienteId={pedido?.cliente_id}
+          valorSugerido={Number(pedido?.valor_total || 0)}
+          onCreated={() => {
+            toast.success("Pré-nota criada", {
+              action: { label: "Abrir em Notas Fiscais", onClick: () => navigate("/notas-fiscais?tab=emitidas") },
+            });
+          }}
+        />
+      )}
+
 
       <ResumoFinanceiroPedidoButton
         orcamento={orcamento}
