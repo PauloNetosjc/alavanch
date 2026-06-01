@@ -1796,7 +1796,7 @@ export default function ComercialNovo() {
                           <div className="font-semibold text-emerald-700 flex items-center gap-1.5">
                             {a.nome}
                             {origemLabel && (
-                              <span title={`Ambiente importado (${origemLabel})`} className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
+                              <span title={`Preço definido pela origem do ambiente (${origemLabel}). Não pode ser editado manualmente.`} className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
                                 <Lock className="w-3 h-3 mr-1" /> {origemLabel}
                               </span>
                             )}
