@@ -2179,6 +2179,15 @@ export default function ComercialNegociacao() {
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
           if (!usarEsc && !usarUrg) return null;
           const tituloPainel = (tplG.titulo_painel_fechamento && String(tplG.titulo_painel_fechamento).trim()) || "Painel de Fechamento";
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.log("[Painel fechamento título]", {
+              templateId: tplG?.id,
+              lojaId: tplG?.loja_id,
+              titulo_painel_fechamento: tplG?.titulo_painel_fechamento,
+              tituloRenderizado: tituloPainel,
+            });
+          }
           return (
             <div className="rounded-xl border border-[#e4d9bf] bg-[#faf6ec] p-4 space-y-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
