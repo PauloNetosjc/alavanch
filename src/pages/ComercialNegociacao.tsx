@@ -1064,7 +1064,13 @@ export default function ComercialNegociacao() {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
       const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
-      det[idxParc] = Number(novoValor) || 0;
+      const novo = Number(novoValor) || 0;
+      // Para pagamentos de 1 parcela (ex.: entrada), editar o valor da parcela atualiza o p.valor.
+      if (Number(p.parcelas) === 1) {
+        det[0] = novo;
+        return { ...p, valor: novo, parcelas_detalhe: [novo], parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+      }
+      det[idxParc] = novo;
       const recalc = recalcParcelas(det, p.valor, idxParc, locked);
       return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
@@ -1099,7 +1105,11 @@ export default function ComercialNegociacao() {
       if (i !== idxPag) return p;
       const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       formas[idxParc] = novaForma;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+      // Para entrada (1 parcela), a forma escolhida define também o método do pagamento,
+      // o que reflete no rótulo do card e no cálculo do desconto adicional da entrada.
+      const isEntrada = !!(p as any).is_entrada;
+      const novoMetodoPag = isEntrada ? novaForma : p.metodo;
+      return { ...p, metodo: novoMetodoPag, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
