@@ -322,6 +322,10 @@ function ResumoFinanceiroDialog({
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
             <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <div className="flex items-center justify-between pl-4 -mt-1 text-[11px] text-muted-foreground">
+              <span>Custo total dos ambientes</span>
+              <span className="text-mono">{fmtBrl(custoTotalAmbientes)}</span>
+            </div>
             {itensCusto.map((i) => (
               <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
             ))}
