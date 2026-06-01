@@ -535,10 +535,14 @@ export default function ComercialNovo() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEdit = !!editId;
-  const preselectCliente = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("cliente") : null;
+  const _params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const preselectCliente = _params?.get("cliente") || null;
+  const abaParam = (_params?.get("aba") || _params?.get("step") || "").toLowerCase();
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
+  const [temNegociacao, setTemNegociacao] = useState<boolean>(false);
+
   const [saving, setSaving] = useState(false);
   const [orcCodigo, setOrcCodigo] = useState<string>("");
 
