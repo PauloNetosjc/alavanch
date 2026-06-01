@@ -65,7 +65,9 @@ type Ambiente = {
   itens: Item[];
   manual?: boolean;
   aplicar_desconto?: boolean;  // se false, esse ambiente não recebe desconto na negociação
+  origem_ambiente?: "manual" | "xml" | "importado";
 };
+
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
