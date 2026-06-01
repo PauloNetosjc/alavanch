@@ -1925,12 +1925,13 @@ export default function ComercialNovo() {
                   <span className="text-muted-foreground">{isAdendo ? "Valor" : "Subtotal"}</span>
                   <span className="text-mono font-medium">{fmtBrl(subtotalAmbientes)}</span>
                 </div>
-                {acrescimoParceiro > 0 && (
+                {acrescimoParceiro > 0 && podeVerCusto && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ind</span>
                     <span className="text-mono font-medium text-[#2D6BE5]">+ {fmtBrl(acrescimoParceiro)}</span>
                   </div>
                 )}
+
                 {!isAdendo && podeVerCusto && custoAmbientes > 0 && (
                   <div className="border-t border-dashed border-border pt-2 mt-2">
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
