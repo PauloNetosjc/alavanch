@@ -15,8 +15,9 @@ import {
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
   Lock, Unlock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, ChevronUp, ChevronDown,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +62,7 @@ type Pagamento = {
   parcelas_vencimentos?: (string | null)[];
   parcelas_formas?: string[];
   parcelas_locked?: boolean[];
+  parcelas_confirmadas?: boolean[];
 };
 type ParcelaCfg = { numero: number; juros_perc?: number; forma_pagamento?: string; desconto_perc?: number };
 type Metodo = { id: string; nome: string; taxa_perc_parcela?: number; max_parcelas?: number; parcelas_config?: ParcelaCfg[]; juros_modo?: "absorver" | "repassar" | string };
@@ -1012,7 +1014,10 @@ export default function ComercialNegociacao() {
     const locked: boolean[] = (p.parcelas_locked && p.parcelas_locked.length === n)
       ? [...p.parcelas_locked]
       : Array(n).fill(false);
-    return { det, vencs, formas, locked };
+    const confirmadas: boolean[] = (p.parcelas_confirmadas && p.parcelas_confirmadas.length === n)
+      ? [...p.parcelas_confirmadas]
+      : Array(n).fill(false);
+    return { det, vencs, formas, locked, confirmadas };
   };
 
   // Mantido para compat (renderização legada)
@@ -1021,22 +1026,28 @@ export default function ComercialNegociacao() {
   // Confirmação de cascata +30d
   const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
 
+  // Estado de minimização de cada card de pagamento
+  const [minimizados, setMinimizados] = useState<Record<number, boolean>>({});
+  const toggleMinimizar = (idx: number) =>
+    setMinimizados((m) => ({ ...m, [idx]: !m[idx] }));
+
   const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       det[idxParc] = Number(novoValor) || 0;
       const recalc = recalcParcelas(det, p.valor, idxParc, locked);
-      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const editarParcelaVenc = (idxPag: number, idxParc: number, novaData: string) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       vencs[idxParc] = novaData || null;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      confirmadas[idxParc] = true;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
     // pergunta sobre cascata de +30 dias nas próximas
     if (idxParc < (pagamentos[idxPag]?.parcelas ?? 0) - 1) {
@@ -1044,35 +1055,49 @@ export default function ComercialNegociacao() {
     }
   };
 
+  const confirmarParcelaVenc = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
+      if (confirmadas[idxParc]) return p;
+      confirmadas[idxParc] = true;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+    }));
+  };
+
   const editarParcelaForma = (idxPag: number, idxParc: number, novaForma: string) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       formas[idxParc] = novaForma;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const toggleLockParcela = (idxPag: number, idxParc: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       locked[idxParc] = !locked[idxParc];
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const aplicarCascataVenc = (idxPag: number, idxParc: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       const base = vencs[idxParc];
       for (let k = idxParc + 1; k < vencs.length; k++) {
-        if (!locked[k]) vencs[k] = addDays(base, (k - idxParc) * 30);
+        if (!locked[k]) {
+          vencs[k] = addDays(base, (k - idxParc) * 30);
+          confirmadas[k] = true;
+        }
       }
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
+
 
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
@@ -1302,10 +1327,38 @@ export default function ComercialNegociacao() {
     if (ok) toast.success("Orçamento atualizado");
   };
 
+  /**
+   * Verifica se todas as parcelas/entradas tiveram a data de vencimento
+   * conferida pelo usuário (clique/edit do input ou botão de confirmação).
+   * Se houver pendência: expande o card, mostra toast e devolve false.
+   */
+  const validarVencimentosConfirmados = (): boolean => {
+    const pendentes: { idxPag: number; total: number }[] = [];
+    pagamentos.forEach((p, idxPag) => {
+      const { confirmadas } = ensureArrays(p);
+      const naoConf = confirmadas.filter((c) => !c).length;
+      if (naoConf > 0) pendentes.push({ idxPag, total: naoConf });
+    });
+    if (pendentes.length === 0) return true;
+
+    // expande o primeiro card pendente para o usuário ver
+    const primeiro = pendentes[0].idxPag;
+    setMinimizados((m) => ({ ...m, [primeiro]: false }));
+
+    const totalParc = pendentes.reduce((s, x) => s + x.total, 0);
+    if (totalParc > 1) {
+      toast.error("Existem parcelas com vencimento não confirmado. Selecione as datas de vencimento e tente novamente.");
+    } else {
+      toast.error("Selecione a data de vencimento da parcela e tente novamente.");
+    }
+    return false;
+  };
+
   const tryImprimir = () => {
     if (pagamentos.length === 0) {
       return toast.error("Configure pelo menos um método de pagamento antes de imprimir o orçamento.");
     }
+    if (!validarVencimentosConfirmados()) return;
     if (camposFaltando.length > 0) {
       setActionAfterValidate("print");
       setOpenValidar(true);
@@ -1317,6 +1370,7 @@ export default function ComercialNegociacao() {
   const confirmar = async () => {
     if (Math.abs(restante) > 0.01)
       return toast.error("Total dos pagamentos não bate com o valor da proposta");
+    if (!validarVencimentosConfirmados()) return;
     if (camposFaltando.length > 0) {
       setActionAfterValidate("confirmar");
       setOpenValidar(true);
@@ -1324,6 +1378,7 @@ export default function ComercialNegociacao() {
     }
     setOpenConfirmar(true);
   };
+
 
   const gerarContrato = async (observacoes: string, previsaoMedicao: string | null) => {
     if (!orc || !id) return;
@@ -2058,9 +2113,16 @@ export default function ComercialNegociacao() {
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
               {pagamentos.map((p, idx) => {
-                const { det, vencs, formas, locked } = ensureArrays(p);
+                const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
+                const totalParc = confirmadas.length;
+                const confCount = confirmadas.filter(Boolean).length;
+                const todasConf = totalParc > 0 && confCount === totalParc;
+                const minimizado = !!minimizados[idx];
                 return (
-                  <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
+                  <div
+                    key={idx}
+                    className={`border-2 rounded-lg p-3 ${todasConf ? "border-emerald-100" : "border-amber-200 bg-amber-50/30"}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
                         {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
@@ -2073,23 +2135,49 @@ export default function ComercialNegociacao() {
                         <div className="text-[13px] font-semibold uppercase">
                           {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
                         </div>
+                        <div className="mt-1">
+                          {todasConf ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" /> Datas confirmadas
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-300">
+                              <AlertTriangle className="w-3 h-3" /> Datas pendentes ({totalParc - confCount}/{totalParc})
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => toggleMinimizar(idx)}
+                            >
+                              {minimizado ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{minimizado ? "Expandir pagamento" : "Recolher pagamento"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
                         <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                       </Button>
                     </div>
-                    {p.parcelas >= 1 && (
+                    {!minimizado && p.parcelas >= 1 && (
                       <div className="mt-3 pt-3 border-t border-emerald-100">
                         <div className="text-[11px] text-muted-foreground mb-2">
-                          Parcelas — edite valor, vencimento ou forma de pagamento. Travar uma parcela impede que ela seja recalculada.
+                          Parcelas — clique no campo de vencimento para confirmar a data. Travar uma parcela impede que ela seja recalculada.
                         </div>
                         <div className="rounded-md border border-border overflow-hidden">
                           <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-12 px-2">Nº</TableHead>
-                                <TableHead className="w-[140px] px-2">Vencimento</TableHead>
+                                <TableHead className="w-[160px] px-2">Vencimento</TableHead>
                                 <TableHead className="w-[110px] px-2 text-right">Valor</TableHead>
                                 <TableHead className="px-2">Forma prevista</TableHead>
                                 <TableHead className="w-10 px-2 text-center">🔒</TableHead>
@@ -2100,14 +2188,31 @@ export default function ComercialNegociacao() {
                                 <TableRow key={i}>
                                   <TableCell className="px-2 text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
                                   <TableCell className="px-2">
-                                    <Input
-                                      type="date"
-                                      value={vencs[i] || ""}
-                                      disabled={!!locked[i]}
-                                      onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
-                                      className="h-8 text-[12px] px-2"
-                                    />
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="relative">
+                                            <Input
+                                              type="date"
+                                              value={vencs[i] || ""}
+                                              disabled={!!locked[i]}
+                                              onFocus={() => confirmarParcelaVenc(idx, i)}
+                                              onClick={() => confirmarParcelaVenc(idx, i)}
+                                              onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
+                                              className={`h-8 text-[12px] px-2 pr-6 ${!confirmadas[i] ? "border-amber-400 ring-1 ring-amber-200" : ""}`}
+                                            />
+                                            {!confirmadas[i] && (
+                                              <AlertTriangle className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-500 pointer-events-none" />
+                                            )}
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          {confirmadas[i] ? "Data confirmada" : "Confirme a data de vencimento desta parcela."}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   </TableCell>
+
                                   <TableCell className="px-2">
                                     <Input
                                       type="number" step="0.01" inputMode="decimal"
