@@ -1770,15 +1770,29 @@ export default function ComercialNegociacao() {
   }
 
   return (
+    <div className={isFullscreen ? "fixed inset-0 z-[60] bg-background overflow-auto p-4 sm:p-6 md:p-8" : ""}>
     <div className="grid grid-cols-12 gap-6">
       {/* ---------- LEFT ---------- */}
       <div className="col-span-12 lg:col-span-8 space-y-6">
-        <Link
-          to={`/comercial/${id}`}
-          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> Voltar para Orçamento
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to={`/comercial/${id}`}
+            onClick={() => setIsFullscreen(false)}
+            className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" /> Voltar para Orçamento
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen((v) => !v)}
+            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+            aria-label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-[#D0CCC8] bg-white text-[#1A1A1A] hover:bg-[#F7F6F4] transition-colors"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+        </div>
+
 
         <div className="surface-card p-6 space-y-5">
           <div className="flex items-center gap-4">
