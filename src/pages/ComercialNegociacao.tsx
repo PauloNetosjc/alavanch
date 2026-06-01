@@ -373,7 +373,10 @@ function ResumoFinanceiroDialog({
                     <span className="text-mono font-semibold text-rose-600">-{fmtBrl(totalCustos)}</span>
                   </div>
                   <div className="border-t border-border pt-2">
-                    <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
+                      <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">CMV Loja</span>
+                    </div>
                     <div className="text-[24px] font-semibold text-emerald-600 text-mono">{fmtBrl(lucro)}</div>
                   </div>
                   <div className="flex items-center justify-between text-[13px]">
@@ -382,7 +385,7 @@ function ResumoFinanceiroDialog({
                   </div>
                   <div className="border-t border-border pt-2 space-y-1.5">
                     <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">Custo CMV Fábrica</span>
+                      <span className="text-muted-foreground">Lucro CMV Fábrica</span>
                       <span className="text-mono font-semibold">{fmtBrl(custoCmvFabrica)}</span>
                     </div>
                     <div className="flex items-center justify-between text-[12px]">
