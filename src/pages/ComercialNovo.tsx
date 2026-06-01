@@ -1529,8 +1529,12 @@ export default function ComercialNovo() {
                   </div>
                   <label className="block border-2 border-dashed border-[#D6E4F5] rounded-lg py-10 px-4 cursor-pointer hover:bg-[#F8FAFD] transition text-center">
                     <input
-                      type="file" accept=".txt,.xml,.xlsx,.xls" className="hidden"
-                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                      type="file" accept=".txt,.xml,.xlsx,.xls" multiple className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        e.target.value = "";
+                        if (files.length) handleFiles(files);
+                      }}
                     />
                     <div className="w-12 h-12 rounded-full bg-[#EAF2FB] flex items-center justify-center mx-auto mb-3">
                       {importing ? (
