@@ -147,7 +147,7 @@ function SenhaAdminDialog({
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
   totalContrato,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, custoTotalAmbientes,
   jurosAbsorvido, jurosRepassado,
   config, usarMarkup,
 }: {
@@ -155,6 +155,7 @@ function ResumoFinanceiroDialog({
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   totalContrato: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
+  custoTotalAmbientes: number;
   jurosAbsorvido: number;
   jurosRepassado: number;
   config: any; usarMarkup: boolean;
