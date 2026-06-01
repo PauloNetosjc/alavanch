@@ -2369,7 +2369,7 @@ export default function ComercialNegociacao() {
 
               {usarUrg && validade && (
                 <div className="rounded-lg bg-[#F8E8EA] border border-[#D8A5AB] px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#7A2833] font-semibold">Urgência</div>
+                  
                   <div className="mt-1 text-[26px] leading-none font-bold text-[#7A2833]">{tempoRestante(validade)}</div>
                   <div className="text-[11px] text-[#2A2A2A]/80 mt-1">Proposta válida até {formatarValidade(validade)}</div>
                 </div>
