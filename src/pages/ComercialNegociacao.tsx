@@ -2511,11 +2511,6 @@ export default function ComercialNegociacao() {
                   })()}
                 </SelectContent>
               </Select>
-              {descontoMetodoPerc > 0 && novoMetodo && (
-                <div className="text-[11px] text-emerald-700 mt-1">
-                  Desconto da forma de pagamento: -{descontoMetodoPerc.toFixed(2)}% ({fmtBrl(descontoMetodoValor)})
-                </div>
-              )}
             </div>
           </div>
         </div>
