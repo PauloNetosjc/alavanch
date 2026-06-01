@@ -1843,11 +1843,14 @@ export default function ComercialNegociacao() {
                 />
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                A entrada é abatida do total a negociar e não entra no cálculo de juros.<br />
+                A entrada é preservada com o valor lançado. Gera um desconto adicional de <b>{descontoEntradaPerc.toFixed(2)}%</b> sobre o valor da entrada, abatido do total do pedido.<br />
                 {_somaEntradasAdicionadas > 0 && (
                   <span className="block">Entradas já adicionadas: <b className="text-foreground">{fmtBrl(_somaEntradasAdicionadas)}</b></span>
                 )}
-                <span className="font-medium text-foreground">Restante a parcelar: {fmtBrl(Math.max(0, totalProposta - _somaEntradasAdicionadas - entrada))}</span>
+                {totalEntrada > 0 && (
+                  <span className="block text-emerald-700">Desconto da entrada ({descontoEntradaPerc.toFixed(2)}% × {fmtBrl(totalEntrada)}): -{fmtBrl(descontoEntradaValor)}</span>
+                )}
+                <span className="font-medium text-foreground">Saldo a parcelar: {fmtBrl(saldoAParcelar)}</span>
               </div>
               <Button
                 type="button"
