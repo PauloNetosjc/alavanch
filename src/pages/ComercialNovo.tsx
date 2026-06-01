@@ -1788,9 +1788,8 @@ export default function ComercialNovo() {
                   </thead>
                   <tbody>
                     {ambientes.map((a) => {
-                      const isXml = a.origem_ambiente === "xml";
                       const importado = isAmbienteImportado(a);
-                      const origemLabel = isXml ? "XML" : importado ? "Importado" : null;
+                      const origemLabel = origemAmbienteLabel(a);
                       return (
                       <tr key={a.id} className="border-b border-border last:border-0 align-top">
                         <td className="px-4 py-3">
