@@ -1808,7 +1808,7 @@ export default function ComercialNegociacao() {
       if (!usarEscPrint && !usarUrgPrint) return "";
       const cardEsc = usarEscPrint ? `
         <div style="background:#FFF4D8;border:1px solid #D7B66B;border-radius:8px;padding:10px 12px;margin-top:8px">
-          <div style="font-size:10px;letter-spacing:0.14em;color:#B9872D;font-weight:600;text-transform:uppercase">Escassez</div>
+          
           <div style="margin-top:2px"><span style="font-size:26px;font-weight:700;color:#B9872D;line-height:1">${contratosRest}</span>
             <span style="font-size:12px;color:#2A2A2A;margin-left:6px">contratos restantes</span></div>
           ${tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? `<div style="font-size:10.5px;color:#2A2A2A;opacity:0.7;margin-top:2px">de ${tplG.quantidade_contratos_total} disponíveis</div>` : ""}
