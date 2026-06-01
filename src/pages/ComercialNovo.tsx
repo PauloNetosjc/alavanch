@@ -968,16 +968,34 @@ export default function ComercialNovo() {
     toast.success("Ambiente adicionado");
   };
 
+  const isAmbienteImportado = (a: Partial<Ambiente> & Record<string, any>) => {
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || "").toString().toLowerCase();
+    if (origem && origem !== "manual") return true;
+    if ((a as any)?.importado_xml === true || (a as any)?.importado === true) return true;
+    if ((a as any)?.arquivo_xml_id || (a as any)?.arquivo_importacao_id) return true;
+    return false;
+  };
+
   const updateAmbiente = (id: string, patch: Partial<Ambiente>) => {
-    setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    setAmbientes((prev) => prev.map((a) => {
+      if (a.id !== id) return a;
+      const next: Partial<Ambiente> = { ...patch };
+      if (isAmbienteImportado(a)) {
+        delete (next as any).preco_sugerido;
+        delete (next as any).markup;
+      }
+      return { ...a, ...next };
+    }));
   };
 
   // sync: markup é multiplicador (ex: 2 => preço = 2 * custo)
   const onChangeMarkup = (a: Ambiente, markup: number) => {
+    if (isAmbienteImportado(a)) return;
     const preco = a.custo_aquisicao * markup;
     updateAmbiente(a.id, { markup, preco_sugerido: Number(preco.toFixed(2)) });
   };
   const onChangePreco = (a: Ambiente, preco: number) => {
+    if (isAmbienteImportado(a)) return;
     const markup = a.custo_aquisicao > 0 ? preco / a.custo_aquisicao : 0;
     updateAmbiente(a.id, { preco_sugerido: preco, markup: Number(markup.toFixed(2)) });
   };
