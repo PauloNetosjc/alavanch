@@ -1891,6 +1891,11 @@ export default function ComercialNovo() {
           </>
         )}
 
+        {/* ============================ STEP 4 — Negociação ============================ */}
+        {step === 4 && temNegociacao && editId && (
+          <OrcamentoNegociacaoTab orcamentoId={editId} />
+        )}
+
         {/* ============================ Footer nav ============================ */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <Button
@@ -1899,7 +1904,18 @@ export default function ComercialNovo() {
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> {step === 1 ? "Cancelar" : "Voltar"}
           </Button>
-          {step < 3 ? (
+          {step < 3 || (step === 3 && temNegociacao) ? (
+            <Button
+              onClick={() => setStep(step + 1)}
+              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2) || (step === 3 && !temNegociacao)}
+              className="bg-[#2D6BE5] hover:bg-[#2459C9]"
+            >
+              Avançar <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          ) : step === 4 ? (
+            <Button variant="outline" onClick={() => navigate("/comercial")}>Fechar</Button>
+          ) : (
+
             <Button
               onClick={() => setStep(step + 1)}
               disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
