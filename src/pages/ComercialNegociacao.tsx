@@ -2182,9 +2182,9 @@ export default function ComercialNegociacao() {
           if (import.meta.env.DEV) {
             // eslint-disable-next-line no-console
             console.log("[Painel fechamento título]", {
-              templateId: tplG?.id,
-              lojaId: tplG?.loja_id,
-              titulo_painel_fechamento: tplG?.titulo_painel_fechamento,
+              templateId: (tplOrcamento as any)?.id,
+              lojaId: (tplOrcamento as any)?.loja_id,
+              titulo_painel_fechamento: (tplOrcamento as any)?.titulo_painel_fechamento,
               tituloRenderizado: tituloPainel,
             });
           }
