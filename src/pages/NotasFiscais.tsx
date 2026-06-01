@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertTriangle, BarChart3, CheckCircle2, FileText, Settings, Shield, Wrench, XCircle,
-  Package, History,
+  Package, History, Activity,
 } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { ConfiguracoesFiscaisPanel } from "@/components/fiscal/ConfiguracoesFiscaisPanel";
@@ -16,6 +16,7 @@ import { ProdutosFiscaisPanel } from "@/components/fiscal/ProdutosFiscaisPanel";
 import { ServicosFiscaisPanel } from "@/components/fiscal/ServicosFiscaisPanel";
 import { NotasEmitidasPanel } from "@/components/fiscal/NotasEmitidasPanel";
 import { EventosAuditoriaPanel } from "@/components/fiscal/EventosAuditoriaPanel";
+import { StatusBackendFiscalPanel } from "@/components/fiscal/StatusBackendFiscalPanel";
 
 type NF = { id: string; tipo: string; status: string; valor_total: number; ambiente: string | null; created_at: string };
 type Cert = { id: string; nome: string; validade_fim: string | null; status: string };
@@ -75,6 +76,7 @@ export default function NotasFiscais() {
           <TabT v="servicos" i={<Wrench className="w-4 h-4 mr-1.5"/>}>Serviços Fiscais</TabT>
           <TabT v="certificado" i={<Shield className="w-4 h-4 mr-1.5"/>}>Certificado</TabT>
           <TabT v="config" i={<Settings className="w-4 h-4 mr-1.5"/>}>Configurações Fiscais</TabT>
+          <TabT v="status" i={<Activity className="w-4 h-4 mr-1.5"/>}>Status Backend</TabT>
           <TabT v="eventos" i={<History className="w-4 h-4 mr-1.5"/>}>Eventos / Auditoria</TabT>
         </TabsList>
 
@@ -127,6 +129,7 @@ export default function NotasFiscais() {
         <TabsContent value="servicos" className="mt-6"><ServicosFiscaisPanel/></TabsContent>
         <TabsContent value="certificado" className="mt-6"><CertificadoPanel/></TabsContent>
         <TabsContent value="config" className="mt-6"><ConfiguracoesFiscaisPanel/></TabsContent>
+        <TabsContent value="status" className="mt-6"><StatusBackendFiscalPanel/></TabsContent>
         <TabsContent value="eventos" className="mt-6"><EventosAuditoriaPanel/></TabsContent>
       </Tabs>
     </div>
