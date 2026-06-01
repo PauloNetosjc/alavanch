@@ -34,8 +34,17 @@ export function ProdutosFiscaisPanel() {
   const [filtro, setFiltro] = useState("ativos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<P | null>(null);
-  const [form, setForm] = useState<Partial<P>>(empty(""));
+  const [form, setForm] = useState<Partial<P> & { grupo_tributario?: string; operacao_fiscal_padrao_id?: string | null }>(empty(""));
   const [saving, setSaving] = useState(false);
+  const [ops, setOps] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!selectedLojaId) return;
+    supabase.from("fiscal_operacoes" as any).select("id,nome,codigo_cfop").eq("ativo", true)
+      .or(`loja_id.eq.${selectedLojaId},loja_id.is.null`).order("nome")
+      .then(({ data }) => setOps((data as any) || []));
+  }, [selectedLojaId]);
+
 
   const load = async () => {
     if (!selectedLojaId) return;
