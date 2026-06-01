@@ -1849,78 +1849,65 @@ export default function ComercialNegociacao() {
 
 
           <div className="border-t border-border pt-4 space-y-3">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total da Proposta</div>
-                {(() => {
-                  const descTotal = (descValorAplicado || 0) + (descontoMetodoValor || 0) + (descontoEntradaValor || 0);
-                  const temDesconto = descTotal > 0.01;
-                  return (
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {temDesconto && (
+            {(() => {
+              const vManual = descValorAplicado || 0;
+              const vForma = descontoMetodoValor || 0;
+              const vEntrada = descontoEntradaValor || 0;
+              const descTotal = vManual + vForma + vEntrada;
+              const temDesconto = descTotal > 0.01;
+              const base = valorInicial > 0 ? valorInicial : 0;
+              const pct = (v: number) => (base > 0 ? (v / base) * 100 : 0);
+              const hasSecondary = vManual > 0.01 || vForma > 0.01 || vEntrada > 0.01;
+              return (
+                <div className="flex items-start justify-between gap-6 flex-wrap">
+                  {/* Coluna esquerda: valor total + cards secundários */}
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total da Proposta</div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {temDesconto && (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-[12px] text-muted-foreground">de</span>
+                            <span className="text-[18px] font-medium text-mono text-muted-foreground line-through">
+                              {fmtBrl(valorInicial)}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[12px] text-muted-foreground">de</span>
-                          <span className="text-[18px] font-medium text-mono text-muted-foreground line-through">
-                            {fmtBrl(valorInicial)}
-                          </span>
+                          {temDesconto && <span className="text-[12px] text-emerald-800">por</span>}
+                          <div className="text-[34px] font-semibold text-mono leading-tight text-[#1F5235]">
+                            {fmtBrl(totalContrato)}
+                          </div>
+                        </div>
+                        <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {jurosRepassado > 0.01 && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
                         </div>
                       )}
-                      <div className="flex items-baseline gap-1.5">
-                        {temDesconto && <span className="text-[12px] text-emerald-800">por</span>}
-                        <div className="text-[34px] font-semibold text-mono leading-tight text-[#1F5235]">
-                          {fmtBrl(totalContrato)}
-                        </div>
-                      </div>
-                      <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
-                        <Eye className="w-4 h-4" />
-                      </button>
                     </div>
-                  );
-                })()}
-                {jurosRepassado > 0.01 && (
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
-                  </div>
-                )}
-              </div>
 
-              {/* Balões de desconto (percentuais sempre sobre valor bruto) */}
-              {(() => {
-                const vManual = descValorAplicado || 0;
-                const vForma = descontoMetodoValor || 0;
-                const vEntrada = descontoEntradaValor || 0;
-                const descTotal = vManual + vForma + vEntrada;
-                const base = valorInicial > 0 ? valorInicial : 0;
-                const pct = (v: number) => (base > 0 ? (v / base) * 100 : 0);
-                if (descTotal <= 0.01) return null;
-                const hasSecondary = vManual > 0.01 || vForma > 0.01 || vEntrada > 0.01;
-                return (
-                  <div className="flex flex-wrap gap-2 items-stretch">
-                    {/* Card principal — destaque */}
-                    <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-4 py-3 text-right min-w-[180px] flex-shrink-0">
-                      <div className="text-[11px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
-                      <div className="text-[11px] text-emerald-700">{pct(descTotal).toFixed(2)}%</div>
-                      <div className="text-[20px] font-bold text-mono text-emerald-800 leading-tight">-{fmtBrl(descTotal)}</div>
-                    </div>
-                    {/* Cards secundários — compactos */}
                     {hasSecondary && (
-                      <div className="flex flex-wrap gap-1.5 items-stretch">
+                      <div className="flex flex-wrap gap-1.5">
                         {vManual > 0.01 && (
-                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2.5 py-1.5 text-right min-w-[110px]">
                             <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Aplicado</div>
                             <div className="text-[9px] text-emerald-600">{pct(vManual).toFixed(2)}%</div>
                             <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vManual)}</div>
                           </div>
                         )}
                         {vForma > 0.01 && (
-                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2.5 py-1.5 text-right min-w-[110px]">
                             <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Forma Pag.</div>
                             <div className="text-[9px] text-emerald-600">{pct(vForma).toFixed(2)}%</div>
                             <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vForma)}</div>
                           </div>
                         )}
                         {vEntrada > 0.01 && (
-                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2.5 py-1.5 text-right min-w-[110px]">
                             <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Entrada</div>
                             <div className="text-[9px] text-emerald-600">{pct(vEntrada).toFixed(2)}%</div>
                             <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vEntrada)}</div>
@@ -1929,12 +1916,20 @@ export default function ComercialNegociacao() {
                       </div>
                     )}
                   </div>
-                );
-              })()}
 
-
-            </div>
+                  {/* Coluna direita: DESCONTO TOTAL grande em destaque */}
+                  {temDesconto && (
+                    <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 px-6 py-4 text-right min-w-[260px] flex-shrink-0 shadow-sm">
+                      <div className="text-[13px] uppercase tracking-[0.14em] text-emerald-800 font-semibold">Desconto Total</div>
+                      <div className="text-[14px] text-emerald-700 mt-0.5">{pct(descTotal).toFixed(2)}%</div>
+                      <div className="text-[32px] font-bold text-mono text-emerald-900 leading-tight mt-1">-{fmtBrl(descTotal)}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
+
 
           {/* Fluxo de recebimento */}
           <div className="border-t border-border pt-4">
