@@ -1908,11 +1908,6 @@ export default function ComercialNovo() {
                             </span>
                           </div>
                         </div>
-                        {a.descricao && (
-                          <div className="text-[12px] text-muted-foreground mt-1.5">
-                            <span className="font-medium text-foreground/70">Descrição:</span> {a.descricao}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
