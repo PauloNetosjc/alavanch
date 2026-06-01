@@ -1027,9 +1027,30 @@ export default function ComercialNegociacao() {
   const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
 
   // Estado de minimização de cada card de pagamento
-  const [minimizados, setMinimizados] = useState<Record<number, boolean>>({});
+  // Apenas um card de pagamento expandido por vez (null = todos minimizados).
+  const [expandedPagIdx, setExpandedPagIdx] = useState<number | null>(null);
+  const expandedCardRef = useRef<HTMLDivElement | null>(null);
   const toggleMinimizar = (idx: number) =>
-    setMinimizados((m) => ({ ...m, [idx]: !m[idx] }));
+    setExpandedPagIdx((cur) => (cur === idx ? null : idx));
+
+  // Click-outside: recolhe o card expandido quando o usuário clica fora dele.
+  // Ignora cliques em portais do Radix (Select/Tooltip/Popover) e do datepicker nativo.
+  useEffect(() => {
+    if (expandedPagIdx === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (expandedCardRef.current && expandedCardRef.current.contains(target)) return;
+      // Cliques dentro de portais do Radix (Select/Popover/Tooltip) não recolhem o card.
+      if (target.closest('[data-radix-popper-content-wrapper]')) return;
+      if (target.closest('[role="listbox"]')) return;
+      if (target.closest('[role="dialog"]')) return;
+      setExpandedPagIdx(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [expandedPagIdx]);
+
 
   const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
@@ -1343,7 +1364,7 @@ export default function ComercialNegociacao() {
 
     // expande o primeiro card pendente para o usuário ver
     const primeiro = pendentes[0].idxPag;
-    setMinimizados((m) => ({ ...m, [primeiro]: false }));
+    setExpandedPagIdx(primeiro);
 
     const totalParc = pendentes.reduce((s, x) => s + x.total, 0);
     if (totalParc > 1) {
@@ -2117,10 +2138,11 @@ export default function ComercialNegociacao() {
                 const totalParc = confirmadas.length;
                 const confCount = confirmadas.filter(Boolean).length;
                 const todasConf = totalParc > 0 && confCount === totalParc;
-                const minimizado = !!minimizados[idx];
+                const minimizado = expandedPagIdx !== idx;
                 return (
                   <div
                     key={idx}
+                    ref={!minimizado ? expandedCardRef : undefined}
                     className={`border-2 rounded-lg p-3 ${todasConf ? "border-emerald-100" : "border-amber-200 bg-amber-50/30"}`}
                   >
                     <div className="flex items-center gap-3">
