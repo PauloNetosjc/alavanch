@@ -2068,10 +2068,26 @@ export default function ComercialNegociacao() {
         {/* Painel de Fechamento (gatilhos de venda) */}
         {(() => {
           const tplG = tplOrcamento as GatilhosTemplate | null;
-          if (!tplG?.mostrar_gatilhos_venda || !tplG?.mostrar_gatilhos_na_negociacao) return null;
-          const usarEsc = !!tplG.usar_gatilho_escassez;
-          const usarUrg = !!tplG.usar_gatilho_urgencia;
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.log("Template gatilhos negociação", {
+              templateId: (tplG as any)?.id,
+              mostrar_gatilhos_venda: tplG?.mostrar_gatilhos_venda,
+              mostrar_gatilhos_na_negociacao: tplG?.mostrar_gatilhos_na_negociacao,
+              usar_gatilho_escassez: tplG?.usar_gatilho_escassez,
+              quantidade_contratos_restantes: tplG?.quantidade_contratos_restantes,
+              usar_gatilho_urgencia: tplG?.usar_gatilho_urgencia,
+              tipo_validade: tplG?.tipo_validade,
+              validade_horas: tplG?.validade_horas,
+              validade_data_hora: tplG?.validade_data_hora,
+            });
+          }
+          if (!tplG?.mostrar_gatilhos_venda) return null;
+          if (tplG.mostrar_gatilhos_na_negociacao === false) return null;
+          const contratosRest = Number(tplG.quantidade_contratos_restantes) || 0;
           const validade = calcularValidade(tplG);
+          const usarEsc = !!tplG.usar_gatilho_escassez && contratosRest > 0;
+          const usarUrg = !!tplG.usar_gatilho_urgencia && !!validade;
           const vencida = isVencida(validade);
           const ctx = {
             cliente_nome: (orc?.cliente as any)?.nome,
@@ -2083,37 +2099,37 @@ export default function ComercialNegociacao() {
           const parcelaValor = pagamentos[0]?.parcelas_detalhe?.[0] || 0;
           const parcelaQt = pagamentos[0]?.parcelas || 0;
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
-          const semBlocos = !usarEsc && !usarUrg && !sugestao;
-          if (semBlocos) return null;
+          if (!usarEsc && !usarUrg) return null;
           return (
             <div className="rounded-xl border border-[#d9cbb0] bg-gradient-to-b from-[#fbf7ee] to-[#f3ead4] p-4 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+                  <div className="text-[11px] text-[#7c5a1e]/70">Gatilhos comerciais da proposta</div>
+                </div>
                 {vencida && (
                   <span className="text-[10px] uppercase tracking-wider bg-[#7a2b3a] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
               </div>
 
-              {usarEsc && (tplG.quantidade_contratos_restantes != null || tplG.quantidade_contratos_total != null) && (
+              {usarEsc && (
                 <div className="rounded-md bg-white/70 border border-[#e9d68a] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Contratos restantes"}</div>
-                  <div className="text-[20px] font-semibold text-[#3a2f1a] leading-tight">
-                    {tplG.quantidade_contratos_restantes ?? "—"}
-                    {tplG.quantidade_contratos_total != null && (
+                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Escassez"}</div>
+                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">
+                    {contratosRest}
+                    {tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? (
                       <span className="text-[13px] text-muted-foreground font-normal"> de {tplG.quantidade_contratos_total}</span>
-                    )}
-                    {tplG.quantidade_contratos_restantes != null && <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>}
+                    ) : null}
+                    <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>
                   </div>
-                  {tplG.texto_escassez && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_escassez}</div>}
                 </div>
               )}
 
               {usarUrg && validade && (
                 <div className="rounded-md bg-white/70 border border-[#e0bcc4] px-3 py-2">
                   <div className="text-[10px] uppercase tracking-wider text-[#7a2b3a]">Urgência</div>
-                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">{tempoRestante(validade) || "—"}</div>
-                  <div className="text-[11px] text-muted-foreground">Proposta válida até {formatarValidade(validade)}</div>
-                  {tplG.texto_urgencia && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_urgencia}</div>}
+                  <div className="text-[15px] font-semibold text-[#3a2f1a] leading-tight">Proposta válida até {formatarValidade(validade)}</div>
+                  {!vencida && <div className="text-[12px] text-muted-foreground">Restam {tempoRestante(validade)}</div>}
                 </div>
               )}
 
@@ -2143,6 +2159,8 @@ export default function ComercialNegociacao() {
             </div>
           );
         })()}
+
+
 
 
         <div className="surface-card p-5">
