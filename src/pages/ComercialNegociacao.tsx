@@ -964,6 +964,47 @@ export default function ComercialNegociacao() {
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
 
+  /**
+   * Reseta tudo que depende do método/parcelamento anterior.
+   * Chamado ao trocar Método de Pagamento ou Nº de Parcelas.
+   */
+  const resetPagamentosEEntrada = () => {
+    setPagamentos([]);            // limpa principal, entradas e qualquer pagamento residual
+    setEntrada(0);
+    setEntradaCfgId("");
+  };
+
+  const temDadosPagamento = () =>
+    pagamentos.length > 0 || (entrada || 0) > 0;
+
+  const trocarMetodo = (novoMet: string, novasParc = 0) => {
+    if (temDadosPagamento()) {
+      setConfirmTrocaMetodo({ metodo: novoMet, parcelas: novasParc });
+      return;
+    }
+    resetPagamentosEEntrada();
+    setNovoMetodo(novoMet);
+    setNovoParcelas(novasParc);
+  };
+
+  const trocarParcelas = (novasParc: number) => {
+    if (novasParc === novoParcelas) return;
+    if (temDadosPagamento()) {
+      setConfirmTrocaMetodo({ metodo: novoMetodo, parcelas: novasParc });
+      return;
+    }
+    resetPagamentosEEntrada();
+    setNovoParcelas(novasParc);
+  };
+
+  const confirmarTrocaMetodo = () => {
+    if (!confirmTrocaMetodo) return;
+    resetPagamentosEEntrada();
+    setNovoMetodo(confirmTrocaMetodo.metodo);
+    setNovoParcelas(confirmTrocaMetodo.parcelas);
+    setConfirmTrocaMetodo(null);
+  };
+
   const somaEntradas = useMemo(
     () => pagamentos.filter((p: any) => p.is_entrada).reduce((s, p) => s + (p.valor || 0), 0),
     [pagamentos],
