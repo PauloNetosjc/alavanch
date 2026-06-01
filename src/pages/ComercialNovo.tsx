@@ -858,7 +858,7 @@ export default function ComercialNovo() {
             const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
             const markup = custo > 0 ? preco / custo : 0;
             const descricao = await aiDescribe(env.name, itens);
-            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens, origem_ambiente: "importado" as const };
           }),
         );
         setAmbientes((prev) => [...prev, ...novos]);
