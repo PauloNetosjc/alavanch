@@ -1743,7 +1743,7 @@ export default function ComercialNegociacao() {
               <Calculator className="w-6 h-6" style={{ color: "#3B6FB0" }} />
             </div>
             <div>
-              <h1 className="text-[26px] font-semibold leading-none">Negociação Comercial</h1>
+              <h1 className="text-[26px] font-semibold leading-none tracking-wide">AMBIENTES</h1>
               <p className="text-[13px] text-muted-foreground mt-1.5">
                 {pedidoRef ? (
                   <>
@@ -1753,7 +1753,7 @@ export default function ComercialNegociacao() {
                     </Link>
                   </>
                 ) : (
-                  <>Ajuste valores e condições</>
+                  <>Selecione os ambientes e defina a condição comercial</>
                 )}
               </p>
             </div>
