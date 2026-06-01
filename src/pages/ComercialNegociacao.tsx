@@ -1757,69 +1757,63 @@ export default function ComercialNegociacao() {
               </div>
             </div>
           ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {ambientes.map((a) => {
               const incluido = a.negociavel !== false;
               const recebeDesconto = a.aplicar_desconto !== false;
               const fatorIndicador = 1 + (parceiroPerc / 100);
-              // Preço exibido já com o percentual do indicador acrescido
               const precoBase = (Number(a.preco_sugerido) || 0) * fatorIndicador;
-              // Base descontável também com indicador, mantendo o rateio proporcional
               const baseRateioDesc = subtotalComDesconto * fatorIndicador;
-              const fator = recebeDesconto && baseRateioDesc > 0
-                ? precoBase / baseRateioDesc
-                : 0;
+              const fator = recebeDesconto && baseRateioDesc > 0 ? precoBase / baseRateioDesc : 0;
               const descontoAplicadoNoAmb = recebeDesconto ? descValorEfetivo * fator : 0;
               const precoFinal = incluido ? Math.max(0, precoBase - descontoAplicadoNoAmb) : 0;
               const desconto = precoBase - precoFinal;
               return (
-                <div key={a.id} className={`border-2 rounded-lg px-4 py-4 ${incluido ? "border-emerald-100" : "border-slate-200 bg-slate-50/60 opacity-70"}`}>
-                  <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="flex flex-col gap-1.5 mt-0.5">
-                          <label className="flex items-center gap-1.5 cursor-pointer" title="Incluir este ambiente no orçamento">
-                            <input
-                              type="checkbox"
-                              checked={incluido}
-                              onChange={async (e) => {
-                                const v = e.target.checked;
-                                setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
-                                await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
-                              }}
-                              className="w-4 h-4 accent-emerald-600"
-                            />
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
-                          </label>
-                          {/* Indicador read-only: a elegibilidade a desconto é definida na tela
-                              de Ambientes (Orçamento). Aqui apenas mostramos o status. */}
-                          {a.aplicar_desconto === false && (
-                            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium" title="Definido na tela de Orçamento">sem desconto</span>
-                          )}
-                        </div>
-                      <div className="min-w-0">
-                        <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
-                        {!incluido && <div className="text-[11px] text-slate-500 mt-1 italic">Não incluído no orçamento</div>}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Preço</div>
-                      {!incluido ? (
-                        <div className="text-[13px] text-muted-foreground line-through">{fmtBrl(precoBase)}</div>
-                      ) : desconto > 0.01 ? (
-                        <>
-                          <div className="text-[12px] text-muted-foreground line-through">de {fmtBrl(precoBase)}</div>
-                          <div className="text-[15px] font-semibold text-mono text-emerald-700">por {fmtBrl(precoFinal)}</div>
-                        </>
-                      ) : (
-                        <div className="text-[15px] font-semibold text-mono">{fmtBrl(precoFinal)}</div>
-                      )}
-                    </div>
+                <div
+                  key={a.id}
+                  className={`border rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3 flex-wrap ${incluido ? "border-emerald-200 bg-white" : "border-slate-200 bg-slate-50/60 opacity-70"}`}
+                  style={{ minHeight: 56 }}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Incluir este ambiente no orçamento">
+                      <input
+                        type="checkbox"
+                        checked={incluido}
+                        onChange={async (e) => {
+                          const v = e.target.checked;
+                          setAmbientes((prev) => prev.map((x) => x.id === a.id ? { ...x, negociavel: v } : x));
+                          await supabase.from("ambientes").update({ negociavel: v } as any).eq("id", a.id);
+                        }}
+                        className="w-4 h-4 accent-emerald-600"
+                      />
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
+                    </label>
+                    <div className="text-[14px] font-semibold uppercase tracking-tight truncate">{a.nome}</div>
+                    {a.aplicar_desconto === false && (
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium shrink-0" title="Definido na tela de Orçamento">sem desconto</span>
+                    )}
+                    {!incluido && (
+                      <span className="text-[10px] text-slate-500 italic shrink-0">Não incluído</span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-3 shrink-0 whitespace-nowrap text-right">
+                    {!incluido ? (
+                      <span className="text-[13px] text-muted-foreground line-through text-mono">{fmtBrl(precoBase)}</span>
+                    ) : desconto > 0.01 ? (
+                      <>
+                        <span className="text-[12px] text-muted-foreground line-through text-mono">de {fmtBrl(precoBase)}</span>
+                        <span className="text-[15px] font-semibold text-mono text-[#1F5235]">por {fmtBrl(precoFinal)}</span>
+                      </>
+                    ) : (
+                      <span className="text-[15px] font-semibold text-mono">{fmtBrl(precoFinal)}</span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
           )}
+
 
           <div className="border-t border-border pt-4 space-y-3">
             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -2068,10 +2062,26 @@ export default function ComercialNegociacao() {
         {/* Painel de Fechamento (gatilhos de venda) */}
         {(() => {
           const tplG = tplOrcamento as GatilhosTemplate | null;
-          if (!tplG?.mostrar_gatilhos_venda || !tplG?.mostrar_gatilhos_na_negociacao) return null;
-          const usarEsc = !!tplG.usar_gatilho_escassez;
-          const usarUrg = !!tplG.usar_gatilho_urgencia;
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.log("Template gatilhos negociação", {
+              templateId: (tplG as any)?.id,
+              mostrar_gatilhos_venda: tplG?.mostrar_gatilhos_venda,
+              mostrar_gatilhos_na_negociacao: tplG?.mostrar_gatilhos_na_negociacao,
+              usar_gatilho_escassez: tplG?.usar_gatilho_escassez,
+              quantidade_contratos_restantes: tplG?.quantidade_contratos_restantes,
+              usar_gatilho_urgencia: tplG?.usar_gatilho_urgencia,
+              tipo_validade: tplG?.tipo_validade,
+              validade_horas: tplG?.validade_horas,
+              validade_data_hora: tplG?.validade_data_hora,
+            });
+          }
+          if (!tplG?.mostrar_gatilhos_venda) return null;
+          if (tplG.mostrar_gatilhos_na_negociacao === false) return null;
+          const contratosRest = Number(tplG.quantidade_contratos_restantes) || 0;
           const validade = calcularValidade(tplG);
+          const usarEsc = !!tplG.usar_gatilho_escassez && contratosRest > 0;
+          const usarUrg = !!tplG.usar_gatilho_urgencia && !!validade;
           const vencida = isVencida(validade);
           const ctx = {
             cliente_nome: (orc?.cliente as any)?.nome,
@@ -2083,37 +2093,37 @@ export default function ComercialNegociacao() {
           const parcelaValor = pagamentos[0]?.parcelas_detalhe?.[0] || 0;
           const parcelaQt = pagamentos[0]?.parcelas || 0;
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
-          const semBlocos = !usarEsc && !usarUrg && !sugestao;
-          if (semBlocos) return null;
+          if (!usarEsc && !usarUrg) return null;
           return (
             <div className="rounded-xl border border-[#d9cbb0] bg-gradient-to-b from-[#fbf7ee] to-[#f3ead4] p-4 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+                  <div className="text-[11px] text-[#7c5a1e]/70">Gatilhos comerciais da proposta</div>
+                </div>
                 {vencida && (
                   <span className="text-[10px] uppercase tracking-wider bg-[#7a2b3a] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
               </div>
 
-              {usarEsc && (tplG.quantidade_contratos_restantes != null || tplG.quantidade_contratos_total != null) && (
+              {usarEsc && (
                 <div className="rounded-md bg-white/70 border border-[#e9d68a] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Contratos restantes"}</div>
-                  <div className="text-[20px] font-semibold text-[#3a2f1a] leading-tight">
-                    {tplG.quantidade_contratos_restantes ?? "—"}
-                    {tplG.quantidade_contratos_total != null && (
+                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Escassez"}</div>
+                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">
+                    {contratosRest}
+                    {tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? (
                       <span className="text-[13px] text-muted-foreground font-normal"> de {tplG.quantidade_contratos_total}</span>
-                    )}
-                    {tplG.quantidade_contratos_restantes != null && <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>}
+                    ) : null}
+                    <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>
                   </div>
-                  {tplG.texto_escassez && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_escassez}</div>}
                 </div>
               )}
 
               {usarUrg && validade && (
                 <div className="rounded-md bg-white/70 border border-[#e0bcc4] px-3 py-2">
                   <div className="text-[10px] uppercase tracking-wider text-[#7a2b3a]">Urgência</div>
-                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">{tempoRestante(validade) || "—"}</div>
-                  <div className="text-[11px] text-muted-foreground">Proposta válida até {formatarValidade(validade)}</div>
-                  {tplG.texto_urgencia && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_urgencia}</div>}
+                  <div className="text-[15px] font-semibold text-[#3a2f1a] leading-tight">Proposta válida até {formatarValidade(validade)}</div>
+                  {!vencida && <div className="text-[12px] text-muted-foreground">Restam {tempoRestante(validade)}</div>}
                 </div>
               )}
 
@@ -2143,6 +2153,8 @@ export default function ComercialNegociacao() {
             </div>
           );
         })()}
+
+
 
 
         <div className="surface-card p-5">
