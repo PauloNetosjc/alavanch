@@ -14,9 +14,12 @@ import {
 import {
   ArrowLeft, Calendar, Save, FileText, Printer, X, Star, AlertTriangle,
   Clock, Factory, Truck, Wrench, CheckCircle2, MoreVertical, Plus, Upload,
-  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart, Download,
+  Folder, Send, Copy, Trash2, ChevronDown, ChevronUp, FileUp, Sparkles, PenLine, ExternalLink, Eye, PieChart, Download, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PreNotaDialog } from "@/components/fiscal/PreNotaDialog";
+import { useModulosLoja } from "@/hooks/useModulosLoja";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { parsePromobTxt } from "@/lib/promobParser";
 import { diffPromobItems, type DiffResult } from "@/lib/promobDiff";
@@ -3213,6 +3216,33 @@ function PedidoAcoesMenu({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [cancelando, setCancelando] = useState(false);
+  const [fiscalOpen, setFiscalOpen] = useState(false);
+  const { isModuloAtivo } = useModulosLoja();
+  const { can } = usePermissions();
+  const fiscalDisponivel = !!pedido?.loja_id && isModuloAtivo("notas_fiscais") && (can("notas_fiscais", "view") || can("notas_fiscais", "create"));
+
+  const abrirFiscal = async () => {
+    if (!pedido?.loja_id) { toast.error("Pedido sem loja vinculada."); return; }
+    try {
+      const [{ data: cfg }, { data: cert }] = await Promise.all([
+        supabase.from("configuracoes_fiscais" as any).select("id").eq("loja_id", pedido.loja_id).maybeSingle(),
+        supabase.from("certificados_digitais" as any).select("id,status").eq("loja_id", pedido.loja_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (!cfg) {
+        toast.error("Configure os dados fiscais da loja antes de gerar nota.", {
+          action: { label: "Abrir configurações", onClick: () => navigate("/notas-fiscais?tab=configuracoes") },
+        });
+        return;
+      }
+      if (!cert) {
+        toast.warning("Certificado ausente. A emissão real ficará bloqueada.");
+      }
+      setFiscalOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao verificar configuração fiscal");
+    }
+  };
+
 
   const fazerCancelamento = async () => {
     if (confirmText.trim().toUpperCase() !== "CANCELAR") {
@@ -3282,6 +3312,11 @@ function PedidoAcoesMenu({
               <FileText className="w-4 h-4 mr-2 text-emerald-700" /> {criandoComplemento ? "Criando…" : "Criar Complemento"}
             </DropdownMenuItem>
           )}
+          {fiscalDisponivel && (
+            <DropdownMenuItem onClick={abrirFiscal}>
+              <Receipt className="w-4 h-4 mr-2 text-blue-700" /> Fiscal / Emitir nota
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className="text-red-600 focus:text-red-700"
             onClick={() => { setConfirmText(""); setCancelOpen(true); }}
@@ -3290,6 +3325,22 @@ function PedidoAcoesMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {fiscalDisponivel && (
+        <PreNotaDialog
+          open={fiscalOpen}
+          onClose={() => setFiscalOpen(false)}
+          pedidoId={pedido?.id}
+          clienteId={pedido?.cliente_id}
+          valorSugerido={Number(pedido?.valor_total || 0)}
+          onCreated={() => {
+            toast.success("Pré-nota criada", {
+              action: { label: "Abrir em Notas Fiscais", onClick: () => navigate("/notas-fiscais?tab=emitidas") },
+            });
+          }}
+        />
+      )}
+
 
       <ResumoFinanceiroPedidoButton
         orcamento={orcamento}
