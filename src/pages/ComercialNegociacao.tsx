@@ -1761,9 +1761,6 @@ export default function ComercialNegociacao() {
                         </div>
                       <div className="min-w-0">
                         <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
-                        {a.descricao && (
-                          <div className="text-[12px] text-muted-foreground mt-1 line-clamp-2">- {a.descricao}</div>
-                        )}
                         {!incluido && <div className="text-[11px] text-slate-500 mt-1 italic">Não incluído no orçamento</div>}
                       </div>
                     </div>
