@@ -1808,14 +1808,14 @@ export default function ComercialNegociacao() {
       if (!usarEscPrint && !usarUrgPrint) return "";
       const cardEsc = usarEscPrint ? `
         <div style="background:#FFF4D8;border:1px solid #D7B66B;border-radius:8px;padding:10px 12px;margin-top:8px">
-          <div style="font-size:10px;letter-spacing:0.14em;color:#B9872D;font-weight:600;text-transform:uppercase">Escassez</div>
+          
           <div style="margin-top:2px"><span style="font-size:26px;font-weight:700;color:#B9872D;line-height:1">${contratosRest}</span>
             <span style="font-size:12px;color:#2A2A2A;margin-left:6px">contratos restantes</span></div>
           ${tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? `<div style="font-size:10.5px;color:#2A2A2A;opacity:0.7;margin-top:2px">de ${tplG.quantidade_contratos_total} disponíveis</div>` : ""}
         </div>` : "";
       const cardUrg = usarUrgPrint && gValidade ? `
         <div style="background:#F8E8EA;border:1px solid #D8A5AB;border-radius:8px;padding:10px 12px;margin-top:8px">
-          <div style="font-size:10px;letter-spacing:0.14em;color:#7A2833;font-weight:600;text-transform:uppercase">Urgência</div>
+          
           <div style="margin-top:2px;font-size:20px;font-weight:700;color:#7A2833;line-height:1">${escapeHtml(tempoRestante(gValidade))}</div>
           <div style="font-size:10.5px;color:#2A2A2A;opacity:0.85;margin-top:3px">Proposta válida até ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " (vencida)" : ""}</div>
         </div>` : "";
@@ -1989,7 +1989,7 @@ export default function ComercialNegociacao() {
                         }}
                         className="w-4 h-4 accent-emerald-600"
                       />
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
+                      
                     </label>
                     <div className="text-[14px] font-semibold uppercase tracking-tight truncate">{a.nome}</div>
                     {a.aplicar_desconto === false && (
@@ -2356,7 +2356,7 @@ export default function ComercialNegociacao() {
 
               {usarEsc && (
                 <div className="rounded-lg bg-[#FFF4D8] border border-[#D7B66B] px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#B9872D] font-semibold">Escassez</div>
+                  
                   <div className="mt-1 flex items-baseline gap-2">
                     <span className="text-[34px] leading-none font-bold text-[#B9872D]">{contratosRest}</span>
                     <span className="text-[13px] text-[#2A2A2A] font-medium">contratos restantes</span>
@@ -2369,7 +2369,7 @@ export default function ComercialNegociacao() {
 
               {usarUrg && validade && (
                 <div className="rounded-lg bg-[#F8E8EA] border border-[#D8A5AB] px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#7A2833] font-semibold">Urgência</div>
+                  
                   <div className="mt-1 text-[26px] leading-none font-bold text-[#7A2833]">{tempoRestante(validade)}</div>
                   <div className="text-[11px] text-[#2A2A2A]/80 mt-1">Proposta válida até {formatarValidade(validade)}</div>
                 </div>
