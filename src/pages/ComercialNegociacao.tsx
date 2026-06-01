@@ -524,6 +524,7 @@ export default function ComercialNegociacao() {
   type EntradaCfg = { id: string; nome: string; forma_pagamento: string; percentual_desconto: number; ativo: boolean };
   const [entradasCfg, setEntradasCfg] = useState<EntradaCfg[]>([]);
   const [entradaCfgId, setEntradaCfgId] = useState<string>("");
+  const [confirmTrocaMetodo, setConfirmTrocaMetodo] = useState<{ metodo: string; parcelas: number } | null>(null);
 
   useEffect(() => {
     supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
@@ -962,6 +963,47 @@ export default function ComercialNegociacao() {
 
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
+
+  /**
+   * Reseta tudo que depende do método/parcelamento anterior.
+   * Chamado ao trocar Método de Pagamento ou Nº de Parcelas.
+   */
+  const resetPagamentosEEntrada = () => {
+    setPagamentos([]);            // limpa principal, entradas e qualquer pagamento residual
+    setEntrada(0);
+    setEntradaCfgId("");
+  };
+
+  const temDadosPagamento = () =>
+    pagamentos.length > 0 || (entrada || 0) > 0;
+
+  const trocarMetodo = (novoMet: string, novasParc = 0) => {
+    if (temDadosPagamento()) {
+      setConfirmTrocaMetodo({ metodo: novoMet, parcelas: novasParc });
+      return;
+    }
+    resetPagamentosEEntrada();
+    setNovoMetodo(novoMet);
+    setNovoParcelas(novasParc);
+  };
+
+  const trocarParcelas = (novasParc: number) => {
+    if (novasParc === novoParcelas) return;
+    if (temDadosPagamento()) {
+      setConfirmTrocaMetodo({ metodo: novoMetodo, parcelas: novasParc });
+      return;
+    }
+    resetPagamentosEEntrada();
+    setNovoParcelas(novasParc);
+  };
+
+  const confirmarTrocaMetodo = () => {
+    if (!confirmTrocaMetodo) return;
+    resetPagamentosEEntrada();
+    setNovoMetodo(confirmTrocaMetodo.metodo);
+    setNovoParcelas(confirmTrocaMetodo.parcelas);
+    setConfirmTrocaMetodo(null);
+  };
 
   const somaEntradas = useMemo(
     () => pagamentos.filter((p: any) => p.is_entrada).reduce((s, p) => s + (p.valor || 0), 0),
@@ -1994,7 +2036,7 @@ export default function ComercialNegociacao() {
           <div className="space-y-3">
             <div>
               <Label>Método de Pagamento</Label>
-              <Select value={novoMetodo} onValueChange={(v) => { setNovoMetodo(v); setNovoParcelas(0); }}>
+              <Select value={novoMetodo} onValueChange={(v) => trocarMetodo(v, 0)}>
                 <SelectTrigger><SelectValue placeholder="Selecione um método..." /></SelectTrigger>
                 <SelectContent>
                   {metodos.map((m) => (
@@ -2005,7 +2047,7 @@ export default function ComercialNegociacao() {
             </div>
             <div>
               <Label>Número de Parcelas</Label>
-              <Select value={String(novoParcelas)} onValueChange={(v) => setNovoParcelas(Number(v))}>
+              <Select value={String(novoParcelas)} onValueChange={(v) => trocarParcelas(Number(v))}>
                 <SelectTrigger><span className="text-[13px]">{novoParcelas > 0 ? `${novoParcelas}x` : <span className="text-muted-foreground">Selecione...</span>}</span></SelectTrigger>
                 <SelectContent>
                   {(() => {
@@ -2279,6 +2321,21 @@ export default function ComercialNegociacao() {
             >
               Sim, aplicar +30 dias
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmTrocaMetodo} onOpenChange={(o) => { if (!o) setConfirmTrocaMetodo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar método de pagamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Alterar o método de pagamento irá limpar as parcelas, entrada e descontos calculados anteriormente. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmTrocaMetodo(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarTrocaMetodo}>Sim, alterar método</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

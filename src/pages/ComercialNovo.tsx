@@ -1971,20 +1971,7 @@ export default function ComercialNovo() {
                   </div>
                 )}
 
-                {!isAdendo && podeVerCusto && custoAmbientes > 0 && (
-                  <div className="border-t border-dashed border-border pt-2 mt-2">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                      Composição de despesas
-                    </div>
-                    <div className="flex justify-between text-[13px]">
-                      <span className="text-muted-foreground">Fábrica (custo dos ambientes)</span>
-                      <span className="text-mono">{fmtBrl(custoAmbientes)}</span>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-1 italic">
-                      O custo dos ambientes (XML / TXT / Excel / manual) já representa o custo de fábrica — não duplicar em outros lançamentos.
-                    </div>
-                  </div>
-                )}
+                {/* Composição de despesas (custo dos ambientes) — ocultada do Resumo comercial. */}
                 <div className="flex justify-between text-[18px] font-semibold pt-2 border-t border-border">
                   <span>Total</span>
                   <span className="text-mono">{fmtBrl(total)}</span>
