@@ -1,0 +1,15 @@
+ALTER TABLE public.orcamento_templates
+  ADD COLUMN IF NOT EXISTS mostrar_gatilhos_venda boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS mostrar_gatilhos_na_negociacao boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS mostrar_gatilhos_na_impressao boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS usar_gatilho_escassez boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS titulo_escassez text DEFAULT 'Contratos restantes',
+  ADD COLUMN IF NOT EXISTS quantidade_contratos_total integer,
+  ADD COLUMN IF NOT EXISTS quantidade_contratos_restantes integer,
+  ADD COLUMN IF NOT EXISTS texto_escassez text,
+  ADD COLUMN IF NOT EXISTS usar_gatilho_urgencia boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS tipo_validade text DEFAULT 'horas',
+  ADD COLUMN IF NOT EXISTS validade_horas integer,
+  ADD COLUMN IF NOT EXISTS validade_data_hora timestamptz,
+  ADD COLUMN IF NOT EXISTS texto_urgencia text,
+  ADD COLUMN IF NOT EXISTS sugestao_texto_fechamento text;
