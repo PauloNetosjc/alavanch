@@ -1770,11 +1770,6 @@ export default function ComercialNovo() {
                               </span>
                             )}
                           </div>
-                          {a.descricao && (
-                            <div className="text-[12px] text-muted-foreground mt-0.5 line-clamp-2">
-                              - {a.descricao}
-                            </div>
-                          )}
                         </td>
                         {podeVerCusto && usarMarkup && (
                           <td className="px-2 py-3 text-center">

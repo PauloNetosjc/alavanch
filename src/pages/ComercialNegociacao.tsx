@@ -972,10 +972,20 @@ export default function ComercialNegociacao() {
     setPagamentos([]);            // limpa principal, entradas e qualquer pagamento residual
     setEntrada(0);
     setEntradaCfgId("");
+    // Limpa também o desconto manual aplicado e os campos do bloco "Aplicar desconto"
+    setDescPerc(0);
+    setDescValor(0);
+    setDescPercAplicado(0);
+    setDescValorAplicado(0);
+    setAutorizadoPorGestor(false);
+    setAprovadorEmail("");
   };
 
   const temDadosPagamento = () =>
-    pagamentos.length > 0 || (entrada || 0) > 0;
+    pagamentos.length > 0 ||
+    (entrada || 0) > 0 ||
+    (descPercAplicado || 0) > 0 ||
+    (descValorAplicado || 0) > 0;
 
   const trocarMetodo = (novoMet: string, novasParc = 0) => {
     if (temDadosPagamento()) {
@@ -1751,9 +1761,6 @@ export default function ComercialNegociacao() {
                         </div>
                       <div className="min-w-0">
                         <div className="text-[15px] font-semibold uppercase tracking-tight">{a.nome}</div>
-                        {a.descricao && (
-                          <div className="text-[12px] text-muted-foreground mt-1 line-clamp-2">- {a.descricao}</div>
-                        )}
                         {!incluido && <div className="text-[11px] text-slate-500 mt-1 italic">Não incluído no orçamento</div>}
                       </div>
                     </div>
