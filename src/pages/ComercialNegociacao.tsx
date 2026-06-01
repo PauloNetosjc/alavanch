@@ -1327,10 +1327,38 @@ export default function ComercialNegociacao() {
     if (ok) toast.success("Orçamento atualizado");
   };
 
+  /**
+   * Verifica se todas as parcelas/entradas tiveram a data de vencimento
+   * conferida pelo usuário (clique/edit do input ou botão de confirmação).
+   * Se houver pendência: expande o card, mostra toast e devolve false.
+   */
+  const validarVencimentosConfirmados = (): boolean => {
+    const pendentes: { idxPag: number; total: number }[] = [];
+    pagamentos.forEach((p, idxPag) => {
+      const { confirmadas } = ensureArrays(p);
+      const naoConf = confirmadas.filter((c) => !c).length;
+      if (naoConf > 0) pendentes.push({ idxPag, total: naoConf });
+    });
+    if (pendentes.length === 0) return true;
+
+    // expande o primeiro card pendente para o usuário ver
+    const primeiro = pendentes[0].idxPag;
+    setMinimizados((m) => ({ ...m, [primeiro]: false }));
+
+    const totalParc = pendentes.reduce((s, x) => s + x.total, 0);
+    if (totalParc > 1) {
+      toast.error("Existem parcelas com vencimento não confirmado. Selecione as datas de vencimento e tente novamente.");
+    } else {
+      toast.error("Selecione a data de vencimento da parcela e tente novamente.");
+    }
+    return false;
+  };
+
   const tryImprimir = () => {
     if (pagamentos.length === 0) {
       return toast.error("Configure pelo menos um método de pagamento antes de imprimir o orçamento.");
     }
+    if (!validarVencimentosConfirmados()) return;
     if (camposFaltando.length > 0) {
       setActionAfterValidate("print");
       setOpenValidar(true);
@@ -1342,6 +1370,7 @@ export default function ComercialNegociacao() {
   const confirmar = async () => {
     if (Math.abs(restante) > 0.01)
       return toast.error("Total dos pagamentos não bate com o valor da proposta");
+    if (!validarVencimentosConfirmados()) return;
     if (camposFaltando.length > 0) {
       setActionAfterValidate("confirmar");
       setOpenValidar(true);
@@ -1349,6 +1378,7 @@ export default function ComercialNegociacao() {
     }
     setOpenConfirmar(true);
   };
+
 
   const gerarContrato = async (observacoes: string, previsaoMedicao: string | null) => {
     if (!orc || !id) return;
