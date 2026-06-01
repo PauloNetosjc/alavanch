@@ -1656,45 +1656,58 @@ export default function ComercialNovo() {
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
-                      {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
+                      {podeVerCusto && usarMarkup && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
                       <th className="text-center px-2 py-3 w-[90px]" title="Recebe desconto na negociação">Desconto</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ambientes.map((a) => (
+                    {ambientes.map((a) => {
+                      const isXml = a.origem_ambiente === "xml";
+                      return (
                       <tr key={a.id} className="border-b border-border last:border-0 align-top">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-emerald-700">{a.nome}</div>
+                          <div className="font-semibold text-emerald-700 flex items-center gap-1.5">
+                            {a.nome}
+                            {isXml && (
+                              <span title="Ambiente importado por XML" className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
+                                <Lock className="w-3 h-3 mr-1" /> XML
+                              </span>
+                            )}
+                          </div>
                           {a.descricao && (
                             <div className="text-[12px] text-muted-foreground mt-0.5 line-clamp-2">
                               - {a.descricao}
                             </div>
                           )}
                         </td>
-                        {podeVerCusto && (
+                        {podeVerCusto && usarMarkup && (
                           <td className="px-2 py-3 text-center">
                             <Input
                               type="number" step="0.01"
                               value={a.markup}
+                              disabled={isXml}
                               onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
                               className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
                             />
                           </td>
                         )}
                         <td className="px-2 py-3 text-right">
-                          <Input
-                            type="number" step="0.01"
-                            value={a.preco_sugerido}
-                            onChange={(e) => onChangePreco(a, Number(e.target.value) || 0)}
-                            className="h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300"
-                          />
-                          {podeVerCusto && (
-                            <div className="text-[10px] text-muted-foreground mt-1 text-right">
-                              Custo: {fmtBrl(a.custo_aquisicao)}
-                            </div>
-                          )}
+                          <div className="relative">
+                            <Input
+                              type="number" step="0.01"
+                              value={a.preco_sugerido}
+                              readOnly={isXml}
+                              disabled={isXml}
+                              title={isXml ? "Preço importado do XML. Para alterar, ajuste a origem/importação ou crie edição manual autorizada." : undefined}
+                              onChange={(e) => !isXml && onChangePreco(a, Number(e.target.value) || 0)}
+                              className={`h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300 ${isXml ? "bg-muted/40 pr-7" : ""}`}
+                            />
+                            {isXml && (
+                              <Lock className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2" />
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 py-3 text-center">
                           <div className="flex items-center justify-center">
@@ -1710,7 +1723,7 @@ export default function ComercialNovo() {
                             <Button
                               variant="ghost" size="icon" className="h-8 w-8"
                               onClick={() => setAmbDetail(a)}
-                              title="Detalhamento"
+                              title="Detalhamento (custo e itens)"
                             >
                               <Eye className="w-4 h-4 text-muted-foreground" />
                             </Button>
@@ -1731,16 +1744,18 @@ export default function ComercialNovo() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/30">
-                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto ? 2 : 1}>Total</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto && usarMarkup ? 2 : 1}>Total</td>
                       <td className="px-2 py-3 text-right text-mono font-semibold">{fmtBrl(subtotalAmbientes)}</td>
                       <td />
                     </tr>
                   </tfoot>
                 </table>
+
               )}
             </div>
           </>
