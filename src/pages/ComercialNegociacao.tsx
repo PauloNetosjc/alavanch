@@ -527,12 +527,27 @@ export default function ComercialNegociacao() {
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
   const [FORMAS_PAGAMENTO, setFormasPagamento] = useState<string[]>(FORMAS_PAGAMENTO_FALLBACK);
+  type EntradaCfg = { id: string; nome: string; forma_pagamento: string; percentual_desconto: number; ativo: boolean };
+  const [entradasCfg, setEntradasCfg] = useState<EntradaCfg[]>([]);
+  const [entradaCfgId, setEntradaCfgId] = useState<string>("");
 
   useEffect(() => {
     supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
       const list = (data || []).map((r: any) => r.nome).filter(Boolean);
       if (list.length) setFormasPagamento(list);
     });
+    supabase
+      .from("formas_pagamento_entrada")
+      .select("id, nome, forma_pagamento, percentual_desconto, ativo")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => {
+        const list = ((data || []) as any[]).map((r) => ({
+          id: r.id, nome: r.nome, forma_pagamento: r.forma_pagamento,
+          percentual_desconto: Number(r.percentual_desconto) || 0, ativo: !!r.ativo,
+        })) as EntradaCfg[];
+        setEntradasCfg(list);
+      });
   }, []);
 
   // dialogs
