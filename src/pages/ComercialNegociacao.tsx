@@ -527,12 +527,27 @@ export default function ComercialNegociacao() {
   const [novoVenc, setNovoVenc] = useState<string>("");
   const [entrada, setEntrada] = useState<number>(0);
   const [FORMAS_PAGAMENTO, setFormasPagamento] = useState<string[]>(FORMAS_PAGAMENTO_FALLBACK);
+  type EntradaCfg = { id: string; nome: string; forma_pagamento: string; percentual_desconto: number; ativo: boolean };
+  const [entradasCfg, setEntradasCfg] = useState<EntradaCfg[]>([]);
+  const [entradaCfgId, setEntradaCfgId] = useState<string>("");
 
   useEffect(() => {
     supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
       const list = (data || []).map((r: any) => r.nome).filter(Boolean);
       if (list.length) setFormasPagamento(list);
     });
+    supabase
+      .from("formas_pagamento_entrada")
+      .select("id, nome, forma_pagamento, percentual_desconto, ativo")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => {
+        const list = ((data || []) as any[]).map((r) => ({
+          id: r.id, nome: r.nome, forma_pagamento: r.forma_pagamento,
+          percentual_desconto: Number(r.percentual_desconto) || 0, ativo: !!r.ativo,
+        })) as EntradaCfg[];
+        setEntradasCfg(list);
+      });
   }, []);
 
   // dialogs
@@ -705,10 +720,16 @@ export default function ComercialNegociacao() {
   // Subtotal após desconto da forma de pagamento (antes do desconto adicional da entrada).
   const subtotalAposFormaPag = Math.max(0, baseParaMetodo - descontoMetodoValor);
   // Desconto adicional gerado pela entrada: aplicado sobre o valor da entrada (preserva a entrada).
-  // Percentual default = desconto do Boleto 1x; se não houver, 20%.
-  const metodoBoleto = metodos.find((m) => /boleto/i.test(m.nome || ""));
-  const cfgBoleto1x = metodoBoleto?.parcelas_config?.find((p) => Number(p.numero) === 1);
-  const descontoEntradaPerc = Number(cfgBoleto1x?.desconto_perc) || 20;
+  // Percentual vem da tabela formas_pagamento_entrada. Prioridade:
+  //   1) configuração selecionada manualmente; 2) configuração vinculada ao método escolhido;
+  //   3) primeira ativa; 4) fallback 20%.
+  const entradaCfgSelecionada =
+    entradasCfg.find((c) => c.id === entradaCfgId) ||
+    entradasCfg.find((c) => novoMetodo && c.forma_pagamento?.toLowerCase() === novoMetodo.toLowerCase()) ||
+    entradasCfg[0] ||
+    null;
+  const descontoEntradaPerc = Number(entradaCfgSelecionada?.percentual_desconto) || 20;
+  const descontoEntradaSemConfig = entradasCfg.length === 0;
   const totalEntrada = (entrada || 0) + _somaEntradasAdicionadas;
   const descontoEntradaValor = totalEntrada > 0 ? totalEntrada * (descontoEntradaPerc / 100) : 0;
   // Valor final negociado: subtotal - desconto da entrada. A entrada continua preservada.
@@ -1842,6 +1863,26 @@ export default function ComercialNegociacao() {
                   className="pl-9 text-right"
                 />
               </div>
+              {entradasCfg.length > 0 && (
+                <div className="mt-2">
+                  <Label className="text-[11px]">Tipo de entrada</Label>
+                  <Select value={entradaCfgId || entradaCfgSelecionada?.id || ""} onValueChange={setEntradaCfgId}>
+                    <SelectTrigger className="h-8 text-[12px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {entradasCfg.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} · {c.forma_pagamento} · {c.percentual_desconto.toFixed(2)}%
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {descontoEntradaSemConfig && (
+                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+                  Configuração de entrada não encontrada. Usando 20% padrão.
+                </div>
+              )}
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
                 A entrada é preservada com o valor lançado. Gera um desconto adicional de <b>{descontoEntradaPerc.toFixed(2)}%</b> sobre o valor da entrada, abatido do total do pedido.<br />
                 {_somaEntradasAdicionadas > 0 && (
@@ -1852,6 +1893,40 @@ export default function ComercialNegociacao() {
                 )}
                 <span className="font-medium text-foreground">Saldo a parcelar: {fmtBrl(saldoAParcelar)}</span>
               </div>
+
+              {/* Resumo separado: desconto forma pag x desconto entrada */}
+              <div className="mt-3 rounded-md border border-border bg-muted/30 p-2.5 text-[11px] space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span className="text-mono">{fmtBrl(valorInicial)}</span></div>
+                {descValorEfetivo > 0.01 && (
+                  <div className="flex justify-between text-emerald-700"><span>Desconto manual</span><span className="text-mono">-{fmtBrl(descValorEfetivo)}</span></div>
+                )}
+                <div className="flex justify-between text-emerald-700">
+                  <span>Desconto forma pag. {descontoMetodoPerc > 0 ? `(${descontoMetodoPerc.toFixed(2)}%${novoParcelas ? ` · ${novoParcelas}x` : ""})` : ""}</span>
+                  <span className="text-mono">-{fmtBrl(descontoMetodoValor)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-mono">{fmtBrl(subtotalAposFormaPag)}</span>
+                </div>
+                {totalEntrada > 0 && (
+                  <>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Entrada informada</span><span className="text-mono">{fmtBrl(totalEntrada)}</span></div>
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Desconto adicional pela entrada ({descontoEntradaPerc.toFixed(2)}%)</span>
+                      <span className="text-mono">-{fmtBrl(descontoEntradaValor)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between border-t border-border pt-1 font-semibold">
+                  <span>Valor final negociado</span>
+                  <span className="text-mono">{fmtBrl(totalProposta)}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Saldo a parcelar</span>
+                  <span className="text-mono">{fmtBrl(saldoAParcelar)}</span>
+                </div>
+              </div>
+
               <Button
                 type="button"
                 size="sm"

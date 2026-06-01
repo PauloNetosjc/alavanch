@@ -29,6 +29,7 @@ import { AgendaAdmin } from "@/components/AgendaAdmin";
 import { EtiquetasAdmin } from "@/components/EtiquetasAdmin";
 import { MetodosPagamentoAdmin } from "@/components/MetodosPagamentoAdmin";
 import { FormasPagamentoButton } from "@/components/FormasPagamentoAdmin";
+import { FormasPagamentoEntradaAdmin } from "@/components/FormasPagamentoEntradaAdmin";
 import AprovadorConfig from "@/components/financeiro/AprovadorConfig";
 import { TransferirResponsabilidadesDialog } from "@/components/TransferirResponsabilidadesDialog";
 
@@ -597,6 +598,7 @@ function MetodosPagamento() {
         <FormasPagamentoButton />
       </div>
       <MetodosPagamentoAdmin />
+      <FormasPagamentoEntradaAdmin />
     </div>
   );
 }
