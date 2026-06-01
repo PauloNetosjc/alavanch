@@ -561,6 +561,12 @@ export default function ComercialNegociacao() {
   const [tplOrcamento, setTplOrcamento] = useState<any>(null);
   const [confirmando, setConfirmando] = useState(false);
 
+  // Recolhe sidebar automaticamente ao abrir a negociação (foco total)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("sidebar:set-collapsed", { detail: { collapsed: true } }));
+  }, []);
+
+
   /* ----------------------------- load ----------------------------- */
   useEffect(() => {
     if (!id) return;
