@@ -383,7 +383,7 @@ function ResumoFinanceiroDialog({
                     <span className="text-muted-foreground">Markup Loja</span>
                     <span className="text-mono font-semibold">{markupLoja !== null ? `${markupLoja.toFixed(2).replace(".", ",")}x` : "—"}</span>
                   </div>
-                  <div className="border-t border-border pt-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">Lucro CMV Fábrica</span>
                       <span className="text-mono font-semibold">{fmtBrl(custoCmvFabrica)}</span>
@@ -396,6 +396,8 @@ function ResumoFinanceiroDialog({
                       <span className="text-muted-foreground">Margem CMV/Fábrica</span>
                       <span className="text-mono">{margemCmvFab !== null ? `${margemCmvFab.toFixed(2).replace(".", ",")}%` : "—"}</span>
                     </div>
+                  </div>
+                  <div className="border-t border-border pt-2">
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">Lucro Fábrica</span>
                       <span className={`text-mono font-semibold ${lucroFabrica !== null && lucroFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>
@@ -403,6 +405,7 @@ function ResumoFinanceiroDialog({
                       </span>
                     </div>
                   </div>
+
                 </div>
               );
             })()}
