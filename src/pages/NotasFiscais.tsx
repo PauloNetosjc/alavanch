@@ -27,12 +27,43 @@ type NF = { id: string; tipo: string; status: string; valor_total: number; ambie
 type Cert = { id: string; nome: string; validade_fim: string | null; status: string };
 type Cfg = { ambiente: string | null; emitir_nfe: boolean | null; emitir_nfse: boolean | null };
 
+const MAIN_TABS = ["dashboard", "nfe", "nfse", "emitidas"] as const;
+type ConfigKey = "produtos" | "servicos" | "cfops" | "operacoes" | "tributarias" | "certificado" | "config" | "status" | "eventos";
+const CONFIG_GROUPS: { titulo: string; itens: { key: ConfigKey; label: string; icon: React.ReactNode; desc?: string }[] }[] = [
+  { titulo: "Cadastros fiscais", itens: [
+    { key: "produtos", label: "Produtos Fiscais", icon: <Package className="w-4 h-4"/> },
+    { key: "servicos", label: "Serviços Fiscais", icon: <Wrench className="w-4 h-4"/> },
+    { key: "cfops", label: "CFOPs", icon: <ListOrdered className="w-4 h-4"/> },
+  ]},
+  { titulo: "Operações e impostos", itens: [
+    { key: "operacoes", label: "Operações Fiscais", icon: <Layers className="w-4 h-4"/> },
+    { key: "tributarias", label: "Configurações Tributárias", icon: <Calculator className="w-4 h-4"/> },
+  ]},
+  { titulo: "Empresa e certificado", itens: [
+    { key: "certificado", label: "Certificado", icon: <Shield className="w-4 h-4"/> },
+    { key: "config", label: "Configurações Fiscais", icon: <Settings className="w-4 h-4"/> },
+  ]},
+  { titulo: "Sistema", itens: [
+    { key: "status", label: "Status Backend", icon: <Activity className="w-4 h-4"/> },
+    { key: "eventos", label: "Eventos / Auditoria", icon: <History className="w-4 h-4"/> },
+  ]},
+];
+const CONFIG_LABEL: Record<ConfigKey, string> = {
+  produtos: "Produtos Fiscais", servicos: "Serviços Fiscais", cfops: "CFOPs",
+  operacoes: "Operações Fiscais", tributarias: "Configurações Tributárias",
+  certificado: "Certificado", config: "Configurações Fiscais",
+  status: "Status Backend", eventos: "Eventos / Auditoria",
+};
+
 export default function NotasFiscais() {
   const { selectedLojaId } = useLoja();
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState<string>("dashboard");
+  const [configOpen, setConfigOpen] = useState(false);
   const [notas, setNotas] = useState<NF[]>([]);
   const [cert, setCert] = useState<Cert | null>(null);
   const [cfg, setCfg] = useState<Cfg | null>(null);
+  const isConfigView = !(MAIN_TABS as readonly string[]).includes(tab);
+
 
   useEffect(() => {
     if (!selectedLojaId) return;
