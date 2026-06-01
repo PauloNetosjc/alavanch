@@ -1027,9 +1027,30 @@ export default function ComercialNegociacao() {
   const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
 
   // Estado de minimização de cada card de pagamento
-  const [minimizados, setMinimizados] = useState<Record<number, boolean>>({});
+  // Apenas um card de pagamento expandido por vez (null = todos minimizados).
+  const [expandedPagIdx, setExpandedPagIdx] = useState<number | null>(null);
+  const expandedCardRef = useRef<HTMLDivElement | null>(null);
   const toggleMinimizar = (idx: number) =>
-    setMinimizados((m) => ({ ...m, [idx]: !m[idx] }));
+    setExpandedPagIdx((cur) => (cur === idx ? null : idx));
+
+  // Click-outside: recolhe o card expandido quando o usuário clica fora dele.
+  // Ignora cliques em portais do Radix (Select/Tooltip/Popover) e do datepicker nativo.
+  useEffect(() => {
+    if (expandedPagIdx === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (expandedCardRef.current && expandedCardRef.current.contains(target)) return;
+      // Cliques dentro de portais do Radix (Select/Popover/Tooltip) não recolhem o card.
+      if (target.closest('[data-radix-popper-content-wrapper]')) return;
+      if (target.closest('[role="listbox"]')) return;
+      if (target.closest('[role="dialog"]')) return;
+      setExpandedPagIdx(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [expandedPagIdx]);
+
 
   const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
