@@ -3216,6 +3216,33 @@ function PedidoAcoesMenu({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [cancelando, setCancelando] = useState(false);
+  const [fiscalOpen, setFiscalOpen] = useState(false);
+  const { isModuloAtivo } = useModulosLoja();
+  const { can } = usePermissions();
+  const fiscalDisponivel = !!pedido?.loja_id && isModuloAtivo("notas_fiscais") && (can("notas_fiscais", "view") || can("notas_fiscais", "create"));
+
+  const abrirFiscal = async () => {
+    if (!pedido?.loja_id) { toast.error("Pedido sem loja vinculada."); return; }
+    try {
+      const [{ data: cfg }, { data: cert }] = await Promise.all([
+        supabase.from("configuracoes_fiscais" as any).select("id").eq("loja_id", pedido.loja_id).maybeSingle(),
+        supabase.from("certificados_digitais" as any).select("id,status").eq("loja_id", pedido.loja_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (!cfg) {
+        toast.error("Configure os dados fiscais da loja antes de gerar nota.", {
+          action: { label: "Abrir configurações", onClick: () => navigate("/notas-fiscais?tab=configuracoes") },
+        });
+        return;
+      }
+      if (!cert) {
+        toast.warning("Certificado ausente. A emissão real ficará bloqueada.");
+      }
+      setFiscalOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao verificar configuração fiscal");
+    }
+  };
+
 
   const fazerCancelamento = async () => {
     if (confirmText.trim().toUpperCase() !== "CANCELAR") {
