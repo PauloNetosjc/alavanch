@@ -15,8 +15,9 @@ import {
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
   Lock, Unlock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, ChevronUp, ChevronDown,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
