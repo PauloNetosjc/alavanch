@@ -1065,9 +1065,62 @@ export default function ComercialNegociacao() {
       );
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
+
+    // ----- Histórico/versão de negociação -----
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const { data: ultima } = await supabase
+        .from("orcamento_negociacoes" as any)
+        .select("versao,status,valor_final_negociado,saldo_a_parcelar")
+        .eq("orcamento_id", id)
+        .order("versao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const ultimaAtiva = (ultima as any) && (ultima as any).status === "ativa" ? (ultima as any) : null;
+      const proximaVersao = ((ultima as any)?.versao || 0) + (ultimaAtiva ? 1 : 1);
+
+      // marca anterior como substituida (se existir uma ativa)
+      if (ultimaAtiva) {
+        await supabase
+          .from("orcamento_negociacoes" as any)
+          .update({ status: "substituida" })
+          .eq("orcamento_id", id)
+          .eq("status", "ativa");
+      }
+
+      const principal = pagamentos.find((p: any) => p?.is_principal) || pagamentos[0];
+      const qtdParc = Number((principal as any)?.parcelas) || 1;
+      const valorParcela = qtdParc > 0 ? Number((saldoAParcelar / qtdParc).toFixed(2)) : 0;
+
+      await supabase.from("orcamento_negociacoes" as any).insert({
+        orcamento_id: id,
+        versao: proximaVersao,
+        status: "ativa",
+        valor_bruto: Number(valorInicial.toFixed(2)),
+        percentual_desconto_manual: Number(descPercAplicado || 0),
+        valor_desconto_manual: Number(descValorAplicado || 0),
+        forma_pagamento_id: (principal as any)?.metodo_id || null,
+        percentual_desconto_forma_pagamento: Number(descontoMetodoPerc || 0),
+        valor_desconto_forma_pagamento: Number(descontoMetodoValor || 0),
+        valor_apos_desconto_forma_pagamento: Number(subtotalAposFormaPag.toFixed(2)),
+        valor_entrada: Number(totalEntrada || 0),
+        forma_pagamento_entrada_id: (entradaCfgSelecionada as any)?.id || null,
+        percentual_desconto_entrada: Number(descontoEntradaPerc || 0),
+        valor_desconto_entrada: Number(descontoEntradaValor || 0),
+        valor_final_negociado: Number(totalProposta.toFixed(2)),
+        saldo_a_parcelar: Number(saldoAParcelar.toFixed(2)),
+        quantidade_parcelas: qtdParc,
+        valor_parcela: valorParcela,
+        criado_por: u.user?.id || null,
+      });
+    } catch (e) {
+      console.error("Erro ao gravar histórico de negociação", e);
+    }
+
     setSaving(false);
     return true;
   };
+
 
   /* ----------- valida cliente antes de imprimir ou salvar ----------- */
   const camposFaltando = useMemo(() => {
