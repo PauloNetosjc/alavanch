@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertTriangle, BarChart3, CheckCircle2, FileText, Settings, Shield, Wrench, XCircle,
-  Package, History, Activity,
+  Package, History, Activity, ListOrdered, Layers, Calculator,
 } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { ConfiguracoesFiscaisPanel } from "@/components/fiscal/ConfiguracoesFiscaisPanel";
@@ -17,6 +17,9 @@ import { ServicosFiscaisPanel } from "@/components/fiscal/ServicosFiscaisPanel";
 import { NotasEmitidasPanel } from "@/components/fiscal/NotasEmitidasPanel";
 import { EventosAuditoriaPanel } from "@/components/fiscal/EventosAuditoriaPanel";
 import { StatusBackendFiscalPanel } from "@/components/fiscal/StatusBackendFiscalPanel";
+import { CfopsPanel } from "@/components/fiscal/CfopsPanel";
+import { OperacoesFiscaisPanel } from "@/components/fiscal/OperacoesFiscaisPanel";
+import { ConfiguracoesTributariasPanel } from "@/components/fiscal/ConfiguracoesTributariasPanel";
 
 type NF = { id: string; tipo: string; status: string; valor_total: number; ambiente: string | null; created_at: string };
 type Cert = { id: string; nome: string; validade_fim: string | null; status: string };
@@ -74,6 +77,9 @@ export default function NotasFiscais() {
           <TabT v="emitidas" i={<FileText className="w-4 h-4 mr-1.5"/>}>Notas Emitidas</TabT>
           <TabT v="produtos" i={<Package className="w-4 h-4 mr-1.5"/>}>Produtos Fiscais</TabT>
           <TabT v="servicos" i={<Wrench className="w-4 h-4 mr-1.5"/>}>Serviços Fiscais</TabT>
+          <TabT v="cfops" i={<ListOrdered className="w-4 h-4 mr-1.5"/>}>CFOPs</TabT>
+          <TabT v="operacoes" i={<Layers className="w-4 h-4 mr-1.5"/>}>Operações Fiscais</TabT>
+          <TabT v="tributarias" i={<Calculator className="w-4 h-4 mr-1.5"/>}>Configurações Tributárias</TabT>
           <TabT v="certificado" i={<Shield className="w-4 h-4 mr-1.5"/>}>Certificado</TabT>
           <TabT v="config" i={<Settings className="w-4 h-4 mr-1.5"/>}>Configurações Fiscais</TabT>
           <TabT v="status" i={<Activity className="w-4 h-4 mr-1.5"/>}>Status Backend</TabT>
@@ -127,6 +133,9 @@ export default function NotasFiscais() {
         <TabsContent value="emitidas" className="mt-6"><NotasEmitidasPanel/></TabsContent>
         <TabsContent value="produtos" className="mt-6"><ProdutosFiscaisPanel/></TabsContent>
         <TabsContent value="servicos" className="mt-6"><ServicosFiscaisPanel/></TabsContent>
+        <TabsContent value="cfops" className="mt-6"><CfopsPanel/></TabsContent>
+        <TabsContent value="operacoes" className="mt-6"><OperacoesFiscaisPanel/></TabsContent>
+        <TabsContent value="tributarias" className="mt-6"><ConfiguracoesTributariasPanel/></TabsContent>
         <TabsContent value="certificado" className="mt-6"><CertificadoPanel/></TabsContent>
         <TabsContent value="config" className="mt-6"><ConfiguracoesFiscaisPanel/></TabsContent>
         <TabsContent value="status" className="mt-6"><StatusBackendFiscalPanel/></TabsContent>

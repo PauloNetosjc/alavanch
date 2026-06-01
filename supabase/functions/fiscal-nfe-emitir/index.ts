@@ -76,22 +76,35 @@ Deno.serve(async (req) => {
   await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "emissao_iniciada", user_id: userId });
 
   try {
-    // 6) Config fiscal, itens, cliente
-    const [{ data: cfg }, { data: itens }, { data: cliente }] = await Promise.all([
+    // 6) Config fiscal, itens, cliente, operação fiscal, configuração tributária
+    const [{ data: cfg }, { data: itens }, { data: cliente }, { data: operacao }, { data: cfgTrib }] = await Promise.all([
       supa.from("configuracoes_fiscais").select("*").eq("loja_id", nota.loja_id).maybeSingle(),
       supa.from("notas_fiscais_itens").select("*").eq("nota_fiscal_id", nota_fiscal_id).order("numero_item", { ascending: true }),
       nota.cliente_id ? supa.from("clientes").select("*").eq("id", nota.cliente_id).maybeSingle() : Promise.resolve({ data: null }),
+      nota.operacao_fiscal_id ? supa.from("fiscal_operacoes").select("*").eq("id", nota.operacao_fiscal_id).maybeSingle() : Promise.resolve({ data: null }),
+      nota.configuracao_tributaria_id ? supa.from("fiscal_configuracoes_tributarias").select("*").eq("id", nota.configuracao_tributaria_id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     if (!cfg) throw new Error("Configuração fiscal da loja não encontrada");
     if (!itens?.length) throw new Error("Nota sem itens");
     if (!cliente) throw new Error("Cliente não encontrado");
+    if (!operacao) {
+      await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "rejeitada",
+        descricao: "Configuração tributária incompleta para a operação fiscal selecionada.", user_id: userId });
+      await supa.from("notas_fiscais").update({ status: "rejeitada", mensagem_retorno: "Operação fiscal não definida na nota." }).eq("id", nota_fiscal_id);
+      return jsonResp({ ok: false, status: "rejeitada", erro: "Operação fiscal não definida na nota." }, 400);
+    }
 
-    // 7) Numeração: usa numero_nf existente ou pega próximo da config
+    // 7) Numeração
     let numero_nf: number = nota.numero_nf;
     if (!numero_nf) {
       numero_nf = cfg.proximo_numero_nfe ?? 1;
       await supa.from("configuracoes_fiscais").update({ proximo_numero_nfe: numero_nf + 1 }).eq("id", cfg.id);
     }
+
+    const finalidadeMap: Record<string, number> = { normal: 1, complementar: 2, ajuste: 3, devolucao: 4 };
+    const finNFe = finalidadeMap[operacao.finalidade_nfe || "normal"] ?? 1;
+    const tpNF = (operacao.tipo_nota === "entrada") ? 0 : 1;
+    const cfopOp = operacao.codigo_cfop || cfgTrib?.codigo_cfop || null;
 
     // 8) Monta input do builder
     const buildInput: BuildNfeInput = {
@@ -99,10 +112,12 @@ Deno.serve(async (req) => {
         id: nota.id,
         numero_nf,
         serie: Number(cfg.serie_nfe ?? nota.serie ?? 1),
-        natureza_operacao: nota.natureza_operacao ?? "Venda de mercadoria",
+        natureza_operacao: operacao.nome ?? nota.natureza_operacao ?? "Venda de mercadoria",
         data_emissao: nota.data_emissao ?? new Date().toISOString(),
         valor_total: Number(nota.valor_total ?? 0),
         valor_produtos: Number(nota.valor_produtos ?? nota.valor_total ?? 0),
+        finalidade_nfe: finNFe,
+        tpNF,
       },
       emit: {
         cnpj: cfg.cnpj,
@@ -134,13 +149,22 @@ Deno.serve(async (req) => {
         cEAN: it.ean,
         xProd: it.descricao ?? "Produto",
         NCM: it.ncm ?? "00000000",
-        CFOP: String(it.cfop ?? "5102"),
+        CFOP: String(it.cfop ?? cfopOp ?? "5102"),
         uCom: it.unidade ?? "UN",
         qCom: Number(it.quantidade ?? 1),
         vUnCom: Number(it.valor_unitario ?? 0),
         vProd: Number(it.valor_total ?? 0),
-        CST: it.cst,
-        origem: it.origem ?? 0,
+        CST: it.cst ?? cfgTrib?.icms_cst ?? undefined,
+        CSOSN: cfgTrib?.icms_csosn ?? undefined,
+        origem: it.origem ?? Number(cfgTrib?.icms_origem ?? 0),
+        icms_aliquota: Number(cfgTrib?.icms_interno_aliquota ?? cfgTrib?.icms_aliquota ?? 0),
+        pis_cst: cfgTrib?.pis_cst ?? undefined,
+        pis_aliquota: Number(cfgTrib?.pis_aliquota ?? 0),
+        cofins_cst: cfgTrib?.cofins_cst ?? undefined,
+        cofins_aliquota: Number(cfgTrib?.cofins_aliquota ?? 0),
+        ipi_cst: cfgTrib?.ipi_cst ?? undefined,
+        ipi_aliquota: Number(cfgTrib?.ipi_aliquota ?? 0),
+        ipi_enquadramento: cfgTrib?.ipi_enquadramento ?? undefined,
       })),
     };
 
