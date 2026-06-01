@@ -829,19 +829,27 @@ export default function ComercialNegociacao() {
   const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
   // Subtotal após desconto da forma de pagamento (antes do desconto adicional da entrada).
   const subtotalAposFormaPag = Math.max(0, baseParaMetodo - descontoMetodoValor);
-  // Desconto adicional gerado pela entrada: aplicado sobre o valor da entrada (preserva a entrada).
-  // Percentual vem da tabela formas_pagamento_entrada. Prioridade:
-  //   1) configuração selecionada manualmente; 2) configuração vinculada ao método escolhido;
-  //   3) primeira ativa; 4) fallback 20%.
-  const entradaCfgSelecionada =
-    entradasCfg.find((c) => c.id === entradaCfgId) ||
-    entradasCfg.find((c) => novoMetodo && c.forma_pagamento?.toLowerCase() === novoMetodo.toLowerCase()) ||
-    entradasCfg[0] ||
-    null;
-  const descontoEntradaPerc = Number(entradaCfgSelecionada?.percentual_desconto) || 20;
+  // Desconto adicional gerado pela entrada: aplicado sobre cada entrada conforme a forma escolhida na própria parcela.
+  // Cada entrada usa o percentual configurado em Formas de Pagamento > ENTRADA para a forma_pagamento escolhida.
+  const cfgPorForma = (forma?: string | null) => {
+    if (!forma) return null;
+    return entradasCfg.find((c) => c.forma_pagamento?.toLowerCase() === forma.toLowerCase()) || null;
+  };
+  const entradaCfgSelecionada = entradasCfg[0] || null;
   const descontoEntradaSemConfig = entradasCfg.length === 0;
-  const totalEntrada = (entrada || 0) + _somaEntradasAdicionadas;
-  const descontoEntradaValor = totalEntrada > 0 ? totalEntrada * (descontoEntradaPerc / 100) : 0;
+  const totalEntrada = _somaEntradasAdicionadas;
+  const descontoEntradaValor = pagamentos.reduce((s, p: any) => {
+    if (!p.is_entrada) return s;
+    const cfg = cfgPorForma(p.metodo);
+    const perc = Number(cfg?.percentual_desconto) || 0;
+    return s + (Number(p.valor) || 0) * (perc / 100);
+  }, 0);
+  // Percentual exibido (referência da primeira entrada ou da config padrão).
+  const descontoEntradaPerc = Number(
+    cfgPorForma((pagamentos.find((p: any) => p.is_entrada) as any)?.metodo)?.percentual_desconto
+    ?? entradaCfgSelecionada?.percentual_desconto
+    ?? 0,
+  );
   // Valor final negociado: subtotal - desconto da entrada. A entrada continua preservada.
   const totalProposta = Math.max(0, subtotalAposFormaPag - descontoEntradaValor);
   const saldoAParcelar = Math.max(0, totalProposta - totalEntrada);
