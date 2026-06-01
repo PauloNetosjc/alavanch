@@ -1705,11 +1705,6 @@ export default function ComercialNegociacao() {
           <div style="margin-top:2px;font-size:20px;font-weight:700;color:#7A2833;line-height:1">${escapeHtml(tempoRestante(gValidade))}</div>
           <div style="font-size:10.5px;color:#2A2A2A;opacity:0.85;margin-top:3px">Proposta válida até ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " (vencida)" : ""}</div>
         </div>` : "";
-      const cardLeitura = `
-        <div style="background:#0f3d2e;color:#fff;border-radius:8px;padding:10px 12px;margin-top:8px;display:flex;gap:18px;flex-wrap:wrap">
-          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Economia</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.desconto_total || 0)}</div></div>
-          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Total</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.valor_total || 0)}</div></div>
-        </div>`;
       const cardSug = gSugestao ? `
         <div style="background:#fff;border:1px solid #e4d9bf;border-radius:8px;padding:10px 12px;margin-top:8px;font-style:italic;font-size:12px;color:#2A2A2A">
           “${escapeHtml(gSugestao)}”
@@ -1717,7 +1712,7 @@ export default function ComercialNegociacao() {
       return `<h2>Condição Especial</h2>
       <div style="background:#faf6ec;border:1px solid #e4d9bf;border-radius:10px;padding:12px 14px">
         <div style="font-size:11px;letter-spacing:0.14em;color:#7c5a1e;font-weight:600;text-transform:uppercase">${escapeHtml(tituloPainel)}</div>
-        ${cardEsc}${cardUrg}${cardLeitura}${cardSug}
+        ${cardEsc}${cardUrg}${cardSug}
       </div>`;
     })() : ""}
 
