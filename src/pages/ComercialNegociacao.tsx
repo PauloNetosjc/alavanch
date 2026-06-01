@@ -2722,6 +2722,7 @@ export default function ComercialNegociacao() {
         totalContrato={totalContrato}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
+        custoTotalAmbientes={custoTotalAmbientes}
         jurosAbsorvido={jurosAbsorvido}
         jurosRepassado={jurosRepassado}
         config={config} usarMarkup={usarMarkup}
