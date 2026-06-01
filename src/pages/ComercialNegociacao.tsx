@@ -524,6 +524,7 @@ export default function ComercialNegociacao() {
   type EntradaCfg = { id: string; nome: string; forma_pagamento: string; percentual_desconto: number; ativo: boolean };
   const [entradasCfg, setEntradasCfg] = useState<EntradaCfg[]>([]);
   const [entradaCfgId, setEntradaCfgId] = useState<string>("");
+  const [confirmTrocaMetodo, setConfirmTrocaMetodo] = useState<{ metodo: string; parcelas: number } | null>(null);
 
   useEffect(() => {
     supabase.from("formas_pagamento").select("nome").eq("ativo", true).order("ordem").then(({ data }) => {
