@@ -1558,6 +1558,12 @@ export default function ComercialNovo() {
                 </div>
               </div>
 
+              {ajustandoNovaVersao && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 mb-5">
+                  Você está ajustando os ambientes da nova versão. Após concluir, avance para o resumo e gere/atualize a negociação.
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                 {/* Importar */}
                 <div className="rounded-lg border border-border p-5">
@@ -1823,11 +1829,11 @@ export default function ComercialNovo() {
                               <FileText className="w-4 h-4 text-muted-foreground" />
                             </Button>
                             <Button
-                              variant="ghost" size="icon" className="h-8 w-8"
+                              variant="ghost" size="sm" className="h-8 px-2 text-rose-600 hover:text-rose-700"
                               onClick={() => removeAmbiente(a.id)}
-                              title="Remover"
+                              title="Remover ambiente"
                             >
-                              <Trash2 className="w-4 h-4 text-rose-500" />
+                              <Trash2 className="w-4 h-4 mr-1" /> Remover
                             </Button>
                           </div>
                         </td>
