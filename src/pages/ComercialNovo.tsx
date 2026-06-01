@@ -11,8 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2, ChevronDown,
+  Check, AlertCircle, Loader2, ChevronDown, Lock,
 } from "lucide-react";
+import OrcamentoNegociacaoTab from "@/components/OrcamentoNegociacaoTab";
+
 import { toast } from "sonner";
 import { parsePromobTxt, PromobParseResult } from "@/lib/promobParser";
 import { parseProjetoXml, parseProjetoExcel, ParseResult as GenericParseResult } from "@/lib/projetoImporter";
@@ -65,7 +67,9 @@ type Ambiente = {
   itens: Item[];
   manual?: boolean;
   aplicar_desconto?: boolean;  // se false, esse ambiente não recebe desconto na negociação
+  origem_ambiente?: "manual" | "xml" | "importado";
 };
+
 
 const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -75,7 +79,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
 function StepsCard({
-  step, setStep, canGoTo, summary, title, adendoMode,
+  step, setStep, canGoTo, summary, title, adendoMode, hasNegociacao,
 }: {
   step: number;
   setStep: (n: number) => void;
@@ -83,12 +87,15 @@ function StepsCard({
   summary: React.ReactNode;
   title?: string;
   adendoMode?: boolean;
+  hasNegociacao?: boolean;
 }) {
   const items = [
     { n: 1, label: "Cliente" },
     { n: 2, label: adendoMode ? "Adendo" : "Ambientes" },
     { n: 3, label: "Resumo" },
+    ...(hasNegociacao ? [{ n: 4, label: "Negociação" }] : []),
   ];
+
   return (
     <div className="surface-card p-5 sticky top-4">
       <div className="text-[18px] font-semibold mb-4">{title || "Novo Orçamento"}</div>
@@ -528,10 +535,14 @@ export default function ComercialNovo() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEdit = !!editId;
-  const preselectCliente = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("cliente") : null;
+  const _params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const preselectCliente = _params?.get("cliente") || null;
+  const abaParam = (_params?.get("aba") || _params?.get("step") || "").toLowerCase();
   const { role } = usePermissions();
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
+  const [temNegociacao, setTemNegociacao] = useState<boolean>(false);
+
   const [saving, setSaving] = useState(false);
   const [orcCodigo, setOrcCodigo] = useState<string>("");
 
@@ -718,7 +729,7 @@ export default function ComercialNovo() {
 
       const { data: ambs } = await supabase
         .from("ambientes")
-        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto, origem_ambiente")
         .eq("orcamento_id", editId)
         .order("ordem");
       const ambIds = (ambs ?? []).map((a: any) => a.id);
@@ -747,9 +758,22 @@ export default function ComercialNovo() {
         markup: Number(a.markup) || 0,
         itens: itensByAmb[a.id] || [],
         aplicar_desconto: a.aplicar_desconto !== false,
+        origem_ambiente: (a.origem_ambiente as any) || "manual",
       })));
+
+      // Detecta negociação existente para liberar aba 04
+      const { count: negCount } = await supabase
+        .from("orcamento_negociacoes" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("orcamento_id", editId);
+      const tem = (negCount || 0) > 0;
+      setTemNegociacao(tem);
+      if (tem && (abaParam === "negociacao" || abaParam === "4")) {
+        setStep(4);
+      }
     })();
   }, [editId, navigate]);
+
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
@@ -781,8 +805,10 @@ export default function ComercialNovo() {
     if (n === 1) return true;
     if (n === 2) return canNext1;
     if (n === 3) return canNext1 && canNext2;
+    if (n === 4) return temNegociacao;
     return false;
   };
+
 
 
   /* ----------------------------- step 2: import -------------------------- */
@@ -832,7 +858,7 @@ export default function ComercialNovo() {
             const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
             const markup = custo > 0 ? preco / custo : 0;
             const descricao = await aiDescribe(env.name, itens);
-            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+            return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens, origem_ambiente: "importado" as const };
           }),
         );
         setAmbientes((prev) => [...prev, ...novos]);
@@ -867,7 +893,7 @@ export default function ComercialNovo() {
         const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
         const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
         const markup = custo > 0 ? preco / custo : 0;
-        return { id: uid(), nome: env.name, descricao: "", prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens };
+        return { id: uid(), nome: env.name, descricao: "", prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens, origem_ambiente: (ext === "xml" ? "xml" : "importado") as any };
       });
       setAmbientes((prev) => [...prev, ...novos]);
       toast.success(`${novos.length} ambientes importados de ${ext.toUpperCase()}!`);
@@ -1016,6 +1042,8 @@ export default function ComercialNovo() {
             preco_sugerido: a.preco_sugerido,
             markup: a.markup,
             aplicar_desconto: a.aplicar_desconto !== false,
+            origem_ambiente: a.origem_ambiente || "manual",
+
           } as any)
           .select("id")
           .single();
@@ -1141,7 +1169,7 @@ export default function ComercialNovo() {
   return (
     <div className="grid grid-cols-12 gap-6">
       <div className="col-span-12 md:col-span-3">
-        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} adendoMode={isAdendo} />
+        <StepsCard step={step} setStep={setStep} canGoTo={canGoTo} summary={summary} title={isEdit ? `Editar ${orcCodigo || "Orçamento"}` : "Novo Orçamento"} adendoMode={isAdendo} hasNegociacao={temNegociacao} />
       </div>
 
       <div className="col-span-12 md:col-span-9 space-y-6">
@@ -1628,45 +1656,58 @@ export default function ComercialNovo() {
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="text-left px-4 py-3">Projeto / Ambiente</th>
-                      {podeVerCusto && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
+                      {podeVerCusto && usarMarkup && <th className="text-center px-2 py-3 w-[110px]">Markup (x)</th>}
                       <th className="text-right px-2 py-3 w-[170px]">Preço Sugerido</th>
                       <th className="text-center px-2 py-3 w-[90px]" title="Recebe desconto na negociação">Desconto</th>
                       <th className="text-right px-4 py-3 w-[110px]">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ambientes.map((a) => (
+                    {ambientes.map((a) => {
+                      const isXml = a.origem_ambiente === "xml";
+                      return (
                       <tr key={a.id} className="border-b border-border last:border-0 align-top">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-emerald-700">{a.nome}</div>
+                          <div className="font-semibold text-emerald-700 flex items-center gap-1.5">
+                            {a.nome}
+                            {isXml && (
+                              <span title="Ambiente importado por XML" className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
+                                <Lock className="w-3 h-3 mr-1" /> XML
+                              </span>
+                            )}
+                          </div>
                           {a.descricao && (
                             <div className="text-[12px] text-muted-foreground mt-0.5 line-clamp-2">
                               - {a.descricao}
                             </div>
                           )}
                         </td>
-                        {podeVerCusto && (
+                        {podeVerCusto && usarMarkup && (
                           <td className="px-2 py-3 text-center">
                             <Input
                               type="number" step="0.01"
                               value={a.markup}
+                              disabled={isXml}
                               onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
                               className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
                             />
                           </td>
                         )}
                         <td className="px-2 py-3 text-right">
-                          <Input
-                            type="number" step="0.01"
-                            value={a.preco_sugerido}
-                            onChange={(e) => onChangePreco(a, Number(e.target.value) || 0)}
-                            className="h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300"
-                          />
-                          {podeVerCusto && (
-                            <div className="text-[10px] text-muted-foreground mt-1 text-right">
-                              Custo: {fmtBrl(a.custo_aquisicao)}
-                            </div>
-                          )}
+                          <div className="relative">
+                            <Input
+                              type="number" step="0.01"
+                              value={a.preco_sugerido}
+                              readOnly={isXml}
+                              disabled={isXml}
+                              title={isXml ? "Preço importado do XML. Para alterar, ajuste a origem/importação ou crie edição manual autorizada." : undefined}
+                              onChange={(e) => !isXml && onChangePreco(a, Number(e.target.value) || 0)}
+                              className={`h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300 ${isXml ? "bg-muted/40 pr-7" : ""}`}
+                            />
+                            {isXml && (
+                              <Lock className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2" />
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 py-3 text-center">
                           <div className="flex items-center justify-center">
@@ -1682,7 +1723,7 @@ export default function ComercialNovo() {
                             <Button
                               variant="ghost" size="icon" className="h-8 w-8"
                               onClick={() => setAmbDetail(a)}
-                              title="Detalhamento"
+                              title="Detalhamento (custo e itens)"
                             >
                               <Eye className="w-4 h-4 text-muted-foreground" />
                             </Button>
@@ -1703,16 +1744,18 @@ export default function ComercialNovo() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/30">
-                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto ? 2 : 1}>Total</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground" colSpan={podeVerCusto && usarMarkup ? 2 : 1}>Total</td>
                       <td className="px-2 py-3 text-right text-mono font-semibold">{fmtBrl(subtotalAmbientes)}</td>
                       <td />
                     </tr>
                   </tfoot>
                 </table>
+
               )}
             </div>
           </>
@@ -1848,6 +1891,11 @@ export default function ComercialNovo() {
           </>
         )}
 
+        {/* ============================ STEP 4 — Negociação ============================ */}
+        {step === 4 && temNegociacao && editId && (
+          <OrcamentoNegociacaoTab orcamentoId={editId} />
+        )}
+
         {/* ============================ Footer nav ============================ */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <Button
@@ -1856,15 +1904,18 @@ export default function ComercialNovo() {
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> {step === 1 ? "Cancelar" : "Voltar"}
           </Button>
-          {step < 3 ? (
+          {step < 3 || (step === 3 && temNegociacao) ? (
             <Button
               onClick={() => setStep(step + 1)}
-              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
+              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2) || (step === 3 && !temNegociacao)}
               className="bg-[#2D6BE5] hover:bg-[#2459C9]"
             >
               Avançar <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
+          ) : step === 4 ? (
+            <Button variant="outline" onClick={() => navigate("/comercial")}>Fechar</Button>
           ) : (
+
             <div className="flex gap-2">
               <Button
                 onClick={() => finish(false)}

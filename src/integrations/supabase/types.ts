@@ -201,6 +201,7 @@ export type Database = {
           nome: string
           orcamento_id: string
           ordem: number | null
+          origem_ambiente: string
           prazo_dias: number | null
           preco_sugerido: number | null
         }
@@ -217,6 +218,7 @@ export type Database = {
           nome: string
           orcamento_id: string
           ordem?: number | null
+          origem_ambiente?: string
           prazo_dias?: number | null
           preco_sugerido?: number | null
         }
@@ -233,6 +235,7 @@ export type Database = {
           nome?: string
           orcamento_id?: string
           ordem?: number | null
+          origem_ambiente?: string
           prazo_dias?: number | null
           preco_sugerido?: number | null
         }
@@ -5896,6 +5899,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "orcamento_documentos_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamento_negociacoes: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          forma_pagamento_entrada_id: string | null
+          forma_pagamento_id: string | null
+          id: string
+          loja_id: string | null
+          observacoes: string | null
+          orcamento_id: string
+          percentual_desconto_entrada: number
+          percentual_desconto_forma_pagamento: number
+          percentual_desconto_manual: number
+          quantidade_parcelas: number
+          saldo_a_parcelar: number
+          status: string
+          updated_at: string
+          valor_apos_desconto_forma_pagamento: number
+          valor_bruto: number
+          valor_desconto_entrada: number
+          valor_desconto_forma_pagamento: number
+          valor_desconto_manual: number
+          valor_entrada: number
+          valor_final_negociado: number
+          valor_parcela: number
+          versao: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          forma_pagamento_entrada_id?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          orcamento_id: string
+          percentual_desconto_entrada?: number
+          percentual_desconto_forma_pagamento?: number
+          percentual_desconto_manual?: number
+          quantidade_parcelas?: number
+          saldo_a_parcelar?: number
+          status?: string
+          updated_at?: string
+          valor_apos_desconto_forma_pagamento?: number
+          valor_bruto?: number
+          valor_desconto_entrada?: number
+          valor_desconto_forma_pagamento?: number
+          valor_desconto_manual?: number
+          valor_entrada?: number
+          valor_final_negociado?: number
+          valor_parcela?: number
+          versao: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          forma_pagamento_entrada_id?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          orcamento_id?: string
+          percentual_desconto_entrada?: number
+          percentual_desconto_forma_pagamento?: number
+          percentual_desconto_manual?: number
+          quantidade_parcelas?: number
+          saldo_a_parcelar?: number
+          status?: string
+          updated_at?: string
+          valor_apos_desconto_forma_pagamento?: number
+          valor_bruto?: number
+          valor_desconto_entrada?: number
+          valor_desconto_forma_pagamento?: number
+          valor_desconto_manual?: number
+          valor_entrada?: number
+          valor_final_negociado?: number
+          valor_parcela?: number
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_negociacoes_orcamento_id_fkey"
             columns: ["orcamento_id"]
             isOneToOne: false
             referencedRelation: "orcamentos"
