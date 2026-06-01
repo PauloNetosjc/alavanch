@@ -2320,54 +2320,6 @@ export default function ComercialNegociacao() {
                   </Select>
                 </div>
               )}
-              {descontoEntradaSemConfig && (
-                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-                  Configuração de entrada não encontrada. Usando 20% padrão.
-                </div>
-              )}
-              <div className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                A entrada é preservada com o valor lançado. Gera um desconto adicional de <b>{descontoEntradaPerc.toFixed(2)}%</b> sobre o valor da entrada, abatido do total do pedido.<br />
-                {_somaEntradasAdicionadas > 0 && (
-                  <span className="block">Entradas já adicionadas: <b className="text-foreground">{fmtBrl(_somaEntradasAdicionadas)}</b></span>
-                )}
-                {totalEntrada > 0 && (
-                  <span className="block text-emerald-700">Desconto da entrada ({descontoEntradaPerc.toFixed(2)}% × {fmtBrl(totalEntrada)}): -{fmtBrl(descontoEntradaValor)}</span>
-                )}
-                <span className="font-medium text-foreground">Saldo a parcelar: {fmtBrl(saldoAParcelar)}</span>
-              </div>
-
-              {/* Resumo separado: desconto forma pag x desconto entrada */}
-              <div className="mt-3 rounded-md border border-border bg-muted/30 p-2.5 text-[11px] space-y-1">
-                <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span className="text-mono">{fmtBrl(valorInicial)}</span></div>
-                {descValorEfetivo > 0.01 && (
-                  <div className="flex justify-between text-emerald-700"><span>Desconto manual</span><span className="text-mono">-{fmtBrl(descValorEfetivo)}</span></div>
-                )}
-                <div className="flex justify-between text-emerald-700">
-                  <span>Desconto forma pag. {descontoMetodoPerc > 0 ? `(${descontoMetodoPerc.toFixed(2)}%${novoParcelas ? ` · ${novoParcelas}x` : ""})` : ""}</span>
-                  <span className="text-mono">-{fmtBrl(descontoMetodoValor)}</span>
-                </div>
-                <div className="flex justify-between border-t border-border pt-1">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-mono">{fmtBrl(subtotalAposFormaPag)}</span>
-                </div>
-                {totalEntrada > 0 && (
-                  <>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Entrada informada</span><span className="text-mono">{fmtBrl(totalEntrada)}</span></div>
-                    <div className="flex justify-between text-emerald-700">
-                      <span>Desconto adicional pela entrada ({descontoEntradaPerc.toFixed(2)}%)</span>
-                      <span className="text-mono">-{fmtBrl(descontoEntradaValor)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="flex justify-between border-t border-border pt-1 font-semibold">
-                  <span>Valor final negociado</span>
-                  <span className="text-mono">{fmtBrl(totalProposta)}</span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span>Saldo a parcelar</span>
-                  <span className="text-mono">{fmtBrl(saldoAParcelar)}</span>
-                </div>
-              </div>
 
               <Button
                 type="button"
@@ -2378,11 +2330,25 @@ export default function ComercialNegociacao() {
               >
                 <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada
               </Button>
-              <div className="text-[10px] text-muted-foreground mt-1 text-center">
-                Você pode adicionar quantas entradas precisar
+
+              {descontoEntradaSemConfig && (
+                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+                  Configuração de entrada não encontrada. Usando 20% padrão.
+                </div>
+              )}
+
+              <div className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                A entrada mantém o valor informado e gera desconto adicional conforme a configuração selecionada.
               </div>
+
+              {saldoAParcelar > 0.01 && (
+                <div className="text-[12px] font-medium text-foreground mt-2">
+                  Saldo a parcelar: <span className="text-mono">{fmtBrl(saldoAParcelar)}</span>
+                </div>
+              )}
             </div>
           </div>
+
         </div>
 
         {/* Resumo / Ações */}
