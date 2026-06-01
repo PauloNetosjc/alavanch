@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,8 @@ const fmtBrl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
 const uid = () => Math.random().toString(36).slice(2, 9);
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
 /* ------------------------- Step indicator (sidebar) ------------------------- */
 
@@ -547,6 +549,7 @@ export default function ComercialNovo() {
     status: string;
     valor_final_negociado: number;
   } | null>(null);
+  const [ajustandoNovaVersao, setAjustandoNovaVersao] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [orcCodigo, setOrcCodigo] = useState<string>("");
@@ -642,6 +645,7 @@ export default function ComercialNovo() {
       markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
       itens,
       manual: true,
+      origem_ambiente: "manual",
     };
     setAmbientes((prev) => [...prev, novo]);
     setEstoqueNome("");
@@ -689,6 +693,56 @@ export default function ComercialNovo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId]);
 
+  const carregarAmbientes = useCallback(async (orcamentoId: string) => {
+    const { data: ambs, error } = await supabase
+      .from("ambientes")
+      .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto, origem_ambiente")
+      .eq("orcamento_id", orcamentoId)
+      .order("ordem");
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const ambIds = (ambs ?? []).map((a: any) => a.id);
+    let itensByAmb: Record<string, Item[]> = {};
+    if (ambIds.length) {
+      const { data: subs } = await supabase
+        .from("sub_itens_ambiente")
+        .select("ambiente_id, descricao, quantidade, largura, altura, profundidade, custo_cliente, custo_loja, custo_fabrica, cor, categoria, codigo")
+        .in("ambiente_id", ambIds);
+      (subs ?? []).forEach((s: any) => {
+        (itensByAmb[s.ambiente_id] ||= []).push({
+          descricao: s.descricao, quantidade: s.quantidade,
+          largura: s.largura, altura: s.altura, profundidade: s.profundidade,
+          custo_cliente: Number(s.custo_cliente) || 0,
+          custo_loja: Number(s.custo_loja) || 0,
+          custo_fabrica: Number(s.custo_fabrica) || 0,
+          cor: s.cor, categoria: s.categoria, codigo: s.codigo,
+        });
+      });
+    }
+
+    setAmbientes((ambs ?? []).map((a: any) => ({
+      id: a.id, nome: a.nome, descricao: a.descricao || "",
+      prazo_dias: a.prazo_dias,
+      custo_aquisicao: Number(a.custo_aquisicao) || 0,
+      preco_sugerido: Number(a.preco_sugerido) || 0,
+      markup: Number(a.markup) || 0,
+      itens: itensByAmb[a.id] || [],
+      aplicar_desconto: a.aplicar_desconto !== false,
+      origem_ambiente: (a.origem_ambiente as any) || "manual",
+    })));
+  }, []);
+
+  const handleNovaVersaoNegociacao = useCallback(() => {
+    if (!editId) return;
+    setAjustandoNovaVersao(true);
+    setStep(2);
+    navigate(`/comercial/${editId}?aba=ambientes`, { replace: true });
+    void carregarAmbientes(editId);
+  }, [carregarAmbientes, editId, navigate]);
+
   /* ------------------------- load existing orçamento ---------------------- */
   useEffect(() => {
     if (!editId) return;
@@ -732,39 +786,7 @@ export default function ComercialNovo() {
       }
 
 
-      const { data: ambs } = await supabase
-        .from("ambientes")
-        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto, origem_ambiente")
-        .eq("orcamento_id", editId)
-        .order("ordem");
-      const ambIds = (ambs ?? []).map((a: any) => a.id);
-      let itensByAmb: Record<string, Item[]> = {};
-      if (ambIds.length) {
-        const { data: subs } = await supabase
-          .from("sub_itens_ambiente")
-          .select("ambiente_id, descricao, quantidade, largura, altura, profundidade, custo_cliente, custo_loja, custo_fabrica, cor, categoria, codigo")
-          .in("ambiente_id", ambIds);
-        (subs ?? []).forEach((s: any) => {
-          (itensByAmb[s.ambiente_id] ||= []).push({
-            descricao: s.descricao, quantidade: s.quantidade,
-            largura: s.largura, altura: s.altura, profundidade: s.profundidade,
-            custo_cliente: Number(s.custo_cliente) || 0,
-            custo_loja: Number(s.custo_loja) || 0,
-            custo_fabrica: Number(s.custo_fabrica) || 0,
-            cor: s.cor, categoria: s.categoria, codigo: s.codigo,
-          });
-        });
-      }
-      setAmbientes((ambs ?? []).map((a: any) => ({
-        id: a.id, nome: a.nome, descricao: a.descricao || "",
-        prazo_dias: a.prazo_dias,
-        custo_aquisicao: Number(a.custo_aquisicao) || 0,
-        preco_sugerido: Number(a.preco_sugerido) || 0,
-        markup: Number(a.markup) || 0,
-        itens: itensByAmb[a.id] || [],
-        aplicar_desconto: a.aplicar_desconto !== false,
-        origem_ambiente: (a.origem_ambiente as any) || "manual",
-      })));
+      await carregarAmbientes(editId);
 
       // Detecta negociação existente para liberar aba 04 + carrega resumo
       const { data: negs } = await supabase
@@ -781,11 +803,13 @@ export default function ComercialNovo() {
         status: String(ativa.status || ""),
         valor_final_negociado: Number(ativa.valor_final_negociado || 0),
       } : null);
-      if (tem && (abaParam === "negociacao" || abaParam === "4")) {
+      if (abaParam === "ambientes" || abaParam === "2") {
+        setStep(2);
+      } else if (tem && (abaParam === "negociacao" || abaParam === "4")) {
         setStep(4);
       }
     })();
-  }, [editId, navigate]);
+  }, [abaParam, carregarAmbientes, editId, navigate, profile?.loja_id]);
 
 
   /* --------------------------- totals (derived) --------------------------- */
@@ -937,6 +961,7 @@ export default function ComercialNovo() {
       markup: 0,
       itens: [],
       manual: true,
+      origem_ambiente: "manual",
     };
     setAmbientes((prev) => [...prev, novo]);
     setMNome(""); setMDescricao(""); setMVenda("");
@@ -957,8 +982,20 @@ export default function ComercialNovo() {
     updateAmbiente(a.id, { preco_sugerido: preco, markup: Number(markup.toFixed(2)) });
   };
 
-  const removeAmbiente = (id: string) =>
+  const removeAmbiente = async (id: string) => {
+    if (!window.confirm("Remover este ambiente da nova versão do orçamento?")) return;
+    const anterior = ambientes;
     setAmbientes((prev) => prev.filter((a) => a.id !== id));
+    if (editId) {
+      const { error } = await supabase.from("ambientes").delete().eq("id", id).eq("orcamento_id", editId);
+      if (error) {
+        setAmbientes(anterior);
+        toast.error(error.message);
+        return;
+      }
+    }
+    toast.success("Ambiente removido");
+  };
 
   /* --------------------------------- finish ------------------------------- */
   const finish = async (goToNegociacao = false) => {
@@ -994,10 +1031,8 @@ export default function ComercialNovo() {
         .eq("id", editId);
       if (upErr) { setSaving(false); return toast.error(upErr.message); }
 
-      if (!isAdendo) {
-        // Reset ambientes (cascade remove sub_itens via FK)
-        await supabase.from("ambientes").delete().eq("orcamento_id", editId);
-      }
+      // Em edição/nova versão, não limpamos os ambientes do orçamento.
+      // Remoções são persistidas pela própria ação de remover; aqui apenas atualizamos/adicionamos.
     } else {
       const year = new Date().getFullYear();
       const { count } = await supabase
@@ -1048,25 +1083,28 @@ export default function ComercialNovo() {
     if (!isAdendo) {
       for (let i = 0; i < ambientes.length; i++) {
         const a = ambientes[i];
-        const { data: amb } = await supabase
-          .from("ambientes")
-          .insert({
-            orcamento_id: orcId,
-            nome: a.nome,
-            descricao: a.descricao || null,
-            ordem: i,
-            prazo_dias: a.prazo_dias,
-            custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
-            custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
-            custo_aquisicao: a.custo_aquisicao,
-            preco_sugerido: a.preco_sugerido,
-            markup: a.markup,
-            aplicar_desconto: a.aplicar_desconto !== false,
-            origem_ambiente: a.origem_ambiente || "manual",
-
-          } as any)
-          .select("id")
-          .single();
+        const payload = {
+          orcamento_id: orcId,
+          nome: a.nome,
+          descricao: a.descricao || null,
+          ordem: i,
+          prazo_dias: a.prazo_dias,
+          custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
+          custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
+          custo_aquisicao: a.custo_aquisicao,
+          preco_sugerido: a.preco_sugerido,
+          markup: a.markup,
+          aplicar_desconto: a.aplicar_desconto !== false,
+          origem_ambiente: a.origem_ambiente || "manual",
+        } as any;
+        const query = isEdit && isUuid(a.id)
+          ? supabase.from("ambientes").update(payload).eq("id", a.id).eq("orcamento_id", orcId).select("id").single()
+          : supabase.from("ambientes").insert(payload).select("id").single();
+        const { data: amb, error: ambErr } = await query;
+        if (ambErr) { setSaving(false); return toast.error(ambErr.message); }
+        if (amb) {
+          await supabase.from("sub_itens_ambiente").delete().eq("ambiente_id", amb.id);
+        }
         if (amb && a.itens.length > 0) {
           await supabase.from("sub_itens_ambiente").insert(
             a.itens.map((it) => ({
@@ -1520,6 +1558,12 @@ export default function ComercialNovo() {
                 </div>
               </div>
 
+              {ajustandoNovaVersao && (
+                <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-[13px] text-muted-foreground mb-5">
+                  Você está ajustando os ambientes da nova versão. Após concluir, avance para o resumo e gere/atualize a negociação.
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                 {/* Importar */}
                 <div className="rounded-lg border border-border p-5">
@@ -1785,11 +1829,11 @@ export default function ComercialNovo() {
                               <FileText className="w-4 h-4 text-muted-foreground" />
                             </Button>
                             <Button
-                              variant="ghost" size="icon" className="h-8 w-8"
+                              variant="ghost" size="sm" className="h-8 px-2 text-destructive hover:text-destructive"
                               onClick={() => removeAmbiente(a.id)}
-                              title="Remover"
+                              title="Remover ambiente"
                             >
-                              <Trash2 className="w-4 h-4 text-rose-500" />
+                              <Trash2 className="w-4 h-4 mr-1" /> Remover
                             </Button>
                           </div>
                         </td>
@@ -1953,7 +1997,7 @@ export default function ComercialNovo() {
 
         {/* ============================ STEP 4 — Negociação ============================ */}
         {step === 4 && temNegociacao && editId && (
-          <OrcamentoNegociacaoTab orcamentoId={editId} onNovaVersao={() => setStep(2)} />
+          <OrcamentoNegociacaoTab orcamentoId={editId} onNovaVersao={handleNovaVersaoNegociacao} />
         )}
 
         {/* ============================ Footer nav ============================ */}
