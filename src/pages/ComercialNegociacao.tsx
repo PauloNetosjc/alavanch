@@ -650,18 +650,51 @@ export default function ComercialNegociacao() {
         : ({ data: null } as any);
       setTplContrato((tplLoja ?? null) as ContratoTemplate | null);
 
-      // Template de orçamento da loja (gatilhos de venda + impressão)
-      if (o?.loja_id) {
-        const { data: tplOrc } = await (supabase as any)
-          .from("orcamento_templates")
-          .select("*")
-          .eq("loja_id", o.loja_id)
-          .eq("ativo", true)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        setTplOrcamento(tplOrc || null);
+      // Template de orçamento — primeiro tenta da loja do orçamento, depois fallback global
+      {
+        let tplOrc: any = null;
+        if (o?.loja_id) {
+          const { data } = await (supabase as any)
+            .from("orcamento_templates")
+            .select("*")
+            .eq("loja_id", o.loja_id)
+            .eq("ativo", true)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          tplOrc = data || null;
+        }
+        if (!tplOrc) {
+          // Fallback: template global (loja_id NULL) ativo
+          const { data } = await (supabase as any)
+            .from("orcamento_templates")
+            .select("*")
+            .is("loja_id", null)
+            .eq("ativo", true)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          tplOrc = data || null;
+        }
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.log("[Gatilhos negociação] template carregado", {
+            lojaIdOrcamento: o?.loja_id,
+            templateId: tplOrc?.id,
+            templateLojaId: tplOrc?.loja_id,
+            mostrar_gatilhos_venda: tplOrc?.mostrar_gatilhos_venda,
+            mostrar_gatilhos_na_negociacao: tplOrc?.mostrar_gatilhos_na_negociacao,
+            usar_gatilho_escassez: tplOrc?.usar_gatilho_escassez,
+            quantidade_contratos_restantes: tplOrc?.quantidade_contratos_restantes,
+            usar_gatilho_urgencia: tplOrc?.usar_gatilho_urgencia,
+            validade_horas: tplOrc?.validade_horas,
+            validade_data_hora: tplOrc?.validade_data_hora,
+          });
+          if (!tplOrc) console.warn("Template de orçamento ativo não encontrado para a loja do orçamento.");
+        }
+        setTplOrcamento(tplOrc);
       }
+
 
       // Configurações da empresa (composição de custos e markup)
       const lojaId = (o as any)?.loja_id;
