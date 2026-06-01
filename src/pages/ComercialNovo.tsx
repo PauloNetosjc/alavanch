@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   User, Box, FileText, Upload, Plus, X, Eye, Trash2, ArrowRight, ArrowLeft,
-  Check, AlertCircle, Loader2, ChevronDown, Lock,
+  Check, AlertCircle, Loader2, ChevronDown, Lock, Handshake,
 } from "lucide-react";
 import OrcamentoNegociacaoTab from "@/components/OrcamentoNegociacaoTab";
 
