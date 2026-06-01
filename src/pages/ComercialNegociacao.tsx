@@ -2356,7 +2356,7 @@ export default function ComercialNegociacao() {
 
               {usarEsc && (
                 <div className="rounded-lg bg-[#FFF4D8] border border-[#D7B66B] px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#B9872D] font-semibold">Escassez</div>
+                  
                   <div className="mt-1 flex items-baseline gap-2">
                     <span className="text-[34px] leading-none font-bold text-[#B9872D]">{contratosRest}</span>
                     <span className="text-[13px] text-[#2A2A2A] font-medium">contratos restantes</span>
