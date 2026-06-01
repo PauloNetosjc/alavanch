@@ -1214,6 +1214,29 @@ export default function ComercialNegociacao() {
     toast.success("Entrada adicionada");
   };
 
+  // Adiciona um card de entrada vazio (R$ 0,00) na seção DESCRIÇÃO DE PAGAMENTO.
+  // A forma da entrada é escolhida diretamente na parcela (campo Forma prevista).
+  const adicionarEntradaCard = () => {
+    const cfgEnt = entradasCfg[0];
+    if (!cfgEnt?.forma_pagamento) {
+      return toast.error("Nenhuma forma de entrada ativa cadastrada.");
+    }
+    const hoje = new Date().toISOString().slice(0, 10);
+    setPagamentos((prev) => [
+      ...prev,
+      {
+        metodo: cfgEnt.forma_pagamento,
+        valor: 0,
+        parcelas: 1,
+        data_vencimento: novoVenc || hoje,
+        parcelas_detalhe: null,
+        is_entrada: true,
+      } as any,
+    ]);
+    toast.success("Entrada adicionada — informe o valor e a forma na parcela.");
+  };
+
+
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
   // O valor é sempre o restante a parcelar (total - soma das entradas).
   useEffect(() => {
