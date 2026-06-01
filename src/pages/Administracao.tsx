@@ -931,6 +931,7 @@ function TemplateOrcamento() {
       mostrar_gatilhos_venda: !!tpl.mostrar_gatilhos_venda,
       mostrar_gatilhos_na_negociacao: !!tpl.mostrar_gatilhos_na_negociacao,
       mostrar_gatilhos_na_impressao: !!tpl.mostrar_gatilhos_na_impressao,
+      titulo_painel_fechamento: tpl.titulo_painel_fechamento ?? null,
       usar_gatilho_escassez: !!tpl.usar_gatilho_escassez,
       titulo_escassez: tpl.titulo_escassez ?? "Contratos restantes",
       quantidade_contratos_total: tpl.quantidade_contratos_total ?? null,
