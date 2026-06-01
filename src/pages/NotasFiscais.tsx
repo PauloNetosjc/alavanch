@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertTriangle, BarChart3, CheckCircle2, FileText, Settings, Shield, Wrench, XCircle,
-  Package, History, Activity,
+  Package, History, Activity, ListOrdered, Layers, Calculator,
 } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
 import { ConfiguracoesFiscaisPanel } from "@/components/fiscal/ConfiguracoesFiscaisPanel";
@@ -17,6 +17,9 @@ import { ServicosFiscaisPanel } from "@/components/fiscal/ServicosFiscaisPanel";
 import { NotasEmitidasPanel } from "@/components/fiscal/NotasEmitidasPanel";
 import { EventosAuditoriaPanel } from "@/components/fiscal/EventosAuditoriaPanel";
 import { StatusBackendFiscalPanel } from "@/components/fiscal/StatusBackendFiscalPanel";
+import { CfopsPanel } from "@/components/fiscal/CfopsPanel";
+import { OperacoesFiscaisPanel } from "@/components/fiscal/OperacoesFiscaisPanel";
+import { ConfiguracoesTributariasPanel } from "@/components/fiscal/ConfiguracoesTributariasPanel";
 
 type NF = { id: string; tipo: string; status: string; valor_total: number; ambiente: string | null; created_at: string };
 type Cert = { id: string; nome: string; validade_fim: string | null; status: string };
