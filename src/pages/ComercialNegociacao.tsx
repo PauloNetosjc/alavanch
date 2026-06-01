@@ -858,14 +858,18 @@ export default function ComercialNegociacao() {
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
-  // Custo "Fábrica" da composição = soma do CUSTO (valor de custo) dos ambientes,
-  // que é o custo_aquisicao gravado na importação Promob (coluna "valor de custo").
-  // O "valor de fábrica" das peças é apenas referência interna e NÃO entra aqui.
+  // Custo CMV = soma do "valor de custo" dos ambientes (custo_aquisicao).
+  // Entra no Total de Custos e no cálculo de margem.
   const custoFabricaTotal = useMemo(
     () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_aquisicao) || 0), 0),
     [ambientesIncluidos],
   );
-  const custoTotalAmbientes = custoFabricaTotal;
+  // Custo Fábrica (referência) = soma do "valor de fábrica" dos ambientes (custo_fabrica).
+  // Apenas informativo — NÃO entra no Total de Custos nem na margem.
+  const custoFabricaReferencia = useMemo(
+    () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_fabrica) || 0), 0),
+    [ambientesIncluidos],
+  );
   // Calcula juros por pagamento, separando por modo (absorver x repassar).
   // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
   // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
