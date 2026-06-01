@@ -191,6 +191,28 @@ export function ProdutosFiscaisPanel() {
             <div><Label>Alíquota PIS (%)</Label><Input type="number" step="0.01" value={form.aliquota_pis ?? ""} onChange={(e) => setForm({ ...form, aliquota_pis: e.target.value ? parseFloat(e.target.value) : null })}/></div>
             <div><Label>Alíquota COFINS (%)</Label><Input type="number" step="0.01" value={form.aliquota_cofins ?? ""} onChange={(e) => setForm({ ...form, aliquota_cofins: e.target.value ? parseFloat(e.target.value) : null })}/></div>
             <div><Label>Alíquota IPI (%)</Label><Input type="number" step="0.01" value={form.aliquota_ipi ?? ""} onChange={(e) => setForm({ ...form, aliquota_ipi: e.target.value ? parseFloat(e.target.value) : null })}/></div>
+            <div>
+              <Label>Grupo tributário</Label>
+              <Select value={(form as any).grupo_tributario || ""} onValueChange={(v) => setForm({ ...form, grupo_tributario: v } as any)}>
+                <SelectTrigger><SelectValue placeholder="—"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nacional">Nacional</SelectItem>
+                  <SelectItem value="importado">Importado</SelectItem>
+                  <SelectItem value="substituicao_tributaria">Substituição Tributária</SelectItem>
+                  <SelectItem value="isento">Isento</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Operação fiscal padrão</Label>
+              <Select value={(form as any).operacao_fiscal_padrao_id || ""} onValueChange={(v) => setForm({ ...form, operacao_fiscal_padrao_id: v } as any)}>
+                <SelectTrigger><SelectValue placeholder="—"/></SelectTrigger>
+                <SelectContent>
+                  {ops.map((o) => <SelectItem key={o.id} value={o.id}>{o.codigo_cfop ? `${o.codigo_cfop} — ` : ""}{o.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
