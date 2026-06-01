@@ -2184,7 +2184,7 @@ export default function ComercialNegociacao() {
                 size="sm"
                 className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg transition-all font-semibold"
                 onClick={aplicarEntrada}
-                disabled={!entrada || entrada <= 0}
+                disabled={!entrada || entrada <= 0 || !entradaCfgSelecionada}
               >
                 <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada
               </Button>
