@@ -5995,6 +5995,80 @@ export type Database = {
           },
         ]
       }
+      orcamento_templates: {
+        Row: {
+          ativo: boolean
+          condicoes_gerais_html: string | null
+          created_at: string
+          id: string
+          loja_id: string
+          mostrar_condicoes_gerais: boolean
+          mostrar_dados_cliente: boolean
+          mostrar_dados_empresa: boolean
+          mostrar_descricao_ambientes: boolean
+          mostrar_forma_pagamento: boolean
+          mostrar_itens_tecnicos: boolean
+          mostrar_logo: boolean
+          mostrar_resumo_descontos: boolean
+          nome: string
+          observacoes_internas: string | null
+          rodape_html: string | null
+          subtitulo: string | null
+          titulo: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          condicoes_gerais_html?: string | null
+          created_at?: string
+          id?: string
+          loja_id: string
+          mostrar_condicoes_gerais?: boolean
+          mostrar_dados_cliente?: boolean
+          mostrar_dados_empresa?: boolean
+          mostrar_descricao_ambientes?: boolean
+          mostrar_forma_pagamento?: boolean
+          mostrar_itens_tecnicos?: boolean
+          mostrar_logo?: boolean
+          mostrar_resumo_descontos?: boolean
+          nome?: string
+          observacoes_internas?: string | null
+          rodape_html?: string | null
+          subtitulo?: string | null
+          titulo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          condicoes_gerais_html?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string
+          mostrar_condicoes_gerais?: boolean
+          mostrar_dados_cliente?: boolean
+          mostrar_dados_empresa?: boolean
+          mostrar_descricao_ambientes?: boolean
+          mostrar_forma_pagamento?: boolean
+          mostrar_itens_tecnicos?: boolean
+          mostrar_logo?: boolean
+          mostrar_resumo_descontos?: boolean
+          nome?: string
+          observacoes_internas?: string | null
+          rodape_html?: string | null
+          subtitulo?: string | null
+          titulo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_templates_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orcamentos: {
         Row: {
           adendo_descricao: string | null
