@@ -173,21 +173,41 @@ function Linha({ k, v }: { k: string; v: any }) {
 }
 
 function PainelEmissao({ tipo, certOk }: { tipo: string; certOk: boolean }) {
+  const isNfse = tipo === "NFS-e";
   return (
     <Card className="p-6 space-y-3">
       <h2 className="text-lg font-medium">{tipo}</h2>
-      <p className="text-sm text-muted-foreground">
-        Para gerar uma {tipo} a partir de um pedido, abra o pedido no Comercial e use a ação <strong>Fiscal / Emitir nota</strong>.
-        A pré-nota será criada como rascunho. Transmissão para SEFAZ/prefeitura será habilitada na próxima fase.
-      </p>
-      {!certOk && (
-        <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4"/> Certificado digital ausente ou pendente de validação.
-        </div>
+      {isNfse ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            <strong>NFS-e</strong> será implementada após a NF-e em homologação concluir o piloto.
+            Esta aba permanecerá apenas informativa até lá.
+          </p>
+          <div className="p-3 rounded-md bg-muted text-xs">
+            Emissão de NFS-e desabilitada nesta fase. Use a aba <strong>NF-e</strong> ou abra um pedido
+            e use <strong>Fiscal / Emitir nota</strong> para criar pré-nota.
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            A emissão de <strong>NF-e modelo 55</strong> em <strong>HOMOLOGAÇÃO</strong> roda no
+            <strong> Backend fiscal próprio Alavanch</strong> (sem APIs terceiras). Abra a aba
+            <strong> Notas Emitidas</strong>, selecione uma nota em rascunho e clique em
+            <em> Emitir NF-e Homologação</em>.
+          </p>
+          {!certOk && (
+            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4"/> Certificado digital ausente ou pendente de validação.
+            </div>
+          )}
+          <div className="p-3 rounded-md bg-muted text-xs">
+            Endpoints do backend fiscal: <code>POST fiscal-nfe-emitir</code>, <code>POST fiscal-nfe-consultar</code>,
+            <code> POST fiscal-nfe-cancelar</code> (cancelamento bloqueado nesta fase).
+            <br/>Produção: <strong>bloqueada</strong> até validação completa em homologação.
+          </div>
+        </>
       )}
-      <div className="p-3 rounded-md bg-muted text-xs">
-        Endpoints futuros (não implementados nesta fase): <code>POST /fiscal/{tipo === "NF-e" ? "nfe" : "nfse"}/emitir</code>, <code>POST /fiscal/consultar</code>, <code>POST /fiscal/cancelar</code>, <code>POST /fiscal/carta-correcao</code>.
-      </div>
     </Card>
   );
 }
