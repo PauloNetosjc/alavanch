@@ -968,16 +968,34 @@ export default function ComercialNovo() {
     toast.success("Ambiente adicionado");
   };
 
+  const isAmbienteImportado = (a: Partial<Ambiente> & Record<string, any>) => {
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || "").toString().toLowerCase();
+    if (origem && origem !== "manual") return true;
+    if ((a as any)?.importado_xml === true || (a as any)?.importado === true) return true;
+    if ((a as any)?.arquivo_xml_id || (a as any)?.arquivo_importacao_id) return true;
+    return false;
+  };
+
   const updateAmbiente = (id: string, patch: Partial<Ambiente>) => {
-    setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    setAmbientes((prev) => prev.map((a) => {
+      if (a.id !== id) return a;
+      const next: Partial<Ambiente> = { ...patch };
+      if (isAmbienteImportado(a)) {
+        delete (next as any).preco_sugerido;
+        delete (next as any).markup;
+      }
+      return { ...a, ...next };
+    }));
   };
 
   // sync: markup é multiplicador (ex: 2 => preço = 2 * custo)
   const onChangeMarkup = (a: Ambiente, markup: number) => {
+    if (isAmbienteImportado(a)) return;
     const preco = a.custo_aquisicao * markup;
     updateAmbiente(a.id, { markup, preco_sugerido: Number(preco.toFixed(2)) });
   };
   const onChangePreco = (a: Ambiente, preco: number) => {
+    if (isAmbienteImportado(a)) return;
     const markup = a.custo_aquisicao > 0 ? preco / a.custo_aquisicao : 0;
     updateAmbiente(a.id, { preco_sugerido: preco, markup: Number(markup.toFixed(2)) });
   };
@@ -1759,45 +1777,56 @@ export default function ComercialNovo() {
                   <tbody>
                     {ambientes.map((a) => {
                       const isXml = a.origem_ambiente === "xml";
+                      const importado = isAmbienteImportado(a);
+                      const origemLabel = isXml ? "XML" : importado ? "Importado" : null;
                       return (
                       <tr key={a.id} className="border-b border-border last:border-0 align-top">
                         <td className="px-4 py-3">
                           <div className="font-semibold text-emerald-700 flex items-center gap-1.5">
                             {a.nome}
-                            {isXml && (
-                              <span title="Ambiente importado por XML" className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
-                                <Lock className="w-3 h-3 mr-1" /> XML
+                            {origemLabel && (
+                              <span title={`Ambiente importado (${origemLabel})`} className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
+                                <Lock className="w-3 h-3 mr-1" /> {origemLabel}
                               </span>
                             )}
                           </div>
                         </td>
                         {podeVerCusto && usarMarkup && (
                           <td className="px-2 py-3 text-center">
-                            <Input
-                              type="number" step="0.01"
-                              value={a.markup}
-                              disabled={isXml}
-                              onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
-                              className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
-                            />
+                            {importado ? (
+                              <div className="h-9 flex items-center justify-center text-[13px] text-muted-foreground bg-muted/40 rounded-md border border-border">
+                                {Number(a.markup || 0).toFixed(2)}x
+                              </div>
+                            ) : (
+                              <Input
+                                type="number" step="0.01"
+                                value={a.markup}
+                                onChange={(e) => onChangeMarkup(a, Number(e.target.value) || 0)}
+                                className="h-9 text-center text-[#2D6BE5] border-[#D6E4F5]"
+                              />
+                            )}
                           </td>
                         )}
                         <td className="px-2 py-3 text-right">
-                          <div className="relative">
+                          {importado ? (
+                            <div
+                              className="h-9 flex items-center justify-end gap-1.5 px-3 rounded-md bg-muted/40 border border-border text-[13px] text-mono"
+                              title="Preço importado do arquivo. Não pode ser editado manualmente."
+                              aria-disabled="true"
+                            >
+                              <span>{a.preco_sugerido ? fmtBrl(a.preco_sugerido) : "Arquivo importado sem preço sugerido"}</span>
+                              <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                            </div>
+                          ) : (
                             <Input
                               type="number" step="0.01"
                               value={a.preco_sugerido}
-                              readOnly={isXml}
-                              disabled={isXml}
-                              title={isXml ? "Preço importado do XML. Para alterar, ajuste a origem/importação ou crie edição manual autorizada." : undefined}
-                              onChange={(e) => !isXml && onChangePreco(a, Number(e.target.value) || 0)}
-                              className={`h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300 ${isXml ? "bg-muted/40 pr-7" : ""}`}
+                              onChange={(e) => onChangePreco(a, Number(e.target.value) || 0)}
+                              className="h-9 text-right text-mono border-emerald-200 focus-visible:ring-emerald-300"
                             />
-                            {isXml && (
-                              <Lock className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2" />
-                            )}
-                          </div>
+                          )}
                         </td>
+
                         <td className="px-2 py-3 text-center">
                           <div className="flex items-center justify-center">
                             <Checkbox
