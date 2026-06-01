@@ -67,7 +67,7 @@ type Ambiente = {
   itens: Item[];
   manual?: boolean;
   aplicar_desconto?: boolean;  // se false, esse ambiente não recebe desconto na negociação
-  origem_ambiente?: "manual" | "xml" | "importado";
+  origem_ambiente?: "manual" | "xml" | "importado" | "estoque" | "tabela";
 };
 
 
@@ -644,8 +644,8 @@ export default function ComercialNovo() {
       preco_sugerido: Number(venda.toFixed(2)),
       markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
       itens,
-      manual: true,
-      origem_ambiente: "manual",
+      manual: false,
+      origem_ambiente: "estoque",
     };
     setAmbientes((prev) => [...prev, novo]);
     setEstoqueNome("");
@@ -969,11 +969,23 @@ export default function ComercialNovo() {
   };
 
   const isAmbienteImportado = (a: Partial<Ambiente> & Record<string, any>) => {
-    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || "").toString().toLowerCase();
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || (a as any)?.fonte || "").toString().toLowerCase();
     if (origem && origem !== "manual") return true;
     if ((a as any)?.importado_xml === true || (a as any)?.importado === true) return true;
     if ((a as any)?.arquivo_xml_id || (a as any)?.arquivo_importacao_id) return true;
+    if ((a as any)?.produto_id || (a as any)?.estoque_id) return true;
+    if (Array.isArray((a as any)?.produtos_estoque) && (a as any).produtos_estoque.length > 0) return true;
     return false;
+  };
+
+  const origemAmbienteLabel = (a: Partial<Ambiente> & Record<string, any>): string | null => {
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.fonte || "").toString().toLowerCase();
+    if (origem === "xml") return "XML";
+    if (origem === "estoque") return "Estoque";
+    if (origem === "tabela") return "Tabela";
+    if (origem === "importado") return "Importado";
+    if (isAmbienteImportado(a)) return "Importado";
+    return null;
   };
 
   const updateAmbiente = (id: string, patch: Partial<Ambiente>) => {
@@ -1776,16 +1788,15 @@ export default function ComercialNovo() {
                   </thead>
                   <tbody>
                     {ambientes.map((a) => {
-                      const isXml = a.origem_ambiente === "xml";
                       const importado = isAmbienteImportado(a);
-                      const origemLabel = isXml ? "XML" : importado ? "Importado" : null;
+                      const origemLabel = origemAmbienteLabel(a);
                       return (
                       <tr key={a.id} className="border-b border-border last:border-0 align-top">
                         <td className="px-4 py-3">
                           <div className="font-semibold text-emerald-700 flex items-center gap-1.5">
                             {a.nome}
                             {origemLabel && (
-                              <span title={`Ambiente importado (${origemLabel})`} className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
+                              <span title={`Preço definido pela origem do ambiente (${origemLabel}). Não pode ser editado manualmente.`} className="inline-flex items-center text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 uppercase tracking-wider">
                                 <Lock className="w-3 h-3 mr-1" /> {origemLabel}
                               </span>
                             )}
@@ -1811,10 +1822,10 @@ export default function ComercialNovo() {
                           {importado ? (
                             <div
                               className="h-9 flex items-center justify-end gap-1.5 px-3 rounded-md bg-muted/40 border border-border text-[13px] text-mono"
-                              title="Preço importado do arquivo. Não pode ser editado manualmente."
+                              title="Preço definido pela origem do ambiente. Não pode ser editado manualmente."
                               aria-disabled="true"
                             >
-                              <span>{a.preco_sugerido ? fmtBrl(a.preco_sugerido) : "Arquivo importado sem preço sugerido"}</span>
+                              <span>{a.preco_sugerido ? fmtBrl(a.preco_sugerido) : "Sem preço sugerido"}</span>
                               <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                             </div>
                           ) : (
