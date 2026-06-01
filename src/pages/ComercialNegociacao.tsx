@@ -557,6 +557,7 @@ export default function ComercialNegociacao() {
   const [actionAfterValidate, setActionAfterValidate] = useState<"print" | "save" | "confirmar" | null>(null);
   const [openConfirmar, setOpenConfirmar] = useState(false);
   const [tplContrato, setTplContrato] = useState<ContratoTemplate | null>(null);
+  const [tplOrcamento, setTplOrcamento] = useState<any>(null);
   const [confirmando, setConfirmando] = useState(false);
 
   /* ----------------------------- load ----------------------------- */
