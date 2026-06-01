@@ -831,3 +831,198 @@ function ContratoRichEditor({ value, onChange }: { value: string; onChange: (v: 
     />
   );
 }
+
+/* ============================== TEMPLATE DE ORÇAMENTO ============================== */
+function TemplateOrcamento() {
+  const [lojas, setLojas] = useState<{ id: string; nome: string }[]>([]);
+  const [lojaAtiva, setLojaAtiva] = useState<string>("");
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tpl, setTpl] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const novoTemplate = (loja_id: string) => ({
+    loja_id,
+    nome: "Padrão",
+    ativo: true,
+    titulo: "PROPOSTA COMERCIAL",
+    subtitulo: "",
+    mostrar_logo: true,
+    mostrar_dados_empresa: true,
+    mostrar_dados_cliente: true,
+    mostrar_descricao_ambientes: false,
+    mostrar_itens_tecnicos: false,
+    mostrar_resumo_descontos: true,
+    mostrar_forma_pagamento: true,
+    mostrar_condicoes_gerais: true,
+    condicoes_gerais_html: "<p>1. Esta proposta tem validade de 15 dias a contar da data de emissão.</p><p>2. Os prazos de produção e entrega serão definidos após a assinatura do caderno técnico.</p><p>3. Eventuais alterações de projeto após a assinatura podem implicar revisão de valores e prazos.</p>",
+    rodape_html: "",
+    observacoes_internas: "",
+  });
+
+  useEffect(() => {
+    (async () => {
+      const { data: ls } = await supabase.from("lojas").select("id,nome").eq("ativo", true).order("nome");
+      const list = (ls || []) as any[];
+      setLojas(list);
+      if (list.length && !lojaAtiva) setLojaAtiva(list[0].id);
+      setLoading(false);
+    })();
+  }, []);
+
+  const carregar = async (loja_id: string) => {
+    const { data } = await (supabase as any).from("orcamento_templates").select("*").eq("loja_id", loja_id).order("created_at");
+    const arr = (data || []) as any[];
+    setTemplates(arr);
+    if (arr.length) {
+      setSelectedId(arr[0].id);
+      setTpl(arr[0]);
+    } else {
+      setSelectedId(null);
+      setTpl(novoTemplate(loja_id));
+    }
+  };
+
+  useEffect(() => { if (lojaAtiva) carregar(lojaAtiva); }, [lojaAtiva]);
+
+  const selecionar = (id: string) => {
+    const t = templates.find((x) => x.id === id);
+    if (t) { setSelectedId(id); setTpl(t); }
+  };
+
+  const novo = () => { setSelectedId(null); setTpl(novoTemplate(lojaAtiva)); };
+
+  const salvar = async () => {
+    if (!tpl || !lojaAtiva) return;
+    setSaving(true);
+    const payload: any = {
+      loja_id: lojaAtiva,
+      nome: tpl.nome, ativo: tpl.ativo,
+      titulo: tpl.titulo, subtitulo: tpl.subtitulo,
+      mostrar_logo: !!tpl.mostrar_logo,
+      mostrar_dados_empresa: !!tpl.mostrar_dados_empresa,
+      mostrar_dados_cliente: !!tpl.mostrar_dados_cliente,
+      mostrar_descricao_ambientes: !!tpl.mostrar_descricao_ambientes,
+      mostrar_itens_tecnicos: !!tpl.mostrar_itens_tecnicos,
+      mostrar_resumo_descontos: !!tpl.mostrar_resumo_descontos,
+      mostrar_forma_pagamento: !!tpl.mostrar_forma_pagamento,
+      mostrar_condicoes_gerais: !!tpl.mostrar_condicoes_gerais,
+      condicoes_gerais_html: tpl.condicoes_gerais_html ?? "",
+      rodape_html: tpl.rodape_html ?? "",
+      observacoes_internas: tpl.observacoes_internas ?? "",
+    };
+    const op = tpl.id
+      ? (supabase as any).from("orcamento_templates").update(payload).eq("id", tpl.id).select().maybeSingle()
+      : (supabase as any).from("orcamento_templates").insert(payload).select().maybeSingle();
+    const { data, error } = await op;
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Template de orçamento salvo");
+    await carregar(lojaAtiva);
+    if (data?.id) { setSelectedId(data.id); setTpl(data); }
+  };
+
+  const excluir = async () => {
+    if (!tpl?.id) return;
+    if (!confirm("Excluir este template?")) return;
+    const { error } = await (supabase as any).from("orcamento_templates").delete().eq("id", tpl.id);
+    if (error) return toast.error(error.message);
+    toast.success("Template excluído");
+    await carregar(lojaAtiva);
+  };
+
+  if (loading) return <div className="text-center py-10 text-muted-foreground text-[13px]">Carregando…</div>;
+  if (!lojas.length) return <div className="text-center py-10 text-muted-foreground text-[13px]">Nenhuma loja cadastrada.</div>;
+
+  const Toggle = ({ k, label }: { k: string; label: string }) => (
+    <label className="flex items-center gap-2 text-[13px] border rounded-md px-3 py-2 bg-white cursor-pointer">
+      <Switch checked={!!tpl?.[k]} onCheckedChange={(v) => setTpl({ ...tpl, [k]: v })} />
+      <span>{label}</span>
+    </label>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Tabs value={lojaAtiva} onValueChange={setLojaAtiva}>
+        <TabsList className="flex flex-wrap h-auto">
+          {lojas.map((l) => (
+            <TabsTrigger key={l.id} value={l.id} className="gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />{l.nome}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <div className="surface-card p-6 space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#2D6BE5]" />
+            <h2 className="text-[18px] font-semibold">Templates de Orçamento — {lojas.find((l) => l.id === lojaAtiva)?.nome}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {templates.length > 0 && (
+              <Select value={selectedId ?? ""} onValueChange={selecionar}>
+                <SelectTrigger className="w-[260px]"><SelectValue placeholder="Selecionar template" /></SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}{!t.ativo ? " (inativo)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline" size="sm" onClick={novo} className="gap-1.5"><Plus className="w-3.5 h-3.5" />Novo</Button>
+            {tpl?.id && <Button variant="outline" size="sm" onClick={excluir} className="gap-1.5 text-destructive"><Trash2 className="w-3.5 h-3.5" />Excluir</Button>}
+          </div>
+        </div>
+
+        <p className="text-[13px] text-muted-foreground">
+          Variáveis para condições gerais: <code className="bg-muted px-1 rounded">{`{{cliente_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{empresa_nome}}`}</code>, <code className="bg-muted px-1 rounded">{`{{numero_orcamento}}`}</code>, <code className="bg-muted px-1 rounded">{`{{nome_projeto}}`}</code>, <code className="bg-muted px-1 rounded">{`{{valor_total}}`}</code>, <code className="bg-muted px-1 rounded">{`{{desconto_total}}`}</code>, <code className="bg-muted px-1 rounded">{`{{data}}`}</code>.
+        </p>
+
+        {tpl && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Nome do template</Label><Input value={tpl.nome || ""} onChange={(e) => setTpl({ ...tpl, nome: e.target.value })} /></div>
+              <div className="flex items-end gap-2"><Switch checked={!!tpl.ativo} onCheckedChange={(v) => setTpl({ ...tpl, ativo: v })} /><span className="text-[12px] text-muted-foreground pb-2">{tpl.ativo ? "Ativo" : "Inativo"}</span></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Título</Label><Input value={tpl.titulo || ""} onChange={(e) => setTpl({ ...tpl, titulo: e.target.value })} /></div>
+              <div><Label>Subtítulo</Label><Input value={tpl.subtitulo ?? ""} onChange={(e) => setTpl({ ...tpl, subtitulo: e.target.value })} /></div>
+            </div>
+
+            <div>
+              <Label className="mb-2 block">O que exibir na impressão</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <Toggle k="mostrar_logo" label="Mostrar logo" />
+                <Toggle k="mostrar_dados_empresa" label="Dados da empresa" />
+                <Toggle k="mostrar_dados_cliente" label="Dados do cliente" />
+                <Toggle k="mostrar_descricao_ambientes" label="Descrição dos ambientes" />
+                <Toggle k="mostrar_itens_tecnicos" label="Itens técnicos (peças)" />
+                <Toggle k="mostrar_resumo_descontos" label="Resumo de descontos" />
+                <Toggle k="mostrar_forma_pagamento" label="Forma de pagamento" />
+                <Toggle k="mostrar_condicoes_gerais" label="Condições gerais" />
+              </div>
+            </div>
+
+            <div>
+              <Label>Condições gerais do orçamento</Label>
+              <div className="bg-white rounded-md border border-input mt-1">
+                <ContratoRichEditor value={tpl.condicoes_gerais_html || ""} onChange={(v) => setTpl({ ...tpl, condicoes_gerais_html: v })} />
+              </div>
+            </div>
+
+            <div><Label>Rodapé</Label><Textarea rows={3} value={tpl.rodape_html ?? ""} onChange={(e) => setTpl({ ...tpl, rodape_html: e.target.value })} /></div>
+            <div><Label>Observações internas</Label><Textarea rows={3} value={tpl.observacoes_internas ?? ""} onChange={(e) => setTpl({ ...tpl, observacoes_internas: e.target.value })} /></div>
+
+            <div className="flex justify-end">
+              <Button onClick={salvar} disabled={saving} className="gap-1.5">
+                <Save className="w-4 h-4" />{saving ? "Salvando…" : "Salvar Template"}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
