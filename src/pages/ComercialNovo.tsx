@@ -805,8 +805,10 @@ export default function ComercialNovo() {
     if (n === 1) return true;
     if (n === 2) return canNext1;
     if (n === 3) return canNext1 && canNext2;
+    if (n === 4) return temNegociacao;
     return false;
   };
+
 
 
   /* ----------------------------- step 2: import -------------------------- */
