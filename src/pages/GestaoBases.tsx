@@ -521,11 +521,47 @@ function DetalheBaseSheet({
       detalhes: { loja_id: lojaId, modulo: m.chave, ativo: novo }, usuario_id: userId,
     } as any);
     toast.success("Módulo atualizado");
+    window.dispatchEvent(new Event("modulos-loja-updated"));
     carregarTudo();
   };
 
   const aplicarParaTodas = async (m: Modulo, novo: boolean) => {
     for (const lj of lojas) await toggleModuloLoja(lj.id, m, novo);
+  };
+
+  const sincronizarModulosNasLojas = async () => {
+    if (lojas.length === 0) { toast.info("Esta base não tem lojas vinculadas."); return; }
+    // União: qualquer módulo ativo em pelo menos uma loja vira ativo em todas
+    const ativosUnion = new Set<string>();
+    modulos.forEach((m) => {
+      const algumaAtiva = lojas.some((l) => isAtivo(l.id, m));
+      if (algumaAtiva || m.essencial) ativosUnion.add(m.chave);
+    });
+    const linhas: any[] = [];
+    lojas.forEach((l) => {
+      modulos.forEach((m) => {
+        linhas.push({
+          loja_id: l.id,
+          modulo_chave: m.chave,
+          ativo: ativosUnion.has(m.chave),
+          contratado: ativosUnion.has(m.chave),
+          data_ativacao: ativosUnion.has(m.chave) ? new Date().toISOString() : null,
+          data_desativacao: ativosUnion.has(m.chave) ? null : new Date().toISOString(),
+          atualizado_por: userId,
+        });
+      });
+    });
+    const { error } = await supabase.from("modulos_loja" as any).upsert(linhas, { onConflict: "loja_id,modulo_chave" });
+    if (error) { toast.error(error.message); return; }
+    const nfAtivado = ativosUnion.has("notas_fiscais");
+    await supabase.from("bases_clientes_historico" as any).insert({
+      base_id: base.id, evento: "modulos_sincronizados",
+      descricao: `Módulos sincronizados em ${lojas.length} loja(s).`,
+      detalhes: { modulos_ativos: Array.from(ativosUnion) }, usuario_id: userId,
+    } as any);
+    toast.success(`${lojas.length} loja(s) sincronizada(s).${nfAtivado ? " Notas Fiscais ativo em todas." : ""}`);
+    window.dispatchEvent(new Event("modulos-loja-updated"));
+    carregarTudo();
   };
 
   return (
@@ -605,7 +641,7 @@ function DetalheBaseSheet({
           </TabsContent>
 
           <TabsContent value="modulos" className="mt-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-xs">Loja:</Label>
               <Select value={lojaSelecionada} onValueChange={setLojaSelecionada}>
                 <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
@@ -614,6 +650,9 @@ function DetalheBaseSheet({
                   {lojas.map((lj) => <SelectItem key={lj.id} value={lj.id}>{lj.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button size="sm" variant="outline" className="ml-auto gap-2" onClick={sincronizarModulosNasLojas}>
+                <Package className="w-3.5 h-3.5" /> Sincronizar módulos nas lojas
+              </Button>
             </div>
             {loadingMod ? (
               <div className="flex justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
