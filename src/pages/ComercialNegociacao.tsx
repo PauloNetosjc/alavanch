@@ -1989,7 +1989,7 @@ export default function ComercialNegociacao() {
                         }}
                         className="w-4 h-4 accent-emerald-600"
                       />
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Incluir</span>
+                      
                     </label>
                     <div className="text-[14px] font-semibold uppercase tracking-tight truncate">{a.nome}</div>
                     {a.aplicar_desconto === false && (
