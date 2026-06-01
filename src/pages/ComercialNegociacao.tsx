@@ -2242,7 +2242,7 @@ export default function ComercialNegociacao() {
           return (
             <div className="rounded-xl border border-[#e4d9bf] bg-[#faf6ec] p-4 space-y-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[12px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">{tituloPainel}</div>
+                <div className="text-[16px] uppercase tracking-[0.16em] text-[#0f3d2e] font-bold mb-1">{tituloPainel}</div>
                 {vencida && (
                   <span className="text-[10px] uppercase tracking-wider bg-[#7A2833] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
