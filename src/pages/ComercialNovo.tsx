@@ -1124,8 +1124,12 @@ export default function ComercialNovo() {
           descricao: a.descricao || null,
           ordem: i,
           prazo_dias: a.prazo_dias,
-          custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
-          custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
+          custo_fabrica: (a.origem_ambiente === "importado" || a.origem_ambiente === "xml")
+            ? a.itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0), 0)
+            : a.itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
+          custo_loja: (a.origem_ambiente === "importado" || a.origem_ambiente === "xml")
+            ? a.itens.reduce((s, it) => s + (Number(it.custo_loja) || 0), 0)
+            : a.itens.reduce((s, it) => s + (Number(it.custo_loja) || 0) * (it.quantidade || 0), 0),
           custo_aquisicao: a.custo_aquisicao,
           preco_sugerido: a.preco_sugerido,
           markup: a.markup,
