@@ -641,7 +641,7 @@ function DetalheBaseSheet({
           </TabsContent>
 
           <TabsContent value="modulos" className="mt-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-xs">Loja:</Label>
               <Select value={lojaSelecionada} onValueChange={setLojaSelecionada}>
                 <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
@@ -650,6 +650,9 @@ function DetalheBaseSheet({
                   {lojas.map((lj) => <SelectItem key={lj.id} value={lj.id}>{lj.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button size="sm" variant="outline" className="ml-auto gap-2" onClick={sincronizarModulosNasLojas}>
+                <Package className="w-3.5 h-3.5" /> Sincronizar módulos nas lojas
+              </Button>
             </div>
             {loadingMod ? (
               <div className="flex justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
