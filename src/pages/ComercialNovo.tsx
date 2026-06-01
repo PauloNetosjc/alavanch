@@ -644,8 +644,8 @@ export default function ComercialNovo() {
       preco_sugerido: Number(venda.toFixed(2)),
       markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
       itens,
-      manual: true,
-      origem_ambiente: "manual",
+      manual: false,
+      origem_ambiente: "estoque",
     };
     setAmbientes((prev) => [...prev, novo]);
     setEstoqueNome("");
