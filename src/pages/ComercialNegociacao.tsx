@@ -40,6 +40,7 @@ type Ambiente = {
   descricao: string | null;
   preco_sugerido: number | null;
   custo_aquisicao?: number | null;
+  custo_fabrica?: number | null;
   negociavel?: boolean;        // incluir no orçamento
   aplicar_desconto?: boolean;  // recebe desconto rateado
 };
@@ -147,7 +148,7 @@ function SenhaAdminDialog({
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
   totalContrato,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, custoTotalAmbientes,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, custoFabricaReferencia,
   jurosAbsorvido, jurosRepassado,
   config, usarMarkup,
 }: {
@@ -155,7 +156,7 @@ function ResumoFinanceiroDialog({
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   totalContrato: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
-  custoTotalAmbientes: number;
+  custoFabricaReferencia: number;
   jurosAbsorvido: number;
   jurosRepassado: number;
   config: any; usarMarkup: boolean;
@@ -321,7 +322,11 @@ function ResumoFinanceiroDialog({
           <div className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
-            <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <Row label="Custo CMV" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <div className="pl-4 -mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Custo Fábrica <span className="italic">(referência interna)</span></span>
+              <span className="text-mono">{fmtBrl(custoFabricaReferencia)}</span>
+            </div>
             {itensCusto.map((i) => (
               <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
             ))}
@@ -642,7 +647,7 @@ export default function ComercialNegociacao() {
           .single(),
         supabase
           .from("ambientes")
-          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, negociavel, aplicar_desconto")
+          .select("id, nome, descricao, preco_sugerido, custo_aquisicao, custo_fabrica, negociavel, aplicar_desconto")
           .eq("orcamento_id", id)
           .order("ordem"),
         supabase.from("metodos_pagamento").select("id, nome, taxa_perc_parcela, max_parcelas, parcelas_config, juros_modo").eq("ativo", true).order("nome"),
@@ -857,14 +862,18 @@ export default function ComercialNegociacao() {
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
-  // Custo "Fábrica" da composição = soma do CUSTO (valor de custo) dos ambientes,
-  // que é o custo_aquisicao gravado na importação Promob (coluna "valor de custo").
-  // O "valor de fábrica" das peças é apenas referência interna e NÃO entra aqui.
+  // Custo CMV = soma do "valor de custo" dos ambientes (custo_aquisicao).
+  // Entra no Total de Custos e no cálculo de margem.
   const custoFabricaTotal = useMemo(
     () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_aquisicao) || 0), 0),
     [ambientesIncluidos],
   );
-  const custoTotalAmbientes = custoFabricaTotal;
+  // Custo Fábrica (referência) = soma do "valor de fábrica" dos ambientes (custo_fabrica).
+  // Apenas informativo — NÃO entra no Total de Custos nem na margem.
+  const custoFabricaReferencia = useMemo(
+    () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_fabrica) || 0), 0),
+    [ambientesIncluidos],
+  );
   // Calcula juros por pagamento, separando por modo (absorver x repassar).
   // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
   // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
@@ -2723,7 +2732,7 @@ export default function ComercialNegociacao() {
         totalContrato={totalContrato}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
-        custoTotalAmbientes={custoTotalAmbientes}
+        custoFabricaReferencia={custoFabricaReferencia}
         jurosAbsorvido={jurosAbsorvido}
         jurosRepassado={jurosRepassado}
         config={config} usarMarkup={usarMarkup}
