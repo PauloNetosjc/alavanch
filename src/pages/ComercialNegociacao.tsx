@@ -1221,19 +1221,24 @@ export default function ComercialNegociacao() {
     if (!cfgEnt?.forma_pagamento) {
       return toast.error("Nenhuma forma de entrada ativa cadastrada.");
     }
+    const valor = Number(entrada) || 0;
+    if (valor <= 0) {
+      return toast.error("Informe o valor da entrada antes de adicionar.");
+    }
     const hoje = new Date().toISOString().slice(0, 10);
     setPagamentos((prev) => [
       ...prev,
       {
         metodo: cfgEnt.forma_pagamento,
-        valor: 0,
+        valor,
         parcelas: 1,
         data_vencimento: novoVenc || hoje,
         parcelas_detalhe: null,
         is_entrada: true,
       } as any,
     ]);
-    toast.success("Entrada adicionada — informe o valor e a forma na parcela.");
+    setEntrada(0);
+    toast.success("Entrada adicionada.");
   };
 
 
@@ -2169,30 +2174,47 @@ export default function ComercialNegociacao() {
 
           {/* Descrição de pagamento */}
           <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
                 <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={adicionarEntradaCard}
-                        disabled={entradasCfg.length === 0}
-                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar entrada
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {entradasCfg.length === 0 && (
-                    <TooltipContent>Nenhuma forma de entrada ativa cadastrada.</TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex items-center gap-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground hidden sm:block">Entrada</Label>
+                <div className="relative w-[150px]">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">R$</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={entrada || ""}
+                    onChange={(e) => setEntrada(Number(e.target.value) || 0)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionarEntradaCard(); } }}
+                    placeholder="0,00"
+                    disabled={entradasCfg.length === 0}
+                    className="h-8 pl-8 pr-2 text-right text-[12px]"
+                  />
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={adicionarEntradaCard}
+                          disabled={entradasCfg.length === 0}
+                          className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar entrada
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {entradasCfg.length === 0 && (
+                      <TooltipContent>Nenhuma forma de entrada ativa cadastrada.</TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
 
