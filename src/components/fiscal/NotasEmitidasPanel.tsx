@@ -11,15 +11,20 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileText, Loader2, Eye, Download, Send, RefreshCw, XCircle } from "lucide-react";
 import { BRL } from "@/lib/financeiro";
+import { toast } from "sonner";
+import { emitirNfeHomologacao } from "@/lib/fiscal/emitirNFe";
+import { podeEmitirNfe } from "@/lib/fiscal/statusNFe";
 
 type NF = {
   id: string; tipo: string; modelo: string | null; numero: string | null; serie: string | null;
-  chave: string | null; status: string; ambiente: string | null;
+  chave: string | null; chave_acesso: string | null; status: string; ambiente: string | null;
   valor_total: number; valor_produtos: number | null; valor_servicos: number | null; valor_impostos: number | null;
   data_emissao: string | null; data_autorizacao: string | null; data_cancelamento: string | null;
   motivo_rejeicao: string | null; mensagem_retorno: string | null; codigo_retorno: string | null;
   pedido_id: string | null; cliente_id: string | null; created_at: string;
   xml_storage_path: string | null; pdf_storage_path: string | null; danfe_storage_path: string | null;
+  xml_url: string | null; xml_autorizado_url: string | null; danfe_url: string | null; retorno_sefaz_url: string | null;
+  protocolo_autorizacao: string | null;
 };
 
 const STATUS = ["rascunho","pronta_para_emitir","assinada","enviada","autorizada","rejeitada","denegada","cancelada","inutilizada","erro_transmissao","aguardando_consulta"];
