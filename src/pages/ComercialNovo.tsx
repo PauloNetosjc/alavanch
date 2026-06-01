@@ -729,7 +729,7 @@ export default function ComercialNovo() {
 
       const { data: ambs } = await supabase
         .from("ambientes")
-        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto")
+        .select("id, nome, descricao, prazo_dias, custo_aquisicao, preco_sugerido, markup, ordem, aplicar_desconto, origem_ambiente")
         .eq("orcamento_id", editId)
         .order("ordem");
       const ambIds = (ambs ?? []).map((a: any) => a.id);
@@ -758,9 +758,22 @@ export default function ComercialNovo() {
         markup: Number(a.markup) || 0,
         itens: itensByAmb[a.id] || [],
         aplicar_desconto: a.aplicar_desconto !== false,
+        origem_ambiente: (a.origem_ambiente as any) || "manual",
       })));
+
+      // Detecta negociação existente para liberar aba 04
+      const { count: negCount } = await supabase
+        .from("orcamento_negociacoes" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("orcamento_id", editId);
+      const tem = (negCount || 0) > 0;
+      setTemNegociacao(tem);
+      if (tem && (abaParam === "negociacao" || abaParam === "4")) {
+        setStep(4);
+      }
     })();
   }, [editId, navigate]);
+
 
   /* --------------------------- totals (derived) --------------------------- */
   const subtotalAmbientes = useMemo(
