@@ -1966,34 +1966,13 @@ export default function ComercialNegociacao() {
           </div>
 
 
-          {/* Fluxo de recebimento */}
+          {/* Descrição de pagamento */}
           <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <Banknote className="w-4 h-4 text-emerald-600" /> FLUXO DE RECEBIMENTO
-              </div>
-              <div className="text-[12px] flex gap-6">
-                <div className="text-right">
-                  <div className="text-muted-foreground text-[10px] uppercase tracking-wider">Total Alocado</div>
-                  <div className="font-medium text-mono text-[#2D6BE5]">{fmtBrl(totalAlocado)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-muted-foreground text-[10px] uppercase tracking-wider">Restante</div>
-                  <div className={`font-medium text-mono ${Math.abs(restante) < 0.01 ? "text-emerald-700" : "text-rose-600"}`}>
-                    {fmtBrl(restante)}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full transition-all"
-                style={{ width: `${allocPerc}%`, background: allocPerc >= 100 ? "#3F8B5C" : "#2D6BE5" }} />
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
-              <span>{allocPerc.toFixed(1)}% alocado</span>
-              {allocPerc >= 100 && <span className="text-emerald-700 font-medium">✓ Pagamento completo</span>}
+            <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
+              <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
             </div>
           </div>
+
 
           {/* lista de pagamentos */}
           {pagamentos.length > 0 ? (
