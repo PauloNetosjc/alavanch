@@ -859,6 +859,22 @@ function TemplateOrcamento() {
     condicoes_gerais_html: "<p>1. Esta proposta tem validade de 15 dias a contar da data de emissão.</p><p>2. Os prazos de produção e entrega serão definidos após a assinatura do caderno técnico.</p><p>3. Eventuais alterações de projeto após a assinatura podem implicar revisão de valores e prazos.</p>",
     rodape_html: "",
     observacoes_internas: "",
+    // Gatilhos de Venda
+    mostrar_gatilhos_venda: false,
+    mostrar_gatilhos_na_negociacao: true,
+    mostrar_gatilhos_na_impressao: false,
+    usar_gatilho_escassez: false,
+    titulo_escassez: "Contratos restantes",
+    quantidade_contratos_total: null,
+    quantidade_contratos_restantes: null,
+    texto_escassez: "Condição disponível para um número limitado de contratos.",
+    usar_gatilho_urgencia: false,
+    tipo_validade: "horas",
+    validade_horas: 24,
+    validade_data_hora: null,
+    texto_urgencia: "Proposta válida até o prazo informado.",
+    sugestao_texto_fechamento:
+      "Essa condição fica reservada até {{validade}} e temos apenas {{contratos_restantes}} contratos neste lote comercial.",
   });
 
   useEffect(() => {
