@@ -809,7 +809,7 @@ export default function ComercialNovo() {
         setStep(4);
       }
     })();
-  }, [abaParam, carregarAmbientes, editId, navigate]);
+  }, [abaParam, carregarAmbientes, editId, navigate, profile?.loja_id]);
 
 
   /* --------------------------- totals (derived) --------------------------- */
@@ -1559,7 +1559,7 @@ export default function ComercialNovo() {
               </div>
 
               {ajustandoNovaVersao && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 mb-5">
+                <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-[13px] text-muted-foreground mb-5">
                   Você está ajustando os ambientes da nova versão. Após concluir, avance para o resumo e gere/atualize a negociação.
                 </div>
               )}
@@ -1829,7 +1829,7 @@ export default function ComercialNovo() {
                               <FileText className="w-4 h-4 text-muted-foreground" />
                             </Button>
                             <Button
-                              variant="ghost" size="sm" className="h-8 px-2 text-rose-600 hover:text-rose-700"
+                              variant="ghost" size="sm" className="h-8 px-2 text-destructive hover:text-destructive"
                               onClick={() => removeAmbiente(a.id)}
                               title="Remover ambiente"
                             >
