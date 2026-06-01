@@ -597,6 +597,7 @@ function MetodosPagamento() {
         <FormasPagamentoButton />
       </div>
       <MetodosPagamentoAdmin />
+      <FormasPagamentoEntradaAdmin />
     </div>
   );
 }
