@@ -291,12 +291,6 @@ function ResumoFinanceiroDialog({
                 <Field label="Valor final com juros (contrato)" color="#1F5235" value={fmtBrl(totalContrato)} />
               </>
             )}
-            {jurosAbsorvido > 0.01 && (
-              <>
-                <Field label="Juros absorvido pela loja" color="#B83232" value={<>-{fmtBrl(jurosAbsorvido)}</>} />
-                <Field label="Valor do contrato sem acréscimo" value={fmtBrl(totalProposta)} />
-              </>
-            )}
             {parceiroNome && podeVerComissao && (
               <Field label={`Indicador (${parceiroNome})`} color="#B83232"
                 value={<>-{fmtBrl(parceiroValorReal)} <span className="text-[12px] text-muted-foreground">({parceiroPerc.toFixed(2)}%)</span></>} />
