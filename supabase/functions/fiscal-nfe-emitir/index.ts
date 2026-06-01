@@ -199,16 +199,35 @@ Deno.serve(async (req) => {
     await supa.storage.from("notas-fiscais").upload(`${baseDir}/nfe-assinada.xml`,
       new Blob([assinada.xmlAssinado], { type: "application/xml" }), { upsert: true });
 
-    // 15) Envia para SEFAZ
+    // 15) Envia para SEFAZ (via Gateway Fiscal mTLS)
     const t3 = Date.now();
     const idLote = String(Date.now()).slice(-15);
+
+    await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "gateway_mtls_chamado",
+      payload: { idLote, uf: cfg.uf }, user_id: userId });
+
     const ret = await enviarLoteNfe({
       uf: cfg.uf, xmlNFeAssinada: assinada.xmlAssinado, idLote, pfx: cert.pfx, senha: cert.senha,
     });
+
+    if (ret.gatewayChamado && ret.gatewayRespondeu) {
+      await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "gateway_mtls_respondeu",
+        payload: { status: ret.status, cStat: ret.cStat }, user_id: userId });
+    } else if (ret.gatewayChamado && !ret.gatewayRespondeu) {
+      await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "gateway_mtls_erro",
+        descricao: ret.gatewayErro ?? ret.erro, user_id: userId });
+    }
+
+    if (ret.xmlRetornoBruto) {
+      await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "sefaz_retorno_recebido",
+        payload: { cStat: ret.cStat, xMotivo: ret.xMotivo }, user_id: userId });
+    }
+
     await registrarEvento(supa, { nota_fiscal_id, loja_id: nota.loja_id, tipo: "lote_enviado",
       payload: { idLote, status: ret.status, cStat: ret.cStat, xMotivo: ret.xMotivo }, user_id: userId });
     await registrarLogTecnico(supa, { nota_fiscal_id, loja_id: nota.loja_id, etapa: "lote_enviado",
-      payload: { idLote }, retorno: { status: ret.status, cStat: ret.cStat, xMotivo: ret.xMotivo },
+      payload: { idLote, gateway: { chamado: ret.gatewayChamado, respondeu: ret.gatewayRespondeu } },
+      retorno: { status: ret.status, cStat: ret.cStat, xMotivo: ret.xMotivo },
       erro: ret.erro, duracao_ms: Date.now() - t3 });
 
     // Salva retorno bruto
