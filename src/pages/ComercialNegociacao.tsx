@@ -1354,6 +1354,9 @@ export default function ComercialNegociacao() {
    * Se houver pendência: expande o card, mostra toast e devolve false.
    */
   const validarVencimentosConfirmados = (): boolean => {
+    // Configuração por loja: quando inativa, não bloqueia nenhuma ação.
+    if (!config?.obrigar_informar_vencimento) return true;
+
     const pendentes: { idxPag: number; total: number }[] = [];
     pagamentos.forEach((p, idxPag) => {
       const { confirmadas } = ensureArrays(p);
@@ -1374,6 +1377,7 @@ export default function ComercialNegociacao() {
     }
     return false;
   };
+
 
   const tryImprimir = () => {
     if (pagamentos.length === 0) {
