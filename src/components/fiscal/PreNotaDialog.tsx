@@ -177,7 +177,20 @@ export function PreNotaDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Natureza da operação</Label><Input value={naturezaOperacao} onChange={(e) => setNaturezaOperacao(e.target.value)}/></div>
+            <div>
+              <Label>Operação fiscal{tipo === "nfe" && " *"}</Label>
+              <Select value={operacaoFiscalId} onValueChange={setOperacaoFiscalId}>
+                <SelectTrigger><SelectValue placeholder="Selecione a operação"/></SelectTrigger>
+                <SelectContent>
+                  {operacoes.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.codigo_cfop ? `${o.codigo_cfop} — ` : ""}{o.nome}{o.padrao ? " (padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2"><Label>Natureza da operação</Label><Input value={naturezaOperacao} onChange={(e) => setNaturezaOperacao(e.target.value)}/></div>
           </div>
 
           <Card className="p-3 space-y-2">
