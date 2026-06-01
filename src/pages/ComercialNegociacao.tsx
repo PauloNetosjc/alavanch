@@ -15,6 +15,7 @@ import {
 import {
   ArrowLeft, Calculator, Check, Plus, Printer, Save, CheckCircle2, Trash2, Eye,
   Lock, Unlock, AlertTriangle, FileText, X as XIcon, Pencil, Banknote, DollarSign, ScrollText,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
