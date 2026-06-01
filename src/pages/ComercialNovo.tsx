@@ -798,6 +798,10 @@ export default function ComercialNovo() {
     [subtotalAmbientes, parceiroPerc],
   );
   const total = subtotalAmbientes + acrescimoParceiro;
+  const custoAmbientes = useMemo(
+    () => isAdendo ? 0 : ambientes.reduce((s, a) => s + (a.custo_aquisicao || 0), 0),
+    [ambientes, isAdendo],
+  );
 
   /* ----------------------------- step 1 helpers --------------------------- */
   const cliente = clientes.find((c) => c.id === clienteId);
