@@ -256,7 +256,7 @@ function DisabledAcao({ icon, label }: { icon: React.ReactNode; label: string })
         <TooltipTrigger asChild>
           <span><Button size="sm" variant="outline" className="gap-1" disabled>{icon}{label}</Button></span>
         </TooltipTrigger>
-        <TooltipContent>Disponível na próxima fase: emissão em homologação.</TooltipContent>
+        <TooltipContent>Backend fiscal próprio Alavanch — disponível em fase futura.</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
