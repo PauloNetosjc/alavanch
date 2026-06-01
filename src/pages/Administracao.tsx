@@ -863,6 +863,7 @@ function TemplateOrcamento() {
     mostrar_gatilhos_venda: false,
     mostrar_gatilhos_na_negociacao: true,
     mostrar_gatilhos_na_impressao: false,
+    titulo_painel_fechamento: "",
     usar_gatilho_escassez: false,
     titulo_escassez: "Contratos restantes",
     quantidade_contratos_total: null,
