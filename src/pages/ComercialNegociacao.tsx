@@ -1469,7 +1469,22 @@ export default function ComercialNegociacao() {
       mostrar_condicoes_gerais: tplOrc?.mostrar_condicoes_gerais ?? true,
       condicoes_gerais_html: tplOrc?.condicoes_gerais_html || "",
       rodape_html: tplOrc?.rodape_html || "",
+      // Gatilhos
+      mostrar_gatilhos_venda: !!tplOrc?.mostrar_gatilhos_venda,
+      mostrar_gatilhos_na_impressao: !!tplOrc?.mostrar_gatilhos_na_impressao,
+      gatilhos_tpl: tplOrc as GatilhosTemplate | null,
     };
+
+    const exibirGatilhos = !!cfg.mostrar_gatilhos_venda && !!cfg.mostrar_gatilhos_na_impressao && !!cfg.gatilhos_tpl;
+    const gValidade = exibirGatilhos ? calcularValidade(cfg.gatilhos_tpl!) : null;
+    const gCtx = {
+      cliente_nome: (orc.cliente as any)?.nome,
+      numero_orcamento: (orc as any)?.codigo,
+      nome_projeto: (orc as any)?.nome_projeto,
+      valor_total: totalProposta,
+      desconto_total: Math.max(0, valorInicial - totalProposta),
+    };
+    const gSugestao = exibirGatilhos ? resolverTexto(cfg.gatilhos_tpl!.sugestao_texto_fechamento || "", cfg.gatilhos_tpl!, gCtx, gValidade) : "";
 
     // Dados de empresa (loja + branding)
     let empresa: any = { nome: "Alavanch", cnpj: "", endereco: "", telefone: "", email: "", logo_url: "" };
