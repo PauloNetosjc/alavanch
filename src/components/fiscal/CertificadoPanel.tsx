@@ -71,18 +71,23 @@ export function CertificadoPanel() {
         .update({ status: "substituido" } as any)
         .eq("loja_id", selectedLojaId)
         .in("status", ["ativo", "pendente_validacao"]);
-      // Senha NUNCA é salva em texto puro — guardamos apenas marcador. Criptografia real virá no backend.
-      const { error } = await supabase.from("certificados_digitais" as any).insert({
+      // Cria o registro sem senha. A cifragem AES-256-GCM acontece em seguida no backend.
+      const { data: inserted, error } = await supabase.from("certificados_digitais" as any).insert({
         loja_id: selectedLojaId,
         nome: file.name,
         tipo_certificado: "A1",
         storage_path: path,
-        senha_encrypted: null, // backend fiscal irá ler do storage + KMS futuramente
+        senha_encrypted: null,
         status: "pendente_validacao",
         uploaded_by: user?.id ?? null,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
-      toast.success("Certificado enviado. Validação e criptografia serão realizadas pelo backend fiscal.");
+      // Cifrar senha no backend (FISCAL_CRYPTO_KEY); senha nunca persiste em texto puro.
+      const { error: cifErr } = await supabase.functions.invoke("fiscal-certificado-cifrar", {
+        body: { cert_id: (inserted as any).id, senha },
+      });
+      if (cifErr) throw cifErr;
+      toast.success("Certificado enviado e senha cifrada com segurança no backend.");
       setFile(null); setSenha("");
       load();
     } catch (e: any) {
