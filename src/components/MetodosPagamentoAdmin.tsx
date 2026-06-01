@@ -248,7 +248,10 @@ export function MetodosPagamentoAdmin() {
                 <div className="p-3 rounded-md border border-border bg-muted/30">
                   <Label className="text-[13px] font-medium">Prazo de recebimento agrupado (dias)</Label>
                   <div className="text-[11px] text-muted-foreground mb-2">
-                    Quantidade de dias após a venda/assinatura em que o valor agrupado cairá no financeiro.
+                    Quantidade de dias após a data de vencimento escolhida da primeira parcela em que o valor agrupado cairá no financeiro.
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mb-2">
+                    Este método agrupa as parcelas em um único recebível. A data do recebível será calculada a partir do vencimento da primeira parcela + o prazo agrupado configurado.
                   </div>
                   <Input
                     type="number" min={0} step={1}

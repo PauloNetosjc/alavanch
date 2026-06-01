@@ -142,7 +142,8 @@ export function gerarPreviewReceita(
       if (pertenceAgrupado) {
         grupoValor += valor;
         grupoQtd += 1;
-        if (!grupoVenc || (venc && venc < grupoVenc)) grupoVenc = venc;
+        // Data base do agrupado = vencimento da PRIMEIRA parcela escolhida (k=0).
+        if (grupoVenc === null && venc) grupoVenc = venc;
       } else {
         out.push({
           numero: idxGlobal++,
