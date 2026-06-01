@@ -1636,16 +1636,35 @@ export default function ComercialNegociacao() {
           </div>
           )}
 
-          <div className="border-t border-border pt-4">
-            <div className="flex items-start justify-between">
-              <div>
+          <div className="border-t border-border pt-4 space-y-3">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Total da Proposta</div>
-                <div className="flex items-center gap-2">
-                  <div className="text-[34px] font-semibold text-mono leading-tight">{fmtBrl(totalContrato)}</div>
-                  <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                </div>
+                {(() => {
+                  const descTotal = (descValorAplicado || 0) + (descontoMetodoValor || 0) + (descontoEntradaValor || 0);
+                  const temDesconto = descTotal > 0.01;
+                  return (
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {temDesconto && (
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[12px] text-muted-foreground">de</span>
+                          <span className="text-[18px] font-medium text-mono text-muted-foreground line-through">
+                            {fmtBrl(valorInicial)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-baseline gap-1.5">
+                        {temDesconto && <span className="text-[12px] text-emerald-800">por</span>}
+                        <div className="text-[34px] font-semibold text-mono leading-tight text-[#1F5235]">
+                          {fmtBrl(totalContrato)}
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenResumo(true)} className="text-muted-foreground hover:text-foreground" title="Ver resumo">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })()}
                 {jurosRepassado > 0.01 && (
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
@@ -1657,12 +1676,38 @@ export default function ComercialNegociacao() {
                   </div>
                 )}
               </div>
-              {descValorAplicado > 0 && (
-                <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-right">
-                  <div className="text-[10px] uppercase tracking-wider text-emerald-700">Desconto</div>
-                  <div className="text-[18px] font-semibold text-mono text-emerald-700">-{fmtBrl(descValorAplicado)}</div>
-                </div>
-              )}
+
+              {/* Balões de desconto */}
+              {(() => {
+                const descTotal = (descValorAplicado || 0) + (descontoMetodoValor || 0) + (descontoEntradaValor || 0);
+                const percTotal = valorInicial > 0 ? (descTotal / valorInicial) * 100 : 0;
+                if (descTotal <= 0.01 && (descontoMetodoValor || 0) <= 0.01 && (descontoEntradaValor || 0) <= 0.01) return null;
+                return (
+                  <div className="flex flex-wrap gap-2 items-stretch">
+                    {descTotal > 0.01 && (
+                      <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2 text-right min-w-[150px]">
+                        <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
+                        <div className="text-[10px] text-emerald-700">{percTotal.toFixed(2)}%</div>
+                        <div className="text-[17px] font-semibold text-mono text-emerald-800">-{fmtBrl(descTotal)}</div>
+                      </div>
+                    )}
+                    {descontoMetodoValor > 0.01 && (
+                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[160px]">
+                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. Forma Pagamento</div>
+                        <div className="text-[10px] text-emerald-700">{descontoMetodoPerc.toFixed(2)}%</div>
+                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(descontoMetodoValor)}</div>
+                      </div>
+                    )}
+                    {descontoEntradaValor > 0.01 && (
+                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[150px]">
+                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. da Entrada</div>
+                        <div className="text-[10px] text-emerald-700">{descontoEntradaPerc.toFixed(2)}% s/ {fmtBrl(totalEntrada)}</div>
+                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(descontoEntradaValor)}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
