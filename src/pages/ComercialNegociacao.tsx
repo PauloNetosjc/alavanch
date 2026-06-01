@@ -2138,10 +2138,11 @@ export default function ComercialNegociacao() {
                 const totalParc = confirmadas.length;
                 const confCount = confirmadas.filter(Boolean).length;
                 const todasConf = totalParc > 0 && confCount === totalParc;
-                const minimizado = !!minimizados[idx];
+                const minimizado = expandedPagIdx !== idx;
                 return (
                   <div
                     key={idx}
+                    ref={!minimizado ? expandedCardRef : undefined}
                     className={`border-2 rounded-lg p-3 ${todasConf ? "border-emerald-100" : "border-amber-200 bg-amber-50/30"}`}
                   >
                     <div className="flex items-center gap-3">
