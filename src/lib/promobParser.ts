@@ -278,8 +278,9 @@ export function parsePromobTxt(content: string): PromobParseResult {
 
   const environments = Array.from(envMap.values());
   for (const env of environments) {
-    // Total do ambiente usa o CUSTO LOJA, que é o que o "Total =" do TXT do Promob soma
-    env.total = env.items.reduce((s, it) => s + it.storePrice * it.quantity, 0);
+    // Total do ambiente usa o CUSTO LOJA. No TXT do Promob a coluna já representa
+    // o valor TOTAL da linha — NÃO multiplicar pela quantidade.
+    env.total = env.items.reduce((s, it) => s + it.storePrice, 0);
   }
 
   const fileTotal = extractTotal(lines);
