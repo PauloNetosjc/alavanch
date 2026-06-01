@@ -879,8 +879,10 @@ export default function ComercialNovo() {
             custo_cliente: it.clientPrice, custo_loja: it.storePrice, custo_fabrica: it.factoryPrice,
             cor: it.finish || null, categoria: it.category || null, codigo: it.projectRef || null,
           }));
-          const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
-          const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+          // Promob TXT: colunas de valor (custo cliente/loja/fábrica) já são totais da linha.
+          // NÃO multiplicar pela quantidade.
+          const custo = itens.reduce((s, it) => s + (Number(it.custo_loja) || 0), 0);
+          const preco = itens.reduce((s, it) => s + (Number(it.custo_cliente) || 0), 0);
           const markup = custo > 0 ? preco / custo : 0;
           const descricao = await aiDescribe(env.name, itens);
           return { id: uid(), nome: env.name, descricao, prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens, origem_ambiente: "importado" as const };
@@ -905,8 +907,11 @@ export default function ComercialNovo() {
         custo_cliente: it.clientPrice || it.cost, custo_loja: it.cost, custo_fabrica: it.cost,
         cor: null, categoria: null, codigo: null,
       }));
-      const custo = itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0);
-      const preco = itens.reduce((s, it) => s + it.custo_cliente * it.quantidade, 0);
+      // XML Promob: valores já são totais da linha — não multiplicar pela quantidade.
+      // Excel/genérico: mantém preço unitário × quantidade.
+      const isXmlPromob = ext === "xml";
+      const custo = itens.reduce((s, it) => s + (isXmlPromob ? (Number(it.custo_loja) || 0) : it.custo_loja * it.quantidade), 0);
+      const preco = itens.reduce((s, it) => s + (isXmlPromob ? (Number(it.custo_cliente) || 0) : it.custo_cliente * it.quantidade), 0);
       const markup = custo > 0 ? preco / custo : 0;
       return { id: uid(), nome: env.name, descricao: "", prazo_dias: null, custo_aquisicao: custo, preco_sugerido: preco, markup: Number(markup.toFixed(2)), itens, origem_ambiente: (ext === "xml" ? "xml" : "importado") as any };
     });
