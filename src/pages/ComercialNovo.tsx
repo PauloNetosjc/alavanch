@@ -1997,7 +1997,7 @@ export default function ComercialNovo() {
 
         {/* ============================ STEP 4 — Negociação ============================ */}
         {step === 4 && temNegociacao && editId && (
-          <OrcamentoNegociacaoTab orcamentoId={editId} onNovaVersao={() => setStep(2)} />
+          <OrcamentoNegociacaoTab orcamentoId={editId} onNovaVersao={handleNovaVersaoNegociacao} />
         )}
 
         {/* ============================ Footer nav ============================ */}
