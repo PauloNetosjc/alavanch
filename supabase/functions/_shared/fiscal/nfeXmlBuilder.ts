@@ -193,14 +193,14 @@ export function buildNfeXml(input: BuildNfeInput): NfeMontada {
   ${tag("serie", nota.serie)}
   ${tag("nNF", nota.numero_nf)}
   ${tag("dhEmi", dhEmi)}
-  ${tag("tpNF", 1)}
+  ${tag("tpNF", nota.tpNF ?? 1)}
   ${tag("idDest", 1)}
   ${tag("cMunFG", emit.codigo_municipio)}
   ${tag("tpImp", 1)}
   ${tag("tpEmis", 1)}
   ${tag("cDV", cDV)}
   ${tag("tpAmb", tpAmb)}
-  ${tag("finNFe", 1)}
+  ${tag("finNFe", nota.finalidade_nfe ?? 1)}
   ${tag("indFinal", 1)}
   ${tag("indPres", 1)}
   ${tag("procEmi", 0)}
