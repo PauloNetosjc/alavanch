@@ -1646,6 +1646,13 @@ export default function ComercialNegociacao() {
       return entradasPg.map(renderEntrada).join("") + parceladosPg.map(renderParc).join("");
     })() : `<div class="muted">A definir</div>`}` : ""}
 
+    ${exibirGatilhos ? `<h2>Condição Especial</h2>
+    <div class="cond" style="background:#fbf7ee;border:1px solid #e9d68a;padding:10px;border-radius:6px">
+      ${cfg.gatilhos_tpl!.usar_gatilho_escassez && (cfg.gatilhos_tpl!.quantidade_contratos_restantes != null || cfg.gatilhos_tpl!.quantidade_contratos_total != null) ? `<div><b>${escapeHtml(cfg.gatilhos_tpl!.titulo_escassez || "Contratos restantes")}:</b> ${cfg.gatilhos_tpl!.quantidade_contratos_restantes ?? "—"}${cfg.gatilhos_tpl!.quantidade_contratos_total != null ? " de " + cfg.gatilhos_tpl!.quantidade_contratos_total : ""}</div>` : ""}
+      ${cfg.gatilhos_tpl!.usar_gatilho_urgencia && gValidade ? `<div><b>Validade da proposta:</b> ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " <span style='color:#7a2b3a'>(vencida)</span>" : ""}</div>` : ""}
+      ${gSugestao ? `<div style="margin-top:6px;font-style:italic">${escapeHtml(gSugestao)}</div>` : ""}
+    </div>` : ""}
+
     ${cfg.mostrar_condicoes_gerais && cfg.condicoes_gerais_html ? `<h2>Condições Gerais</h2>
     <div class="cond">${cfg.condicoes_gerais_html}</div>` : ""}
 
