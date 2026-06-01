@@ -1685,12 +1685,41 @@ export default function ComercialNegociacao() {
       return entradasPg.map(renderEntrada).join("") + parceladosPg.map(renderParc).join("");
     })() : `<div class="muted">A definir</div>`}` : ""}
 
-    ${exibirGatilhos ? `<h2>Condição Especial</h2>
-    <div class="cond" style="background:#fbf7ee;border:1px solid #e9d68a;padding:10px;border-radius:6px">
-      ${cfg.gatilhos_tpl!.usar_gatilho_escassez && (cfg.gatilhos_tpl!.quantidade_contratos_restantes != null || cfg.gatilhos_tpl!.quantidade_contratos_total != null) ? `<div><b>${escapeHtml(cfg.gatilhos_tpl!.titulo_escassez || "Contratos restantes")}:</b> ${cfg.gatilhos_tpl!.quantidade_contratos_restantes ?? "—"}${cfg.gatilhos_tpl!.quantidade_contratos_total != null ? " de " + cfg.gatilhos_tpl!.quantidade_contratos_total : ""}</div>` : ""}
-      ${cfg.gatilhos_tpl!.usar_gatilho_urgencia && gValidade ? `<div><b>Validade da proposta:</b> ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " <span style='color:#7a2b3a'>(vencida)</span>" : ""}</div>` : ""}
-      ${gSugestao ? `<div style="margin-top:6px;font-style:italic">${escapeHtml(gSugestao)}</div>` : ""}
-    </div>` : ""}
+    ${exibirGatilhos ? (() => {
+      const tplG = cfg.gatilhos_tpl!;
+      const tituloPainel = (tplG.titulo_painel_fechamento && String(tplG.titulo_painel_fechamento).trim()) || "Painel de Fechamento";
+      const contratosRest = Number(tplG.quantidade_contratos_restantes) || 0;
+      const usarEscPrint = !!tplG.usar_gatilho_escassez && contratosRest > 0;
+      const usarUrgPrint = !!tplG.usar_gatilho_urgencia && !!gValidade;
+      if (!usarEscPrint && !usarUrgPrint) return "";
+      const cardEsc = usarEscPrint ? `
+        <div style="background:#FFF4D8;border:1px solid #D7B66B;border-radius:8px;padding:10px 12px;margin-top:8px">
+          <div style="font-size:10px;letter-spacing:0.14em;color:#B9872D;font-weight:600;text-transform:uppercase">Escassez</div>
+          <div style="margin-top:2px"><span style="font-size:26px;font-weight:700;color:#B9872D;line-height:1">${contratosRest}</span>
+            <span style="font-size:12px;color:#2A2A2A;margin-left:6px">contratos restantes</span></div>
+          ${tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? `<div style="font-size:10.5px;color:#2A2A2A;opacity:0.7;margin-top:2px">de ${tplG.quantidade_contratos_total} disponíveis</div>` : ""}
+        </div>` : "";
+      const cardUrg = usarUrgPrint && gValidade ? `
+        <div style="background:#F8E8EA;border:1px solid #D8A5AB;border-radius:8px;padding:10px 12px;margin-top:8px">
+          <div style="font-size:10px;letter-spacing:0.14em;color:#7A2833;font-weight:600;text-transform:uppercase">Urgência</div>
+          <div style="margin-top:2px;font-size:20px;font-weight:700;color:#7A2833;line-height:1">${escapeHtml(tempoRestante(gValidade))}</div>
+          <div style="font-size:10.5px;color:#2A2A2A;opacity:0.85;margin-top:3px">Proposta válida até ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " (vencida)" : ""}</div>
+        </div>` : "";
+      const cardLeitura = `
+        <div style="background:#0f3d2e;color:#fff;border-radius:8px;padding:10px 12px;margin-top:8px;display:flex;gap:18px;flex-wrap:wrap">
+          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Economia</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.desconto_total || 0)}</div></div>
+          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Total</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.valor_total || 0)}</div></div>
+        </div>`;
+      const cardSug = gSugestao ? `
+        <div style="background:#fff;border:1px solid #e4d9bf;border-radius:8px;padding:10px 12px;margin-top:8px;font-style:italic;font-size:12px;color:#2A2A2A">
+          “${escapeHtml(gSugestao)}”
+        </div>` : "";
+      return `<h2>Condição Especial</h2>
+      <div style="background:#faf6ec;border:1px solid #e4d9bf;border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;letter-spacing:0.14em;color:#7c5a1e;font-weight:600;text-transform:uppercase">${escapeHtml(tituloPainel)}</div>
+        ${cardEsc}${cardUrg}${cardLeitura}${cardSug}
+      </div>`;
+    })() : ""}
 
     ${cfg.mostrar_condicoes_gerais && cfg.condicoes_gerais_html ? `<h2>Condições Gerais</h2>
     <div class="cond">${cfg.condicoes_gerais_html}</div>` : ""}
