@@ -4575,6 +4575,53 @@ export type Database = {
         }
         Relationships: []
       }
+      formas_pagamento_entrada: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          forma_pagamento: string
+          forma_pagamento_id: string | null
+          id: string
+          loja_id: string | null
+          nome: string
+          observacoes: string | null
+          percentual_desconto: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          forma_pagamento: string
+          forma_pagamento_id?: string | null
+          id?: string
+          loja_id?: string | null
+          nome: string
+          observacoes?: string | null
+          percentual_desconto?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          forma_pagamento?: string
+          forma_pagamento_id?: string | null
+          id?: string
+          loja_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          percentual_desconto?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formas_pagamento_entrada_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           agencia: string | null
