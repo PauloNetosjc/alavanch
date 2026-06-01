@@ -4,6 +4,7 @@ export type GatilhosTemplate = {
   mostrar_gatilhos_venda?: boolean | null;
   mostrar_gatilhos_na_negociacao?: boolean | null;
   mostrar_gatilhos_na_impressao?: boolean | null;
+  titulo_painel_fechamento?: string | null;
   usar_gatilho_escassez?: boolean | null;
   titulo_escassez?: string | null;
   quantidade_contratos_total?: number | null;
