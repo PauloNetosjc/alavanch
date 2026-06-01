@@ -6007,15 +6007,29 @@ export type Database = {
           mostrar_dados_empresa: boolean
           mostrar_descricao_ambientes: boolean
           mostrar_forma_pagamento: boolean
+          mostrar_gatilhos_na_impressao: boolean
+          mostrar_gatilhos_na_negociacao: boolean
+          mostrar_gatilhos_venda: boolean
           mostrar_itens_tecnicos: boolean
           mostrar_logo: boolean
           mostrar_resumo_descontos: boolean
           nome: string
           observacoes_internas: string | null
+          quantidade_contratos_restantes: number | null
+          quantidade_contratos_total: number | null
           rodape_html: string | null
           subtitulo: string | null
+          sugestao_texto_fechamento: string | null
+          texto_escassez: string | null
+          texto_urgencia: string | null
+          tipo_validade: string | null
           titulo: string | null
+          titulo_escassez: string | null
           updated_at: string
+          usar_gatilho_escassez: boolean
+          usar_gatilho_urgencia: boolean
+          validade_data_hora: string | null
+          validade_horas: number | null
         }
         Insert: {
           ativo?: boolean
@@ -6028,15 +6042,29 @@ export type Database = {
           mostrar_dados_empresa?: boolean
           mostrar_descricao_ambientes?: boolean
           mostrar_forma_pagamento?: boolean
+          mostrar_gatilhos_na_impressao?: boolean
+          mostrar_gatilhos_na_negociacao?: boolean
+          mostrar_gatilhos_venda?: boolean
           mostrar_itens_tecnicos?: boolean
           mostrar_logo?: boolean
           mostrar_resumo_descontos?: boolean
           nome?: string
           observacoes_internas?: string | null
+          quantidade_contratos_restantes?: number | null
+          quantidade_contratos_total?: number | null
           rodape_html?: string | null
           subtitulo?: string | null
+          sugestao_texto_fechamento?: string | null
+          texto_escassez?: string | null
+          texto_urgencia?: string | null
+          tipo_validade?: string | null
           titulo?: string | null
+          titulo_escassez?: string | null
           updated_at?: string
+          usar_gatilho_escassez?: boolean
+          usar_gatilho_urgencia?: boolean
+          validade_data_hora?: string | null
+          validade_horas?: number | null
         }
         Update: {
           ativo?: boolean
@@ -6049,15 +6077,29 @@ export type Database = {
           mostrar_dados_empresa?: boolean
           mostrar_descricao_ambientes?: boolean
           mostrar_forma_pagamento?: boolean
+          mostrar_gatilhos_na_impressao?: boolean
+          mostrar_gatilhos_na_negociacao?: boolean
+          mostrar_gatilhos_venda?: boolean
           mostrar_itens_tecnicos?: boolean
           mostrar_logo?: boolean
           mostrar_resumo_descontos?: boolean
           nome?: string
           observacoes_internas?: string | null
+          quantidade_contratos_restantes?: number | null
+          quantidade_contratos_total?: number | null
           rodape_html?: string | null
           subtitulo?: string | null
+          sugestao_texto_fechamento?: string | null
+          texto_escassez?: string | null
+          texto_urgencia?: string | null
+          tipo_validade?: string | null
           titulo?: string | null
+          titulo_escassez?: string | null
           updated_at?: string
+          usar_gatilho_escassez?: boolean
+          usar_gatilho_urgencia?: boolean
+          validade_data_hora?: string | null
+          validade_horas?: number | null
         }
         Relationships: [
           {

@@ -859,6 +859,22 @@ function TemplateOrcamento() {
     condicoes_gerais_html: "<p>1. Esta proposta tem validade de 15 dias a contar da data de emissão.</p><p>2. Os prazos de produção e entrega serão definidos após a assinatura do caderno técnico.</p><p>3. Eventuais alterações de projeto após a assinatura podem implicar revisão de valores e prazos.</p>",
     rodape_html: "",
     observacoes_internas: "",
+    // Gatilhos de Venda
+    mostrar_gatilhos_venda: false,
+    mostrar_gatilhos_na_negociacao: true,
+    mostrar_gatilhos_na_impressao: false,
+    usar_gatilho_escassez: false,
+    titulo_escassez: "Contratos restantes",
+    quantidade_contratos_total: null,
+    quantidade_contratos_restantes: null,
+    texto_escassez: "Condição disponível para um número limitado de contratos.",
+    usar_gatilho_urgencia: false,
+    tipo_validade: "horas",
+    validade_horas: 24,
+    validade_data_hora: null,
+    texto_urgencia: "Proposta válida até o prazo informado.",
+    sugestao_texto_fechamento:
+      "Essa condição fica reservada até {{validade}} e temos apenas {{contratos_restantes}} contratos neste lote comercial.",
   });
 
   useEffect(() => {
@@ -911,6 +927,20 @@ function TemplateOrcamento() {
       condicoes_gerais_html: tpl.condicoes_gerais_html ?? "",
       rodape_html: tpl.rodape_html ?? "",
       observacoes_internas: tpl.observacoes_internas ?? "",
+      mostrar_gatilhos_venda: !!tpl.mostrar_gatilhos_venda,
+      mostrar_gatilhos_na_negociacao: !!tpl.mostrar_gatilhos_na_negociacao,
+      mostrar_gatilhos_na_impressao: !!tpl.mostrar_gatilhos_na_impressao,
+      usar_gatilho_escassez: !!tpl.usar_gatilho_escassez,
+      titulo_escassez: tpl.titulo_escassez ?? "Contratos restantes",
+      quantidade_contratos_total: tpl.quantidade_contratos_total ?? null,
+      quantidade_contratos_restantes: tpl.quantidade_contratos_restantes ?? null,
+      texto_escassez: tpl.texto_escassez ?? "",
+      usar_gatilho_urgencia: !!tpl.usar_gatilho_urgencia,
+      tipo_validade: tpl.tipo_validade || "horas",
+      validade_horas: tpl.validade_horas ?? null,
+      validade_data_hora: tpl.validade_data_hora ?? null,
+      texto_urgencia: tpl.texto_urgencia ?? "",
+      sugestao_texto_fechamento: tpl.sugestao_texto_fechamento ?? "",
     };
     const op = tpl.id
       ? (supabase as any).from("orcamento_templates").update(payload).eq("id", tpl.id).select().maybeSingle()
@@ -1004,6 +1034,134 @@ function TemplateOrcamento() {
                 <Toggle k="mostrar_condicoes_gerais" label="Condições gerais" />
               </div>
             </div>
+
+            {/* ---------- GATILHOS DE VENDA ---------- */}
+            <div className="rounded-lg border border-[#d9cbb0] bg-[#fbf7ee] p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-[#3a2f1a]">Gatilhos de Venda</h3>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    Configure escassez, urgência e textos comerciais usados na negociação e na proposta.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-[13px] bg-white border rounded-md px-3 py-2 cursor-pointer">
+                  <Switch
+                    checked={!!tpl.mostrar_gatilhos_venda}
+                    onCheckedChange={(v) => setTpl({ ...tpl, mostrar_gatilhos_venda: v })}
+                  />
+                  <span>Ativar gatilhos de venda</span>
+                </label>
+              </div>
+
+              {tpl.mostrar_gatilhos_venda && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <Toggle k="mostrar_gatilhos_na_negociacao" label="Mostrar na tela de negociação" />
+                    <Toggle k="mostrar_gatilhos_na_impressao" label="Mostrar na proposta impressa" />
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-3">
+                    <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                      <Switch
+                        checked={!!tpl.usar_gatilho_escassez}
+                        onCheckedChange={(v) => setTpl({ ...tpl, usar_gatilho_escassez: v })}
+                      />
+                      <span className="font-semibold text-[#7c5a1e]">Usar escassez (contratos restantes)</span>
+                    </label>
+                    {tpl.usar_gatilho_escassez && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-[12px]">Título do gatilho</Label>
+                          <Input value={tpl.titulo_escassez ?? ""} onChange={(e) => setTpl({ ...tpl, titulo_escassez: e.target.value })} />
+                        </div>
+                        <div>
+                          <Label className="text-[12px]">Quantidade total</Label>
+                          <Input type="number" min={0}
+                            value={tpl.quantidade_contratos_total ?? ""}
+                            onChange={(e) => setTpl({ ...tpl, quantidade_contratos_total: e.target.value === "" ? null : Number(e.target.value) })} />
+                        </div>
+                        <div>
+                          <Label className="text-[12px]">Quantidade restante</Label>
+                          <Input type="number" min={0}
+                            value={tpl.quantidade_contratos_restantes ?? ""}
+                            onChange={(e) => setTpl({ ...tpl, quantidade_contratos_restantes: e.target.value === "" ? null : Number(e.target.value) })} />
+                        </div>
+                        <div className="md:col-span-3">
+                          <Label className="text-[12px]">Texto de apoio</Label>
+                          <Textarea rows={2} value={tpl.texto_escassez ?? ""} onChange={(e) => setTpl({ ...tpl, texto_escassez: e.target.value })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-3">
+                    <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                      <Switch
+                        checked={!!tpl.usar_gatilho_urgencia}
+                        onCheckedChange={(v) => setTpl({ ...tpl, usar_gatilho_urgencia: v })}
+                      />
+                      <span className="font-semibold text-[#7a2b3a]">Usar urgência / validade da proposta</span>
+                    </label>
+                    {tpl.usar_gatilho_urgencia && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-[12px]">Tipo de validade</Label>
+                          <Select value={tpl.tipo_validade || "horas"} onValueChange={(v) => setTpl({ ...tpl, tipo_validade: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="horas">Por horas após emissão</SelectItem>
+                              <SelectItem value="data_hora_fixa">Data e hora fixa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {(tpl.tipo_validade || "horas") === "horas" ? (
+                          <div>
+                            <Label className="text-[12px]">Validade em horas</Label>
+                            <Input type="number" min={1}
+                              value={tpl.validade_horas ?? ""}
+                              onChange={(e) => setTpl({ ...tpl, validade_horas: e.target.value === "" ? null : Number(e.target.value) })} />
+                          </div>
+                        ) : (
+                          <div>
+                            <Label className="text-[12px]">Data/hora da validade</Label>
+                            <Input type="datetime-local"
+                              value={tpl.validade_data_hora ? String(tpl.validade_data_hora).slice(0, 16) : ""}
+                              onChange={(e) => setTpl({ ...tpl, validade_data_hora: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                          </div>
+                        )}
+                        <div className="md:col-span-3">
+                          <Label className="text-[12px]">Texto de apoio</Label>
+                          <Textarea rows={2} value={tpl.texto_urgencia ?? ""} onChange={(e) => setTpl({ ...tpl, texto_urgencia: e.target.value })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border bg-white p-3 space-y-2">
+                    <Label className="text-[13px] font-semibold">Sugestão de texto comercial</Label>
+                    <Textarea rows={3}
+                      value={tpl.sugestao_texto_fechamento ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, sugestao_texto_fechamento: e.target.value })} />
+                    <p className="text-[11px] text-muted-foreground">
+                      Variáveis: <code className="bg-muted px-1 rounded">{`{{validade}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{tempo_restante}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{contratos_restantes}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{contratos_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{valor_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{desconto_total}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{cliente_nome}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{numero_orcamento}}`}</code>,{" "}
+                      <code className="bg-muted px-1 rounded">{`{{nome_projeto}}`}</code>.
+                    </p>
+                  </div>
+
+                  <p className="text-[11px] text-[#7c5a1e] bg-[#fff4d6] border border-[#e9d68a] rounded px-3 py-2">
+                    Use gatilhos de escassez apenas quando a quantidade for real e controlada pela empresa.
+                  </p>
+                </div>
+              )}
+            </div>
+
 
             <div>
               <Label>Condições gerais do orçamento</Label>
