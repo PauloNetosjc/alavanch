@@ -2119,21 +2119,22 @@ export default function ComercialNegociacao() {
                                   </TableCell>
                                   <TableCell className="px-2">
                                     {(() => {
-                                      const isEntrada = i === 0;
+                                      const isPagamentoEntrada = !!(p as any).is_entrada;
                                       const met = metodos.find((m) => m.nome === p.metodo);
                                       const cfg = met?.parcelas_config?.find((c) => Number(c.numero) === Number(i + 1))?.forma_pagamento;
                                       const permitidas = Array.isArray(cfg)
                                         ? cfg.filter(Boolean)
                                         : (cfg ? [cfg] : []);
-                                      // Entrada (1ª parcela) sempre aceita qualquer forma cadastrada
-                                      const opcoes = isEntrada
-                                        ? FORMAS_PAGAMENTO
+                                      // Entrada: trava na forma vinculada à configuração (sem select de formas gerais)
+                                      const opcoes = isPagamentoEntrada
+                                        ? [p.metodo]
                                         : (permitidas.length ? permitidas : FORMAS_PAGAMENTO);
-                                      const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || "Boleto");
+                                      const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || p.metodo || "Boleto");
+                                      const travado = isPagamentoEntrada || !!locked[i];
                                       return (
                                         <Select
                                           value={atual}
-                                          disabled={!!locked[i]}
+                                          disabled={travado}
                                           onValueChange={(val) => editarParcelaForma(idx, i, val)}
                                         >
                                           <SelectTrigger className="h-8 text-[12px] px-2">
