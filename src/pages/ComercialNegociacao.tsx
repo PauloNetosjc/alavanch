@@ -2323,12 +2323,17 @@ export default function ComercialNegociacao() {
                                       const permitidas = Array.isArray(cfg)
                                         ? cfg.filter(Boolean)
                                         : (cfg ? [cfg] : []);
-                                      // Entrada: trava na forma vinculada à configuração (sem select de formas gerais)
+                                      // Entrada: a forma é escolhida na própria parcela, dentre as formas cadastradas
+                                      // em Formas de Pagamento > ENTRADA. Não usar formas gerais como fallback.
+                                      const opcoesEntrada = Array.from(
+                                        new Set(entradasCfg.map((c) => c.forma_pagamento).filter(Boolean) as string[]),
+                                      );
                                       const opcoes = isPagamentoEntrada
-                                        ? [p.metodo]
+                                        ? (opcoesEntrada.length ? opcoesEntrada : [p.metodo])
                                         : (permitidas.length ? permitidas : FORMAS_PAGAMENTO);
-                                      const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || p.metodo || "Boleto");
-                                      const travado = isPagamentoEntrada || !!locked[i];
+                                      const atualBase = isPagamentoEntrada ? p.metodo : formas[i];
+                                      const atual = atualBase && opcoes.includes(atualBase) ? atualBase : (opcoes[0] || p.metodo || "Boleto");
+                                      const travado = !!locked[i];
                                       return (
                                         <Select
                                           value={atual}
