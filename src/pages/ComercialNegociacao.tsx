@@ -1664,41 +1664,49 @@ export default function ComercialNegociacao() {
                     Inclui <b>{fmtBrl(jurosRepassado)}</b> de juros repassado ao cliente.
                   </div>
                 )}
-                {jurosAbsorvido > 0.01 && (
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Loja absorve <b>{fmtBrl(jurosAbsorvido)}</b> em juros.
-                  </div>
-                )}
               </div>
 
-              {/* Balões de desconto */}
+              {/* Balões de desconto (percentuais sempre sobre valor bruto) */}
               {(() => {
-                const descTotal = (descValorAplicado || 0) + (descontoMetodoValor || 0) + (descontoEntradaValor || 0);
-                const percTotal = valorInicial > 0 ? (descTotal / valorInicial) * 100 : 0;
-                if (descTotal <= 0.01 && (descontoMetodoValor || 0) <= 0.01 && (descontoEntradaValor || 0) <= 0.01) return null;
+                const vManual = descValorAplicado || 0;
+                const vForma = descontoMetodoValor || 0;
+                const vEntrada = descontoEntradaValor || 0;
+                const descTotal = vManual + vForma + vEntrada;
+                const base = valorInicial > 0 ? valorInicial : 0;
+                const pct = (v: number) => (base > 0 ? (v / base) * 100 : 0);
+                if (descTotal <= 0.01) return null;
                 return (
                   <div className="flex flex-wrap gap-2 items-stretch">
-                    {descTotal > 0.01 && (
-                      <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2 text-right min-w-[150px]">
-                        <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
-                        <div className="text-[10px] text-emerald-700">{percTotal.toFixed(2)}%</div>
-                        <div className="text-[17px] font-semibold text-mono text-emerald-800">-{fmtBrl(descTotal)}</div>
+                    <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2 text-right min-w-[150px]">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
+                      <div className="text-[10px] text-emerald-700">{pct(descTotal).toFixed(2)}%</div>
+                      <div className="text-[17px] font-semibold text-mono text-emerald-800">-{fmtBrl(descTotal)}</div>
+                    </div>
+                    {vManual > 0.01 && (
+                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[150px]">
+                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. Aplicado</div>
+                        <div className="text-[10px] text-emerald-700">{pct(vManual).toFixed(2)}%</div>
+                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vManual)}</div>
                       </div>
                     )}
-                    {descontoMetodoValor > 0.01 && (
+                    {vForma > 0.01 && (
                       <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[160px]">
                         <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. Forma Pagamento</div>
-                        <div className="text-[10px] text-emerald-700">{descontoMetodoPerc.toFixed(2)}%</div>
-                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(descontoMetodoValor)}</div>
+                        <div className="text-[10px] text-emerald-700">{pct(vForma).toFixed(2)}%</div>
+                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vForma)}</div>
                       </div>
                     )}
-                    {descontoEntradaValor > 0.01 && (
+                    {vEntrada > 0.01 && (
                       <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[150px]">
                         <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. da Entrada</div>
-                        <div className="text-[10px] text-emerald-700">{descontoEntradaPerc.toFixed(2)}% s/ {fmtBrl(totalEntrada)}</div>
-                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(descontoEntradaValor)}</div>
+                        <div className="text-[10px] text-emerald-700">{pct(vEntrada).toFixed(2)}%</div>
+                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vEntrada)}</div>
                       </div>
                     )}
+                  </div>
+                );
+              })()}
+
                   </div>
                 );
               })()}
