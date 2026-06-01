@@ -1175,6 +1175,32 @@ export default function ComercialNovo() {
         </>
       )}
 
+      {ultimaNegociacao && (
+        <div className="border-t border-border pt-3">
+          <div className="text-muted-foreground text-[11px] mb-1">Última negociação</div>
+          <div className="flex items-center justify-between gap-2 text-[12px]">
+            <span className="font-semibold">v{ultimaNegociacao.versao}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              ultimaNegociacao.status === "ativa" ? "bg-emerald-100 text-emerald-700"
+              : ultimaNegociacao.status === "aprovada" ? "bg-blue-100 text-blue-700"
+              : "bg-muted text-muted-foreground"
+            }`}>{ultimaNegociacao.status}</span>
+          </div>
+          <div className="flex justify-between text-[13px] mt-1">
+            <span className="text-muted-foreground">Valor final</span>
+            <span className="text-mono font-semibold">{fmtBrl(ultimaNegociacao.valor_final_negociado)}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full mt-2 h-8 text-[12px]"
+            onClick={() => setStep(4)}
+          >
+            Ir para negociação
+          </Button>
+        </div>
+      )}
+
     </div>
   );
 
