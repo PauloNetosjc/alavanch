@@ -2510,6 +2510,13 @@ export default function ComercialNegociacao() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Entrada */}
+        <div className="surface-card p-5 mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Entrada</div>
+          <div className="space-y-3">
             <div>
               <Label>Entrada (à vista, sem juros)</Label>
               <div className="relative">
@@ -2565,8 +2572,8 @@ export default function ComercialNegociacao() {
               )}
             </div>
           </div>
-
         </div>
+
 
         {/* Resumo / Ações */}
         <div className="space-y-2">
