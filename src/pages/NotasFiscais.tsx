@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   AlertTriangle, BarChart3, CheckCircle2, FileText, Settings, Shield, Wrench, XCircle,
-  Package, History, Activity, ListOrdered, Layers, Calculator,
+  Package, History, Activity, ListOrdered, Layers, Calculator, ArrowLeft, ChevronRight,
 } from "lucide-react";
+
 import { BRL } from "@/lib/financeiro";
 import { ConfiguracoesFiscaisPanel } from "@/components/fiscal/ConfiguracoesFiscaisPanel";
 import { CertificadoPanel } from "@/components/fiscal/CertificadoPanel";
