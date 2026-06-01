@@ -147,7 +147,7 @@ function SenhaAdminDialog({
 function ResumoFinanceiroDialog({
   open, onOpenChange, valorInicial, descPerc, descValor, totalProposta,
   totalContrato,
-  parceiroNome, parceiroPerc, parceiroValor, custoFabrica,
+  parceiroNome, parceiroPerc, parceiroValor, custoFabrica, custoTotalAmbientes,
   jurosAbsorvido, jurosRepassado,
   config, usarMarkup,
 }: {
@@ -155,6 +155,7 @@ function ResumoFinanceiroDialog({
   valorInicial: number; descPerc: number; descValor: number; totalProposta: number;
   totalContrato: number;
   parceiroNome?: string; parceiroPerc: number; parceiroValor: number; custoFabrica: number;
+  custoTotalAmbientes: number;
   jurosAbsorvido: number;
   jurosRepassado: number;
   config: any; usarMarkup: boolean;
@@ -321,6 +322,10 @@ function ResumoFinanceiroDialog({
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
             <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
+            <div className="flex items-center justify-between pl-4 -mt-1 text-[11px] text-muted-foreground">
+              <span>Custo total dos ambientes</span>
+              <span className="text-mono">{fmtBrl(custoTotalAmbientes)}</span>
+            </div>
             {itensCusto.map((i) => (
               <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
             ))}
@@ -859,6 +864,10 @@ export default function ComercialNegociacao() {
   const custoFabricaTotal = useMemo(
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
+  );
+  const custoTotalAmbientes = useMemo(
+    () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_aquisicao) || 0), 0),
+    [ambientesIncluidos],
   );
   // Calcula juros por pagamento, separando por modo (absorver x repassar).
   // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
@@ -2718,6 +2727,7 @@ export default function ComercialNegociacao() {
         totalContrato={totalContrato}
         parceiroNome={parceiro?.nome} parceiroPerc={parceiroPerc} parceiroValor={parceiroValor}
         custoFabrica={custoFabricaTotal}
+        custoTotalAmbientes={custoTotalAmbientes}
         jurosAbsorvido={jurosAbsorvido}
         jurosRepassado={jurosRepassado}
         config={config} usarMarkup={usarMarkup}
