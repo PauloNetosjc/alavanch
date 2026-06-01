@@ -2113,9 +2113,16 @@ export default function ComercialNegociacao() {
           {pagamentos.length > 0 ? (
             <div className="space-y-2">
               {pagamentos.map((p, idx) => {
-                const { det, vencs, formas, locked } = ensureArrays(p);
+                const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
+                const totalParc = confirmadas.length;
+                const confCount = confirmadas.filter(Boolean).length;
+                const todasConf = totalParc > 0 && confCount === totalParc;
+                const minimizado = !!minimizados[idx];
                 return (
-                  <div key={idx} className="border-2 border-emerald-100 rounded-lg p-3">
+                  <div
+                    key={idx}
+                    className={`border-2 rounded-lg p-3 ${todasConf ? "border-emerald-100" : "border-amber-200 bg-amber-50/30"}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
                         {p.metodo.toLowerCase().includes("pix") || p.metodo.toLowerCase().includes("dinheiro") ? (
@@ -2128,23 +2135,49 @@ export default function ComercialNegociacao() {
                         <div className="text-[13px] font-semibold uppercase">
                           {p.metodo} <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">{p.parcelas === 1 ? "À vista" : `${p.parcelas}x`}</span>
                         </div>
+                        <div className="mt-1">
+                          {todasConf ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" /> Datas confirmadas
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-300">
+                              <AlertTriangle className="w-3 h-3" /> Datas pendentes ({totalParc - confCount}/{totalParc})
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-mono font-semibold text-[14px]">{fmtBrl(p.valor)}</div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => toggleMinimizar(idx)}
+                            >
+                              {minimizado ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{minimizado ? "Expandir pagamento" : "Recolher pagamento"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePagamento(idx)}>
                         <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                       </Button>
                     </div>
-                    {p.parcelas >= 1 && (
+                    {!minimizado && p.parcelas >= 1 && (
                       <div className="mt-3 pt-3 border-t border-emerald-100">
                         <div className="text-[11px] text-muted-foreground mb-2">
-                          Parcelas — edite valor, vencimento ou forma de pagamento. Travar uma parcela impede que ela seja recalculada.
+                          Parcelas — clique no campo de vencimento para confirmar a data. Travar uma parcela impede que ela seja recalculada.
                         </div>
                         <div className="rounded-md border border-border overflow-hidden">
                           <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-12 px-2">Nº</TableHead>
-                                <TableHead className="w-[140px] px-2">Vencimento</TableHead>
+                                <TableHead className="w-[160px] px-2">Vencimento</TableHead>
                                 <TableHead className="w-[110px] px-2 text-right">Valor</TableHead>
                                 <TableHead className="px-2">Forma prevista</TableHead>
                                 <TableHead className="w-10 px-2 text-center">🔒</TableHead>
@@ -2155,14 +2188,31 @@ export default function ComercialNegociacao() {
                                 <TableRow key={i}>
                                   <TableCell className="px-2 text-[12px] text-muted-foreground">{i + 1}/{p.parcelas}</TableCell>
                                   <TableCell className="px-2">
-                                    <Input
-                                      type="date"
-                                      value={vencs[i] || ""}
-                                      disabled={!!locked[i]}
-                                      onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
-                                      className="h-8 text-[12px] px-2"
-                                    />
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="relative">
+                                            <Input
+                                              type="date"
+                                              value={vencs[i] || ""}
+                                              disabled={!!locked[i]}
+                                              onFocus={() => confirmarParcelaVenc(idx, i)}
+                                              onClick={() => confirmarParcelaVenc(idx, i)}
+                                              onChange={(e) => editarParcelaVenc(idx, i, e.target.value)}
+                                              className={`h-8 text-[12px] px-2 pr-6 ${!confirmadas[i] ? "border-amber-400 ring-1 ring-amber-200" : ""}`}
+                                            />
+                                            {!confirmadas[i] && (
+                                              <AlertTriangle className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-500 pointer-events-none" />
+                                            )}
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          {confirmadas[i] ? "Data confirmada" : "Confirme a data de vencimento desta parcela."}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   </TableCell>
+
                                   <TableCell className="px-2">
                                     <Input
                                       type="number" step="0.01" inputMode="decimal"
