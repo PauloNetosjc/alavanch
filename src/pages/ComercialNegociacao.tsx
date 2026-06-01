@@ -322,10 +322,6 @@ function ResumoFinanceiroDialog({
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Composição de Custos</div>
             <div className="text-[10px] text-muted-foreground -mt-2">% sobre VPL · Impostos sobre Valor Total da Venda · edite para simular</div>
             <Row label="Fábrica" valor={custoFabrica} perc={pct(custoFabrica)} color="#3F8B5C" editable={false} />
-            <div className="flex items-center justify-between pl-4 -mt-1 text-[11px] text-muted-foreground">
-              <span>Custo total dos ambientes</span>
-              <span className="text-mono">{fmtBrl(custoTotalAmbientes)}</span>
-            </div>
             {itensCusto.map((i) => (
               <Row key={i.id} label={i.label} valor={i.valor} perc={pct(i.valor)} color={i.color} percValue={i.perc} onPercChange={(v) => setPerc(i.id, v)} />
             ))}
@@ -861,14 +857,14 @@ export default function ComercialNegociacao() {
   const totalAlocado = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const restante = totalProposta - totalAlocado;
   const allocPerc = totalProposta > 0 ? Math.min(100, (totalAlocado / totalProposta) * 100) : 0;
+  // Custo "Fábrica" da composição = soma do CUSTO (valor de custo) dos ambientes,
+  // que é o custo_aquisicao gravado na importação Promob (coluna "valor de custo").
+  // O "valor de fábrica" das peças é apenas referência interna e NÃO entra aqui.
   const custoFabricaTotal = useMemo(
-    () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
-    [itens],
-  );
-  const custoTotalAmbientes = useMemo(
     () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_aquisicao) || 0), 0),
     [ambientesIncluidos],
   );
+  const custoTotalAmbientes = custoFabricaTotal;
   // Calcula juros por pagamento, separando por modo (absorver x repassar).
   // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
   // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
