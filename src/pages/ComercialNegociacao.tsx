@@ -829,19 +829,27 @@ export default function ComercialNegociacao() {
   const descontoMetodoValor = baseParaMetodo * (descontoMetodoPerc / 100);
   // Subtotal após desconto da forma de pagamento (antes do desconto adicional da entrada).
   const subtotalAposFormaPag = Math.max(0, baseParaMetodo - descontoMetodoValor);
-  // Desconto adicional gerado pela entrada: aplicado sobre o valor da entrada (preserva a entrada).
-  // Percentual vem da tabela formas_pagamento_entrada. Prioridade:
-  //   1) configuração selecionada manualmente; 2) configuração vinculada ao método escolhido;
-  //   3) primeira ativa; 4) fallback 20%.
-  const entradaCfgSelecionada =
-    entradasCfg.find((c) => c.id === entradaCfgId) ||
-    entradasCfg.find((c) => novoMetodo && c.forma_pagamento?.toLowerCase() === novoMetodo.toLowerCase()) ||
-    entradasCfg[0] ||
-    null;
-  const descontoEntradaPerc = Number(entradaCfgSelecionada?.percentual_desconto) || 20;
+  // Desconto adicional gerado pela entrada: aplicado sobre cada entrada conforme a forma escolhida na própria parcela.
+  // Cada entrada usa o percentual configurado em Formas de Pagamento > ENTRADA para a forma_pagamento escolhida.
+  const cfgPorForma = (forma?: string | null) => {
+    if (!forma) return null;
+    return entradasCfg.find((c) => c.forma_pagamento?.toLowerCase() === forma.toLowerCase()) || null;
+  };
+  const entradaCfgSelecionada = entradasCfg[0] || null;
   const descontoEntradaSemConfig = entradasCfg.length === 0;
-  const totalEntrada = (entrada || 0) + _somaEntradasAdicionadas;
-  const descontoEntradaValor = totalEntrada > 0 ? totalEntrada * (descontoEntradaPerc / 100) : 0;
+  const totalEntrada = _somaEntradasAdicionadas;
+  const descontoEntradaValor = pagamentos.reduce((s, p: any) => {
+    if (!p.is_entrada) return s;
+    const cfg = cfgPorForma(p.metodo);
+    const perc = Number(cfg?.percentual_desconto) || 0;
+    return s + (Number(p.valor) || 0) * (perc / 100);
+  }, 0);
+  // Percentual exibido (referência da primeira entrada ou da config padrão).
+  const descontoEntradaPerc = Number(
+    cfgPorForma((pagamentos.find((p: any) => p.is_entrada) as any)?.metodo)?.percentual_desconto
+    ?? entradaCfgSelecionada?.percentual_desconto
+    ?? 0,
+  );
   // Valor final negociado: subtotal - desconto da entrada. A entrada continua preservada.
   const totalProposta = Math.max(0, subtotalAposFormaPag - descontoEntradaValor);
   const saldoAParcelar = Math.max(0, totalProposta - totalEntrada);
@@ -1056,7 +1064,13 @@ export default function ComercialNegociacao() {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
       const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
-      det[idxParc] = Number(novoValor) || 0;
+      const novo = Number(novoValor) || 0;
+      // Para pagamentos de 1 parcela (ex.: entrada), editar o valor da parcela atualiza o p.valor.
+      if (Number(p.parcelas) === 1) {
+        det[0] = novo;
+        return { ...p, valor: novo, parcelas_detalhe: [novo], parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+      }
+      det[idxParc] = novo;
       const recalc = recalcParcelas(det, p.valor, idxParc, locked);
       return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
@@ -1091,7 +1105,11 @@ export default function ComercialNegociacao() {
       if (i !== idxPag) return p;
       const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       formas[idxParc] = novaForma;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+      // Para entrada (1 parcela), a forma escolhida define também o método do pagamento,
+      // o que reflete no rótulo do card e no cálculo do desconto adicional da entrada.
+      const isEntrada = !!(p as any).is_entrada;
+      const novoMetodoPag = isEntrada ? novaForma : p.metodo;
+      return { ...p, metodo: novoMetodoPag, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
@@ -1195,6 +1213,29 @@ export default function ComercialNegociacao() {
     setEntrada(0);
     toast.success("Entrada adicionada");
   };
+
+  // Adiciona um card de entrada vazio (R$ 0,00) na seção DESCRIÇÃO DE PAGAMENTO.
+  // A forma da entrada é escolhida diretamente na parcela (campo Forma prevista).
+  const adicionarEntradaCard = () => {
+    const cfgEnt = entradasCfg[0];
+    if (!cfgEnt?.forma_pagamento) {
+      return toast.error("Nenhuma forma de entrada ativa cadastrada.");
+    }
+    const hoje = new Date().toISOString().slice(0, 10);
+    setPagamentos((prev) => [
+      ...prev,
+      {
+        metodo: cfgEnt.forma_pagamento,
+        valor: 0,
+        parcelas: 1,
+        data_vencimento: novoVenc || hoje,
+        parcelas_detalhe: null,
+        is_entrada: true,
+      } as any,
+    ]);
+    toast.success("Entrada adicionada — informe o valor e a forma na parcela.");
+  };
+
 
   // Sincroniza o pagamento principal automaticamente ao mudar método/parcelas/vencimento.
   // O valor é sempre o restante a parcelar (total - soma das entradas).
@@ -2128,10 +2169,33 @@ export default function ComercialNegociacao() {
 
           {/* Descrição de pagamento */}
           <div className="border-t border-border pt-4">
-            <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
-              <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground flex items-center gap-1.5">
+                <Banknote className="w-4 h-4 text-emerald-600" /> DESCRIÇÃO DE PAGAMENTO
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={adicionarEntradaCard}
+                        disabled={entradasCfg.length === 0}
+                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar entrada
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {entradasCfg.length === 0 && (
+                    <TooltipContent>Nenhuma forma de entrada ativa cadastrada.</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
+
 
 
           {/* lista de pagamentos */}
@@ -2259,12 +2323,17 @@ export default function ComercialNegociacao() {
                                       const permitidas = Array.isArray(cfg)
                                         ? cfg.filter(Boolean)
                                         : (cfg ? [cfg] : []);
-                                      // Entrada: trava na forma vinculada à configuração (sem select de formas gerais)
+                                      // Entrada: a forma é escolhida na própria parcela, dentre as formas cadastradas
+                                      // em Formas de Pagamento > ENTRADA. Não usar formas gerais como fallback.
+                                      const opcoesEntrada = Array.from(
+                                        new Set(entradasCfg.map((c) => c.forma_pagamento).filter(Boolean) as string[]),
+                                      );
                                       const opcoes = isPagamentoEntrada
-                                        ? [p.metodo]
+                                        ? (opcoesEntrada.length ? opcoesEntrada : [p.metodo])
                                         : (permitidas.length ? permitidas : FORMAS_PAGAMENTO);
-                                      const atual = formas[i] && opcoes.includes(formas[i]) ? formas[i] : (opcoes[0] || p.metodo || "Boleto");
-                                      const travado = isPagamentoEntrada || !!locked[i];
+                                      const atualBase = isPagamentoEntrada ? p.metodo : formas[i];
+                                      const atual = atualBase && opcoes.includes(atualBase) ? atualBase : (opcoes[0] || p.metodo || "Boleto");
+                                      const travado = !!locked[i];
                                       return (
                                         <Select
                                           value={atual}
@@ -2515,66 +2584,8 @@ export default function ComercialNegociacao() {
           </div>
         </div>
 
-        {/* Entrada */}
-        <div className="surface-card p-5 mt-4">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Entrada</div>
-          <div className="space-y-3">
-            <div>
-              <Label>Entrada (à vista, sem juros)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">R$</span>
-                <Input
-                  type="number" min={0} step="0.01"
-                  value={entrada || ""}
-                  onChange={(e) => setEntrada(Number(e.target.value) || 0)}
-                  placeholder="0,00"
-                  className="pl-9 text-right"
-                />
-              </div>
-              {entradasCfg.length > 0 && (
-                <div className="mt-2">
-                  <Label className="text-[11px]">Tipo de entrada</Label>
-                  <Select value={entradaCfgId || entradaCfgSelecionada?.id || ""} onValueChange={setEntradaCfgId}>
-                    <SelectTrigger className="h-8 text-[12px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {entradasCfg.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome} · {c.forma_pagamento} · {c.percentual_desconto.toFixed(2)}%
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
-              <Button
-                type="button"
-                size="sm"
-                className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg transition-all font-semibold"
-                onClick={aplicarEntrada}
-                disabled={!entrada || entrada <= 0 || !entradaCfgSelecionada}
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> Adicionar entrada
-              </Button>
 
-              {descontoEntradaSemConfig && (
-                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-                  Configuração de entrada não encontrada. Usando 20% padrão.
-                </div>
-              )}
-
-              <div className="text-[11px] text-muted-foreground mt-2 leading-snug">
-                A entrada mantém o valor informado e gera desconto adicional conforme a configuração selecionada.
-              </div>
-
-              {saldoAParcelar > 0.01 && (
-                <div className="text-[12px] font-medium text-foreground mt-2">
-                  Saldo a parcelar: <span className="text-mono">{fmtBrl(saldoAParcelar)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
 
         {/* Resumo / Ações */}
