@@ -1364,7 +1364,7 @@ export default function ComercialNegociacao() {
 
     // expande o primeiro card pendente para o usuário ver
     const primeiro = pendentes[0].idxPag;
-    setMinimizados((m) => ({ ...m, [primeiro]: false }));
+    setExpandedPagIdx(primeiro);
 
     const totalParc = pendentes.reduce((s, x) => s + x.total, 0);
     if (totalParc > 1) {
