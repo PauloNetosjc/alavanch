@@ -1675,32 +1675,39 @@ export default function ComercialNegociacao() {
                 const base = valorInicial > 0 ? valorInicial : 0;
                 const pct = (v: number) => (base > 0 ? (v / base) * 100 : 0);
                 if (descTotal <= 0.01) return null;
+                const hasSecondary = vManual > 0.01 || vForma > 0.01 || vEntrada > 0.01;
                 return (
                   <div className="flex flex-wrap gap-2 items-stretch">
-                    <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2 text-right min-w-[150px]">
-                      <div className="text-[10px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
-                      <div className="text-[10px] text-emerald-700">{pct(descTotal).toFixed(2)}%</div>
-                      <div className="text-[17px] font-semibold text-mono text-emerald-800">-{fmtBrl(descTotal)}</div>
+                    {/* Card principal — destaque */}
+                    <div className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-4 py-3 text-right min-w-[180px] flex-shrink-0">
+                      <div className="text-[11px] uppercase tracking-wider text-emerald-800 font-semibold">Desconto Total</div>
+                      <div className="text-[11px] text-emerald-700">{pct(descTotal).toFixed(2)}%</div>
+                      <div className="text-[20px] font-bold text-mono text-emerald-800 leading-tight">-{fmtBrl(descTotal)}</div>
                     </div>
-                    {vManual > 0.01 && (
-                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[150px]">
-                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. Aplicado</div>
-                        <div className="text-[10px] text-emerald-700">{pct(vManual).toFixed(2)}%</div>
-                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vManual)}</div>
-                      </div>
-                    )}
-                    {vForma > 0.01 && (
-                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[160px]">
-                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. Forma Pagamento</div>
-                        <div className="text-[10px] text-emerald-700">{pct(vForma).toFixed(2)}%</div>
-                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vForma)}</div>
-                      </div>
-                    )}
-                    {vEntrada > 0.01 && (
-                      <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50/70 px-3 py-2 text-right min-w-[150px]">
-                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">Desc. da Entrada</div>
-                        <div className="text-[10px] text-emerald-700">{pct(vEntrada).toFixed(2)}%</div>
-                        <div className="text-[15px] font-semibold text-mono text-emerald-700">-{fmtBrl(vEntrada)}</div>
+                    {/* Cards secundários — compactos */}
+                    {hasSecondary && (
+                      <div className="flex flex-wrap gap-1.5 items-stretch">
+                        {vManual > 0.01 && (
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                            <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Aplicado</div>
+                            <div className="text-[9px] text-emerald-600">{pct(vManual).toFixed(2)}%</div>
+                            <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vManual)}</div>
+                          </div>
+                        )}
+                        {vForma > 0.01 && (
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                            <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Forma Pag.</div>
+                            <div className="text-[9px] text-emerald-600">{pct(vForma).toFixed(2)}%</div>
+                            <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vForma)}</div>
+                          </div>
+                        )}
+                        {vEntrada > 0.01 && (
+                          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1.5 text-right min-w-[110px]">
+                            <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-medium">Desc. Entrada</div>
+                            <div className="text-[9px] text-emerald-600">{pct(vEntrada).toFixed(2)}%</div>
+                            <div className="text-[12px] font-semibold text-mono text-emerald-700">-{fmtBrl(vEntrada)}</div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
