@@ -2124,14 +2124,28 @@ export default function ComercialNegociacao() {
             valor_total: totalProposta,
             desconto_total: Math.max(0, valorInicial - totalProposta),
           };
-          const parcelaValor = pagamentos[0]?.parcelas_detalhe?.[0] || 0;
-          const parcelaQt = pagamentos[0]?.parcelas || 0;
+          // Resumo da forma de pagamento principal (mesmo formato da impressão)
+          const limparMetodo = (n: string) => String(n || "")
+            .replace(/\s*\d+\s*x\s*a\s*\d+\s*x\s*/gi, " ")
+            .replace(/\s*\(\s*\d+x\s*a\s*\d+x\s*\)\s*/gi, " ")
+            .replace(/\s{2,}/g, " ").trim();
+          const pgPrincipal: any = pagamentos.find((p: any) => !p.is_entrada) || pagamentos[0];
+          let resumoParcela = "—";
+          if (pgPrincipal) {
+            const j = calcJurosDoPagamento(pgPrincipal);
+            const valorTotalPg = j.repassar && Number(pgPrincipal.valor) > 0 ? Number(pgPrincipal.valor) + j.valor : Number(pgPrincipal.valor);
+            const n = Math.max(1, Number(pgPrincipal.parcelas) || 1);
+            const det: number[] = Array.isArray(pgPrincipal.parcelas_detalhe) ? pgPrincipal.parcelas_detalhe : [];
+            const vp = det[0] && det[0] > 0 ? det[0] : valorTotalPg / n;
+            resumoParcela = `${limparMetodo(pgPrincipal.metodo) || "—"} · ${n}x · ${fmtBrl(vp)}`;
+          }
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
           if (!usarEsc && !usarUrg) return null;
+          const tituloPainel = (tplG.titulo_painel_fechamento && String(tplG.titulo_painel_fechamento).trim()) || "Painel de Fechamento";
           return (
             <div className="rounded-xl border border-[#e4d9bf] bg-[#faf6ec] p-4 space-y-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+                <div className="text-[12px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">{tituloPainel}</div>
                 {vencida && (
                   <span className="text-[10px] uppercase tracking-wider bg-[#7A2833] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
@@ -2171,7 +2185,7 @@ export default function ComercialNegociacao() {
                   </div>
                   <div>
                     <div className="text-emerald-100/80">Parcela</div>
-                    <div className="font-semibold text-[14px] text-white">{parcelaQt > 0 ? `${parcelaQt}x ${fmtBrl(parcelaValor)}` : "—"}</div>
+                    <div className="font-semibold text-[13px] text-white leading-tight">{resumoParcela}</div>
                   </div>
                 </div>
               </div>
@@ -2183,6 +2197,7 @@ export default function ComercialNegociacao() {
               )}
             </div>
           );
+
 
         })()}
 
