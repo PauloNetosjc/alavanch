@@ -46,11 +46,6 @@ export function StatusBackendFiscalPanel() {
     if (!selectedLojaId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fiscal-status", {
-        body: undefined,
-        method: "GET" as any,
-      } as any);
-      // edge function reads loja_id from query; fallback via direct fetch:
       const sess = (await supabase.auth.getSession()).data.session;
       const proj = (supabase as any).supabaseUrl as string;
       const resp = await fetch(`${proj}/functions/v1/fiscal-status?loja_id=${selectedLojaId}`, {
@@ -59,8 +54,7 @@ export function StatusBackendFiscalPanel() {
       const j = await resp.json();
       setData(j);
       if (!resp.ok) toast.error(j?.error ?? "Erro ao consultar status");
-      void data; void error;
-    } catch (e) {
+    } catch {
       toast.error("Falha ao consultar status fiscal");
     } finally { setLoading(false); }
   }
