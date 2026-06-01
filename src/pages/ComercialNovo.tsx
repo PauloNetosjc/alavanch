@@ -643,6 +643,7 @@ export default function ComercialNovo() {
       markup: custo > 0 ? Number((venda / custo).toFixed(2)) : 0,
       itens,
       manual: true,
+      origem_ambiente: "manual",
     };
     setAmbientes((prev) => [...prev, novo]);
     setEstoqueNome("");
@@ -958,6 +959,7 @@ export default function ComercialNovo() {
       markup: 0,
       itens: [],
       manual: true,
+      origem_ambiente: "manual",
     };
     setAmbientes((prev) => [...prev, novo]);
     setMNome(""); setMDescricao(""); setMVenda("");
@@ -978,8 +980,20 @@ export default function ComercialNovo() {
     updateAmbiente(a.id, { preco_sugerido: preco, markup: Number(markup.toFixed(2)) });
   };
 
-  const removeAmbiente = (id: string) =>
+  const removeAmbiente = async (id: string) => {
+    if (!window.confirm("Remover este ambiente da nova versão do orçamento?")) return;
+    const anterior = ambientes;
     setAmbientes((prev) => prev.filter((a) => a.id !== id));
+    if (editId) {
+      const { error } = await supabase.from("ambientes").delete().eq("id", id).eq("orcamento_id", editId);
+      if (error) {
+        setAmbientes(anterior);
+        toast.error(error.message);
+        return;
+      }
+    }
+    toast.success("Ambiente removido");
+  };
 
   /* --------------------------------- finish ------------------------------- */
   const finish = async (goToNegociacao = false) => {
