@@ -2128,63 +2128,61 @@ export default function ComercialNegociacao() {
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
           if (!usarEsc && !usarUrg) return null;
           return (
-            <div className="rounded-xl border border-[#d9cbb0] bg-gradient-to-b from-[#fbf7ee] to-[#f3ead4] p-4 space-y-3 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
-                  <div className="text-[11px] text-[#7c5a1e]/70">Gatilhos comerciais da proposta</div>
-                </div>
+            <div className="rounded-xl border border-[#e4d9bf] bg-[#faf6ec] p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
                 {vencida && (
-                  <span className="text-[10px] uppercase tracking-wider bg-[#7a2b3a] text-white px-2 py-0.5 rounded">Proposta vencida</span>
+                  <span className="text-[10px] uppercase tracking-wider bg-[#7A2833] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
               </div>
 
               {usarEsc && (
-                <div className="rounded-md bg-white/70 border border-[#e9d68a] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Escassez"}</div>
-                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">
-                    {contratosRest}
-                    {tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? (
-                      <span className="text-[13px] text-muted-foreground font-normal"> de {tplG.quantidade_contratos_total}</span>
-                    ) : null}
-                    <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>
+                <div className="rounded-lg bg-[#FFF4D8] border border-[#D7B66B] px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#B9872D] font-semibold">Escassez</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-[34px] leading-none font-bold text-[#B9872D]">{contratosRest}</span>
+                    <span className="text-[13px] text-[#2A2A2A] font-medium">contratos restantes</span>
                   </div>
+                  {tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 && (
+                    <div className="text-[11px] text-[#2A2A2A]/70 mt-0.5">de {tplG.quantidade_contratos_total} disponíveis</div>
+                  )}
                 </div>
               )}
 
               {usarUrg && validade && (
-                <div className="rounded-md bg-white/70 border border-[#e0bcc4] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[#7a2b3a]">Urgência</div>
-                  <div className="text-[15px] font-semibold text-[#3a2f1a] leading-tight">Proposta válida até {formatarValidade(validade)}</div>
-                  {!vencida && <div className="text-[12px] text-muted-foreground">Restam {tempoRestante(validade)}</div>}
+                <div className="rounded-lg bg-[#F8E8EA] border border-[#D8A5AB] px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-[#7A2833] font-semibold">Urgência</div>
+                  <div className="mt-1 text-[26px] leading-none font-bold text-[#7A2833]">{tempoRestante(validade)}</div>
+                  <div className="text-[11px] text-[#2A2A2A]/80 mt-1">Proposta válida até {formatarValidade(validade)}</div>
                 </div>
               )}
 
-              <div className="rounded-md bg-[#0f3d2e] text-white px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wider text-emerald-100/80">Leitura rápida</div>
-                <div className="grid grid-cols-3 gap-2 mt-1 text-[11px]">
+              <div className="rounded-lg bg-[#0f3d2e] text-white px-4 py-3">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-emerald-100/90 font-semibold">Leitura rápida</div>
+                <div className="grid grid-cols-3 gap-2 mt-2 text-[11px]">
                   <div>
-                    <div className="text-emerald-100/70">Economia</div>
-                    <div className="font-semibold text-[13px]">{fmtBrl(ctx.desconto_total)}</div>
+                    <div className="text-emerald-100/80">Economia</div>
+                    <div className="font-semibold text-[14px] text-white">{fmtBrl(ctx.desconto_total)}</div>
                   </div>
                   <div>
-                    <div className="text-emerald-100/70">Entrada</div>
-                    <div className="font-semibold text-[13px]">{fmtBrl(totalEntrada)}</div>
+                    <div className="text-emerald-100/80">Entrada</div>
+                    <div className="font-semibold text-[14px] text-white">{fmtBrl(totalEntrada)}</div>
                   </div>
                   <div>
-                    <div className="text-emerald-100/70">Parcela</div>
-                    <div className="font-semibold text-[13px]">{parcelaQt > 0 ? `${parcelaQt}x ${fmtBrl(parcelaValor)}` : "—"}</div>
+                    <div className="text-emerald-100/80">Parcela</div>
+                    <div className="font-semibold text-[14px] text-white">{parcelaQt > 0 ? `${parcelaQt}x ${fmtBrl(parcelaValor)}` : "—"}</div>
                   </div>
                 </div>
               </div>
 
               {sugestao && (
-                <div className="rounded-md bg-white border border-[#d9cbb0] px-3 py-2 text-[12px] text-[#3a2f1a] italic leading-relaxed">
+                <div className="rounded-lg bg-white border border-[#e4d9bf] px-4 py-3 text-[12px] text-[#2A2A2A] italic leading-relaxed">
                   “{sugestao}”
                 </div>
               )}
             </div>
           );
+
         })()}
 
 
