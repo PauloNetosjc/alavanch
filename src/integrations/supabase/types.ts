@@ -1556,45 +1556,71 @@ export type Database = {
       }
       certificados_digitais: {
         Row: {
+          cnpj_certificado: string | null
+          configuracao_fiscal_id: string | null
           created_at: string
           id: string
           loja_id: string | null
           nome: string
+          razao_social_certificado: string | null
           senha_encrypted: string | null
           status: string
           storage_path: string
+          tipo_certificado: string
+          ultimo_teste_em: string | null
+          ultimo_uso_em: string | null
           updated_at: string
           uploaded_by: string | null
           validade_fim: string | null
           validade_inicio: string | null
         }
         Insert: {
+          cnpj_certificado?: string | null
+          configuracao_fiscal_id?: string | null
           created_at?: string
           id?: string
           loja_id?: string | null
           nome: string
+          razao_social_certificado?: string | null
           senha_encrypted?: string | null
           status?: string
           storage_path: string
+          tipo_certificado?: string
+          ultimo_teste_em?: string | null
+          ultimo_uso_em?: string | null
           updated_at?: string
           uploaded_by?: string | null
           validade_fim?: string | null
           validade_inicio?: string | null
         }
         Update: {
+          cnpj_certificado?: string | null
+          configuracao_fiscal_id?: string | null
           created_at?: string
           id?: string
           loja_id?: string | null
           nome?: string
+          razao_social_certificado?: string | null
           senha_encrypted?: string | null
           status?: string
           storage_path?: string
+          tipo_certificado?: string
+          ultimo_teste_em?: string | null
+          ultimo_uso_em?: string | null
           updated_at?: string
           uploaded_by?: string | null
           validade_fim?: string | null
           validade_inicio?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "certificados_digitais_configuracao_fiscal_id_fkey"
+            columns: ["configuracao_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "configuracoes_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       checkins: {
         Row: {
@@ -2056,6 +2082,98 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      configuracoes_fiscais: {
+        Row: {
+          aliquota_iss_padrao: number | null
+          ambiente: string
+          cnae_principal: string | null
+          cnpj: string | null
+          codigo_municipio_ibge: string | null
+          codigo_servico_municipal: string | null
+          created_at: string
+          crt: number | null
+          emitir_nfe: boolean
+          emitir_nfse: boolean
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          loja_id: string
+          municipio: string | null
+          nome_fantasia: string | null
+          provedor_nfse: string | null
+          proximo_numero_nfe: number | null
+          proximo_numero_rps: number | null
+          razao_social: string | null
+          regime_tributario: string | null
+          serie_nfe: number | null
+          serie_nfse: number | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliquota_iss_padrao?: number | null
+          ambiente?: string
+          cnae_principal?: string | null
+          cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          codigo_servico_municipal?: string | null
+          created_at?: string
+          crt?: number | null
+          emitir_nfe?: boolean
+          emitir_nfse?: boolean
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          loja_id: string
+          municipio?: string | null
+          nome_fantasia?: string | null
+          provedor_nfse?: string | null
+          proximo_numero_nfe?: number | null
+          proximo_numero_rps?: number | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          serie_nfe?: number | null
+          serie_nfse?: number | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliquota_iss_padrao?: number | null
+          ambiente?: string
+          cnae_principal?: string | null
+          cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          codigo_servico_municipal?: string | null
+          created_at?: string
+          crt?: number | null
+          emitir_nfe?: boolean
+          emitir_nfse?: boolean
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          loja_id?: string
+          municipio?: string | null
+          nome_fantasia?: string | null
+          provedor_nfse?: string | null
+          proximo_numero_nfe?: number | null
+          proximo_numero_rps?: number | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          serie_nfe?: number | null
+          serie_nfse?: number | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_fiscais_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: true
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       configuracoes_kanbans: {
         Row: {
@@ -4975,13 +5093,22 @@ export type Database = {
       }
       notas_fiscais: {
         Row: {
+          ambiente: string | null
+          atualizado_por: string | null
           chave: string | null
           cliente_id: string | null
+          codigo_retorno: string | null
+          contrato_id: string | null
           created_at: string
           created_by: string | null
+          danfe_storage_path: string | null
+          data_autorizacao: string | null
+          data_cancelamento: string | null
           data_emissao: string | null
           id: string
           loja_id: string | null
+          mensagem_retorno: string | null
+          modelo: string | null
           motivo_rejeicao: string | null
           natureza_operacao: string | null
           numero: string | null
@@ -4994,19 +5121,29 @@ export type Database = {
           status: string
           tipo: string
           updated_at: string
+          valor_impostos: number | null
           valor_produtos: number | null
           valor_servicos: number | null
           valor_total: number
           xml_storage_path: string | null
         }
         Insert: {
+          ambiente?: string | null
+          atualizado_por?: string | null
           chave?: string | null
           cliente_id?: string | null
+          codigo_retorno?: string | null
+          contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          danfe_storage_path?: string | null
+          data_autorizacao?: string | null
+          data_cancelamento?: string | null
           data_emissao?: string | null
           id?: string
           loja_id?: string | null
+          mensagem_retorno?: string | null
+          modelo?: string | null
           motivo_rejeicao?: string | null
           natureza_operacao?: string | null
           numero?: string | null
@@ -5019,19 +5156,29 @@ export type Database = {
           status?: string
           tipo?: string
           updated_at?: string
+          valor_impostos?: number | null
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
           xml_storage_path?: string | null
         }
         Update: {
+          ambiente?: string | null
+          atualizado_por?: string | null
           chave?: string | null
           cliente_id?: string | null
+          codigo_retorno?: string | null
+          contrato_id?: string | null
           created_at?: string
           created_by?: string | null
+          danfe_storage_path?: string | null
+          data_autorizacao?: string | null
+          data_cancelamento?: string | null
           data_emissao?: string | null
           id?: string
           loja_id?: string | null
+          mensagem_retorno?: string | null
+          modelo?: string | null
           motivo_rejeicao?: string | null
           natureza_operacao?: string | null
           numero?: string | null
@@ -5044,12 +5191,145 @@ export type Database = {
           status?: string
           tipo?: string
           updated_at?: string
+          valor_impostos?: number | null
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
           xml_storage_path?: string | null
         }
         Relationships: []
+      }
+      notas_fiscais_eventos: {
+        Row: {
+          codigo_retorno: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          mensagem: string | null
+          nota_fiscal_id: string
+          protocolo: string | null
+          status_anterior: string | null
+          status_novo: string | null
+          tipo_evento: string
+          xml_evento_storage_path: string | null
+        }
+        Insert: {
+          codigo_retorno?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mensagem?: string | null
+          nota_fiscal_id: string
+          protocolo?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento: string
+          xml_evento_storage_path?: string | null
+        }
+        Update: {
+          codigo_retorno?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mensagem?: string | null
+          nota_fiscal_id?: string
+          protocolo?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo_evento?: string
+          xml_evento_storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_eventos_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_fiscais_itens: {
+        Row: {
+          aliquota: number | null
+          cfop: string | null
+          created_at: string
+          csosn: string | null
+          cst: string | null
+          descricao: string
+          id: string
+          ncm: string | null
+          nota_fiscal_id: string
+          produto_fiscal_id: string | null
+          quantidade: number
+          servico_fiscal_id: string | null
+          tipo_item: string
+          unidade: string | null
+          valor_imposto: number | null
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          aliquota?: number | null
+          cfop?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst?: string | null
+          descricao: string
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id: string
+          produto_fiscal_id?: string | null
+          quantidade?: number
+          servico_fiscal_id?: string | null
+          tipo_item: string
+          unidade?: string | null
+          valor_imposto?: number | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          aliquota?: number | null
+          cfop?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst?: string | null
+          descricao?: string
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id?: string
+          produto_fiscal_id?: string | null
+          quantidade?: number
+          servico_fiscal_id?: string | null
+          tipo_item?: string
+          unidade?: string | null
+          valor_imposto?: number | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_itens_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_itens_produto_fiscal_id_fkey"
+            columns: ["produto_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_itens_servico_fiscal_id_fkey"
+            columns: ["servico_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificacoes: {
         Row: {
@@ -6672,6 +6952,89 @@ export type Database = {
           },
         ]
       }
+      produtos_fiscais: {
+        Row: {
+          aliquota_cofins: number | null
+          aliquota_icms: number | null
+          aliquota_ipi: number | null
+          aliquota_pis: number | null
+          ativo: boolean
+          cest: string | null
+          cfop_padrao: string | null
+          created_at: string
+          csosn: string | null
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_ipi: string | null
+          cst_pis: string | null
+          descricao: string | null
+          id: string
+          loja_id: string | null
+          ncm: string | null
+          nome: string
+          origem_mercadoria: number | null
+          unidade_comercial: string | null
+          unidade_tributavel: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          ativo?: boolean
+          cest?: string | null
+          cfop_padrao?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          ncm?: string | null
+          nome: string
+          origem_mercadoria?: number | null
+          unidade_comercial?: string | null
+          unidade_tributavel?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          ativo?: boolean
+          cest?: string | null
+          cfop_padrao?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          id?: string
+          loja_id?: string | null
+          ncm?: string | null
+          nome?: string
+          origem_mercadoria?: number | null
+          unidade_comercial?: string | null
+          unidade_tributavel?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_fiscais_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ativo: boolean | null
@@ -7955,6 +8318,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      servicos_fiscais: {
+        Row: {
+          aliquota_iss: number | null
+          ativo: boolean
+          cnae: string | null
+          codigo_lc116: string | null
+          codigo_servico_municipal: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          iss_retido: boolean
+          loja_id: string | null
+          municipio_incidencia: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          aliquota_iss?: number | null
+          ativo?: boolean
+          cnae?: string | null
+          codigo_lc116?: string | null
+          codigo_servico_municipal?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          iss_retido?: boolean
+          loja_id?: string | null
+          municipio_incidencia?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          aliquota_iss?: number | null
+          ativo?: boolean
+          cnae?: string | null
+          codigo_lc116?: string | null
+          codigo_servico_municipal?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          iss_retido?: boolean
+          loja_id?: string | null
+          municipio_incidencia?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_fiscais_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sistemas_saas: {
         Row: {
