@@ -2043,7 +2043,86 @@ export default function ComercialNegociacao() {
 
       {/* ---------- RIGHT ---------- */}
       <div className="col-span-12 lg:col-span-4 space-y-5">
-        {/* Aplicar desconto */}
+        {/* Painel de Fechamento (gatilhos de venda) */}
+        {(() => {
+          const tplG = tplOrcamento as GatilhosTemplate | null;
+          if (!tplG?.mostrar_gatilhos_venda || !tplG?.mostrar_gatilhos_na_negociacao) return null;
+          const usarEsc = !!tplG.usar_gatilho_escassez;
+          const usarUrg = !!tplG.usar_gatilho_urgencia;
+          const validade = calcularValidade(tplG);
+          const vencida = isVencida(validade);
+          const ctx = {
+            cliente_nome: (orc?.cliente as any)?.nome,
+            numero_orcamento: (orc as any)?.codigo,
+            nome_projeto: (orc as any)?.nome_projeto,
+            valor_total: totalProposta,
+            desconto_total: Math.max(0, valorInicial - totalProposta),
+          };
+          const parcelaValor = pagamentos[0]?.parcelas_detalhe?.[0] || 0;
+          const parcelaQt = pagamentos[0]?.parcelas || 0;
+          const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
+          const semBlocos = !usarEsc && !usarUrg && !sugestao;
+          if (semBlocos) return null;
+          return (
+            <div className="rounded-xl border border-[#d9cbb0] bg-gradient-to-b from-[#fbf7ee] to-[#f3ead4] p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+                {vencida && (
+                  <span className="text-[10px] uppercase tracking-wider bg-[#7a2b3a] text-white px-2 py-0.5 rounded">Proposta vencida</span>
+                )}
+              </div>
+
+              {usarEsc && (tplG.quantidade_contratos_restantes != null || tplG.quantidade_contratos_total != null) && (
+                <div className="rounded-md bg-white/70 border border-[#e9d68a] px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wider text-[#7c5a1e]">{tplG.titulo_escassez || "Contratos restantes"}</div>
+                  <div className="text-[20px] font-semibold text-[#3a2f1a] leading-tight">
+                    {tplG.quantidade_contratos_restantes ?? "—"}
+                    {tplG.quantidade_contratos_total != null && (
+                      <span className="text-[13px] text-muted-foreground font-normal"> de {tplG.quantidade_contratos_total}</span>
+                    )}
+                    {tplG.quantidade_contratos_restantes != null && <span className="text-[12px] text-muted-foreground font-normal ml-1">contratos restantes</span>}
+                  </div>
+                  {tplG.texto_escassez && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_escassez}</div>}
+                </div>
+              )}
+
+              {usarUrg && validade && (
+                <div className="rounded-md bg-white/70 border border-[#e0bcc4] px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wider text-[#7a2b3a]">Urgência</div>
+                  <div className="text-[18px] font-semibold text-[#3a2f1a] leading-tight">{tempoRestante(validade) || "—"}</div>
+                  <div className="text-[11px] text-muted-foreground">Proposta válida até {formatarValidade(validade)}</div>
+                  {tplG.texto_urgencia && <div className="text-[11px] text-muted-foreground mt-1">{tplG.texto_urgencia}</div>}
+                </div>
+              )}
+
+              <div className="rounded-md bg-[#0f3d2e] text-white px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wider text-emerald-100/80">Leitura rápida</div>
+                <div className="grid grid-cols-3 gap-2 mt-1 text-[11px]">
+                  <div>
+                    <div className="text-emerald-100/70">Economia</div>
+                    <div className="font-semibold text-[13px]">{fmtBrl(ctx.desconto_total)}</div>
+                  </div>
+                  <div>
+                    <div className="text-emerald-100/70">Entrada</div>
+                    <div className="font-semibold text-[13px]">{fmtBrl(totalEntrada)}</div>
+                  </div>
+                  <div>
+                    <div className="text-emerald-100/70">Parcela</div>
+                    <div className="font-semibold text-[13px]">{parcelaQt > 0 ? `${parcelaQt}x ${fmtBrl(parcelaValor)}` : "—"}</div>
+                  </div>
+                </div>
+              </div>
+
+              {sugestao && (
+                <div className="rounded-md bg-white border border-[#d9cbb0] px-3 py-2 text-[12px] text-[#3a2f1a] italic leading-relaxed">
+                  “{sugestao}”
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+
         <div className="surface-card p-5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3">
             Aplicar Desconto
