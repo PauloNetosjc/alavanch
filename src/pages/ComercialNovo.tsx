@@ -969,11 +969,23 @@ export default function ComercialNovo() {
   };
 
   const isAmbienteImportado = (a: Partial<Ambiente> & Record<string, any>) => {
-    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || "").toString().toLowerCase();
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.tipo_origem || (a as any)?.fonte || "").toString().toLowerCase();
     if (origem && origem !== "manual") return true;
     if ((a as any)?.importado_xml === true || (a as any)?.importado === true) return true;
     if ((a as any)?.arquivo_xml_id || (a as any)?.arquivo_importacao_id) return true;
+    if ((a as any)?.produto_id || (a as any)?.estoque_id) return true;
+    if (Array.isArray((a as any)?.produtos_estoque) && (a as any).produtos_estoque.length > 0) return true;
     return false;
+  };
+
+  const origemAmbienteLabel = (a: Partial<Ambiente> & Record<string, any>): string | null => {
+    const origem = (a?.origem_ambiente || (a as any)?.ambiente_infantil || (a as any)?.origem || (a as any)?.fonte || "").toString().toLowerCase();
+    if (origem === "xml") return "XML";
+    if (origem === "estoque") return "Estoque";
+    if (origem === "tabela") return "Tabela";
+    if (origem === "importado") return "Importado";
+    if (isAmbienteImportado(a)) return "Importado";
+    return null;
   };
 
   const updateAmbiente = (id: string, patch: Partial<Ambiente>) => {
