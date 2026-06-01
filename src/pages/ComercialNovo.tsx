@@ -1822,10 +1822,10 @@ export default function ComercialNovo() {
                           {importado ? (
                             <div
                               className="h-9 flex items-center justify-end gap-1.5 px-3 rounded-md bg-muted/40 border border-border text-[13px] text-mono"
-                              title="Preço importado do arquivo. Não pode ser editado manualmente."
+                              title="Preço definido pela origem do ambiente. Não pode ser editado manualmente."
                               aria-disabled="true"
                             >
-                              <span>{a.preco_sugerido ? fmtBrl(a.preco_sugerido) : "Arquivo importado sem preço sugerido"}</span>
+                              <span>{a.preco_sugerido ? fmtBrl(a.preco_sugerido) : "Sem preço sugerido"}</span>
                               <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                             </div>
                           ) : (
