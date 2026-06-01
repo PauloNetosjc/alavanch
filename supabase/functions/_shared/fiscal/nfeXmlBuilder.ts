@@ -122,8 +122,38 @@ export function buildNfeXml(input: BuildNfeInput): NfeMontada {
     const uTrib = it.uTrib ?? it.uCom;
     const qTrib = it.qTrib ?? it.qCom;
     const vUnTrib = it.vUnTrib ?? it.vUnCom;
-    const cst = it.CST ?? "00";
     const orig = it.origem ?? 0;
+
+    // ICMS: CSOSN (Simples) ou CST (Regime normal)
+    let icmsXml = "";
+    if (it.CSOSN) {
+      const grupo = ["101","102","103","300","400","500","900"].includes(it.CSOSN) ? `ICMSSN${it.CSOSN}` : "ICMSSN102";
+      icmsXml = `<ICMS><${grupo}>${tag("orig", orig)}${tag("CSOSN", it.CSOSN)}</${grupo}></ICMS>`;
+    } else {
+      const cst = it.CST ?? "00";
+      const aliq = it.icms_aliquota ?? 0;
+      icmsXml = `<ICMS><ICMS00>${tag("orig", orig)}${tag("CST", cst)}${tag("modBC", 3)}${tag("vBC", fmt(aliq>0 ? it.vProd : 0, 2))}${tag("pICMS", fmt(aliq, 2))}${tag("vICMS", fmt((aliq*it.vProd)/100, 2))}</ICMS00></ICMS>`;
+    }
+
+    // PIS
+    const pisCst = it.pis_cst ?? "07";
+    const pisAliq = it.pis_aliquota ?? 0;
+    const pisXml = pisAliq > 0
+      ? `<PIS><PISAliq>${tag("CST", pisCst)}${tag("vBC", fmt(it.vProd, 2))}${tag("pPIS", fmt(pisAliq, 4))}${tag("vPIS", fmt((pisAliq*it.vProd)/100, 2))}</PISAliq></PIS>`
+      : `<PIS><PISNT>${tag("CST", pisCst)}</PISNT></PIS>`;
+
+    // COFINS
+    const cofinsCst = it.cofins_cst ?? "07";
+    const cofinsAliq = it.cofins_aliquota ?? 0;
+    const cofinsXml = cofinsAliq > 0
+      ? `<COFINS><COFINSAliq>${tag("CST", cofinsCst)}${tag("vBC", fmt(it.vProd, 2))}${tag("pCOFINS", fmt(cofinsAliq, 4))}${tag("vCOFINS", fmt((cofinsAliq*it.vProd)/100, 2))}</COFINSAliq></COFINS>`
+      : `<COFINS><COFINSNT>${tag("CST", cofinsCst)}</COFINSNT></COFINS>`;
+
+    // IPI opcional
+    const ipiXml = it.ipi_cst
+      ? `<IPI>${tag("cEnq", it.ipi_enquadramento || "999")}<IPITrib>${tag("CST", it.ipi_cst)}${tag("vBC", fmt(it.vProd, 2))}${tag("pIPI", fmt(it.ipi_aliquota ?? 0, 4))}${tag("vIPI", fmt(((it.ipi_aliquota ?? 0)*it.vProd)/100, 2))}</IPITrib></IPI>`
+      : "";
+
     return `<det nItem="${it.nItem}">
   <prod>
     ${tag("cProd", it.cProd)}
@@ -142,16 +172,10 @@ export function buildNfeXml(input: BuildNfeInput): NfeMontada {
     ${tag("indTot", 1)}
   </prod>
   <imposto>
-    <ICMS><ICMS00>
-      ${tag("orig", orig)}
-      ${tag("CST", cst)}
-      ${tag("modBC", 3)}
-      ${tag("vBC", "0.00")}
-      ${tag("pICMS", "0.00")}
-      ${tag("vICMS", "0.00")}
-    </ICMS00></ICMS>
-    <PIS><PISNT>${tag("CST", "07")}</PISNT></PIS>
-    <COFINS><COFINSNT>${tag("CST", "07")}</COFINSNT></COFINS>
+    ${icmsXml}
+    ${pisXml}
+    ${cofinsXml}
+    ${ipiXml}
   </imposto>
 </det>`;
   }).join("");
