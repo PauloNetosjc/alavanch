@@ -2557,5 +2557,6 @@ export default function ComercialNegociacao() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </div>
   );
 }
