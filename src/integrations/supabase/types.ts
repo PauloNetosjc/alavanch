@@ -1995,6 +1995,7 @@ export type Database = {
           mostrar_desconto_contrato: boolean | null
           nome_empresa: string | null
           nome_fantasia: string | null
+          obrigar_informar_vencimento: boolean
           outros_perc: number | null
           prazo_entrega_inicio_contagem: string
           prazo_entrega_tipo_dias: string
@@ -2038,6 +2039,7 @@ export type Database = {
           mostrar_desconto_contrato?: boolean | null
           nome_empresa?: string | null
           nome_fantasia?: string | null
+          obrigar_informar_vencimento?: boolean
           outros_perc?: number | null
           prazo_entrega_inicio_contagem?: string
           prazo_entrega_tipo_dias?: string
@@ -2081,6 +2083,7 @@ export type Database = {
           mostrar_desconto_contrato?: boolean | null
           nome_empresa?: string | null
           nome_fantasia?: string | null
+          obrigar_informar_vencimento?: boolean
           outros_perc?: number | null
           prazo_entrega_inicio_contagem?: string
           prazo_entrega_tipo_dias?: string
