@@ -14,13 +14,15 @@ export interface BuildNfeInput {
     data_emissao: string;
     valor_total: number;
     valor_produtos: number;
+    finalidade_nfe?: number; // 1 normal, 2 complementar, 3 ajuste, 4 devolução
+    tpNF?: number; // 0 entrada, 1 saída
   };
   emit: {
     cnpj: string;
     razao_social: string;
     nome_fantasia?: string | null;
     ie?: string | null;
-    crt: number; // 1=Simples, 3=Normal
+    crt: number;
     uf: string;
     municipio: string;
     codigo_municipio: string;
@@ -29,9 +31,9 @@ export interface BuildNfeInput {
   };
   dest: {
     nome: string;
-    documento: string; // CPF ou CNPJ
+    documento: string;
     ie?: string | null;
-    indIEDest?: number; // 1, 2, 9
+    indIEDest?: number;
     email?: string | null;
     endereco?: { logradouro?: string; numero?: string; bairro?: string; cep?: string; municipio?: string; uf?: string; codigo_municipio?: string };
   };
@@ -50,7 +52,16 @@ export interface BuildNfeInput {
     qTrib?: number;
     vUnTrib?: number;
     CST?: string;
+    CSOSN?: string;
     origem?: number;
+    icms_aliquota?: number;
+    pis_cst?: string;
+    pis_aliquota?: number;
+    cofins_cst?: string;
+    cofins_aliquota?: number;
+    ipi_cst?: string;
+    ipi_aliquota?: number;
+    ipi_enquadramento?: string;
   }>;
 }
 
