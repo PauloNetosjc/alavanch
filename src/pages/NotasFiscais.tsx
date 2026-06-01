@@ -77,6 +77,9 @@ export default function NotasFiscais() {
           <TabT v="emitidas" i={<FileText className="w-4 h-4 mr-1.5"/>}>Notas Emitidas</TabT>
           <TabT v="produtos" i={<Package className="w-4 h-4 mr-1.5"/>}>Produtos Fiscais</TabT>
           <TabT v="servicos" i={<Wrench className="w-4 h-4 mr-1.5"/>}>Serviços Fiscais</TabT>
+          <TabT v="cfops" i={<ListOrdered className="w-4 h-4 mr-1.5"/>}>CFOPs</TabT>
+          <TabT v="operacoes" i={<Layers className="w-4 h-4 mr-1.5"/>}>Operações Fiscais</TabT>
+          <TabT v="tributarias" i={<Calculator className="w-4 h-4 mr-1.5"/>}>Configurações Tributárias</TabT>
           <TabT v="certificado" i={<Shield className="w-4 h-4 mr-1.5"/>}>Certificado</TabT>
           <TabT v="config" i={<Settings className="w-4 h-4 mr-1.5"/>}>Configurações Fiscais</TabT>
           <TabT v="status" i={<Activity className="w-4 h-4 mr-1.5"/>}>Status Backend</TabT>
