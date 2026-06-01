@@ -1014,7 +1014,10 @@ export default function ComercialNegociacao() {
     const locked: boolean[] = (p.parcelas_locked && p.parcelas_locked.length === n)
       ? [...p.parcelas_locked]
       : Array(n).fill(false);
-    return { det, vencs, formas, locked };
+    const confirmadas: boolean[] = (p.parcelas_confirmadas && p.parcelas_confirmadas.length === n)
+      ? [...p.parcelas_confirmadas]
+      : Array(n).fill(false);
+    return { det, vencs, formas, locked, confirmadas };
   };
 
   // Mantido para compat (renderização legada)
@@ -1023,22 +1026,28 @@ export default function ComercialNegociacao() {
   // Confirmação de cascata +30d
   const [askCascade, setAskCascade] = useState<{ idxPag: number; idxParc: number } | null>(null);
 
+  // Estado de minimização de cada card de pagamento
+  const [minimizados, setMinimizados] = useState<Record<number, boolean>>({});
+  const toggleMinimizar = (idx: number) =>
+    setMinimizados((m) => ({ ...m, [idx]: !m[idx] }));
+
   const editarParcelaValor = (idxPag: number, idxParc: number, novoValor: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       det[idxParc] = Number(novoValor) || 0;
       const recalc = recalcParcelas(det, p.valor, idxParc, locked);
-      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: recalc, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const editarParcelaVenc = (idxPag: number, idxParc: number, novaData: string) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       vencs[idxParc] = novaData || null;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      confirmadas[idxParc] = true;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
     // pergunta sobre cascata de +30 dias nas próximas
     if (idxParc < (pagamentos[idxPag]?.parcelas ?? 0) - 1) {
@@ -1046,35 +1055,49 @@ export default function ComercialNegociacao() {
     }
   };
 
+  const confirmarParcelaVenc = (idxPag: number, idxParc: number) => {
+    setPagamentos((prev) => prev.map((p, i) => {
+      if (i !== idxPag) return p;
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
+      if (confirmadas[idxParc]) return p;
+      confirmadas[idxParc] = true;
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
+    }));
+  };
+
   const editarParcelaForma = (idxPag: number, idxParc: number, novaForma: string) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       formas[idxParc] = novaForma;
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const toggleLockParcela = (idxPag: number, idxParc: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       locked[idxParc] = !locked[idxParc];
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
 
   const aplicarCascataVenc = (idxPag: number, idxParc: number) => {
     setPagamentos((prev) => prev.map((p, i) => {
       if (i !== idxPag) return p;
-      const { det, vencs, formas, locked } = ensureArrays(p);
+      const { det, vencs, formas, locked, confirmadas } = ensureArrays(p);
       const base = vencs[idxParc];
       for (let k = idxParc + 1; k < vencs.length; k++) {
-        if (!locked[k]) vencs[k] = addDays(base, (k - idxParc) * 30);
+        if (!locked[k]) {
+          vencs[k] = addDays(base, (k - idxParc) * 30);
+          confirmadas[k] = true;
+        }
       }
-      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked };
+      return { ...p, parcelas_detalhe: det, parcelas_vencimentos: vencs, parcelas_formas: formas, parcelas_locked: locked, parcelas_confirmadas: confirmadas };
     }));
   };
+
 
   const removePagamento = (idx: number) =>
     setPagamentos((p) => p.filter((_, i) => i !== idx));
