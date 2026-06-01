@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import alavanchLogo from "@/assets/alavanch-logo.png";
 import { UserThemePicker, useUserThemeBoot } from "@/components/UserThemePicker";
@@ -317,6 +317,18 @@ export function SidebarInner({ onNavigate }: { onNavigate?: () => void }) {
       return nv;
     });
   };
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const next = typeof detail === "boolean" ? detail : detail?.collapsed;
+      if (typeof next === "boolean") {
+        setUserCollapsed(next);
+        try { localStorage.setItem("sidebar_collapsed", next ? "1" : "0"); } catch {}
+      }
+    };
+    window.addEventListener("sidebar:set-collapsed", handler as EventListener);
+    return () => window.removeEventListener("sidebar:set-collapsed", handler as EventListener);
+  }, []);
 
   const [pwdOpen, setPwdOpen] = useState(false);
   const [currentPwd, setCurrentPwd] = useState("");

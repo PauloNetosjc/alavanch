@@ -1,0 +1,1 @@
+ALTER TABLE public.orcamento_templates ADD COLUMN IF NOT EXISTS titulo_painel_fechamento text;

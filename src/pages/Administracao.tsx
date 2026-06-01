@@ -863,6 +863,7 @@ function TemplateOrcamento() {
     mostrar_gatilhos_venda: false,
     mostrar_gatilhos_na_negociacao: true,
     mostrar_gatilhos_na_impressao: false,
+    titulo_painel_fechamento: "",
     usar_gatilho_escassez: false,
     titulo_escassez: "Contratos restantes",
     quantidade_contratos_total: null,
@@ -930,6 +931,7 @@ function TemplateOrcamento() {
       mostrar_gatilhos_venda: !!tpl.mostrar_gatilhos_venda,
       mostrar_gatilhos_na_negociacao: !!tpl.mostrar_gatilhos_na_negociacao,
       mostrar_gatilhos_na_impressao: !!tpl.mostrar_gatilhos_na_impressao,
+      titulo_painel_fechamento: tpl.titulo_painel_fechamento ?? null,
       usar_gatilho_escassez: !!tpl.usar_gatilho_escassez,
       titulo_escassez: tpl.titulo_escassez ?? "Contratos restantes",
       quantidade_contratos_total: tpl.quantidade_contratos_total ?? null,
@@ -1059,6 +1061,19 @@ function TemplateOrcamento() {
                     <Toggle k="mostrar_gatilhos_na_negociacao" label="Mostrar na tela de negociação" />
                     <Toggle k="mostrar_gatilhos_na_impressao" label="Mostrar na proposta impressa" />
                   </div>
+
+                  <div className="rounded-md border bg-white p-3">
+                    <Label className="text-[12px]">Título da campanha / painel</Label>
+                    <Input
+                      value={tpl.titulo_painel_fechamento ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, titulo_painel_fechamento: e.target.value })}
+                      placeholder="Ex.: Semana do Consumidor | Feirão de Planejados | Condição Especial Junho"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Se vazio, será exibido "Painel de Fechamento" como título padrão.
+                    </p>
+                  </div>
+
 
                   <div className="rounded-md border bg-white p-3 space-y-3">
                     <label className="flex items-center gap-2 text-[13px] cursor-pointer">

@@ -561,6 +561,12 @@ export default function ComercialNegociacao() {
   const [tplOrcamento, setTplOrcamento] = useState<any>(null);
   const [confirmando, setConfirmando] = useState(false);
 
+  // Recolhe sidebar automaticamente ao abrir a negociação (foco total)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("sidebar:set-collapsed", { detail: { collapsed: true } }));
+  }, []);
+
+
   /* ----------------------------- load ----------------------------- */
   useEffect(() => {
     if (!id) return;
@@ -1679,12 +1685,41 @@ export default function ComercialNegociacao() {
       return entradasPg.map(renderEntrada).join("") + parceladosPg.map(renderParc).join("");
     })() : `<div class="muted">A definir</div>`}` : ""}
 
-    ${exibirGatilhos ? `<h2>Condição Especial</h2>
-    <div class="cond" style="background:#fbf7ee;border:1px solid #e9d68a;padding:10px;border-radius:6px">
-      ${cfg.gatilhos_tpl!.usar_gatilho_escassez && (cfg.gatilhos_tpl!.quantidade_contratos_restantes != null || cfg.gatilhos_tpl!.quantidade_contratos_total != null) ? `<div><b>${escapeHtml(cfg.gatilhos_tpl!.titulo_escassez || "Contratos restantes")}:</b> ${cfg.gatilhos_tpl!.quantidade_contratos_restantes ?? "—"}${cfg.gatilhos_tpl!.quantidade_contratos_total != null ? " de " + cfg.gatilhos_tpl!.quantidade_contratos_total : ""}</div>` : ""}
-      ${cfg.gatilhos_tpl!.usar_gatilho_urgencia && gValidade ? `<div><b>Validade da proposta:</b> ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " <span style='color:#7a2b3a'>(vencida)</span>" : ""}</div>` : ""}
-      ${gSugestao ? `<div style="margin-top:6px;font-style:italic">${escapeHtml(gSugestao)}</div>` : ""}
-    </div>` : ""}
+    ${exibirGatilhos ? (() => {
+      const tplG = cfg.gatilhos_tpl!;
+      const tituloPainel = (tplG.titulo_painel_fechamento && String(tplG.titulo_painel_fechamento).trim()) || "Painel de Fechamento";
+      const contratosRest = Number(tplG.quantidade_contratos_restantes) || 0;
+      const usarEscPrint = !!tplG.usar_gatilho_escassez && contratosRest > 0;
+      const usarUrgPrint = !!tplG.usar_gatilho_urgencia && !!gValidade;
+      if (!usarEscPrint && !usarUrgPrint) return "";
+      const cardEsc = usarEscPrint ? `
+        <div style="background:#FFF4D8;border:1px solid #D7B66B;border-radius:8px;padding:10px 12px;margin-top:8px">
+          <div style="font-size:10px;letter-spacing:0.14em;color:#B9872D;font-weight:600;text-transform:uppercase">Escassez</div>
+          <div style="margin-top:2px"><span style="font-size:26px;font-weight:700;color:#B9872D;line-height:1">${contratosRest}</span>
+            <span style="font-size:12px;color:#2A2A2A;margin-left:6px">contratos restantes</span></div>
+          ${tplG.quantidade_contratos_total != null && Number(tplG.quantidade_contratos_total) > 0 ? `<div style="font-size:10.5px;color:#2A2A2A;opacity:0.7;margin-top:2px">de ${tplG.quantidade_contratos_total} disponíveis</div>` : ""}
+        </div>` : "";
+      const cardUrg = usarUrgPrint && gValidade ? `
+        <div style="background:#F8E8EA;border:1px solid #D8A5AB;border-radius:8px;padding:10px 12px;margin-top:8px">
+          <div style="font-size:10px;letter-spacing:0.14em;color:#7A2833;font-weight:600;text-transform:uppercase">Urgência</div>
+          <div style="margin-top:2px;font-size:20px;font-weight:700;color:#7A2833;line-height:1">${escapeHtml(tempoRestante(gValidade))}</div>
+          <div style="font-size:10.5px;color:#2A2A2A;opacity:0.85;margin-top:3px">Proposta válida até ${escapeHtml(formatarValidade(gValidade))}${isVencida(gValidade) ? " (vencida)" : ""}</div>
+        </div>` : "";
+      const cardLeitura = `
+        <div style="background:#0f3d2e;color:#fff;border-radius:8px;padding:10px 12px;margin-top:8px;display:flex;gap:18px;flex-wrap:wrap">
+          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Economia</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.desconto_total || 0)}</div></div>
+          <div><div style="font-size:9.5px;letter-spacing:0.14em;color:#d6f0e2;text-transform:uppercase">Total</div><div style="font-weight:600;font-size:13px;margin-top:2px">${fmtBrl(gCtx.valor_total || 0)}</div></div>
+        </div>`;
+      const cardSug = gSugestao ? `
+        <div style="background:#fff;border:1px solid #e4d9bf;border-radius:8px;padding:10px 12px;margin-top:8px;font-style:italic;font-size:12px;color:#2A2A2A">
+          “${escapeHtml(gSugestao)}”
+        </div>` : "";
+      return `<h2>Condição Especial</h2>
+      <div style="background:#faf6ec;border:1px solid #e4d9bf;border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;letter-spacing:0.14em;color:#7c5a1e;font-weight:600;text-transform:uppercase">${escapeHtml(tituloPainel)}</div>
+        ${cardEsc}${cardUrg}${cardLeitura}${cardSug}
+      </div>`;
+    })() : ""}
 
     ${cfg.mostrar_condicoes_gerais && cfg.condicoes_gerais_html ? `<h2>Condições Gerais</h2>
     <div class="cond">${cfg.condicoes_gerais_html}</div>` : ""}
@@ -1737,7 +1772,7 @@ export default function ComercialNegociacao() {
               <Calculator className="w-6 h-6" style={{ color: "#3B6FB0" }} />
             </div>
             <div>
-              <h1 className="text-[26px] font-semibold leading-none">Negociação Comercial</h1>
+              <h1 className="text-[26px] font-semibold leading-none tracking-wide">AMBIENTES</h1>
               <p className="text-[13px] text-muted-foreground mt-1.5">
                 {pedidoRef ? (
                   <>
@@ -1747,7 +1782,7 @@ export default function ComercialNegociacao() {
                     </Link>
                   </>
                 ) : (
-                  <>Ajuste valores e condições</>
+                  <>Selecione os ambientes e defina a condição comercial</>
                 )}
               </p>
             </div>
@@ -2118,14 +2153,28 @@ export default function ComercialNegociacao() {
             valor_total: totalProposta,
             desconto_total: Math.max(0, valorInicial - totalProposta),
           };
-          const parcelaValor = pagamentos[0]?.parcelas_detalhe?.[0] || 0;
-          const parcelaQt = pagamentos[0]?.parcelas || 0;
+          // Resumo da forma de pagamento principal (mesmo formato da impressão)
+          const limparMetodo = (n: string) => String(n || "")
+            .replace(/\s*\d+\s*x\s*a\s*\d+\s*x\s*/gi, " ")
+            .replace(/\s*\(\s*\d+x\s*a\s*\d+x\s*\)\s*/gi, " ")
+            .replace(/\s{2,}/g, " ").trim();
+          const pgPrincipal: any = pagamentos.find((p: any) => !p.is_entrada) || pagamentos[0];
+          let resumoParcela = "—";
+          if (pgPrincipal) {
+            const j = calcJurosDoPagamento(pgPrincipal);
+            const valorTotalPg = j.repassar && Number(pgPrincipal.valor) > 0 ? Number(pgPrincipal.valor) + j.valor : Number(pgPrincipal.valor);
+            const n = Math.max(1, Number(pgPrincipal.parcelas) || 1);
+            const det: number[] = Array.isArray(pgPrincipal.parcelas_detalhe) ? pgPrincipal.parcelas_detalhe : [];
+            const vp = det[0] && det[0] > 0 ? det[0] : valorTotalPg / n;
+            resumoParcela = `${limparMetodo(pgPrincipal.metodo) || "—"} · ${n}x · ${fmtBrl(vp)}`;
+          }
           const sugestao = resolverTexto(tplG.sugestao_texto_fechamento || "", tplG, ctx, validade);
           if (!usarEsc && !usarUrg) return null;
+          const tituloPainel = (tplG.titulo_painel_fechamento && String(tplG.titulo_painel_fechamento).trim()) || "Painel de Fechamento";
           return (
             <div className="rounded-xl border border-[#e4d9bf] bg-[#faf6ec] p-4 space-y-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">Painel de Fechamento</div>
+                <div className="text-[12px] uppercase tracking-[0.14em] text-[#7c5a1e] font-semibold">{tituloPainel}</div>
                 {vencida && (
                   <span className="text-[10px] uppercase tracking-wider bg-[#7A2833] text-white px-2 py-0.5 rounded">Proposta vencida</span>
                 )}
@@ -2165,7 +2214,7 @@ export default function ComercialNegociacao() {
                   </div>
                   <div>
                     <div className="text-emerald-100/80">Parcela</div>
-                    <div className="font-semibold text-[14px] text-white">{parcelaQt > 0 ? `${parcelaQt}x ${fmtBrl(parcelaValor)}` : "—"}</div>
+                    <div className="font-semibold text-[13px] text-white leading-tight">{resumoParcela}</div>
                   </div>
                 </div>
               </div>
@@ -2177,6 +2226,7 @@ export default function ComercialNegociacao() {
               )}
             </div>
           );
+
 
         })()}
 
