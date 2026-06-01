@@ -567,6 +567,25 @@ export default function ComercialNegociacao() {
     window.dispatchEvent(new CustomEvent("sidebar:set-collapsed", { detail: { collapsed: true } }));
   }, []);
 
+  // Modo tela cheia
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFullscreen(false);
+        return;
+      }
+      if (e.key === "Enter") {
+        const tag = (document.activeElement?.tagName || "").toLowerCase();
+        const isEditable = tag === "input" || tag === "textarea" || tag === "select" || tag === "button" || (document.activeElement as HTMLElement | null)?.isContentEditable;
+        if (!isEditable) setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
+
 
   /* ----------------------------- load ----------------------------- */
   useEffect(() => {
