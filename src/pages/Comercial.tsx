@@ -314,14 +314,15 @@ export default function Comercial() {
   }, [rows, showCancelled, statusFilter, tipoFilter, revisaoFilter, assinaturaFilter, monthFilter, search, lojasFilter]);
 
   const stats = useMemo(() => {
-    const negociacao = rows
+    // KPIs derivam dos MESMOS registros filtrados que a listagem (fonte única de verdade).
+    const negociacao = visibleRows
       .filter((r) => r.status === "negociacao")
       .reduce((s, r) => s + (Number(r.total) || 0), 0);
-    const vendidos = rows.filter((r) => r.status === "aprovado" || r.status === "convertido");
+    const vendidos = visibleRows.filter((r) => r.status === "aprovado" || r.status === "convertido");
     const vendasFechadas = vendidos.reduce((s, r) => s + (Number(r.total) || 0), 0);
     const ticket = vendidos.length ? vendasFechadas / vendidos.length : 0;
     return { negociacao, vendasFechadas, ticket };
-  }, [rows]);
+  }, [visibleRows]);
 
   return (
     <div>
