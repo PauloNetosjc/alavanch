@@ -70,7 +70,7 @@ export async function carregarCertificadoAtivo(
   const path = data.storage_path;
   if (!path) throw new CertificadoError("PFX_AUSENTE", "PFX do certificado não localizado");
 
-  const { data: file, error: dlErr } = await supabase.storage.from("certificados").download(path);
+  const { data: file, error: dlErr } = await supabase.storage.from("certificados-digitais").download(path);
   if (dlErr || !file) throw new CertificadoError("PFX_DOWNLOAD", "Falha ao baixar PFX: " + (dlErr?.message ?? "desconhecido"));
   const buf = new Uint8Array(await (file as Blob).arrayBuffer());
 
