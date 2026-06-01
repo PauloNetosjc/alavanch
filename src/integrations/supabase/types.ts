@@ -6025,6 +6025,7 @@ export type Database = {
           tipo_validade: string | null
           titulo: string | null
           titulo_escassez: string | null
+          titulo_painel_fechamento: string | null
           updated_at: string
           usar_gatilho_escassez: boolean
           usar_gatilho_urgencia: boolean
@@ -6060,6 +6061,7 @@ export type Database = {
           tipo_validade?: string | null
           titulo?: string | null
           titulo_escassez?: string | null
+          titulo_painel_fechamento?: string | null
           updated_at?: string
           usar_gatilho_escassez?: boolean
           usar_gatilho_urgencia?: boolean
@@ -6095,6 +6097,7 @@ export type Database = {
           tipo_validade?: string | null
           titulo?: string | null
           titulo_escassez?: string | null
+          titulo_painel_fechamento?: string | null
           updated_at?: string
           usar_gatilho_escassez?: boolean
           usar_gatilho_urgencia?: boolean
