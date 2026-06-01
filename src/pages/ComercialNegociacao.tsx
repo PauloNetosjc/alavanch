@@ -860,6 +860,10 @@ export default function ComercialNegociacao() {
     () => itens.reduce((s, it) => s + (Number(it.custo_fabrica) || 0) * (it.quantidade || 0), 0),
     [itens],
   );
+  const custoTotalAmbientes = useMemo(
+    () => ambientesIncluidos.reduce((s, a) => s + (Number(a.custo_aquisicao) || 0), 0),
+    [ambientesIncluidos],
+  );
   // Calcula juros por pagamento, separando por modo (absorver x repassar).
   // - "absorver": loja banca → não acresce contrato; vira juros_previsto no financeiro.
   // - "repassar": cliente paga → acresce contrato e pagamentos_orcamento.valor.
