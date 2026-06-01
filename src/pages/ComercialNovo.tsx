@@ -1031,10 +1031,8 @@ export default function ComercialNovo() {
         .eq("id", editId);
       if (upErr) { setSaving(false); return toast.error(upErr.message); }
 
-      if (!isAdendo) {
-        // Reset ambientes (cascade remove sub_itens via FK)
-        await supabase.from("ambientes").delete().eq("orcamento_id", editId);
-      }
+      // Em edição/nova versão, não limpamos os ambientes do orçamento.
+      // Remoções são persistidas pela própria ação de remover; aqui apenas atualizamos/adicionamos.
     } else {
       const year = new Date().getFullYear();
       const { count } = await supabase
@@ -1085,25 +1083,28 @@ export default function ComercialNovo() {
     if (!isAdendo) {
       for (let i = 0; i < ambientes.length; i++) {
         const a = ambientes[i];
-        const { data: amb } = await supabase
-          .from("ambientes")
-          .insert({
-            orcamento_id: orcId,
-            nome: a.nome,
-            descricao: a.descricao || null,
-            ordem: i,
-            prazo_dias: a.prazo_dias,
-            custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
-            custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
-            custo_aquisicao: a.custo_aquisicao,
-            preco_sugerido: a.preco_sugerido,
-            markup: a.markup,
-            aplicar_desconto: a.aplicar_desconto !== false,
-            origem_ambiente: a.origem_ambiente || "manual",
-
-          } as any)
-          .select("id")
-          .single();
+        const payload = {
+          orcamento_id: orcId,
+          nome: a.nome,
+          descricao: a.descricao || null,
+          ordem: i,
+          prazo_dias: a.prazo_dias,
+          custo_fabrica: a.itens.reduce((s, it) => s + it.custo_fabrica * it.quantidade, 0),
+          custo_loja: a.itens.reduce((s, it) => s + it.custo_loja * it.quantidade, 0),
+          custo_aquisicao: a.custo_aquisicao,
+          preco_sugerido: a.preco_sugerido,
+          markup: a.markup,
+          aplicar_desconto: a.aplicar_desconto !== false,
+          origem_ambiente: a.origem_ambiente || "manual",
+        } as any;
+        const query = isEdit && isUuid(a.id)
+          ? supabase.from("ambientes").update(payload).eq("id", a.id).eq("orcamento_id", orcId).select("id").single()
+          : supabase.from("ambientes").insert(payload).select("id").single();
+        const { data: amb, error: ambErr } = await query;
+        if (ambErr) { setSaving(false); return toast.error(ambErr.message); }
+        if (amb) {
+          await supabase.from("sub_itens_ambiente").delete().eq("ambiente_id", amb.id);
+        }
         if (amb && a.itens.length > 0) {
           await supabase.from("sub_itens_ambiente").insert(
             a.itens.map((it) => ({
