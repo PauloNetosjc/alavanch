@@ -542,6 +542,11 @@ export default function ComercialNovo() {
   const podeVerCusto = role === "admin" || role === "diretor";
   const [step, setStep] = useState(1);
   const [temNegociacao, setTemNegociacao] = useState<boolean>(false);
+  const [ultimaNegociacao, setUltimaNegociacao] = useState<{
+    versao: number;
+    status: string;
+    valor_final_negociado: number;
+  } | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [orcCodigo, setOrcCodigo] = useState<string>("");
