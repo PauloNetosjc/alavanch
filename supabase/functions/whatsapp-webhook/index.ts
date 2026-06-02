@@ -8,10 +8,11 @@ import { corsHeaders } from "../_shared/cors.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const incoming = req.headers.get("x-whatsapp-webhook-secret");
   const expected = Deno.env.get("WHATSAPP_GATEWAY_SECRET") ?? "";
+  const incoming =
+    req.headers.get("x-whatsapp-webhook-secret") ?? req.headers.get("x-webhook-secret");
   if (!expected || incoming !== expected) {
-    return json({ erro: "unauthorized" }, 401);
+    return json({ success: false, error: "unauthorized" }, 401);
   }
 
   try {
@@ -20,6 +21,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // --- Payload "flat" do gateway Railway ---------------------------------
+    // { store_id, session_id, contact_phone, contact_name, message_id,
+    //   from_me, message_text, message_type, timestamp, raw_payload }
+    if (body?.contact_phone && body?.message_id !== undefined) {
+      return await handleFlatPayload(supabase, body);
+    }
 
     const tipo = body?.tipo as string;
     const conta_id = body?.conta_id as string;
