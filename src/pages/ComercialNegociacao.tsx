@@ -388,11 +388,11 @@ function ResumoFinanceiroDialog({
                     <span className="text-muted-foreground">MKP / Margem CMV Loja</span>
                     <span className="text-mono font-semibold">{mkpMargemLoja}</span>
                   </div>
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="text-muted-foreground">Lucro Estimado CMV Fábrica</span>
+                    <span className="text-mono font-semibold text-emerald-600">{fmtBrl(lucroEstimadoCmvFabrica)}</span>
+                  </div>
                   <div className="border-t border-border pt-2 space-y-1.5">
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">Lucro Estimado CMV Fábrica</span>
-                      <span className="text-mono font-semibold text-emerald-600">{fmtBrl(lucroEstimadoCmvFabrica)}</span>
-                    </div>
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
                       <span className="text-mono font-semibold">{mkpMargemCmvFab}</span>
