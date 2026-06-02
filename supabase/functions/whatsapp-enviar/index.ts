@@ -24,12 +24,15 @@ Deno.serve(async (req) => {
 
     const { data: conta } = await supabase
       .from("whatsapp_contas")
-      .select("id, loja_id, tipo_integracao, status_conexao")
+      .select("id, loja_id, tipo_integracao, status_conexao, sessao_ref")
       .eq("id", conta_id)
       .maybeSingle();
     if (!conta) return json({ erro: "conta não encontrada" }, 404);
     if (conta.tipo_integracao !== "whatsapp_web") {
       return json({ erro: "Cloud API ainda não habilitada nesta fase" }, 501);
+    }
+    if (!conta.sessao_ref) {
+      return json({ ok: false, erro: "Sessão WhatsApp não conectada (session_id ausente)" }, 400);
     }
 
     const config = gw();
@@ -37,8 +40,8 @@ Deno.serve(async (req) => {
 
     const r = await fetch(`${config.url}/messages/send`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-whatsapp-api-secret": config.secret },
-      body: JSON.stringify({ conta_id, to, text }),
+      headers: { "content-type": "application/json", "x-gateway-secret": config.secret },
+      body: JSON.stringify({ session_id: conta.sessao_ref, phone: to, message: text }),
     });
     const data = await r.json().catch(() => ({}));
 
