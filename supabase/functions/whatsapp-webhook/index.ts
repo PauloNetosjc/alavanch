@@ -148,3 +148,112 @@ function json(body: unknown, status = 200): Response {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+async function handleFlatPayload(supabase: any, body: any) {
+  const store_id: string | null = body.store_id ?? null;
+  const session_id: string | null = body.session_id ?? null;
+  const contact_phone_raw: string = body.contact_phone ?? "";
+  const contact_name: string | null = body.contact_name ?? null;
+  const message_id: string | null = body.message_id ?? null;
+  const from_me: boolean = !!body.from_me;
+  const message_text: string | null = body.message_text ?? null;
+  const message_type: string = body.message_type ?? "text";
+  const ts: string = body.timestamp ? new Date(body.timestamp).toISOString() : new Date().toISOString();
+  const raw_payload = body.raw_payload ?? body;
+
+  // 3. Normalizar telefone para apenas dígitos
+  const contact_phone = (contact_phone_raw || "").replace(/\D+/g, "");
+  if (!contact_phone) return json({ success: false, error: "contact_phone inválido" }, 400);
+
+  // Localiza a conta WhatsApp (loja + session_id)
+  let contaQuery = supabase.from("whatsapp_contas").select("id, loja_id").limit(1);
+  if (store_id) contaQuery = contaQuery.eq("loja_id", store_id);
+  if (session_id) contaQuery = contaQuery.eq("sessao_ref", session_id);
+  const { data: conta } = await contaQuery.maybeSingle();
+  if (!conta) return json({ success: false, error: "conta WhatsApp não encontrada" }, 404);
+
+  const wa_chat_id = `${contact_phone}@s.whatsapp.net`;
+
+  // 4-6. Conversa existente ou nova
+  const { data: convExistente } = await supabase
+    .from("whatsapp_conversas")
+    .select("id, nao_lidas")
+    .eq("loja_id", conta.loja_id)
+    .eq("conta_id", conta.id)
+    .eq("wa_chat_id", wa_chat_id)
+    .maybeSingle();
+
+  let conversation_id: string;
+  if (!convExistente) {
+    const { data: novaConv, error: errConv } = await supabase
+      .from("whatsapp_conversas")
+      .insert({
+        conta_id: conta.id,
+        loja_id: conta.loja_id,
+        wa_chat_id,
+        titulo: contact_name,
+        is_group: false,
+        ultima_mensagem_em: ts,
+        ultima_mensagem_preview: (message_text ?? "[mídia]").slice(0, 200),
+        nao_lidas: from_me ? 0 : 1,
+      })
+      .select("id")
+      .single();
+    if (errConv) return json({ success: false, error: errConv.message }, 500);
+    conversation_id = novaConv.id;
+  } else {
+    conversation_id = convExistente.id;
+    await supabase
+      .from("whatsapp_conversas")
+      .update({
+        ultima_mensagem_em: ts,
+        ultima_mensagem_preview: (message_text ?? "[mídia]").slice(0, 200),
+        nao_lidas: from_me ? convExistente.nao_lidas : (convExistente.nao_lidas ?? 0) + 1,
+      })
+      .eq("id", conversation_id);
+  }
+
+  // 8. Evitar duplicidade por external_message_id (wa_message_id)
+  if (message_id) {
+    const { data: existeMsg } = await supabase
+      .from("whatsapp_mensagens")
+      .select("id")
+      .eq("conta_id", conta.id)
+      .eq("wa_message_id", message_id)
+      .maybeSingle();
+    if (existeMsg) {
+      return json({ success: true, conversation_id, message_id: existeMsg.id, duplicated: true });
+    }
+  }
+
+  // 7. Inserir mensagem
+  const { data: inserted, error: errMsg } = await supabase
+    .from("whatsapp_mensagens")
+    .insert({
+      conta_id: conta.id,
+      loja_id: conta.loja_id,
+      conversa_id: conversation_id,
+      wa_chat_id,
+      wa_message_id: message_id,
+      direcao: from_me ? "saida" : "entrada",
+      tipo: message_type,
+      texto: message_text,
+      status: "recebida",
+      origem: "whatsapp_web_runtime",
+      enviado_em: ts,
+      payload_bruto: raw_payload,
+    })
+    .select("id")
+    .single();
+  if (errMsg) return json({ success: false, error: errMsg.message }, 500);
+
+  // Registra evento bruto (auditoria)
+  await supabase.from("whatsapp_eventos").insert({
+    conta_id: conta.id,
+    loja_id: conta.loja_id,
+    tipo: "mensagem_recebida",
+    payload: body,
+  });
+
+  return json({ success: true, conversation_id, message_id: inserted.id });
+}
