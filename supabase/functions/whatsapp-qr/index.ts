@@ -1,12 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// whatsapp-qr — abre/recupera a sessão da loja no gateway WhatsApp Web.
-// Contrato do gateway (Railway):
-//   POST {GATEWAY_URL}/sessions
-//   headers: x-gateway-secret, content-type: application/json
-//   body:    { store_id, user_id }
-//   resp:    { session_id, status, qr_code }
+// whatsapp-qr — sempre encerra a sessão anterior (DELETE) e abre uma NOVA sessão (POST).
+// Gateway (Railway):
+//   DELETE {GATEWAY_URL}/sessions/{session_id}    headers: x-gateway-secret
+//   POST   {GATEWAY_URL}/sessions                 headers: x-gateway-secret, content-type
+//                                                 body: { store_id, user_id }
+//                                                 resp: { session_id, status, qr_code }
 
 function gatewayConfig() {
   const url = Deno.env.get("WHATSAPP_GATEWAY_URL") ?? "";
@@ -49,6 +49,29 @@ Deno.serve(async (req) => {
       }, 200);
     }
 
+    // 1) Se já existe session_id, encerra a sessão antiga no gateway.
+    if (conta.sessao_ref) {
+      try {
+        await fetch(`${gw.url}/sessions/${encodeURIComponent(conta.sessao_ref)}`, {
+          method: "DELETE",
+          headers: { "x-gateway-secret": gw.secret },
+        });
+      } catch (_) { /* segue sem bloquear */ }
+    }
+
+    // 2) Limpa estado local (qr, status, sessao_ref) antes de criar nova sessão.
+    await supabase
+      .from("whatsapp_contas")
+      .update({
+        sessao_ref: null,
+        qr_code: null,
+        qr_atualizado_em: null,
+        status_conexao: "aguardando_qr",
+        numero_conectado: null,
+      })
+      .eq("id", conta_id);
+
+    // 3) Cria nova sessão.
     const r = await fetch(`${gw.url}/sessions`, {
       method: "POST",
       headers: {
@@ -63,7 +86,7 @@ Deno.serve(async (req) => {
       await supabase
         .from("whatsapp_contas")
         .update({
-          sessao_ref: (data as { session_id?: string }).session_id ?? conta.sessao_ref ?? null,
+          sessao_ref: (data as { session_id?: string }).session_id ?? null,
           status_conexao: (data as { status?: string }).status ?? "aguardando_qr",
           qr_code: (data as { qr_code?: string | null }).qr_code ?? null,
           qr_atualizado_em: new Date().toISOString(),
