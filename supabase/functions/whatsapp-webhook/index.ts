@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    if (body?.message_id !== undefined && (body?.contact_phone !== undefined || body?.contact_jid !== undefined)) {
+    if (
+      body?.message_id !== undefined &&
+      (body?.contact_phone !== undefined ||
+        body?.contact_jid !== undefined ||
+        body?.contact_lid !== undefined)
+    ) {
       return await handleFlatPayload(supabase, body);
     }
 
@@ -201,13 +206,17 @@ function parseJid(raw: string | null | undefined): { jid: string | null; phone: 
 }
 
 async function handleFlatPayload(supabase: any, body: any) {
-  const store_id: string | null = body.store_id ?? null;
+  const store_id: string | null = body.store_id ?? body.loja_id ?? null;
   const session_id: string | null = body.session_id ?? null;
+  const conta_id_in: string | null = body.conta_id ?? null;
   const contact_phone_raw: string = body.contact_phone ?? "";
   const contact_jid_raw: string = body.contact_jid ?? "";
+  const contact_lid_raw: string = body.contact_lid ?? "";
   const contact_name: string | null = body.contact_name ?? null;
   const message_id: string | null = body.message_id ?? null;
-  const from_me: boolean = !!body.from_me;
+  const direction: string | null = body.direction ?? null;
+  const from_me: boolean =
+    typeof body.from_me === "boolean" ? body.from_me : direction === "outbound";
   const message_text: string | null = body.message_text ?? null;
   const message_type: string = body.message_type ?? "text";
   const ts: string = body.timestamp ? new Date(body.timestamp).toISOString() : new Date().toISOString();
@@ -215,8 +224,8 @@ async function handleFlatPayload(supabase: any, body: any) {
 
   // Resolve identificadores. NUNCA usar LID como contact_phone.
   let parsed = parseJid(contact_jid_raw || contact_phone_raw);
-  // Se veio contact_phone explicito e for um telefone real (curto), prioriza
   const phoneOnly = (contact_phone_raw || "").replace(/\D+/g, "");
+  // Só aceita contact_phone se for um número real (E.164 até 15 dígitos).
   if (phoneOnly && phoneOnly.length <= 15) {
     parsed = {
       jid: parsed.jid ?? `${phoneOnly}@s.whatsapp.net`,
@@ -224,16 +233,37 @@ async function handleFlatPayload(supabase: any, body: any) {
       lid: parsed.lid,
     };
   }
+  // contact_lid explícito do gateway tem prioridade sobre heurística
+  if (contact_lid_raw) {
+    const lidDigits = String(contact_lid_raw).replace(/\D+/g, "") || String(contact_lid_raw);
+    parsed = {
+      jid: parsed.jid ?? `${lidDigits}@lid`,
+      phone: parsed.phone, // nunca sobrescreve telefone com LID
+      lid: lidDigits,
+    };
+  }
 
   if (!parsed.jid && !parsed.phone && !parsed.lid) {
     return json({ success: false, error: "contact identifier inválido" }, 400);
   }
 
-  // Localiza a conta WhatsApp (loja + session_id)
-  let contaQuery = supabase.from("whatsapp_contas").select("id, loja_id").limit(1);
-  if (store_id) contaQuery = contaQuery.eq("loja_id", store_id);
-  if (session_id) contaQuery = contaQuery.eq("sessao_ref", session_id);
-  const { data: conta } = await contaQuery.maybeSingle();
+  // Localiza a conta WhatsApp: prioriza conta_id, senão loja + session_id.
+  let conta: { id: string; loja_id: string } | null = null;
+  if (conta_id_in) {
+    const r = await supabase
+      .from("whatsapp_contas")
+      .select("id, loja_id")
+      .eq("id", conta_id_in)
+      .maybeSingle();
+    conta = (r.data as any) ?? null;
+  }
+  if (!conta) {
+    let contaQuery = supabase.from("whatsapp_contas").select("id, loja_id").limit(1);
+    if (store_id) contaQuery = contaQuery.eq("loja_id", store_id);
+    if (session_id) contaQuery = contaQuery.eq("sessao_ref", session_id);
+    const r = await contaQuery.maybeSingle();
+    conta = (r.data as any) ?? null;
+  }
   if (!conta) return json({ success: false, error: "conta WhatsApp não encontrada" }, 404);
 
   const wa_chat_id = parsed.jid ?? (parsed.phone ? `${parsed.phone}@s.whatsapp.net` : `${parsed.lid}@lid`);
