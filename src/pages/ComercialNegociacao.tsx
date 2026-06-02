@@ -349,7 +349,7 @@ function ResumoFinanceiroDialog({
               const markupLoja = custoCmv > 0 ? totalVPL / custoCmv : null;
               const margemLoja = totalVPL > 0 && totalCustos > 0 ? ((totalVPL - totalCustos) / totalVPL) * 100 : null;
               const lucroEstimadoCmvFabrica = totalVPL - totalCustosSimulado;
-              const markupLojaFab = totalCustosSimulado > 0 ? totalVPL / totalCustosSimulado : null;
+              const markupLojaFab = custoFab > 0 ? totalVPL / custoFab : null;
               const margemLojaFab = totalVPL > 0 && totalCustosSimulado > 0 ? ((totalVPL - totalCustosSimulado) / totalVPL) * 100 : null;
               const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
               const markupFab = custoFab > 0 ? custoCmv / custoFab : null;
