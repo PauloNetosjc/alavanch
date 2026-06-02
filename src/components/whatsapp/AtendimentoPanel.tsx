@@ -357,12 +357,38 @@ export function AtendimentoPanel() {
     setLinkSaving(true);
     try {
       const jid = `${tel}@s.whatsapp.net`;
-      const { error } = await supabase
+
+      // Se já existe outra conversa com esse JID na mesma conta, mescla mensagens
+      const { data: existente } = await supabase
         .from("whatsapp_conversas")
-        .update({ contact_phone: tel, contact_jid: jid, wa_chat_id: jid })
-        .eq("id", selected.id);
-      if (error) throw error;
-      toast.success("Telefone vinculado");
+        .select("id")
+        .eq("conta_id", selected.conta_id)
+        .eq("wa_chat_id", jid)
+        .neq("id", selected.id)
+        .maybeSingle();
+
+      if (existente?.id) {
+        // move mensagens da conversa LID para a existente e remove a LID
+        await supabase
+          .from("whatsapp_mensagens")
+          .update({ conversa_id: existente.id })
+          .eq("conversa_id", selected.id);
+        await supabase.from("whatsapp_conversas").delete().eq("id", selected.id);
+        await supabase
+          .from("whatsapp_conversas")
+          .update({ contact_phone: tel, contact_jid: jid })
+          .eq("id", existente.id);
+        toast.success("Telefone vinculado (mesclado com conversa existente)");
+        setSelectedId(existente.id);
+      } else {
+        const { error } = await supabase
+          .from("whatsapp_conversas")
+          .update({ contact_phone: tel, contact_jid: jid, wa_chat_id: jid })
+          .eq("id", selected.id);
+        if (error) throw error;
+        toast.success("Telefone vinculado");
+      }
+
       setLinkOpen(false);
       setLinkTel("");
       await carregarConversas();
@@ -370,6 +396,28 @@ export function AtendimentoPanel() {
       toast.error(e?.message || String(e));
     } finally {
       setLinkSaving(false);
+    }
+  };
+
+  const excluirConversa = async (conv: Conversa) => {
+    if (!isAdmin) return;
+    if (!confirm(`Excluir a conversa com "${displayName(conv)}" e todas as mensagens? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const { error: errMsg } = await supabase
+        .from("whatsapp_mensagens")
+        .delete()
+        .eq("conversa_id", conv.id);
+      if (errMsg) throw errMsg;
+      const { error: errConv } = await supabase
+        .from("whatsapp_conversas")
+        .delete()
+        .eq("id", conv.id);
+      if (errConv) throw errConv;
+      toast.success("Conversa excluída");
+      if (selectedId === conv.id) setSelectedId(null);
+      await carregarConversas();
+    } catch (e: any) {
+      toast.error(e?.message || String(e));
     }
   };
 
