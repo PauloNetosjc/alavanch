@@ -11,6 +11,7 @@ import {
   whatsappGerarQr,
   whatsappDesconectar,
   whatsappSincronizarHistorico,
+  whatsappPollStatus,
   type WhatsappStatusResponse,
 } from "@/lib/whatsapp/api";
 
@@ -33,19 +34,20 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
     setContaWeb(c ?? null);
   }, [status]);
 
-  // Poll do QR enquanto aguardando
+  // Poll via gateway enquanto aguardando QR / conectando
   useEffect(() => {
-    if (!contaWeb || contaWeb.status_conexao !== "aguardando_qr") return;
+    if (!contaWeb) return;
+    if (contaWeb.status_conexao !== "aguardando_qr" && contaWeb.status_conexao !== "conectando") return;
     const t = setInterval(async () => {
-      const { data } = await supabase
-        .from("whatsapp_contas")
-        .select("qr_code, status_conexao")
-        .eq("id", contaWeb.id)
-        .maybeSingle();
-      if (data?.qr_code) setQrImage(data.qr_code);
-      if (data?.status_conexao === "conectado") {
-        setQrImage(null);
-        onRefresh();
+      try {
+        const r = await whatsappPollStatus(contaWeb.id);
+        if (r.qr_code) setQrImage(r.qr_code);
+        if (r.status === "conectado") {
+          setQrImage(null);
+          onRefresh();
+        }
+      } catch {
+        /* ignore polling errors */
       }
     }, 3000);
     return () => clearInterval(t);
@@ -57,16 +59,29 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from("whatsapp_contas").insert({
-      loja_id: selectedLojaId,
-      nome: "WhatsApp Web da Loja",
-      tipo_integracao: "whatsapp_web",
-    });
-    setCreating(false);
-    if (error) {
-      toast.error(error.message);
+    const { data: nova, error } = await supabase
+      .from("whatsapp_contas")
+      .insert({
+        loja_id: selectedLojaId,
+        nome: "WhatsApp Web da Loja",
+        tipo_integracao: "whatsapp_web",
+      })
+      .select("id")
+      .single();
+    if (error || !nova) {
+      setCreating(false);
+      toast.error(error?.message ?? "Falha ao criar conta");
       return;
     }
+    // Já abre a sessão no gateway para receber o QR
+    try {
+      const r = await whatsappGerarQr(nova.id);
+      if (r.ok && r.qr_code) setQrImage(r.qr_code);
+      else if (!r.ok) toast.error(r.erro || "Falha ao iniciar sessão no gateway");
+    } catch (e) {
+      toast.error(String(e));
+    }
+    setCreating(false);
     toast.success("Conta WhatsApp Web criada");
     onRefresh();
   };
