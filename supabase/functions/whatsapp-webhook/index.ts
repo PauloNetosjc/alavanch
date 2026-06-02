@@ -8,11 +8,32 @@ import { corsHeaders } from "../_shared/cors.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const expected = Deno.env.get("WHATSAPP_GATEWAY_SECRET") ?? "";
-  const incoming =
-    req.headers.get("x-whatsapp-webhook-secret") ?? req.headers.get("x-webhook-secret");
-  if (!expected || incoming !== expected) {
-    return json({ success: false, error: "unauthorized" }, 401);
+  const expectedSecret =
+    Deno.env.get("SYSTEM_WEBHOOK_SECRET") ||
+    Deno.env.get("WHATSAPP_WEBHOOK_SECRET") ||
+    Deno.env.get("WEBHOOK_SECRET") ||
+    Deno.env.get("WHATSAPP_GATEWAY_SECRET");
+
+  if (!expectedSecret) {
+    return json({ success: false, error: "webhook_secret_not_configured" }, 500);
+  }
+
+  const receivedSecret =
+    req.headers.get("x-webhook-secret") ??
+    req.headers.get("x-whatsapp-webhook-secret");
+
+  if (receivedSecret !== expectedSecret) {
+    return json(
+      {
+        success: false,
+        error: "unauthorized",
+        debug: {
+          received_secret_exists: !!receivedSecret,
+          expected_secret_exists: !!expectedSecret,
+        },
+      },
+      401,
+    );
   }
 
   try {
