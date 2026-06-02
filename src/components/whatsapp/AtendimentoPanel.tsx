@@ -210,23 +210,26 @@ export function AtendimentoPanel() {
     setSending(true);
     try {
       const phone = phoneFromChatId(selected.wa_chat_id);
+      console.log("[atendimento][enviar] payload", {
+        conversation_id: selected.id,
+        store_id: selected.loja_id,
+        session_id: contaConectada.sessao_ref,
+        contact_phone: phone,
+        message: texto,
+      });
       const r = await whatsappEnviarMensagem(selected.conta_id, phone, texto);
+      console.log("[atendimento][enviar] gateway response", r);
       if (!r.ok) {
-        toast.error(r.erro || "Falha ao enviar");
+        toast.error((r as any).erro || "Falha ao enviar");
         return;
       }
-      // Atualiza conversa
-      await supabase
-        .from("whatsapp_conversas")
-        .update({
-          ultima_mensagem_em: new Date().toISOString(),
-          ultima_mensagem_preview: texto.slice(0, 200),
-        })
-        .eq("id", selected.id);
       setNovaMsg("");
-      carregarMensagens(selected.id);
-      carregarConversas();
+      // A edge function já vincula conversa_id, salva payload_bruto e atualiza a conversa.
+      // Recarrega histórico imediatamente.
+      await carregarMensagens(selected.id);
+      await carregarConversas();
     } catch (e) {
+      console.error("[atendimento][enviar] erro", e);
       toast.error(String(e));
     } finally {
       setSending(false);
