@@ -79,6 +79,7 @@ const Parceiros = lazy(() => import("@/pages/Parceiros"));
 const Financeiro = lazy(() => import("@/pages/Financeiro"));
 const AnaliseFinanceira = lazy(() => import("@/pages/AnaliseFinanceira"));
 const RelatoriosFinanceiros = lazy(() => import("@/pages/RelatoriosFinanceiros"));
+const ChecagemContratos = lazy(() => import("@/pages/ChecagemContratos"));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const Agenda = lazy(() => import("@/pages/Agenda"));
 const Autorizacoes = lazy(() => import("@/pages/Autorizacoes"));
