@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       );
       const { data } = await supabase
         .from("whatsapp_contas")
-        .select("id, nome, tipo_integracao, status_conexao, numero_conectado, historico_sync_status, ultima_conexao_em")
+        .select("id, loja_id, nome, tipo_integracao, status_conexao, numero_conectado, historico_sync_status, ultima_conexao_em, sessao_ref, updated_at")
         .eq("ativo", true);
       contas = data ?? [];
     }
