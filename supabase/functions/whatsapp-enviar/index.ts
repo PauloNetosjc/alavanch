@@ -16,6 +16,28 @@ Deno.serve(async (req) => {
     const { conta_id, to, text } = (await req.json()) as { conta_id: string; to: string; text: string };
     if (!conta_id || !to || !text) return json({ erro: "conta_id, to e text obrigatórios" }, 400);
 
+    // Bloqueia envio para LID (identificador interno do WhatsApp)
+    const toStr = String(to).trim();
+    const isLid = toStr.endsWith("@lid");
+    const onlyDigits = toStr.replace(/\D+/g, "");
+    const isJidNet = toStr.endsWith("@s.whatsapp.net") || toStr.endsWith("@c.us");
+    // Sem JID: dígitos longos demais (>15) são LID, não telefone
+    const looksLikeLidDigits = !toStr.includes("@") && onlyDigits.length > 15;
+    if (isLid || looksLikeLidDigits) {
+      return json(
+        {
+          ok: false,
+          erro: "Este contato chegou pelo identificador interno do WhatsApp. Vincule um telefone real antes de responder.",
+          requires_phone_link: true,
+        },
+        422,
+      );
+    }
+
+    // Para envio ao gateway, usar somente dígitos do telefone (ou parte numérica do JID @s.whatsapp.net)
+    const phoneForGateway = isJidNet ? toStr.split("@")[0].replace(/\D+/g, "") : onlyDigits;
+    if (!phoneForGateway) return json({ ok: false, erro: "telefone inválido" }, 400);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -41,9 +63,10 @@ Deno.serve(async (req) => {
     const r = await fetch(`${config.url}/messages/send`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-gateway-secret": config.secret },
-      body: JSON.stringify({ session_id: conta.sessao_ref, phone: to, message: text }),
+      body: JSON.stringify({ session_id: conta.sessao_ref, phone: phoneForGateway, message: text }),
     });
     const data = await r.json().catch(() => ({}));
+
 
     if (r.ok) {
       const waChatId = data.to ?? (to.includes("@") ? to : `${to.replace(/\D+/g, "")}@s.whatsapp.net`);
