@@ -210,7 +210,22 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
                 {qrLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
                 Gerar novo QR Code
               </Button>
-              <Button onClick={onRefresh} variant="outline" size="sm">
+              <Button
+                onClick={async () => {
+                  try {
+                    const r = await whatsappPollStatus(contaWeb.id);
+                    if (r.qr_code) setQrImage(r.qr_code);
+                    if (r.status === "conectado") setQrImage(null);
+                  } catch (e) {
+                    toast.error(String(e));
+                  } finally {
+                    onRefresh();
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                disabled={!status?.configured}
+              >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Ver status
               </Button>
