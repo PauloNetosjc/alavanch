@@ -9991,6 +9991,10 @@ export type Database = {
         Row: {
           arquivado: boolean
           conta_id: string
+          contact_jid: string | null
+          contact_lid: string | null
+          contact_name: string | null
+          contact_phone: string | null
           contato_id: string | null
           created_at: string
           id: string
@@ -10006,6 +10010,10 @@ export type Database = {
         Insert: {
           arquivado?: boolean
           conta_id: string
+          contact_jid?: string | null
+          contact_lid?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           contato_id?: string | null
           created_at?: string
           id?: string
@@ -10021,6 +10029,10 @@ export type Database = {
         Update: {
           arquivado?: boolean
           conta_id?: string
+          contact_jid?: string | null
+          contact_lid?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           contato_id?: string | null
           created_at?: string
           id?: string
@@ -10091,6 +10103,9 @@ export type Database = {
       whatsapp_mensagens: {
         Row: {
           conta_id: string
+          contact_jid: string | null
+          contact_lid: string | null
+          contact_phone: string | null
           conversa_id: string | null
           created_at: string
           direcao: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
@@ -10109,6 +10124,9 @@ export type Database = {
         }
         Insert: {
           conta_id: string
+          contact_jid?: string | null
+          contact_lid?: string | null
+          contact_phone?: string | null
           conversa_id?: string | null
           created_at?: string
           direcao: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
@@ -10127,6 +10145,9 @@ export type Database = {
         }
         Update: {
           conta_id?: string
+          contact_jid?: string | null
+          contact_lid?: string | null
+          contact_phone?: string | null
           conversa_id?: string | null
           created_at?: string
           direcao?: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
