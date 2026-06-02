@@ -186,6 +186,7 @@ function ResumoFinanceiroDialog({
   const extrasCfg: any[] = Array.isArray(config?.formacao_preco_extras) ? config.formacao_preco_extras : [];
 
   const [percs, setPercs] = useState<Record<string, number>>({});
+  const [resultadoTab, setResultadoTab] = useState<"loja" | "lojaFab" | "fab">("loja");
   useEffect(() => {
     if (!config) return;
     const next: Record<string, number> = {};
@@ -340,91 +341,137 @@ function ResumoFinanceiroDialog({
           {/* RESULTADO */}
           <div className="space-y-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Resultado Estimado</div>
-            <div className="flex flex-col items-center py-2">
-              <div className="w-32 h-32 rounded-full flex items-center justify-center"
-                style={{ background: `conic-gradient(#3F8B5C ${Math.max(0, margem)}%, #E5E7EB 0)` }}>
-                <div className="w-24 h-24 rounded-full bg-background flex flex-col items-center justify-center">
-                  <div className="text-[20px] font-semibold">{margem.toFixed(1)}%</div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">margem</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mt-3 text-[11px]">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lucro</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Custos</span>
-              </div>
-            </div>
             {(() => {
               const custoCmv = custoFabrica;
               const custoFab = custoFabricaReferencia;
               const totalCustosSimulado = totalCustos - custoCmv + custoFab;
+              const lucroCmvLoja = totalVPL - totalCustos;
+              const markupLoja = totalCustos > 0 ? totalVPL / totalCustos : null;
+              const margemLoja = totalVPL > 0 && totalCustos > 0 ? ((totalVPL - totalCustos) / totalVPL) * 100 : null;
               const lucroEstimadoCmvFabrica = totalVPL - totalCustosSimulado;
-              // LOJA: VPL vs Custo CMV
-              const markupLoja = custoCmv > 0 ? totalVPL / custoCmv : null;
-              const margemLoja = totalVPL > 0 && custoCmv > 0 ? ((totalVPL - custoCmv) / totalVPL) * 100 : null;
-              // LOJA + FÁBRICA: VPL vs custo simulado com fábrica
-              const markupLojaFab = custoFab > 0 ? totalVPL / custoFab : null;
-              const margemLojaFab = totalVPL > 0 && custoFab > 0 ? ((totalVPL - totalCustosSimulado) / totalVPL) * 100 : null;
-              // FÁBRICA: Custo CMV vs Custo Fábrica
+              const markupLojaFab = totalCustosSimulado > 0 ? totalVPL / totalCustosSimulado : null;
+              const margemLojaFab = totalVPL > 0 && totalCustosSimulado > 0 ? ((totalVPL - totalCustosSimulado) / totalVPL) * 100 : null;
+              const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
               const markupFab = custoFab > 0 ? custoCmv / custoFab : null;
               const margemFab = custoCmv > 0 && custoFab > 0 ? ((custoCmv - custoFab) / custoCmv) * 100 : null;
-              const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
               const fmtX = (v: number | null) => v !== null && isFinite(v) ? `${v.toFixed(2).replace(".", ",")}x` : "—";
               const fmtPct = (v: number | null) => v !== null && isFinite(v) ? `${v.toFixed(2).replace(".", ",")}%` : "—";
               const join = (mk: number | null, mg: number | null) =>
                 (mk === null && mg === null) ? "—" : `${fmtX(mk)} / ${fmtPct(mg)}`;
+
+              const tabs: { key: typeof resultadoTab; label: string }[] = [
+                { key: "loja", label: "Loja" },
+                { key: "lojaFab", label: "Loja + Fábrica" },
+                { key: "fab", label: "Fábrica" },
+              ];
+
+              const margemAtual =
+                resultadoTab === "loja" ? margemLoja :
+                resultadoTab === "lojaFab" ? margemLojaFab :
+                margemFab;
+              const margemPct = margemAtual !== null && isFinite(margemAtual) ? margemAtual : 0;
+
               return (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-muted-foreground">Total VPL</span>
-                    <span className="text-mono font-semibold">{fmtBrl(totalVPL)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-muted-foreground">Total Custos</span>
-                    <span className="text-mono font-semibold text-rose-600">-{fmtBrl(totalCustos)}</span>
-                  </div>
-
-                  {/* BLOCO LOJA */}
-                  <div className="border-t border-border pt-2 space-y-1.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Loja</div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
-                      <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">CMV Loja</span>
-                    </div>
-                    <div className="text-[24px] font-semibold text-emerald-600 text-mono">{fmtBrl(lucro)}</div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">MKP / Margem CMV Loja</span>
-                      <span className="text-mono font-semibold">{join(markupLoja, margemLoja)}</span>
-                    </div>
+                <>
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-md text-[11px]">
+                    {tabs.map((t) => (
+                      <button
+                        key={t.key}
+                        type="button"
+                        onClick={() => setResultadoTab(t.key)}
+                        className={`px-2 py-1.5 rounded font-medium uppercase tracking-wider transition-colors ${
+                          resultadoTab === t.key
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* BLOCO LOJA + FÁBRICA */}
-                  <div className="border-t border-border pt-2 space-y-1.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Loja + Fábrica</div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">Lucro Estimado CMV Fábrica</span>
-                      <span className="text-mono font-semibold text-emerald-600">{fmtBrl(lucroEstimadoCmvFabrica)}</span>
+                  <div className="flex flex-col items-center py-2">
+                    <div className="w-32 h-32 rounded-full flex items-center justify-center"
+                      style={{ background: `conic-gradient(#3F8B5C ${Math.max(0, Math.min(100, margemPct))}%, #E5E7EB 0)` }}>
+                      <div className="w-24 h-24 rounded-full bg-background flex flex-col items-center justify-center">
+                        <div className="text-[20px] font-semibold">{margemAtual !== null && isFinite(margemAtual) ? `${margemAtual.toFixed(1)}%` : "—"}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">margem</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
-                      <span className="text-mono font-semibold">{join(markupLojaFab, margemLojaFab)}</span>
+                    <div className="flex items-center gap-3 mt-3 text-[11px]">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lucro</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Custos</span>
                     </div>
                   </div>
 
-                  {/* BLOCO FÁBRICA */}
-                  <div className="border-t border-border pt-2 space-y-1.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Fábrica</div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">Lucro Fábrica</span>
-                      <span className={`text-mono font-semibold ${lucroFabrica !== null && lucroFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                        {lucroFabrica !== null ? fmtBrl(lucroFabrica) : "—"}
-                      </span>
+                  {resultadoTab === "loja" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Total VPL</span>
+                        <span className="text-mono font-semibold">{fmtBrl(totalVPL)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Total Custos</span>
+                        <span className="text-mono font-semibold text-rose-600">-{fmtBrl(totalCustos)}</span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
+                          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">CMV Loja</span>
+                        </div>
+                        <div className={`text-[24px] font-semibold text-mono ${lucroCmvLoja < 0 ? "text-rose-600" : "text-emerald-600"}`}>{fmtBrl(lucroCmvLoja)}</div>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">MKP / Margem CMV Loja</span>
+                        <span className="text-mono font-semibold">{join(markupLoja, margemLoja)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
-                      <span className="text-mono font-semibold">{join(markupFab, margemFab)}</span>
+                  )}
+
+                  {resultadoTab === "lojaFab" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Total VPL</span>
+                        <span className="text-mono font-semibold">{fmtBrl(totalVPL)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Total Custos Simulado</span>
+                        <span className="text-mono font-semibold text-rose-600">-{fmtBrl(totalCustosSimulado)}</span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="text-[12px] text-muted-foreground">Lucro Estimado CMV Fábrica</div>
+                        <div className={`text-[24px] font-semibold text-mono ${lucroEstimadoCmvFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>{fmtBrl(lucroEstimadoCmvFabrica)}</div>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
+                        <span className="text-mono font-semibold">{join(markupLojaFab, margemLojaFab)}</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}
+
+                  {resultadoTab === "fab" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Custo CMV</span>
+                        <span className="text-mono font-semibold">{fmtBrl(custoCmv)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">Custo Fábrica</span>
+                        <span className="text-mono font-semibold text-rose-600">-{fmtBrl(custoFab)}</span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="text-[12px] text-muted-foreground">Lucro Fábrica</div>
+                        <div className={`text-[24px] font-semibold text-mono ${lucroFabrica !== null && lucroFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                          {lucroFabrica !== null ? fmtBrl(lucroFabrica) : "—"}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
+                        <span className="text-mono font-semibold">{join(markupFab, margemFab)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
               );
             })()}
           </div>
