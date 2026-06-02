@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    if (body?.message_id !== undefined && (body?.contact_phone !== undefined || body?.contact_jid !== undefined)) {
+    if (
+      body?.message_id !== undefined &&
+      (body?.contact_phone !== undefined ||
+        body?.contact_jid !== undefined ||
+        body?.contact_lid !== undefined)
+    ) {
       return await handleFlatPayload(supabase, body);
     }
 
