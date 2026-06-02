@@ -15,7 +15,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ClipboardCheck, Search, ExternalLink, Check, FileText } from "lucide-react";
+import { ClipboardCheck, Search, ExternalLink, Check, FileText, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BRL } from "@/lib/financeiro";
 import { toast } from "sonner";
 import { useLoja } from "@/contexts/LojaContext";
@@ -384,6 +385,30 @@ export default function ChecagemContratos() {
                   )}
                 </TableCell>
                 <TableCell className="text-right space-x-1 whitespace-nowrap">
+                  {r.status === "checado" && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button size="sm" variant="ghost" className="px-2" title="Informações da checagem">
+                          <Info className="w-4 h-4 text-emerald-600" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 text-xs space-y-1.5" align="end">
+                        <div className="font-medium text-sm flex items-center gap-1.5 text-emerald-700">
+                          <ClipboardCheck className="w-4 h-4" /> Checagem confirmada
+                        </div>
+                        <div className="border-t pt-1.5 space-y-1">
+                          <div><span className="text-muted-foreground">Usuário:</span> <strong>{r.checado_por_nome || "—"}</strong></div>
+                          <div><span className="text-muted-foreground">Data/hora:</span> {fmtDataHora(r.checado_em)}</div>
+                          {r.observacao && (
+                            <div>
+                              <div className="text-muted-foreground mt-1">Observação:</div>
+                              <div className="whitespace-pre-wrap">{r.observacao}</div>
+                            </div>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   <Link to={`/pedido/${r.pedido_id}`} target="_blank">
                     <Button size="sm" variant="outline">
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> Abrir Pedido
