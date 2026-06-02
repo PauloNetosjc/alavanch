@@ -1637,6 +1637,96 @@ export type Database = {
           },
         ]
       }
+      checagem_contratos_financeiro: {
+        Row: {
+          checado_em: string | null
+          checado_por: string | null
+          cliente_id: string | null
+          contrato_id: string | null
+          created_at: string
+          data_assinatura: string | null
+          id: string
+          loja_id: string | null
+          observacao: string | null
+          pedido_id: string
+          solicitacao_id: string
+          status: string
+          tipo_documento: string
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          checado_em?: string | null
+          checado_por?: string | null
+          cliente_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          id?: string
+          loja_id?: string | null
+          observacao?: string | null
+          pedido_id: string
+          solicitacao_id: string
+          status?: string
+          tipo_documento: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          checado_em?: string | null
+          checado_por?: string | null
+          cliente_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          id?: string
+          loja_id?: string | null
+          observacao?: string | null
+          pedido_id?: string
+          solicitacao_id?: string
+          status?: string
+          tipo_documento?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checagem_contratos_financeiro_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checagem_contratos_financeiro_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checagem_contratos_financeiro_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checagem_contratos_financeiro_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checagem_contratos_financeiro_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: true
+            referencedRelation: "solicitacoes_assinatura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkins: {
         Row: {
           assistencia_id: string
