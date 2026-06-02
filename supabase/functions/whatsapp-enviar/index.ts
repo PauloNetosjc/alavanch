@@ -46,20 +46,68 @@ Deno.serve(async (req) => {
     const data = await r.json().catch(() => ({}));
 
     if (r.ok) {
-      await supabase.from("whatsapp_mensagens").insert({
+      const waChatId = data.to ?? (to.includes("@") ? to : `${to.replace(/\D+/g, "")}@s.whatsapp.net`);
+
+      // Garante conversa vinculada (cria se ainda não existir)
+      let conversaId: string | null = null;
+      const { data: convExistente } = await supabase
+        .from("whatsapp_conversas")
+        .select("id")
+        .eq("conta_id", conta_id)
+        .eq("wa_chat_id", waChatId)
+        .maybeSingle();
+      if (convExistente?.id) {
+        conversaId = convExistente.id;
+      } else {
+        const { data: convNova } = await supabase
+          .from("whatsapp_conversas")
+          .insert({
+            conta_id,
+            loja_id: conta.loja_id,
+            wa_chat_id: waChatId,
+            is_group: waChatId.endsWith("@g.us"),
+          })
+          .select("id")
+          .single();
+        conversaId = convNova?.id ?? null;
+      }
+
+      const insertRes = await supabase.from("whatsapp_mensagens").insert({
         conta_id,
         loja_id: conta.loja_id,
-        wa_chat_id: data.to ?? to,
-        wa_message_id: data.id ?? null,
+        conversa_id: conversaId,
+        wa_chat_id: waChatId,
+        wa_message_id: data.id ?? data.message_id ?? null,
         direcao: "saida",
         tipo: "text",
         texto: text,
-        status: "enviada",
+        status: data.status ?? "enviada",
         origem: "whatsapp_web_runtime",
+        payload_bruto: data,
       });
+
+      if (conversaId) {
+        await supabase
+          .from("whatsapp_conversas")
+          .update({
+            ultima_mensagem_em: new Date().toISOString(),
+            ultima_mensagem_preview: text.slice(0, 200),
+          })
+          .eq("id", conversaId);
+      }
+
+      console.log("[whatsapp-enviar] persisted", {
+        conta_id,
+        conversa_id: conversaId,
+        wa_chat_id: waChatId,
+        wa_message_id: data.id ?? null,
+        insert_error: insertRes.error?.message ?? null,
+      });
+
+      return json({ ok: true, conversa_id: conversaId, ...data }, 200);
     }
 
-    return json({ ok: r.ok, ...data }, r.ok ? 200 : 502);
+    return json({ ok: false, ...data }, 502);
   } catch (e) {
     return json({ ok: false, erro: String(e) }, 500);
   }
