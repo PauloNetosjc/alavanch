@@ -127,6 +127,7 @@ export function AtendimentoPanel() {
   const [linkSaving, setLinkSaving] = useState(false);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const realtimeOkRef = useRef({ conv: false, msg: false });
+  const { isAdmin } = usePermissions();
 
   const contaConectada = useMemo(
     () => (status?.contas ?? []).find((c) => c.status_conexao === "conectado") ?? null,
