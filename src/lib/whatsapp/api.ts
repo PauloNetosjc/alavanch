@@ -49,11 +49,9 @@ export async function whatsappPollStatus(conta_id: string) {
 }
 
 export async function whatsappDesconectar(conta_id: string) {
-  // Atualização local + tentativa via gateway (gateway encerra sessão no próximo /sessions/stop).
-  await supabase
-    .from("whatsapp_contas")
-    .update({ status_conexao: "desconectado", qr_code: null })
-    .eq("id", conta_id);
+  const { data, error } = await supabase.functions.invoke("whatsapp-desconectar", { body: { conta_id } });
+  if (error) throw error;
+  return data as { ok: boolean; erro?: string };
 }
 
 export async function whatsappSincronizarHistorico(conta_id: string) {

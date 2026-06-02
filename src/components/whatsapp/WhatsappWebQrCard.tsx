@@ -89,6 +89,8 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
   const gerarQr = async () => {
     if (!contaWeb) return;
     setQrLoading(true);
+    // Limpa imediatamente o QR antigo da tela — nunca reaproveitar.
+    setQrImage(null);
     try {
       const r = await whatsappGerarQr(contaWeb.id);
       if (!r.ok && r.configured === false) {
@@ -99,7 +101,7 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
         toast.error(r.erro || "Falha ao gerar QR");
       } else {
         if (r.qr_code) setQrImage(r.qr_code);
-        toast.success("QR Code solicitado — escaneie pelo celular");
+        toast.success("Nova sessão criada — escaneie o QR Code");
       }
       onRefresh();
     } catch (e) {
@@ -111,8 +113,8 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
 
   const desconectar = async () => {
     if (!contaWeb) return;
-    await whatsappDesconectar(contaWeb.id);
     setQrImage(null);
+    await whatsappDesconectar(contaWeb.id);
     toast.success("Desconectado");
     onRefresh();
   };
@@ -206,7 +208,7 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
             <div className="flex flex-wrap gap-2">
               <Button onClick={gerarQr} disabled={qrLoading || !status?.configured} size="sm">
                 {qrLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
-                Gerar QR Code
+                Gerar novo QR Code
               </Button>
               <Button onClick={onRefresh} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4" />
