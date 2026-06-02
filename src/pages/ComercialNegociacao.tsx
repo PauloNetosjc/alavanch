@@ -360,8 +360,8 @@ function ResumoFinanceiroDialog({
               const lucroEstimadoCmvFabrica = totalVPL - totalCustosSimulado;
               const markupLoja = totalCustos > 0 ? totalVPL / totalCustos : null;
               const margemLoja = totalVPL > 0 ? ((totalVPL - totalCustos) / totalVPL) * 100 : null;
-              const markupCmvFabrica = totalCustosSimulado > 0 ? totalVPL / totalCustosSimulado : null;
-              const margemCmvFabrica = totalVPL > 0 ? ((totalVPL - totalCustosSimulado) / totalVPL) * 100 : null;
+              const markupCmvFabrica = custoFab > 0 ? custoCmv / custoFab : null;
+              const margemCmvFabrica = custoCmv > 0 ? ((custoCmv - custoFab) / custoCmv) * 100 : null;
               const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
               const fmtX = (v: number | null) => v !== null ? `${v.toFixed(2).replace(".", ",")}x` : "—";
               const fmtPct = (v: number | null) => v !== null ? `${v.toFixed(2).replace(".", ",")}%` : "—";
