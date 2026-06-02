@@ -358,15 +358,20 @@ function ResumoFinanceiroDialog({
               const custoFab = custoFabricaReferencia;
               const totalCustosSimulado = totalCustos - custoCmv + custoFab;
               const lucroEstimadoCmvFabrica = totalVPL - totalCustosSimulado;
-              const markupLoja = totalCustos > 0 ? totalVPL / totalCustos : null;
-              const margemLoja = totalVPL > 0 ? ((totalVPL - totalCustos) / totalVPL) * 100 : null;
-              const markupCmvFabrica = custoFab > 0 ? custoCmv / custoFab : null;
-              const margemCmvFabrica = custoCmv > 0 ? ((custoCmv - custoFab) / custoCmv) * 100 : null;
+              // LOJA: VPL vs Custo CMV
+              const markupLoja = custoCmv > 0 ? totalVPL / custoCmv : null;
+              const margemLoja = totalVPL > 0 && custoCmv > 0 ? ((totalVPL - custoCmv) / totalVPL) * 100 : null;
+              // LOJA + FÁBRICA: VPL vs custo simulado com fábrica
+              const markupLojaFab = custoFab > 0 ? totalVPL / custoFab : null;
+              const margemLojaFab = totalVPL > 0 && custoFab > 0 ? ((totalVPL - totalCustosSimulado) / totalVPL) * 100 : null;
+              // FÁBRICA: Custo CMV vs Custo Fábrica
+              const markupFab = custoFab > 0 ? custoCmv / custoFab : null;
+              const margemFab = custoCmv > 0 && custoFab > 0 ? ((custoCmv - custoFab) / custoCmv) * 100 : null;
               const lucroFabrica = custoCmv > 0 && custoFab > 0 ? custoCmv - custoFab : null;
-              const fmtX = (v: number | null) => v !== null ? `${v.toFixed(2).replace(".", ",")}x` : "—";
-              const fmtPct = (v: number | null) => v !== null ? `${v.toFixed(2).replace(".", ",")}%` : "—";
-              const mkpMargemLoja = (markupLoja === null && margemLoja === null) ? "—" : `${fmtX(markupLoja)} / ${fmtPct(margemLoja)}`;
-              const mkpMargemCmvFab = (markupCmvFabrica === null && margemCmvFabrica === null) ? "—" : `${fmtX(markupCmvFabrica)} / ${fmtPct(margemCmvFabrica)}`;
+              const fmtX = (v: number | null) => v !== null && isFinite(v) ? `${v.toFixed(2).replace(".", ",")}x` : "—";
+              const fmtPct = (v: number | null) => v !== null && isFinite(v) ? `${v.toFixed(2).replace(".", ",")}%` : "—";
+              const join = (mk: number | null, mg: number | null) =>
+                (mk === null && mg === null) ? "—" : `${fmtX(mk)} / ${fmtPct(mg)}`;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[13px]">
@@ -377,34 +382,48 @@ function ResumoFinanceiroDialog({
                     <span className="text-muted-foreground">Total Custos</span>
                     <span className="text-mono font-semibold text-rose-600">-{fmtBrl(totalCustos)}</span>
                   </div>
-                  <div className="border-t border-border pt-2">
+
+                  {/* BLOCO LOJA */}
+                  <div className="border-t border-border pt-2 space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Loja</div>
                     <div className="flex items-center gap-2">
                       <div className="text-[12px] text-muted-foreground">Lucro Estimado</div>
                       <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">CMV Loja</span>
                     </div>
                     <div className="text-[24px] font-semibold text-emerald-600 text-mono">{fmtBrl(lucro)}</div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-muted-foreground">MKP / Margem CMV Loja</span>
+                      <span className="text-mono font-semibold">{join(markupLoja, margemLoja)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-muted-foreground">MKP / Margem CMV Loja</span>
-                    <span className="text-mono font-semibold">{mkpMargemLoja}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-muted-foreground">Lucro Estimado CMV Fábrica</span>
-                    <span className="text-mono font-semibold text-emerald-600">{fmtBrl(lucroEstimadoCmvFabrica)}</span>
-                  </div>
+
+                  {/* BLOCO LOJA + FÁBRICA */}
                   <div className="border-t border-border pt-2 space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Loja + Fábrica</div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-muted-foreground">Lucro Estimado CMV Fábrica</span>
+                      <span className="text-mono font-semibold text-emerald-600">{fmtBrl(lucroEstimadoCmvFabrica)}</span>
+                    </div>
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
-                      <span className="text-mono font-semibold">{mkpMargemCmvFab}</span>
+                      <span className="text-mono font-semibold">{join(markupLojaFab, margemLojaFab)}</span>
                     </div>
+                  </div>
+
+                  {/* BLOCO FÁBRICA */}
+                  <div className="border-t border-border pt-2 space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Fábrica</div>
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-muted-foreground">Lucro Fábrica</span>
                       <span className={`text-mono font-semibold ${lucroFabrica !== null && lucroFabrica < 0 ? "text-rose-600" : "text-emerald-600"}`}>
                         {lucroFabrica !== null ? fmtBrl(lucroFabrica) : "—"}
                       </span>
                     </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-muted-foreground">MKP / Margem Lucro CMV Fábrica</span>
+                      <span className="text-mono font-semibold">{join(markupFab, margemFab)}</span>
+                    </div>
                   </div>
-
                 </div>
               );
             })()}
