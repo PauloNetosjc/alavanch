@@ -539,6 +539,17 @@ export function AtendimentoPanel() {
                     <Link2 className="h-3.5 w-3.5" /> Vincular telefone
                   </Button>
                 )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 text-destructive hover:text-destructive"
+                    onClick={() => excluirConversa(selected)}
+                    title="Excluir conversa (admin)"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                )}
                 {contaConectada && contaConectada.id === selected.conta_id ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
