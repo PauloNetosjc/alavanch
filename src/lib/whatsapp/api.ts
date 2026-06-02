@@ -25,7 +25,27 @@ export async function fetchWhatsappStatus(): Promise<WhatsappStatusResponse> {
 export async function whatsappGerarQr(conta_id: string) {
   const { data, error } = await supabase.functions.invoke("whatsapp-qr", { body: { conta_id } });
   if (error) throw error;
-  return data as { ok: boolean; configured?: boolean; status?: string; qr_code?: string | null; erro?: string };
+  return data as {
+    ok: boolean;
+    configured?: boolean;
+    session_id?: string;
+    status?: string;
+    qr_code?: string | null;
+    erro?: string;
+  };
+}
+
+export async function whatsappPollStatus(conta_id: string) {
+  const { data, error } = await supabase.functions.invoke("whatsapp-poll-status", { body: { conta_id } });
+  if (error) throw error;
+  return data as {
+    ok: boolean;
+    configured?: boolean;
+    status?: string;
+    qr_code?: string | null;
+    numero?: string | null;
+    erro?: string;
+  };
 }
 
 export async function whatsappDesconectar(conta_id: string) {
