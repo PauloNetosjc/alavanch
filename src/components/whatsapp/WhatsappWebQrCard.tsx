@@ -205,6 +205,17 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
               </div>
             )}
 
+            <div className="rounded-md border border-dashed border-border bg-muted/30 p-3 font-mono text-[11px] text-muted-foreground">
+              <div className="mb-1 font-sans text-xs font-semibold text-foreground">Informações técnicas</div>
+              <div><span className="opacity-70">store_id:</span> {selectedLojaId ?? "—"}</div>
+              <div><span className="opacity-70">session_id:</span> {contaWeb.sessao_ref ?? "—"}</div>
+              <div><span className="opacity-70">status:</span> {contaWeb.status_conexao}</div>
+              <div>
+                <span className="opacity-70">última conexão:</span>{" "}
+                {contaWeb.ultima_conexao_em ? new Date(contaWeb.ultima_conexao_em).toLocaleString("pt-BR") : "—"}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button onClick={gerarQr} disabled={qrLoading || !status?.configured} size="sm">
                 {qrLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
