@@ -6,8 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WhatsappWebQrCard } from "@/components/whatsapp/WhatsappWebQrCard";
 import { CloudApiCard } from "@/components/whatsapp/CloudApiCard";
-import { ConversasPanel } from "@/components/whatsapp/ConversasPanel";
-import { EnviarMensagemForm } from "@/components/whatsapp/EnviarMensagemForm";
+import { AtendimentoPanel } from "@/components/whatsapp/AtendimentoPanel";
 import { fetchWhatsappStatus, type WhatsappStatusResponse } from "@/lib/whatsapp/api";
 
 export default function WhatsApp() {
