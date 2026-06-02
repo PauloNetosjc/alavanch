@@ -2,8 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // whatsapp-webhook — recebe eventos do gateway (QR atualizado, conexão, mensagens).
-// Autenticação por header x-whatsapp-webhook-secret (mesmo valor do WHATSAPP_GATEWAY_SECRET).
-// IMPORTANTE: esta função usa service role para conseguir gravar sem JWT do usuário.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -43,10 +41,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // --- Payload "flat" do gateway Railway ---------------------------------
-    // { store_id, session_id, contact_phone, contact_name, message_id,
-    //   from_me, message_text, message_type, timestamp, raw_payload }
-    if (body?.contact_phone && body?.message_id !== undefined) {
+    if (body?.message_id !== undefined && (body?.contact_phone !== undefined || body?.contact_jid !== undefined)) {
       return await handleFlatPayload(supabase, body);
     }
 
@@ -111,7 +106,9 @@ Deno.serve(async (req) => {
         const chatId: string = m.chat_id ?? "";
         if (!chatId) break;
 
-        // upsert conversa
+        const parsed = parseJid(chatId);
+        const ts = new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString();
+
         const { data: conv } = await supabase
           .from("whatsapp_conversas")
           .upsert(
@@ -119,9 +116,13 @@ Deno.serve(async (req) => {
               conta_id,
               loja_id: loja_id ?? null,
               wa_chat_id: chatId,
-              titulo: m.push_name ?? chatId,
+              titulo: m.push_name ?? null,
+              contact_name: m.push_name ?? null,
+              contact_jid: parsed.jid,
+              contact_phone: parsed.phone,
+              contact_lid: parsed.lid,
               is_group: chatId.endsWith("@g.us"),
-              ultima_mensagem_em: new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString(),
+              ultima_mensagem_em: ts,
               ultima_mensagem_preview: (m.texto ?? "[mídia]").slice(0, 200),
             },
             { onConflict: "conta_id,wa_chat_id" },
@@ -135,12 +136,15 @@ Deno.serve(async (req) => {
           conversa_id: conv?.id ?? null,
           wa_chat_id: chatId,
           wa_message_id: m.id ?? null,
+          contact_jid: parsed.jid,
+          contact_phone: parsed.phone,
+          contact_lid: parsed.lid,
           direcao: m.from_me ? "saida" : "entrada",
           tipo: m.tipo ?? "text",
           texto: m.texto ?? null,
           status: "recebida",
           origem,
-          enviado_em: new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString(),
+          enviado_em: ts,
           payload_bruto: m,
         });
 
@@ -170,10 +174,37 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// Extrai phone/jid/lid de uma string que pode vir como JID completo ou só dígitos.
+function parseJid(raw: string | null | undefined): { jid: string | null; phone: string | null; lid: string | null } {
+  if (!raw) return { jid: null, phone: null, lid: null };
+  const s = String(raw).trim();
+  if (!s) return { jid: null, phone: null, lid: null };
+  if (s.includes("@")) {
+    const [left, domain] = s.split("@");
+    const digits = (left || "").replace(/\D+/g, "");
+    if (domain === "lid") {
+      return { jid: s, phone: null, lid: digits || null };
+    }
+    if (domain === "s.whatsapp.net" || domain === "c.us") {
+      return { jid: s, phone: digits || null, lid: null };
+    }
+    // grupo ou outro
+    return { jid: s, phone: null, lid: null };
+  }
+  const digits = s.replace(/\D+/g, "");
+  if (!digits) return { jid: null, phone: null, lid: null };
+  // Heurística: números reais têm até ~15 dígitos (E.164). LIDs são bem maiores.
+  if (digits.length > 15) {
+    return { jid: `${digits}@lid`, phone: null, lid: digits };
+  }
+  return { jid: `${digits}@s.whatsapp.net`, phone: digits, lid: null };
+}
+
 async function handleFlatPayload(supabase: any, body: any) {
   const store_id: string | null = body.store_id ?? null;
   const session_id: string | null = body.session_id ?? null;
   const contact_phone_raw: string = body.contact_phone ?? "";
+  const contact_jid_raw: string = body.contact_jid ?? "";
   const contact_name: string | null = body.contact_name ?? null;
   const message_id: string | null = body.message_id ?? null;
   const from_me: boolean = !!body.from_me;
@@ -182,9 +213,21 @@ async function handleFlatPayload(supabase: any, body: any) {
   const ts: string = body.timestamp ? new Date(body.timestamp).toISOString() : new Date().toISOString();
   const raw_payload = body.raw_payload ?? body;
 
-  // 3. Normalizar telefone para apenas dígitos
-  const contact_phone = (contact_phone_raw || "").replace(/\D+/g, "");
-  if (!contact_phone) return json({ success: false, error: "contact_phone inválido" }, 400);
+  // Resolve identificadores. NUNCA usar LID como contact_phone.
+  let parsed = parseJid(contact_jid_raw || contact_phone_raw);
+  // Se veio contact_phone explicito e for um telefone real (curto), prioriza
+  const phoneOnly = (contact_phone_raw || "").replace(/\D+/g, "");
+  if (phoneOnly && phoneOnly.length <= 15) {
+    parsed = {
+      jid: parsed.jid ?? `${phoneOnly}@s.whatsapp.net`,
+      phone: phoneOnly,
+      lid: parsed.lid,
+    };
+  }
+
+  if (!parsed.jid && !parsed.phone && !parsed.lid) {
+    return json({ success: false, error: "contact identifier inválido" }, 400);
+  }
 
   // Localiza a conta WhatsApp (loja + session_id)
   let contaQuery = supabase.from("whatsapp_contas").select("id, loja_id").limit(1);
@@ -193,19 +236,64 @@ async function handleFlatPayload(supabase: any, body: any) {
   const { data: conta } = await contaQuery.maybeSingle();
   if (!conta) return json({ success: false, error: "conta WhatsApp não encontrada" }, 404);
 
-  const wa_chat_id = `${contact_phone}@s.whatsapp.net`;
+  const wa_chat_id = parsed.jid ?? (parsed.phone ? `${parsed.phone}@s.whatsapp.net` : `${parsed.lid}@lid`);
 
-  // 4-6. Conversa existente ou nova
-  const { data: convExistente } = await supabase
-    .from("whatsapp_conversas")
-    .select("id, nao_lidas")
-    .eq("loja_id", conta.loja_id)
-    .eq("conta_id", conta.id)
-    .eq("wa_chat_id", wa_chat_id)
-    .maybeSingle();
+  // 8. Dedup por wa_message_id
+  if (message_id) {
+    const { data: existeMsg } = await supabase
+      .from("whatsapp_mensagens")
+      .select("id, conversa_id")
+      .eq("conta_id", conta.id)
+      .eq("wa_message_id", message_id)
+      .maybeSingle();
+    if (existeMsg) {
+      return json({ success: true, conversation_id: existeMsg.conversa_id, message_id: existeMsg.id, duplicated: true });
+    }
+  }
+
+  // Localiza conversa: por telefone real > por JID exato > por LID > por nome (mapping anterior)
+  let conv: { id: string; nao_lidas: number } | null = null;
+
+  if (parsed.phone) {
+    const r = await supabase
+      .from("whatsapp_conversas")
+      .select("id, nao_lidas")
+      .eq("conta_id", conta.id)
+      .eq("contact_phone", parsed.phone)
+      .maybeSingle();
+    conv = (r.data as any) ?? null;
+  }
+  if (!conv) {
+    const r = await supabase
+      .from("whatsapp_conversas")
+      .select("id, nao_lidas")
+      .eq("conta_id", conta.id)
+      .eq("wa_chat_id", wa_chat_id)
+      .maybeSingle();
+    conv = (r.data as any) ?? null;
+  }
+  if (!conv && parsed.lid) {
+    const r = await supabase
+      .from("whatsapp_conversas")
+      .select("id, nao_lidas")
+      .eq("conta_id", conta.id)
+      .eq("contact_lid", parsed.lid)
+      .maybeSingle();
+    conv = (r.data as any) ?? null;
+  }
+  if (!conv && contact_name) {
+    const r = await supabase
+      .from("whatsapp_conversas")
+      .select("id, nao_lidas")
+      .eq("conta_id", conta.id)
+      .eq("contact_name", contact_name)
+      .is("contact_phone", null)
+      .maybeSingle();
+    conv = (r.data as any) ?? null;
+  }
 
   let conversation_id: string;
-  if (!convExistente) {
+  if (!conv) {
     const { data: novaConv, error: errConv } = await supabase
       .from("whatsapp_conversas")
       .insert({
@@ -213,7 +301,11 @@ async function handleFlatPayload(supabase: any, body: any) {
         loja_id: conta.loja_id,
         wa_chat_id,
         titulo: contact_name,
-        is_group: false,
+        contact_name,
+        contact_phone: parsed.phone,
+        contact_jid: parsed.jid,
+        contact_lid: parsed.lid,
+        is_group: wa_chat_id.endsWith("@g.us"),
         ultima_mensagem_em: ts,
         ultima_mensagem_preview: (message_text ?? "[mídia]").slice(0, 200),
         nao_lidas: from_me ? 0 : 1,
@@ -223,31 +315,19 @@ async function handleFlatPayload(supabase: any, body: any) {
     if (errConv) return json({ success: false, error: errConv.message }, 500);
     conversation_id = novaConv.id;
   } else {
-    conversation_id = convExistente.id;
-    await supabase
-      .from("whatsapp_conversas")
-      .update({
-        ultima_mensagem_em: ts,
-        ultima_mensagem_preview: (message_text ?? "[mídia]").slice(0, 200),
-        nao_lidas: from_me ? convExistente.nao_lidas : (convExistente.nao_lidas ?? 0) + 1,
-      })
-      .eq("id", conversation_id);
+    conversation_id = conv.id;
+    const updates: Record<string, any> = {
+      ultima_mensagem_em: ts,
+      ultima_mensagem_preview: (message_text ?? "[mídia]").slice(0, 200),
+      nao_lidas: from_me ? conv.nao_lidas : (conv.nao_lidas ?? 0) + 1,
+    };
+    if (parsed.phone) updates.contact_phone = parsed.phone;
+    if (parsed.jid) updates.contact_jid = parsed.jid;
+    if (parsed.lid) updates.contact_lid = parsed.lid;
+    if (contact_name) updates.contact_name = contact_name;
+    await supabase.from("whatsapp_conversas").update(updates).eq("id", conversation_id);
   }
 
-  // 8. Evitar duplicidade por external_message_id (wa_message_id)
-  if (message_id) {
-    const { data: existeMsg } = await supabase
-      .from("whatsapp_mensagens")
-      .select("id")
-      .eq("conta_id", conta.id)
-      .eq("wa_message_id", message_id)
-      .maybeSingle();
-    if (existeMsg) {
-      return json({ success: true, conversation_id, message_id: existeMsg.id, duplicated: true });
-    }
-  }
-
-  // 7. Inserir mensagem
   const { data: inserted, error: errMsg } = await supabase
     .from("whatsapp_mensagens")
     .insert({
@@ -256,6 +336,9 @@ async function handleFlatPayload(supabase: any, body: any) {
       conversa_id: conversation_id,
       wa_chat_id,
       wa_message_id: message_id,
+      contact_phone: parsed.phone,
+      contact_jid: parsed.jid,
+      contact_lid: parsed.lid,
       direcao: from_me ? "saida" : "entrada",
       tipo: message_type,
       texto: message_text,
@@ -268,7 +351,6 @@ async function handleFlatPayload(supabase: any, body: any) {
     .single();
   if (errMsg) return json({ success: false, error: errMsg.message }, 500);
 
-  // Registra evento bruto (auditoria)
   await supabase.from("whatsapp_eventos").insert({
     conta_id: conta.id,
     loja_id: conta.loja_id,
