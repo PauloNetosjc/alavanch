@@ -23,6 +23,7 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,10 @@ type Conversa = {
   nao_lidas: number;
   conta_id: string;
   loja_id: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_jid: string | null;
+  contact_lid: string | null;
 };
 
 type Mensagem = {
@@ -48,6 +53,9 @@ type Mensagem = {
   origem: string;
   status: string | null;
 };
+
+const CONV_SELECT =
+  "id, wa_chat_id, titulo, is_group, ultima_mensagem_em, ultima_mensagem_preview, nao_lidas, conta_id, loja_id, contact_name, contact_phone, contact_jid, contact_lid";
 
 function formatHora(iso: string | null) {
   if (!iso) return "";
@@ -74,8 +82,28 @@ function normalizePhoneBR(raw: string) {
   return digits;
 }
 
-function phoneFromChatId(chatId: string) {
-  return chatId.split("@")[0] || chatId;
+function displayName(c: Conversa) {
+  if (c.contact_name && c.contact_name.trim()) return c.contact_name;
+  if (c.titulo && c.titulo.trim()) return c.titulo;
+  if (c.contact_phone) return c.contact_phone;
+  if (c.contact_lid) return `Contato WhatsApp ${c.contact_lid.slice(0, 8)}`;
+  const left = (c.wa_chat_id || "").split("@")[0];
+  return left || "Contato WhatsApp";
+}
+
+function isOnlyLid(c: Conversa) {
+  if (c.contact_phone) return false;
+  if (c.contact_jid && c.contact_jid.endsWith("@s.whatsapp.net")) return false;
+  if (c.contact_lid || (c.contact_jid && c.contact_jid.endsWith("@lid"))) return true;
+  // Heurística para registros antigos: dígitos do wa_chat_id muito longos
+  const digits = (c.wa_chat_id || "").split("@")[0].replace(/\D+/g, "");
+  return digits.length > 15;
+}
+
+function targetForSend(c: Conversa): string | null {
+  if (c.contact_phone) return c.contact_phone;
+  if (c.contact_jid && c.contact_jid.endsWith("@s.whatsapp.net")) return c.contact_jid;
+  return null;
 }
 
 export function AtendimentoPanel() {
@@ -92,7 +120,11 @@ export function AtendimentoPanel() {
   const [novoNome, setNovoNome] = useState("");
   const [novoTelefone, setNovoTelefone] = useState("");
   const [criando, setCriando] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkTel, setLinkTel] = useState("");
+  const [linkSaving, setLinkSaving] = useState(false);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
+  const realtimeOkRef = useRef({ conv: false, msg: false });
 
   const contaConectada = useMemo(
     () => (status?.contas ?? []).find((c) => c.status_conexao === "conectado") ?? null,
@@ -116,7 +148,7 @@ export function AtendimentoPanel() {
     try {
       const { data, error } = await supabase
         .from("whatsapp_conversas")
-        .select("id, wa_chat_id, titulo, is_group, ultima_mensagem_em, ultima_mensagem_preview, nao_lidas, conta_id, loja_id")
+        .select(CONV_SELECT)
         .eq("arquivado", false)
         .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
         .limit(300);
@@ -156,7 +188,10 @@ export function AtendimentoPanel() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "whatsapp_conversas" },
-        () => carregarConversas(),
+        () => {
+          realtimeOkRef.current.conv = true;
+          carregarConversas();
+        },
       )
       .subscribe();
     return () => {
@@ -166,6 +201,7 @@ export function AtendimentoPanel() {
 
   // Realtime mensagens da conversa selecionada
   useEffect(() => {
+    realtimeOkRef.current.msg = false;
     if (!selectedId) {
       setMensagens([]);
       return;
@@ -176,7 +212,10 @@ export function AtendimentoPanel() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "whatsapp_mensagens", filter: `conversa_id=eq.${selectedId}` },
-        () => carregarMensagens(selectedId),
+        () => {
+          realtimeOkRef.current.msg = true;
+          carregarMensagens(selectedId);
+        },
       )
       .subscribe();
     return () => {
@@ -184,13 +223,23 @@ export function AtendimentoPanel() {
     };
   }, [selectedId]);
 
+  // Polling fallback a cada 5s (sempre roda como rede de segurança)
+  useEffect(() => {
+    const id = setInterval(() => {
+      carregarConversas();
+      if (selectedId) carregarMensagens(selectedId);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [selectedId]);
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return conversas;
     return conversas.filter(
       (c) =>
-        (c.titulo || "").toLowerCase().includes(q) ||
+        displayName(c).toLowerCase().includes(q) ||
         c.wa_chat_id.toLowerCase().includes(q) ||
+        (c.contact_phone || "").includes(q) ||
         (c.ultima_mensagem_preview || "").toLowerCase().includes(q),
     );
   }, [conversas, busca]);
@@ -207,25 +256,33 @@ export function AtendimentoPanel() {
       toast.error("Sessão WhatsApp ausente (session_id). Gere um novo QR Code.");
       return;
     }
+    const target = targetForSend(selected);
+    if (!target) {
+      toast.error("Este contato chegou pelo identificador interno do WhatsApp. Vincule um telefone real antes de responder.");
+      setLinkOpen(true);
+      return;
+    }
     setSending(true);
     try {
-      const phone = phoneFromChatId(selected.wa_chat_id);
       console.log("[atendimento][enviar] payload", {
         conversation_id: selected.id,
         store_id: selected.loja_id,
         session_id: contaConectada.sessao_ref,
-        contact_phone: phone,
+        target,
         message: texto,
       });
-      const r = await whatsappEnviarMensagem(selected.conta_id, phone, texto);
+      const r = await whatsappEnviarMensagem(selected.conta_id, target, texto);
       console.log("[atendimento][enviar] gateway response", r);
       if (!r.ok) {
-        toast.error((r as any).erro || "Falha ao enviar");
+        if ((r as any).requires_phone_link) {
+          toast.error((r as any).erro || "Vincule um telefone real antes de responder.");
+          setLinkOpen(true);
+        } else {
+          toast.error((r as any).erro || "Falha ao enviar");
+        }
         return;
       }
       setNovaMsg("");
-      // A edge function já vincula conversa_id, salva payload_bruto e atualiza a conversa.
-      // Recarrega histórico imediatamente.
       await carregarMensagens(selected.id);
       await carregarConversas();
     } catch (e) {
@@ -265,6 +322,9 @@ export function AtendimentoPanel() {
             loja_id: contaConectada.loja_id,
             wa_chat_id: waChatId,
             titulo: novoNome.trim() || null,
+            contact_name: novoNome.trim() || null,
+            contact_phone: tel,
+            contact_jid: waChatId,
             is_group: false,
           })
           .select("id")
@@ -284,11 +344,40 @@ export function AtendimentoPanel() {
     }
   };
 
+  const vincularTelefone = async () => {
+    if (!selected) return;
+    const tel = normalizePhoneBR(linkTel);
+    if (!tel) {
+      toast.error("Telefone inválido");
+      return;
+    }
+    setLinkSaving(true);
+    try {
+      const jid = `${tel}@s.whatsapp.net`;
+      const { error } = await supabase
+        .from("whatsapp_conversas")
+        .update({ contact_phone: tel, contact_jid: jid, wa_chat_id: jid })
+        .eq("id", selected.id);
+      if (error) throw error;
+      toast.success("Telefone vinculado");
+      setLinkOpen(false);
+      setLinkTel("");
+      await carregarConversas();
+    } catch (e: any) {
+      toast.error(e?.message || String(e));
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
   const podeEnviar =
     !!selected &&
     !!contaConectada &&
     contaConectada.id === selected.conta_id &&
-    !!contaConectada.sessao_ref;
+    !!contaConectada.sessao_ref &&
+    !!targetForSend(selected);
+
+  const selectedSomenteLid = !!selected && isOnlyLid(selected);
 
   return (
     <Card className="grid h-[78vh] grid-cols-[340px_1fr] overflow-hidden">
@@ -330,8 +419,9 @@ export function AtendimentoPanel() {
             </div>
           ) : (
             filtradas.map((c) => {
-              const nome = c.titulo || phoneFromChatId(c.wa_chat_id);
+              const nome = displayName(c);
               const ativo = c.id === selectedId;
+              const somenteLid = isOnlyLid(c);
               return (
                 <button
                   key={c.id}
@@ -352,11 +442,16 @@ export function AtendimentoPanel() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="line-clamp-1 text-xs text-muted-foreground">
-                        {c.ultima_mensagem_preview || phoneFromChatId(c.wa_chat_id)}
+                        {c.ultima_mensagem_preview || c.contact_phone || "—"}
                       </span>
-                      {c.nao_lidas > 0 && (
-                        <Badge className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">{c.nao_lidas}</Badge>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {somenteLid && (
+                          <Badge variant="outline" className="h-4 px-1 text-[9px]">sem telefone</Badge>
+                        )}
+                        {c.nao_lidas > 0 && (
+                          <Badge className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">{c.nao_lidas}</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -378,14 +473,21 @@ export function AtendimentoPanel() {
             <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {selected.is_group ? <Users className="h-4 w-4" /> : initials(selected.titulo || phoneFromChatId(selected.wa_chat_id))}
+                  {selected.is_group ? <Users className="h-4 w-4" /> : initials(displayName(selected))}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">{selected.titulo || phoneFromChatId(selected.wa_chat_id)}</span>
-                  <span className="text-[11px] text-muted-foreground">{phoneFromChatId(selected.wa_chat_id)}</span>
+                  <span className="text-sm font-medium">{displayName(selected)}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selected.contact_phone || (selected.contact_lid ? `LID ${selected.contact_lid}` : selected.wa_chat_id)}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-xs">
+                {selectedSomenteLid && (
+                  <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => setLinkOpen(true)}>
+                    <Link2 className="h-3.5 w-3.5" /> Vincular telefone
+                  </Button>
+                )}
                 {contaConectada && contaConectada.id === selected.conta_id ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -440,12 +542,22 @@ export function AtendimentoPanel() {
             </ScrollArea>
 
             <div className="border-t bg-background p-3">
-              {!podeEnviar && (
+              {selectedSomenteLid ? (
+                <div className="mb-2 flex items-center justify-between gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Este contato chegou pelo identificador interno do WhatsApp. Vincule um telefone real antes de responder.
+                  </span>
+                  <Button size="sm" variant="outline" className="h-7" onClick={() => setLinkOpen(true)}>
+                    Vincular
+                  </Button>
+                </div>
+              ) : !podeEnviar ? (
                 <div className="mb-2 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
                   <AlertTriangle className="h-4 w-4" />
                   WhatsApp não conectado. Conecte o WhatsApp para enviar mensagens.
                 </div>
-              )}
+              ) : null}
               <div className="flex gap-2">
                 <Textarea
                   placeholder="Digite uma mensagem…"
@@ -498,6 +610,40 @@ export function AtendimentoPanel() {
             </Button>
             <Button onClick={criarConversa} disabled={criando || !novoTelefone.trim()}>
               {criando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vincular telefone real</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Este contato chegou apenas com o identificador interno do WhatsApp
+              {selected?.contact_lid ? ` (LID ${selected.contact_lid})` : ""}.
+              Informe o telefone real para poder responder.
+            </p>
+            <div className="space-y-1">
+              <Label>Telefone *</Label>
+              <Input
+                value={linkTel}
+                onChange={(e) => setLinkTel(e.target.value)}
+                placeholder="(11) 99999-9999"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                DDI 55 será adicionado automaticamente se ausente.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkOpen(false)} disabled={linkSaving}>
+              Cancelar
+            </Button>
+            <Button onClick={vincularTelefone} disabled={linkSaving || !linkTel.trim()}>
+              {linkSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
             </Button>
           </DialogFooter>
         </DialogContent>
