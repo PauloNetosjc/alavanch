@@ -24,10 +24,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Link2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { whatsappEnviarMensagem, fetchWhatsappStatus, type WhatsappStatusResponse } from "@/lib/whatsapp/api";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Conversa = {
   id: string;
