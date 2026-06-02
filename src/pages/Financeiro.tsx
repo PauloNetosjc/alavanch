@@ -467,6 +467,11 @@ export default function Financeiro() {
                 <ShieldCheck className="w-4 h-4 mr-1" /> Aprovador
               </Button>
             </Link>
+            <Link to="/financeiro/checagem-contratos">
+              <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                <ClipboardCheck className="w-4 h-4 mr-1" /> Checagem de Contratos
+              </Button>
+            </Link>
             <LojasFilter value={lojasFiltro} onChange={setLojasFiltro} />
             <Button onClick={novoLancamento} className="bg-violet-600 hover:bg-violet-700 text-white">
               <Plus className="w-4 h-4 mr-1" /> Lançar Conta
