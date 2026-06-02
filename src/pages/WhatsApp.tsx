@@ -40,23 +40,33 @@ export default function WhatsApp() {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-start gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            {status?.configured ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span>Gateway WhatsApp configurado</span>
-                {status.gateway.ok ? (
-                  <Badge variant="default">online ({status.gateway.latency_ms}ms)</Badge>
-                ) : (
-                  <Badge variant="destructive">offline</Badge>
-                )}
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <span>Gateway WhatsApp não configurado</span>
-                <Badge variant="outline">aguardando deploy</Badge>
-              </>
-            )}
+            {(() => {
+              const sessaoConectada = (status?.contas ?? []).some((c) => c.status_conexao === "conectado");
+              if (!status?.configured) {
+                return (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <span>Gateway WhatsApp não configurado</span>
+                    <Badge variant="outline">aguardando deploy</Badge>
+                  </>
+                );
+              }
+              return (
+                <>
+                  {sessaoConectada ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  )}
+                  <span>Gateway WhatsApp configurado</span>
+                  {sessaoConectada ? (
+                    <Badge variant="default">online</Badge>
+                  ) : (
+                    <Badge variant="outline">offline</Badge>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <span className="text-xs text-muted-foreground">{loading ? "Atualizando…" : "Status atualizado"}</span>
         </CardContent>
