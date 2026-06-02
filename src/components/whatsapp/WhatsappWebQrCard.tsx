@@ -208,7 +208,7 @@ export function WhatsappWebQrCard({ status, onRefresh }: Props) {
             <div className="flex flex-wrap gap-2">
               <Button onClick={gerarQr} disabled={qrLoading || !status?.configured} size="sm">
                 {qrLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
-                Gerar QR Code
+                Gerar novo QR Code
               </Button>
               <Button onClick={onRefresh} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4" />
