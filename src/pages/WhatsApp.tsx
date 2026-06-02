@@ -96,7 +96,8 @@ export default function WhatsApp() {
               </div>
             </TabsContent>
 
-            <TabsContent value="conversas">
+            <TabsContent value="conversas" className="space-y-4">
+              <EnviarMensagemForm />
               <ConversasPanel />
             </TabsContent>
           </Tabs>
