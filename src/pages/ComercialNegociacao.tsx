@@ -186,6 +186,7 @@ function ResumoFinanceiroDialog({
   const extrasCfg: any[] = Array.isArray(config?.formacao_preco_extras) ? config.formacao_preco_extras : [];
 
   const [percs, setPercs] = useState<Record<string, number>>({});
+  const [resultadoTab, setResultadoTab] = useState<"loja" | "lojaFab" | "fab">("loja");
   useEffect(() => {
     if (!config) return;
     const next: Record<string, number> = {};
