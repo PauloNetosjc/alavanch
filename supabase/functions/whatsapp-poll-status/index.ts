@@ -39,6 +39,18 @@ Deno.serve(async (req) => {
     });
     const data = await r.json().catch(() => ({} as Record<string, unknown>));
 
+    // Sessão sumiu do gateway (404 ou "Sessão não encontrada"):
+    // limpa sessao_ref e devolve status desconectado para o front pedir novo QR.
+    const erroMsg = String((data as { error?: string; erro?: string }).error ?? (data as { erro?: string }).erro ?? "");
+    const sessionGone = r.status === 404 || /n[ãa]o encontrad/i.test(erroMsg);
+    if (sessionGone) {
+      await supabase
+        .from("whatsapp_contas")
+        .update({ sessao_ref: null, status_conexao: "desconectado", qr_code: null })
+        .eq("id", conta_id);
+      return json({ ok: true, status: "desconectado", session_gone: true });
+    }
+
     if (r.ok) {
       const status = (data as { status?: string }).status ?? null;
       const qr = (data as { qr_code?: string | null }).qr_code ?? null;
@@ -60,7 +72,8 @@ Deno.serve(async (req) => {
         await supabase.from("whatsapp_contas").update(update).eq("id", conta_id);
       }
     }
-    return json({ ok: r.ok, ...data }, r.ok ? 200 : 502);
+    return json({ ok: r.ok, ...data }, r.ok ? 200 : 200);
+
   } catch (e) {
     return json({ ok: false, erro: String(e) }, 500);
   }
