@@ -6,12 +6,15 @@ export type WhatsappStatusResponse = {
   gateway: { ok: boolean; status?: number; latency_ms?: number; erro?: string };
   contas: Array<{
     id: string;
+    loja_id: string;
     nome: string;
     tipo_integracao: "whatsapp_web" | "cloud_api";
     status_conexao: string;
     numero_conectado: string | null;
     historico_sync_status: string;
     ultima_conexao_em: string | null;
+    sessao_ref: string | null;
+    updated_at: string | null;
   }>;
   aviso: string;
 };
