@@ -107,6 +107,29 @@ Deno.serve(async (req) => {
       return json({ ok: true, conversa_id: conversaId, ...data }, 200);
     }
 
+    // Gateway indica que a sessão sumiu/desconectou: sincroniza o estado no banco
+    const gwErr = String((data as any)?.error ?? (data as any)?.erro ?? "");
+    const sessionGone = /n[ãa]o encontrad/i.test(gwErr);
+    const sessionDisconnected = /n[ãa]o conectad/i.test(gwErr);
+    if (sessionGone || sessionDisconnected) {
+      await supabase
+        .from("whatsapp_contas")
+        .update({
+          status_conexao: "desconectado",
+          ...(sessionGone ? { sessao_ref: null, qr_code: null } : {}),
+        })
+        .eq("id", conta_id);
+      return json(
+        {
+          ok: false,
+          erro: "WhatsApp desconectado no gateway. Abra a aba Conexão e escaneie o QR Code novamente.",
+          gateway_error: gwErr,
+          session_gone: sessionGone,
+        },
+        409,
+      );
+    }
+
     return json({ ok: false, ...data }, 502);
   } catch (e) {
     return json({ ok: false, erro: String(e) }, 500);
