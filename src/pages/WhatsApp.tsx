@@ -62,29 +62,35 @@ export default function WhatsApp() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="config" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="config" className="gap-2">
-            <SettingsIcon className="h-4 w-4" />
-            Configurações
-          </TabsTrigger>
-          <TabsTrigger value="conversas" className="gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Conversas
-          </TabsTrigger>
-        </TabsList>
+      {(() => {
+        const temConectado = (status?.contas ?? []).some((c) => c.status_conexao === "conectado");
+        return (
+          <Tabs defaultValue="config" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="config" className="gap-2">
+                <SettingsIcon className="h-4 w-4" />
+                Configurações
+              </TabsTrigger>
+              <TabsTrigger value="conversas" className="gap-2" disabled={!temConectado}>
+                <MessageSquare className="h-4 w-4" />
+                Conversas
+                {!temConectado && <Badge variant="outline" className="ml-1 text-[10px]">conecte uma conta</Badge>}
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="config" className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <WhatsappWebQrCard status={status} onRefresh={refresh} />
-            <CloudApiCard status={status} onRefresh={refresh} />
-          </div>
-        </TabsContent>
+            <TabsContent value="config" className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <WhatsappWebQrCard status={status} onRefresh={refresh} />
+                <CloudApiCard status={status} onRefresh={refresh} />
+              </div>
+            </TabsContent>
 
-        <TabsContent value="conversas">
-          <ConversasPanel />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="conversas">
+              <ConversasPanel />
+            </TabsContent>
+          </Tabs>
+        );
+      })()}
     </div>
   );
 }
