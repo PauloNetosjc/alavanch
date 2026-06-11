@@ -395,8 +395,37 @@ export default function PedidoDetalhe() {
   };
 
   /* ----- atualizar pedido (datas, flags) ----- */
+  // Em contexto PARC (desmembramentoId !== null), as alterações de etapa/status
+  // são roteadas para `pedido_desmembramentos` em vez de `pedidos`. O pedido
+  // original permanece intacto. Campos sem equivalente no PARC são ignorados
+  // (datas operacionais do pedido original não se aplicam ao desmembramento na Fase 3).
   const salvarPedido = async (patch: any) => {
     if (!id) return;
+
+    if (desmembramentoId) {
+      const desmPatch: any = {};
+      if ("status" in patch) desmPatch.status_operacional = patch.status;
+      if ("workflow_estagio" in patch) desmPatch.etapa_atual = patch.workflow_estagio;
+      if ("status_operacional" in patch) desmPatch.status_operacional = patch.status_operacional;
+      if ("etapa_atual" in patch) desmPatch.etapa_atual = patch.etapa_atual;
+      if ("observacao" in patch) desmPatch.observacao = patch.observacao;
+      const ignorados = Object.keys(patch).filter(
+        (k) => !["status", "workflow_estagio", "status_operacional", "etapa_atual", "observacao"].includes(k)
+      );
+      if (ignorados.length) {
+        console.warn("[PARC] campos ignorados (não aplicáveis ao desmembramento):", ignorados);
+      }
+      if (Object.keys(desmPatch).length === 0) return;
+      desmPatch.updated_at = new Date().toISOString();
+      const { error } = await (supabase as any)
+        .from("pedido_desmembramentos")
+        .update(desmPatch)
+        .eq("id", desmembramentoId);
+      if (error) { toast.error(error.message); return; }
+      setDesmembramentoAtual((prev: any) => ({ ...(prev || {}), ...desmPatch }));
+      return;
+    }
+
     // Se a alteração envolve datas do cronograma, recalcula estágio do workflow
     const dateKeys = ["data_medicao_tecnica", "data_envio_fabrica", "data_chegada_material", "data_montagem", "data_limite_finalizacao"];
     const touchesDates = dateKeys.some((k) => k in patch);
@@ -425,6 +454,12 @@ export default function PedidoDetalhe() {
   /* ----- iniciar workflow / kanban ----- */
   const iniciarWorkflow = async (estagio: string) => {
     if (!id) return;
+    if (desmembramentoId) {
+      // PARC: avança apenas a etapa do desmembramento, sem mexer no pedido original
+      await salvarPedido({ workflow_estagio: estagio });
+      toast.success(`Etapa do PARC: ${estagio.toUpperCase()}`);
+      return;
+    }
     await salvarPedido({
       workflow_estagio: estagio,
       workflow_iniciado_em: new Date().toISOString(),
@@ -671,6 +706,8 @@ export default function PedidoDetalhe() {
             criarComplemento={criarComplemento}
             salvarPedido={salvarPedido}
             navigate={navigate}
+            desmembramentoId={desmembramentoId}
+            desmembramentoAtual={desmembramentoAtual}
           />
         </div>
       </div>
@@ -3290,7 +3327,7 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
 function PedidoAcoesMenu({
   pedido, orcamento, ambientes, pagamentos, contrato, ehAdendo,
   criandoAdendo, criandoComplemento, criarAdendo, criarComplemento,
-  salvarPedido, navigate,
+  salvarPedido, navigate, desmembramentoId = null, desmembramentoAtual = null,
 }: any) {
   const [resumoOpen, setResumoOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -3331,6 +3368,17 @@ function PedidoAcoesMenu({
     }
     setCancelando(true);
     try {
+      // Em contexto PARC, o cancelamento é restrito ao desmembramento — não
+      // mexe em orçamento, contratos, parcelas ou kanban_cards do pedido original.
+      if (desmembramentoId) {
+        await salvarPedido({ status: "cancelado" });
+        setCancelOpen(false);
+        setConfirmText("");
+        toast.success(`PARC ${desmembramentoAtual?.codigo_parcial || ""} cancelado.`);
+        navigate(`/pedidos/${pedido.id}`);
+        return;
+      }
+
       // 1) Reverte o orçamento INTEGRALMENTE para a fase de negociação
       //    (status, datas de confirmação, descontos e pagamentos)
       if (pedido?.orcamento_id) {
