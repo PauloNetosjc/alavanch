@@ -865,14 +865,13 @@ function Cronograma({ pedido, salvarPedido, desmembramentoId = null }: any) {
 
   const carregar = async () => {
     // Revisão final: agendada junto com a medição técnica
-    const { data: rev } = await supabase
+    let revQ: any = supabase
       .from("agenda_eventos")
       .select("data")
       .eq("pedido_id", pedido.id)
-      .eq("tipo", "revisao_final")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("tipo", "revisao_final");
+    revQ = desmembramentoId ? revQ.eq("desmembramento_id", desmembramentoId) : revQ.is("desmembramento_id", null);
+    const { data: rev } = await revQ.order("created_at", { ascending: false }).limit(1).maybeSingle();
     setDataRevisao(rev?.data ? String(rev.data).slice(0, 10) : null);
 
     // Buscar todos os eventos kanban deste pedido
@@ -944,25 +943,28 @@ function Cronograma({ pedido, salvarPedido, desmembramentoId = null }: any) {
     setDataVistoria(evVistoria?.created_at ? String(evVistoria.created_at).slice(0, 10) : null);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id]);
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id, desmembramentoId]);
 
   const onAgendaCriada = async () => {
-    const { data } = await supabase
+    let q: any = supabase
       .from("agenda_eventos")
       .select("data")
       .eq("pedido_id", pedido.id)
-      .eq("tipo", "medicao_tecnica")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("tipo", "medicao_tecnica");
+    q = desmembramentoId ? q.eq("desmembramento_id", desmembramentoId) : q.is("desmembramento_id", null);
+    const { data } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (data?.data) {
       const dataStr = String(data.data).slice(0, 10);
-      await salvarPedido({ data_medicao_tecnica: dataStr });
+      // No contexto do PARC, a data de medição não escreve no pedido original (Fase 3 trata avanço de etapa)
+      if (!desmembramentoId) {
+        await salvarPedido({ data_medicao_tecnica: dataStr });
+      }
       toast.success("Medição técnica agendada");
     }
-    // Blindagem: garante tarefas obrigatórias do cronograma
-    // (fazer_medicao_tecnica + preparo_projeto_revisao)
-    await ensureTarefasCronogramaPedido(pedido.id);
+    // Blindagem: garante tarefas obrigatórias do cronograma — só no original
+    if (!desmembramentoId) {
+      await ensureTarefasCronogramaPedido(pedido.id);
+    }
     await carregar();
   };
 
@@ -1045,6 +1047,7 @@ function Cronograma({ pedido, salvarPedido, desmembramentoId = null }: any) {
         onOpenChange={setAgendaOpen}
         pedidoId={pedido.id}
         defaultTipo="medicao_tecnica"
+        desmembramentoId={desmembramentoId}
         onCreated={onAgendaCriada}
       />
     </section>
@@ -1355,7 +1358,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     const { error: insErr } = await supabase.from("pedido_documentos").insert({
       pedido_id: pedidoId, pasta_id: pastaAtiva, nome: arquivoNome || arquivoFile.name,
       storage_path: path, tamanho: arquivoFile.size, mime_type: arquivoFile.type,
-    });
+      desmembramento_id: desmembramentoId || null,
+    } as any);
     if (insErr) {
       await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
       return toast.error(insErr.message);
