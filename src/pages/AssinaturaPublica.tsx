@@ -84,6 +84,9 @@ export default function AssinaturaPublica() {
   const [loja, setLoja] = useState<any>(null);
   const [tpl, setTpl] = useState<ContratoTemplate | null>(null);
   const [docHtml, setDocHtml] = useState<string>("");
+  const [documentoUrl, setDocumentoUrl] = useState<string>("");
+  const [documentoNome, setDocumentoNome] = useState<string>("");
+  const [documentoMime, setDocumentoMime] = useState<string>("");
   const [erro, setErro] = useState<string>("");
   const [requerLoja, setRequerLoja] = useState(false);
 
@@ -153,6 +156,26 @@ export default function AssinaturaPublica() {
 
       setSolic(s as Solicitacao);
       setParticipante(participanteAtual);
+
+      // 3.1) Busca URL assinada do documento anexado (suporta storage_path sem file_url público)
+      try {
+        const { data: docData } = await supabase.functions.invoke("assinatura-documento-url", {
+          body: { token },
+        });
+        if (docData) {
+          const u = (docData as any).url || (docData as any).url_do_arquivo || (docData as any).file_url || "";
+          const n = (docData as any).nome || (docData as any).nome_do_arquivo || (docData as any).file_name || "";
+          const m = (docData as any).mime || (docData as any).tipo_mime || (docData as any).mime_type || "";
+          if (u) setDocumentoUrl(u);
+          if (n) setDocumentoNome(n);
+          if (m) setDocumentoMime(m);
+        }
+      } catch { /* fallback para solic.file_url / docHtml */ }
+      if (!documentoUrl && (s as any).file_url) {
+        setDocumentoUrl((s as any).file_url);
+        setDocumentoNome((s as any).file_name || "");
+      }
+
 
       // 4) Marca como visualizado (uma vez)
       if (participanteAtual && !participanteAtual.visualizado_em && participanteAtual.status === "pendente") {
@@ -590,40 +613,101 @@ export default function AssinaturaPublica() {
           </div>
         )}
 
-        {solic?.file_url && (solic.file_url.toLowerCase().includes(".pdf") || solic.file_name?.toLowerCase().endsWith(".pdf")) ? (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm">Contrato em PDF</CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <a href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a>
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <a href={solic.file_url} download={solic.file_name || "contrato.pdf"}>Baixar PDF</a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <object data={solic.file_url} type="application/pdf" className="w-full h-[70vh] rounded border bg-background">
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  Não foi possível exibir o PDF aqui.{" "}
-                  <a className="text-primary underline" href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a> ou{" "}
-                  <a className="text-primary underline" href={solic.file_url} download>baixar o arquivo</a>.
-                </div>
-              </object>
-            </CardContent>
-          </Card>
-        ) : docHtml && (
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
-            <CardContent>
-              <div
-                className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
-                dangerouslySetInnerHTML={{ __html: docHtml }}
-              />
-            </CardContent>
-          </Card>
-        )}
+        {(() => {
+          const url = documentoUrl;
+          const nome = documentoNome || solic?.file_name || "documento";
+          const mime = (documentoMime || "").toLowerCase();
+          const lower = (url || "").toLowerCase();
+          const isPdf = mime.includes("pdf") || lower.includes(".pdf") || nome.toLowerCase().endsWith(".pdf");
+          const isImg = mime.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)(\?|$)/i.test(lower);
+
+          if (url && isPdf) {
+            return (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm">Documento (PDF)</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} download={nome}>Baixar</a>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <object data={url} type="application/pdf" className="w-full h-[70vh] rounded border bg-background">
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Não foi possível exibir o PDF aqui.{" "}
+                      <a className="text-primary underline" href={url} target="_blank" rel="noopener noreferrer">Abrir</a> ou{" "}
+                      <a className="text-primary underline" href={url} download={nome}>baixar</a>.
+                    </div>
+                  </object>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (url && isImg) {
+            return (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm">Documento (imagem)</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} download={nome}>Baixar</a>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <img src={url} alt={nome} className="w-full max-h-[70vh] object-contain rounded border bg-background" />
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (url) {
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+                <CardContent className="flex gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={url} target="_blank" rel="noopener noreferrer">Abrir documento</a>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={url} download={nome}>Baixar</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (docHtml) {
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+                <CardContent>
+                  <div
+                    className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
+                    dangerouslySetInnerHTML={{ __html: docHtml }}
+                  />
+                </CardContent>
+              </Card>
+            );
+          }
+
+          return (
+            <Card>
+              <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                Documento não carregado. Solicite um novo link à loja antes de assinar.
+              </CardContent>
+            </Card>
+          );
+        })()}
+
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Identificação</CardTitle></CardHeader>
@@ -692,7 +776,13 @@ export default function AssinaturaPublica() {
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
-          <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={enviando || (!documentoUrl && !docHtml)}
+            onClick={finalizar}
+            title={!documentoUrl && !docHtml ? "Documento não carregado" : undefined}
+          >
             {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Finalizar assinatura
           </Button>
