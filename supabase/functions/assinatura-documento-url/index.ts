@@ -5,8 +5,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    let token: string | null = null;
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    token = url.searchParams.get("token");
+    if (!token && (req.method === "POST" || req.method === "PUT")) {
+      try {
+        const body = await req.json();
+        token = body?.token || null;
+      } catch { /* ignore */ }
+    }
+
     if (!token) {
       return new Response(JSON.stringify({ error: "token obrigatório" }), {
         status: 400,
@@ -19,7 +27,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1) participante -> solicitação
     const { data: part } = await supabase
       .from("assinatura_participantes")
       .select("solicitacao_id")
@@ -47,39 +54,32 @@ Deno.serve(async (req) => {
     }
 
     const s = solic as any;
-    if (s.storage_path && s.bucket_name) {
+    let resultUrl: string | null = null;
+
+    if (s.storage_path) {
+      const bucket = s.bucket_name || "documentos";
       const { data: signed, error } = await supabase
         .storage
-        .from(s.bucket_name)
+        .from(bucket)
         .createSignedUrl(s.storage_path, 60 * 60);
 
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!error && signed?.signedUrl) {
+        resultUrl = signed.signedUrl;
       }
-
-      return new Response(
-        JSON.stringify({
-          url: signed.signedUrl,
-          nome: s.file_name,
-          mime: s.mime_type,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
-    if (s.file_url) {
-      return new Response(
-        JSON.stringify({ url: s.file_url, nome: s.file_name, mime: s.mime_type }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!resultUrl && s.file_url) {
+      resultUrl = s.file_url;
     }
 
-    return new Response(JSON.stringify({ url: null }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        url: resultUrl,
+        nome: s.file_name || null,
+        mime: s.mime_type || null,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: String((e as Error).message || e) }), {
       status: 500,
