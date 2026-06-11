@@ -124,6 +124,7 @@ export default function Autorizacoes() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<AutStatus | "todas">("pendente");
   const [filtroCat, setFiltroCat] = useState<AutCategoria | "todas">("todas");
+  const [filtroOrigem, setFiltroOrigem] = useState<"todas" | "desmembramento">("todas");
 
   const [decisao, setDecisao] = useState<{ id: string; acao: "aprovada" | "rejeitada" } | null>(null);
   const [obs, setObs] = useState("");
