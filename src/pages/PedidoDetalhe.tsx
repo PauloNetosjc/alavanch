@@ -844,7 +844,7 @@ export default function PedidoDetalhe() {
 
       {/* IMPORTAR REVISÃO PROMOB */}
       {!revisaoPendente && (
-        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} desmembramentoId={desmembramentoId} />
       )}
     </div>
   );
@@ -853,7 +853,7 @@ export default function PedidoDetalhe() {
 /* ============================================================== */
 /*                        CRONOGRAMA                              */
 /* ============================================================== */
-function Cronograma({ pedido, salvarPedido }: any) {
+function Cronograma({ pedido, salvarPedido, desmembramentoId = null }: any) {
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [dataRevisao, setDataRevisao] = useState<string | null>(null);
   const [dataAssinaturaPdf, setDataAssinaturaPdf] = useState<string | null>(null);
@@ -1188,7 +1188,7 @@ function WhatsappCard({ cliente }: any) {
 /* ============================================================== */
 /*                  CENTRAL DE DOCUMENTOS                         */
 /* ============================================================== */
-function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange }: any) {
+function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange, desmembramentoId = null }: any) {
   const [pastaAtiva, setPastaAtiva] = useState<string | null>(pastas[0]?.id || null);
   const [novaPastaOpen, setNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
@@ -2323,7 +2323,7 @@ function ResumoFinanceiroPedido({ pedido, ambientes, salvarPedido }: any) {
 /* ============================================================== */
 /*                   REVISÃO PROMOB                               */
 /* ============================================================== */
-function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) {
+function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange, desmembramentoId = null }: any) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [enviando, setEnviando] = useState<string | null>(null);
