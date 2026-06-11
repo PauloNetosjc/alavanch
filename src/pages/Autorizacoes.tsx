@@ -290,6 +290,23 @@ export default function Autorizacoes() {
           {catBtn("agenda", CATEGORIA_LABEL.agenda, CAT_ICON.agenda)}
           {catBtn("desconto", CATEGORIA_LABEL.desconto, CAT_ICON.desconto)}
           {catBtn("outro", CATEGORIA_LABEL.outro, CAT_ICON.outro)}
+          <button
+            onClick={() => setFiltroOrigem((v) => (v === "desmembramento" ? "todas" : "desmembramento"))}
+            className={`flex items-center gap-2 px-3 h-9 rounded-md border text-[13px] transition-colors ${
+              filtroOrigem === "desmembramento"
+                ? "bg-purple-600 text-white border-purple-600"
+                : "bg-card hover:bg-accent border-border"
+            }`}
+            title="Filtrar somente solicitações de desmembramento (PARC)"
+          >
+            <Split className="w-3.5 h-3.5" />
+            <span>Desmembramentos</span>
+            <span className={`text-[11px] px-1.5 py-0 rounded ${
+              filtroOrigem === "desmembramento" ? "bg-white/20" : "bg-muted text-muted-foreground"
+            }`}>
+              {items.filter((i) => i.origem_modulo === "desmembramento" && (tab === "todas" || i.status === tab)).length}
+            </span>
+          </button>
         </div>
       </div>
 
