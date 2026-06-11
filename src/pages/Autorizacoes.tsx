@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { ShieldCheck, Check, X, Clock, Calendar, Percent, FileEdit, Layers } from "lucide-react";
+import { ShieldCheck, Check, X, Clock, Calendar, Percent, FileEdit, Layers, Split } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIA_LABEL, TIPO_LABEL, type AutCategoria, type AutStatus } from "@/lib/autorizacoes";
 
