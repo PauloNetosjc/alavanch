@@ -337,7 +337,9 @@ export default function PedidoDetalhe() {
     // Preserva docs virtuais (orçamento) e substitui docs do pedido — exclui categoria_projeto operacional
     const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
     const filtrarCentral = (rows: any[]) =>
-      rows.filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+      rows
+        .filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug))
+        .filter((d) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
     setDocs((prev) => {
       const virtuais = (prev || []).filter((d: any) => d._readonly);
       return [...virtuais, ...filtrarCentral((dcsRes.data as any[]) || [])];
