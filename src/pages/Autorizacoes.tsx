@@ -162,9 +162,65 @@ export default function Autorizacoes() {
     return c;
   }, [items, tab]);
 
+  const criarParcAprovado = async (a: Autorizacao) => {
+    if (!a.pedido_id) throw new Error("Solicitação sem pedido vinculado");
+    const ctx = a.contexto || {};
+    const ambIds: string[] = ctx.ambiente_ids || [];
+    if (ambIds.length === 0) throw new Error("Sem ambientes para desmembrar");
+
+    // próximo número sequencial PARC-NN
+    const { count } = await supabase
+      .from("pedido_desmembramentos" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("pedido_id_original", a.pedido_id);
+    const nn = String((count || 0) + 1).padStart(2, "0");
+    const codigoBase = ctx.codigo_pedido || "PEDIDO";
+    const codigo_parcial = `${codigoBase}-PARC-${nn}`;
+
+    const { data: desm, error: e1 } = await supabase
+      .from("pedido_desmembramentos" as any)
+      .insert({
+        pedido_id_original: a.pedido_id,
+        codigo_parcial,
+        status_operacional: "venda_futura",
+        etapa_atual: "venda_futura",
+        observacao: a.motivo_solicitacao || null,
+        criado_por: user?.id || null,
+        ativo: true,
+      })
+      .select("id")
+      .single();
+    if (e1 || !desm) throw e1 || new Error("Falha ao criar PARC");
+
+    // buscar nomes/valores dos ambientes
+    const { data: ambs } = await supabase
+      .from("ambientes")
+      .select("id, nome, preco_sugerido")
+      .in("id", ambIds);
+
+    const itens = (ambs || []).map((amb: any) => ({
+      desmembramento_id: (desm as any).id,
+      pedido_id_original: a.pedido_id!,
+      ambiente_id: amb.id,
+      descricao: amb.nome,
+      valor_operacional: Number(amb.preco_sugerido) || 0,
+      quantidade: 1,
+      status_operacional: "em_andamento",
+      etapa_atual: "venda_futura",
+    }));
+    if (itens.length > 0) {
+      const { error: e2 } = await supabase
+        .from("pedido_desmembramento_itens" as any)
+        .insert(itens);
+      if (e2) throw e2;
+    }
+    return codigo_parcial;
+  };
+
   const decidir = async () => {
     if (!decisao) return;
     if (!podeDecidir) { toast.error("Você não tem permissão para decidir."); return; }
+    const alvo = items.find((i) => i.id === decisao.id);
     const payload: any = {
       status: decisao.acao,
       aprovador_id: user?.id,
@@ -173,14 +229,22 @@ export default function Autorizacoes() {
       decisao_observacao: obs || null,
     };
     if (decisao.acao === "rejeitada") payload.motivo_rejeicao = obs || null;
-    const { error } = await supabase
-      .from("autorizacoes" as any)
-      .update(payload)
-      .eq("id", decisao.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(decisao.acao === "aprovada" ? "Solicitação aprovada" : "Solicitação rejeitada");
-    setDecisao(null); setObs("");
-    reload();
+    try {
+      if (decisao.acao === "aprovada" && alvo?.origem_modulo === "desmembramento") {
+        const codigo = await criarParcAprovado(alvo);
+        toast.success(`PARC ${codigo} criado`);
+      }
+      const { error } = await supabase
+        .from("autorizacoes" as any)
+        .update(payload)
+        .eq("id", decisao.id);
+      if (error) throw error;
+      toast.success(decisao.acao === "aprovada" ? "Solicitação aprovada" : "Solicitação rejeitada");
+      setDecisao(null); setObs("");
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao decidir");
+    }
   };
 
   const catBtn = (key: AutCategoria | "todas", label: string, Icon?: any) => {
