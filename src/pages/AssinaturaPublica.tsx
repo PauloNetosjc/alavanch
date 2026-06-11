@@ -776,7 +776,13 @@ export default function AssinaturaPublica() {
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
-          <Button className="w-full" size="lg" disabled={enviando} onClick={finalizar}>
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={enviando || (!documentoUrl && !docHtml)}
+            onClick={finalizar}
+            title={!documentoUrl && !docHtml ? "Documento não carregado" : undefined}
+          >
             {enviando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Finalizar assinatura
           </Button>
