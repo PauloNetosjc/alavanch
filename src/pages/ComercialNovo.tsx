@@ -1988,9 +1988,6 @@ export default function ComercialNovo() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="text-[15px] font-semibold">{a.nome}</div>
                           <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-[13px] font-semibold text-[#2D6BE5]">
-                              {a.markup.toFixed(2)}x
-                            </span>
                             <span className="text-[15px] font-semibold text-mono">
                               {fmtBrl(a.preco_sugerido)}
                             </span>
