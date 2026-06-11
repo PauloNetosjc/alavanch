@@ -157,6 +157,26 @@ export default function AssinaturaPublica() {
       setSolic(s as Solicitacao);
       setParticipante(participanteAtual);
 
+      // 3.1) Busca URL assinada do documento anexado (suporta storage_path sem file_url público)
+      try {
+        const { data: docData } = await supabase.functions.invoke("assinatura-documento-url", {
+          body: { token },
+        });
+        if (docData) {
+          const u = (docData as any).url || (docData as any).url_do_arquivo || (docData as any).file_url || "";
+          const n = (docData as any).nome || (docData as any).nome_do_arquivo || (docData as any).file_name || "";
+          const m = (docData as any).mime || (docData as any).tipo_mime || (docData as any).mime_type || "";
+          if (u) setDocumentoUrl(u);
+          if (n) setDocumentoNome(n);
+          if (m) setDocumentoMime(m);
+        }
+      } catch { /* fallback para solic.file_url / docHtml */ }
+      if (!documentoUrl && (s as any).file_url) {
+        setDocumentoUrl((s as any).file_url);
+        setDocumentoNome((s as any).file_name || "");
+      }
+
+
       // 4) Marca como visualizado (uma vez)
       if (participanteAtual && !participanteAtual.visualizado_em && participanteAtual.status === "pendente") {
         await supabase
