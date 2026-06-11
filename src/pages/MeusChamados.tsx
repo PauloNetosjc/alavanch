@@ -467,6 +467,10 @@ export default function MeusChamados() {
         }
         return <div className="space-y-3">{filtered.map(renderCard)}</div>;
       })()}
+      </>
+      )}
+
+
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
       <MinhasTarefasNativasPanel />
