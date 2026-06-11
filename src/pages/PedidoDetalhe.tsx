@@ -743,6 +743,13 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
+      {/* AVISO DE ISOLAMENTO POR PARC */}
+      {desmembramentoAtual && (
+        <div className="rounded-md border border-purple-200 bg-purple-50/60 text-purple-900 px-4 py-2 text-[12px]">
+          Você está trabalhando no PARC <strong>{desmembramentoAtual.codigo_parcial}</strong>. Arquivos, tarefas, agenda e revisões serão vinculados somente a este PARC.
+        </div>
+      )}
+
       {/* DESMEMBRAMENTOS (PARC) */}
       <DesmembramentosPanel
         pedidoId={pedido.id}
@@ -752,11 +759,11 @@ export default function PedidoDetalhe() {
       />
 
       {/* ARQUIVOS DO PROJETO — sobe para posição anterior do Cronograma */}
-      <ArquivosProjetoPanel pedido={pedido} />
+      <ArquivosProjetoPanel pedido={pedido} desmembramentoId={desmembramentoId} />
 
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
-      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
+      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} desmembramentoId={desmembramentoId} />
 
       {/* CENTRAL DE DOCUMENTOS + IMPORTAR REVISÃO DO PROJETO — lado a lado no desktop */}
       {revisaoPendente ? (
@@ -769,10 +776,11 @@ export default function PedidoDetalhe() {
               solicitacoes={solicitacoes}
               cliente={cliente}
               onChange={carregar}
+              desmembramentoId={desmembramentoId}
             />
           </div>
           <div className="min-w-0">
-            <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+            <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} desmembramentoId={desmembramentoId} />
           </div>
         </div>
       ) : (
@@ -783,14 +791,15 @@ export default function PedidoDetalhe() {
           solicitacoes={solicitacoes}
           cliente={cliente}
           onChange={carregar}
+          desmembramentoId={desmembramentoId}
         />
       )}
 
       {/* CRONOGRAMA E DATAS — desce para posição anterior dos Arquivos do Projeto */}
-      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
+      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} desmembramentoId={desmembramentoId} />
 
       {/* TAREFAS ASSOCIADAS AO PEDIDO (legado: agenda/tarefa_interna) */}
-      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" />
+      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" desmembramentoId={desmembramentoId} />
 
       {/* PRODUTOS — antepenúltimo bloco, largura total */}
       <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
