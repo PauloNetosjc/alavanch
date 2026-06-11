@@ -177,10 +177,16 @@ export default function PedidoDetalhe() {
       orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
       supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem"),
       supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem"),
-      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then((res) => {
+        const rows = ((res.data as any[]) || []).filter((d: any) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
+        return { data: rows, error: res.error } as any;
+      }),
       orcId ? supabase.from("orcamento_documentos" as any).select("*").eq("orcamento_id", orcId).order("created_at", { ascending: false }) : Promise.resolve({ data: [] } as any),
       supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at"),
-      supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at"),
+      supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at").then((res) => {
+        const rows = ((res.data as any[]) || []).filter((r: any) => desmembramentoId ? r.desmembramento_id === desmembramentoId : !r.desmembramento_id);
+        return { data: rows, error: res.error } as any;
+      }),
       supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true),
       ped.pedido_pai_id ? supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle() : Promise.resolve({ data: null } as any),
       ped.pedido_origem_complemento_id ? supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle() : Promise.resolve({ data: null } as any),
