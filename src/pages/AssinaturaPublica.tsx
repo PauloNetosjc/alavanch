@@ -613,40 +613,101 @@ export default function AssinaturaPublica() {
           </div>
         )}
 
-        {solic?.file_url && (solic.file_url.toLowerCase().includes(".pdf") || solic.file_name?.toLowerCase().endsWith(".pdf")) ? (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm">Contrato em PDF</CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <a href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a>
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <a href={solic.file_url} download={solic.file_name || "contrato.pdf"}>Baixar PDF</a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <object data={solic.file_url} type="application/pdf" className="w-full h-[70vh] rounded border bg-background">
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  Não foi possível exibir o PDF aqui.{" "}
-                  <a className="text-primary underline" href={solic.file_url} target="_blank" rel="noopener noreferrer">Abrir em nova aba</a> ou{" "}
-                  <a className="text-primary underline" href={solic.file_url} download>baixar o arquivo</a>.
-                </div>
-              </object>
-            </CardContent>
-          </Card>
-        ) : docHtml && (
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
-            <CardContent>
-              <div
-                className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
-                dangerouslySetInnerHTML={{ __html: docHtml }}
-              />
-            </CardContent>
-          </Card>
-        )}
+        {(() => {
+          const url = documentoUrl;
+          const nome = documentoNome || solic?.file_name || "documento";
+          const mime = (documentoMime || "").toLowerCase();
+          const lower = (url || "").toLowerCase();
+          const isPdf = mime.includes("pdf") || lower.includes(".pdf") || nome.toLowerCase().endsWith(".pdf");
+          const isImg = mime.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)(\?|$)/i.test(lower);
+
+          if (url && isPdf) {
+            return (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm">Documento (PDF)</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} download={nome}>Baixar</a>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <object data={url} type="application/pdf" className="w-full h-[70vh] rounded border bg-background">
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Não foi possível exibir o PDF aqui.{" "}
+                      <a className="text-primary underline" href={url} target="_blank" rel="noopener noreferrer">Abrir</a> ou{" "}
+                      <a className="text-primary underline" href={url} download={nome}>baixar</a>.
+                    </div>
+                  </object>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (url && isImg) {
+            return (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm">Documento (imagem)</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={url} download={nome}>Baixar</a>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <img src={url} alt={nome} className="w-full max-h-[70vh] object-contain rounded border bg-background" />
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (url) {
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+                <CardContent className="flex gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={url} target="_blank" rel="noopener noreferrer">Abrir documento</a>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={url} download={nome}>Baixar</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (docHtml) {
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Documento</CardTitle></CardHeader>
+                <CardContent>
+                  <div
+                    className="prose prose-sm max-w-none bg-background p-4 rounded border max-h-[60vh] overflow-auto"
+                    dangerouslySetInnerHTML={{ __html: docHtml }}
+                  />
+                </CardContent>
+              </Card>
+            );
+          }
+
+          return (
+            <Card>
+              <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                Documento não carregado. Solicite um novo link à loja antes de assinar.
+              </CardContent>
+            </Card>
+          );
+        })()}
+
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Identificação</CardTitle></CardHeader>
