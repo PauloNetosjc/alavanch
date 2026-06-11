@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFileName } from "@/lib/storagePath";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { PedidoTarefasPanel } from "@/components/tarefas/PedidoTarefasPanel";
 import { ArquivosProjetoPanel } from "@/components/pedido/ArquivosProjetoPanel";
+import DesmembramentosPanel from "@/components/pedido/DesmembramentosPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
@@ -86,6 +87,21 @@ export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const desmembramentoId = searchParams.get("desmembramento");
+  const [desmembramentoAtual, setDesmembramentoAtual] = useState<any>(null);
+
+  useEffect(() => {
+    if (!desmembramentoId) { setDesmembramentoAtual(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("pedido_desmembramentos" as any)
+        .select("*")
+        .eq("id", desmembramentoId)
+        .maybeSingle();
+      setDesmembramentoAtual(data as any);
+    })();
+  }, [desmembramentoId]);
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
   const [gerandoContrato, setGerandoContrato] = useState(false);
@@ -692,8 +708,42 @@ export default function PedidoDetalhe() {
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
+      {/* BANNER DE CONTEXTO PARC */}
+      {desmembramentoAtual && (
+        <div className="rounded-md border border-purple-300 bg-purple-50 text-purple-900 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">
+              PARC
+            </span>
+            <span className="text-[15px] font-bold">{desmembramentoAtual.codigo_parcial}</span>
+            <span className="text-[12px]">
+              Pedido original: <strong>{pedido?.codigo}</strong>
+            </span>
+            <span className="text-[11px] px-2 py-0.5 rounded bg-purple-100 border border-purple-300">
+              Etapa: {desmembramentoAtual.etapa_atual || desmembramentoAtual.status_operacional || "venda_futura"}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate(`/pedidos/${pedido.id}`)}
+          >
+            Voltar ao pedido original
+          </Button>
+        </div>
+      )}
+
+      {/* DESMEMBRAMENTOS (PARC) */}
+      <DesmembramentosPanel
+        pedidoId={pedido.id}
+        codigoPedido={pedido.codigo}
+        lojaId={pedido.loja_id}
+        ambientes={ambientes.map((a: any) => ({ id: a.id, nome: a.nome }))}
+      />
+
       {/* ARQUIVOS DO PROJETO — sobe para posição anterior do Cronograma */}
       <ArquivosProjetoPanel pedido={pedido} />
+
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
       <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />

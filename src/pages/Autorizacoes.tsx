@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { ShieldCheck, Check, X, Clock, Calendar, Percent, FileEdit, Layers } from "lucide-react";
+import { ShieldCheck, Check, X, Clock, Calendar, Percent, FileEdit, Layers, Split } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIA_LABEL, TIPO_LABEL, type AutCategoria, type AutStatus } from "@/lib/autorizacoes";
 
@@ -99,6 +99,19 @@ function CategoriaDetalhes({ a }: { a: Autorizacao }) {
       </div>
     );
   }
+  if (a.origem_modulo === "desmembramento") {
+    const nomes: string[] = ctx.ambiente_nomes || [];
+    return (
+      <div className="text-[12px] mt-1">
+        <div>
+          Pedido: <strong>{ctx.codigo_pedido || "—"}</strong>
+        </div>
+        <div>
+          Ambientes a desmembrar: <strong>{nomes.join(", ") || "—"}</strong>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 
@@ -111,6 +124,7 @@ export default function Autorizacoes() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<AutStatus | "todas">("pendente");
   const [filtroCat, setFiltroCat] = useState<AutCategoria | "todas">("todas");
+  const [filtroOrigem, setFiltroOrigem] = useState<"todas" | "desmembramento">("todas");
 
   const [decisao, setDecisao] = useState<{ id: string; acao: "aprovada" | "rejeitada" } | null>(null);
   const [obs, setObs] = useState("");
@@ -131,9 +145,10 @@ export default function Autorizacoes() {
     return items.filter((i) => {
       if (tab !== "todas" && i.status !== tab) return false;
       if (filtroCat !== "todas" && (i.categoria || "outro") !== filtroCat) return false;
+      if (filtroOrigem === "desmembramento" && i.origem_modulo !== "desmembramento") return false;
       return true;
     });
-  }, [items, tab, filtroCat]);
+  }, [items, tab, filtroCat, filtroOrigem]);
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { pendente: 0, aprovada: 0, rejeitada: 0, todas: items.length };
@@ -149,9 +164,65 @@ export default function Autorizacoes() {
     return c;
   }, [items, tab]);
 
+  const criarParcAprovado = async (a: Autorizacao) => {
+    if (!a.pedido_id) throw new Error("Solicitação sem pedido vinculado");
+    const ctx = a.contexto || {};
+    const ambIds: string[] = ctx.ambiente_ids || [];
+    if (ambIds.length === 0) throw new Error("Sem ambientes para desmembrar");
+
+    // próximo número sequencial PARC-NN
+    const { count } = await supabase
+      .from("pedido_desmembramentos" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("pedido_id_original", a.pedido_id);
+    const nn = String((count || 0) + 1).padStart(2, "0");
+    const codigoBase = ctx.codigo_pedido || "PEDIDO";
+    const codigo_parcial = `${codigoBase}-PARC-${nn}`;
+
+    const { data: desm, error: e1 } = await supabase
+      .from("pedido_desmembramentos" as any)
+      .insert({
+        pedido_id_original: a.pedido_id,
+        codigo_parcial,
+        status_operacional: "venda_futura",
+        etapa_atual: "venda_futura",
+        observacao: a.motivo_solicitacao || null,
+        criado_por: user?.id || null,
+        ativo: true,
+      })
+      .select("id")
+      .single();
+    if (e1 || !desm) throw e1 || new Error("Falha ao criar PARC");
+
+    // buscar nomes/valores dos ambientes
+    const { data: ambs } = await supabase
+      .from("ambientes")
+      .select("id, nome, preco_sugerido")
+      .in("id", ambIds);
+
+    const itens = (ambs || []).map((amb: any) => ({
+      desmembramento_id: (desm as any).id,
+      pedido_id_original: a.pedido_id!,
+      ambiente_id: amb.id,
+      descricao: amb.nome,
+      valor_operacional: Number(amb.preco_sugerido) || 0,
+      quantidade: 1,
+      status_operacional: "em_andamento",
+      etapa_atual: "venda_futura",
+    }));
+    if (itens.length > 0) {
+      const { error: e2 } = await supabase
+        .from("pedido_desmembramento_itens" as any)
+        .insert(itens);
+      if (e2) throw e2;
+    }
+    return codigo_parcial;
+  };
+
   const decidir = async () => {
     if (!decisao) return;
     if (!podeDecidir) { toast.error("Você não tem permissão para decidir."); return; }
+    const alvo = items.find((i) => i.id === decisao.id);
     const payload: any = {
       status: decisao.acao,
       aprovador_id: user?.id,
@@ -160,14 +231,22 @@ export default function Autorizacoes() {
       decisao_observacao: obs || null,
     };
     if (decisao.acao === "rejeitada") payload.motivo_rejeicao = obs || null;
-    const { error } = await supabase
-      .from("autorizacoes" as any)
-      .update(payload)
-      .eq("id", decisao.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(decisao.acao === "aprovada" ? "Solicitação aprovada" : "Solicitação rejeitada");
-    setDecisao(null); setObs("");
-    reload();
+    try {
+      if (decisao.acao === "aprovada" && alvo?.origem_modulo === "desmembramento") {
+        const codigo = await criarParcAprovado(alvo);
+        toast.success(`PARC ${codigo} criado`);
+      }
+      const { error } = await supabase
+        .from("autorizacoes" as any)
+        .update(payload)
+        .eq("id", decisao.id);
+      if (error) throw error;
+      toast.success(decisao.acao === "aprovada" ? "Solicitação aprovada" : "Solicitação rejeitada");
+      setDecisao(null); setObs("");
+      reload();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao decidir");
+    }
   };
 
   const catBtn = (key: AutCategoria | "todas", label: string, Icon?: any) => {
@@ -211,6 +290,23 @@ export default function Autorizacoes() {
           {catBtn("agenda", CATEGORIA_LABEL.agenda, CAT_ICON.agenda)}
           {catBtn("desconto", CATEGORIA_LABEL.desconto, CAT_ICON.desconto)}
           {catBtn("outro", CATEGORIA_LABEL.outro, CAT_ICON.outro)}
+          <button
+            onClick={() => setFiltroOrigem((v) => (v === "desmembramento" ? "todas" : "desmembramento"))}
+            className={`flex items-center gap-2 px-3 h-9 rounded-md border text-[13px] transition-colors ${
+              filtroOrigem === "desmembramento"
+                ? "bg-purple-600 text-white border-purple-600"
+                : "bg-card hover:bg-accent border-border"
+            }`}
+            title="Filtrar somente solicitações de desmembramento (PARC)"
+          >
+            <Split className="w-3.5 h-3.5" />
+            <span>Desmembramentos</span>
+            <span className={`text-[11px] px-1.5 py-0 rounded ${
+              filtroOrigem === "desmembramento" ? "bg-white/20" : "bg-muted text-muted-foreground"
+            }`}>
+              {items.filter((i) => i.origem_modulo === "desmembramento" && (tab === "todas" || i.status === tab)).length}
+            </span>
+          </button>
         </div>
       </div>
 
