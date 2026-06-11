@@ -28,10 +28,13 @@ import {
   Download,
   CheckCircle2,
   CalendarPlus,
+  CalendarDays,
+  List,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { MinhasTarefasNativasPanel } from "@/components/tarefas/MinhasTarefasNativasPanel";
+import { PlanejamentoSemanalChamados } from "@/components/tarefas/PlanejamentoSemanalChamados";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
