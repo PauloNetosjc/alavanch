@@ -26,9 +26,11 @@ interface Props {
   groupByUser?: boolean;
   /** título customizado */
   title?: string;
+  /** Quando informado, filtra/cria eventos vinculados a este PARC. */
+  desmembramentoId?: string | null;
 }
 
-export function TarefasPanel({ pedidoId = null, scope = "pedido", groupByUser = false, title }: Props) {
+export function TarefasPanel({ pedidoId = null, scope = "pedido", groupByUser = false, title, desmembramentoId = null }: Props) {
   const { user, role } = useAuth();
   const isAdmin = role === "admin" || role === "diretor";
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -43,7 +45,12 @@ export function TarefasPanel({ pedidoId = null, scope = "pedido", groupByUser = 
       .select("id, titulo, descricao, data, hora_inicio, status, responsavel_id, pedido_id")
       .eq("tipo", "tarefa_interna")
       .order("data", { ascending: true });
-    if (scope === "pedido" && pedidoId) q = q.eq("pedido_id", pedidoId);
+    if (scope === "pedido" && pedidoId) {
+      q = q.eq("pedido_id", pedidoId);
+      q = desmembramentoId
+        ? (q as any).eq("desmembramento_id", desmembramentoId)
+        : (q as any).is("desmembramento_id", null);
+    }
     else if (scope === "minhas" && user) q = q.eq("responsavel_id", user.id);
     // scope=todas → admin (RLS já restringe)
     const { data } = await q;
@@ -65,7 +72,7 @@ export function TarefasPanel({ pedidoId = null, scope = "pedido", groupByUser = 
   useEffect(() => {
     load();
     // eslint-disable-next-line
-  }, [pedidoId, scope, user?.id]);
+  }, [pedidoId, scope, user?.id, desmembramentoId]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -153,6 +160,7 @@ export function TarefasPanel({ pedidoId = null, scope = "pedido", groupByUser = 
         onOpenChange={setOpenNova}
         pedidoId={pedidoId || undefined}
         defaultTipo="tarefa_interna"
+        desmembramentoId={desmembramentoId}
         onCreated={() => {
           setOpenNova(false);
           load();
