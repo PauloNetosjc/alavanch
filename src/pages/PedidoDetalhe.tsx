@@ -87,6 +87,21 @@ export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const desmembramentoId = searchParams.get("desmembramento");
+  const [desmembramentoAtual, setDesmembramentoAtual] = useState<any>(null);
+
+  useEffect(() => {
+    if (!desmembramentoId) { setDesmembramentoAtual(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("pedido_desmembramentos" as any)
+        .select("*")
+        .eq("id", desmembramentoId)
+        .maybeSingle();
+      setDesmembramentoAtual(data as any);
+    })();
+  }, [desmembramentoId]);
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
   const [gerandoContrato, setGerandoContrato] = useState(false);
