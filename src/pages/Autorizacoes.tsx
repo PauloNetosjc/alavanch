@@ -145,9 +145,10 @@ export default function Autorizacoes() {
     return items.filter((i) => {
       if (tab !== "todas" && i.status !== tab) return false;
       if (filtroCat !== "todas" && (i.categoria || "outro") !== filtroCat) return false;
+      if (filtroOrigem === "desmembramento" && i.origem_modulo !== "desmembramento") return false;
       return true;
     });
-  }, [items, tab, filtroCat]);
+  }, [items, tab, filtroCat, filtroOrigem]);
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { pendente: 0, aprovada: 0, rejeitada: 0, todas: items.length };
