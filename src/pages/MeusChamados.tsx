@@ -244,6 +244,32 @@ export default function MeusChamados() {
         subtitle={isAdmin ? "TODOS OS CHAMADOS DA EMPRESA" : "CHAMADOS ATRIBUÍDOS A VOCÊ"}
       />
 
+      {/* Toggle Lista/Semana */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={viewMode === "lista" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setViewMode("lista")}
+        >
+          <List className="w-4 h-4" />
+          Lista
+        </Button>
+        <Button
+          variant={viewMode === "semana" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setViewMode("semana")}
+        >
+          <CalendarDays className="w-4 h-4" />
+          Planejamento semanal
+        </Button>
+      </div>
+
+      {viewMode === "semana" ? (
+        <PlanejamentoSemanalChamados />
+      ) : (
+      <>
       {/* Filtros */}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
