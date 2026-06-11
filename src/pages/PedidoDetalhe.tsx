@@ -2350,7 +2350,8 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange, desmemb
         valor_revisado: diff.totals.valorRevisado,
         variacao_perc: diff.totals.variacaoPerc,
         created_by: user?.id,
-      }).select("id").single();
+        desmembramento_id: desmembramentoId || null,
+      } as any).select("id").single();
       if (revErr) throw revErr;
 
       // Espelhar o arquivo importado em Central de Documentos > Documentos.
@@ -2394,6 +2395,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange, desmemb
             categoria_projeto: null,
             created_by: user?.id || null,
             bucket_name: "pedido-docs",
+            desmembramento_id: desmembramentoId || null,
           } as any);
           if (insErr) {
             await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
