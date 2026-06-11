@@ -65,6 +65,7 @@ export type Database = {
           created_by: string | null
           data: string
           descricao: string | null
+          desmembramento_id: string | null
           endereco: string | null
           excecao: boolean
           excecao_autorizador_id: string | null
@@ -89,6 +90,7 @@ export type Database = {
           created_by?: string | null
           data: string
           descricao?: string | null
+          desmembramento_id?: string | null
           endereco?: string | null
           excecao?: boolean
           excecao_autorizador_id?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           created_by?: string | null
           data?: string
           descricao?: string | null
+          desmembramento_id?: string | null
           endereco?: string | null
           excecao?: boolean
           excecao_autorizador_id?: string | null
@@ -135,6 +138,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_eventos_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
             referencedColumns: ["id"]
           },
         ]
@@ -1830,61 +1840,94 @@ export type Database = {
       clientes: {
         Row: {
           ativo: boolean | null
+          bairro: string | null
+          cep: string | null
+          codigo_municipio_ibge: string | null
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
           data_nascimento: string | null
           email: string | null
+          endereco: string | null
           endereco_cobranca: string | null
+          endereco_complemento: string | null
           endereco_entrega: string | null
+          endereco_numero: string | null
           id: string
+          indicador_ie: number | null
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
           loja_id: string | null
+          municipio: string | null
           nome: string
           observacoes: string | null
           origem_id: string | null
           parceiro_id: string | null
           telefone: string | null
           telefone_secundario: string | null
+          uf: string | null
           updated_at: string
           vendedor_id: string | null
         }
         Insert: {
           ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          codigo_municipio_ibge?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
           email?: string | null
+          endereco?: string | null
           endereco_cobranca?: string | null
+          endereco_complemento?: string | null
           endereco_entrega?: string | null
+          endereco_numero?: string | null
           id?: string
+          indicador_ie?: number | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           loja_id?: string | null
+          municipio?: string | null
           nome: string
           observacoes?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
+          uf?: string | null
           updated_at?: string
           vendedor_id?: string | null
         }
         Update: {
           ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          codigo_municipio_ibge?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
           email?: string | null
+          endereco?: string | null
           endereco_cobranca?: string | null
+          endereco_complemento?: string | null
           endereco_entrega?: string | null
+          endereco_numero?: string | null
           id?: string
+          indicador_ie?: number | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           loja_id?: string | null
+          municipio?: string | null
           nome?: string
           observacoes?: string | null
           origem_id?: string | null
           parceiro_id?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
+          uf?: string | null
           updated_at?: string
           vendedor_id?: string | null
         }
@@ -2195,20 +2238,29 @@ export type Database = {
         Row: {
           aliquota_iss_padrao: number | null
           ambiente: string
+          bairro: string | null
+          cep: string | null
           cnae_principal: string | null
           cnpj: string | null
           codigo_municipio_ibge: string | null
           codigo_servico_municipal: string | null
+          codigo_servico_nacional: string | null
+          complemento: string | null
           created_at: string
           crt: number | null
           emitir_nfe: boolean
           emitir_nfse: boolean
           id: string
+          incentivador_cultural: boolean | null
           inscricao_estadual: string | null
           inscricao_municipal: string | null
+          logradouro: string | null
           loja_id: string
           municipio: string | null
+          natureza_operacao: string | null
           nome_fantasia: string | null
+          numero: string | null
+          optante_simples_nacional: boolean | null
           provedor_nfse: string | null
           proximo_numero_nfe: number | null
           proximo_numero_rps: number | null
@@ -2222,20 +2274,29 @@ export type Database = {
         Insert: {
           aliquota_iss_padrao?: number | null
           ambiente?: string
+          bairro?: string | null
+          cep?: string | null
           cnae_principal?: string | null
           cnpj?: string | null
           codigo_municipio_ibge?: string | null
           codigo_servico_municipal?: string | null
+          codigo_servico_nacional?: string | null
+          complemento?: string | null
           created_at?: string
           crt?: number | null
           emitir_nfe?: boolean
           emitir_nfse?: boolean
           id?: string
+          incentivador_cultural?: boolean | null
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          logradouro?: string | null
           loja_id: string
           municipio?: string | null
+          natureza_operacao?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
+          optante_simples_nacional?: boolean | null
           provedor_nfse?: string | null
           proximo_numero_nfe?: number | null
           proximo_numero_rps?: number | null
@@ -2249,20 +2310,29 @@ export type Database = {
         Update: {
           aliquota_iss_padrao?: number | null
           ambiente?: string
+          bairro?: string | null
+          cep?: string | null
           cnae_principal?: string | null
           cnpj?: string | null
           codigo_municipio_ibge?: string | null
           codigo_servico_municipal?: string | null
+          codigo_servico_nacional?: string | null
+          complemento?: string | null
           created_at?: string
           crt?: number | null
           emitir_nfe?: boolean
           emitir_nfse?: boolean
           id?: string
+          incentivador_cultural?: boolean | null
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          logradouro?: string | null
           loja_id?: string
           municipio?: string | null
+          natureza_operacao?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
+          optante_simples_nacional?: boolean | null
           provedor_nfse?: string | null
           proximo_numero_nfe?: number | null
           proximo_numero_rps?: number | null
@@ -5518,8 +5588,10 @@ export type Database = {
           chave: string | null
           chave_acesso: string | null
           cliente_id: string | null
+          codigo_numerico: string | null
           codigo_retorno: string | null
           configuracao_tributaria_id: string | null
+          contingencia: boolean
           contrato_id: string | null
           created_at: string
           created_by: string | null
@@ -5527,6 +5599,7 @@ export type Database = {
           danfe_url: string | null
           data_autorizacao: string | null
           data_cancelamento: string | null
+          data_competencia: string | null
           data_emissao: string | null
           digest_value: string | null
           id: string
@@ -5546,16 +5619,30 @@ export type Database = {
           protocolo_autorizacao: string | null
           provider: string | null
           provider_id: string | null
+          qr_code: string | null
           retorno_sefaz_url: string | null
           serie: string | null
           status: string
+          status_fiscal: string | null
+          status_tecnico: string | null
           tipo: string
           updated_at: string
+          url_consulta: string | null
           valor_impostos: number | null
           valor_produtos: number | null
           valor_servicos: number | null
           valor_total: number
+          xml_assinado_conteudo: string | null
+          xml_assinado_em: string | null
+          xml_assinado_storage_path: string | null
           xml_autorizado_url: string | null
+          xml_conteudo: string | null
+          xml_oficial_assinado_conteudo: string | null
+          xml_oficial_assinado_em: string | null
+          xml_oficial_assinado_storage_path: string | null
+          xml_oficial_conteudo: string | null
+          xml_oficial_em: string | null
+          xml_oficial_storage_path: string | null
           xml_storage_path: string | null
           xml_url: string | null
         }
@@ -5565,8 +5652,10 @@ export type Database = {
           chave?: string | null
           chave_acesso?: string | null
           cliente_id?: string | null
+          codigo_numerico?: string | null
           codigo_retorno?: string | null
           configuracao_tributaria_id?: string | null
+          contingencia?: boolean
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -5574,6 +5663,7 @@ export type Database = {
           danfe_url?: string | null
           data_autorizacao?: string | null
           data_cancelamento?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           digest_value?: string | null
           id?: string
@@ -5593,16 +5683,30 @@ export type Database = {
           protocolo_autorizacao?: string | null
           provider?: string | null
           provider_id?: string | null
+          qr_code?: string | null
           retorno_sefaz_url?: string | null
           serie?: string | null
           status?: string
+          status_fiscal?: string | null
+          status_tecnico?: string | null
           tipo?: string
           updated_at?: string
+          url_consulta?: string | null
           valor_impostos?: number | null
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
+          xml_assinado_conteudo?: string | null
+          xml_assinado_em?: string | null
+          xml_assinado_storage_path?: string | null
           xml_autorizado_url?: string | null
+          xml_conteudo?: string | null
+          xml_oficial_assinado_conteudo?: string | null
+          xml_oficial_assinado_em?: string | null
+          xml_oficial_assinado_storage_path?: string | null
+          xml_oficial_conteudo?: string | null
+          xml_oficial_em?: string | null
+          xml_oficial_storage_path?: string | null
           xml_storage_path?: string | null
           xml_url?: string | null
         }
@@ -5612,8 +5716,10 @@ export type Database = {
           chave?: string | null
           chave_acesso?: string | null
           cliente_id?: string | null
+          codigo_numerico?: string | null
           codigo_retorno?: string | null
           configuracao_tributaria_id?: string | null
+          contingencia?: boolean
           contrato_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -5621,6 +5727,7 @@ export type Database = {
           danfe_url?: string | null
           data_autorizacao?: string | null
           data_cancelamento?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           digest_value?: string | null
           id?: string
@@ -5640,16 +5747,30 @@ export type Database = {
           protocolo_autorizacao?: string | null
           provider?: string | null
           provider_id?: string | null
+          qr_code?: string | null
           retorno_sefaz_url?: string | null
           serie?: string | null
           status?: string
+          status_fiscal?: string | null
+          status_tecnico?: string | null
           tipo?: string
           updated_at?: string
+          url_consulta?: string | null
           valor_impostos?: number | null
           valor_produtos?: number | null
           valor_servicos?: number | null
           valor_total?: number
+          xml_assinado_conteudo?: string | null
+          xml_assinado_em?: string | null
+          xml_assinado_storage_path?: string | null
           xml_autorizado_url?: string | null
+          xml_conteudo?: string | null
+          xml_oficial_assinado_conteudo?: string | null
+          xml_oficial_assinado_em?: string | null
+          xml_oficial_assinado_storage_path?: string | null
+          xml_oficial_conteudo?: string | null
+          xml_oficial_em?: string | null
+          xml_oficial_storage_path?: string | null
           xml_storage_path?: string | null
           xml_url?: string | null
         }
@@ -5723,14 +5844,18 @@ export type Database = {
       notas_fiscais_itens: {
         Row: {
           aliquota: number | null
+          aliquota_iss: number | null
           cfop: string | null
           created_at: string
           csosn: string | null
           cst: string | null
+          desconto: number
           descricao: string
           id: string
+          iss_retido: boolean | null
           ncm: string | null
           nota_fiscal_id: string
+          ordem: number | null
           produto_fiscal_id: string | null
           quantidade: number
           servico_fiscal_id: string | null
@@ -5742,14 +5867,18 @@ export type Database = {
         }
         Insert: {
           aliquota?: number | null
+          aliquota_iss?: number | null
           cfop?: string | null
           created_at?: string
           csosn?: string | null
           cst?: string | null
+          desconto?: number
           descricao: string
           id?: string
+          iss_retido?: boolean | null
           ncm?: string | null
           nota_fiscal_id: string
+          ordem?: number | null
           produto_fiscal_id?: string | null
           quantidade?: number
           servico_fiscal_id?: string | null
@@ -5761,14 +5890,18 @@ export type Database = {
         }
         Update: {
           aliquota?: number | null
+          aliquota_iss?: number | null
           cfop?: string | null
           created_at?: string
           csosn?: string | null
           cst?: string | null
+          desconto?: number
           descricao?: string
           id?: string
+          iss_retido?: boolean | null
           ncm?: string | null
           nota_fiscal_id?: string
+          ordem?: number | null
           produto_fiscal_id?: string | null
           quantidade?: number
           servico_fiscal_id?: string | null
@@ -5804,37 +5937,61 @@ export type Database = {
       }
       notas_fiscais_logs_tecnicos: {
         Row: {
+          ambiente: string | null
+          codigo_retorno: string | null
           created_at: string
           duracao_ms: number | null
           erro: string | null
           etapa: string
           id: string
           loja_id: string | null
+          mensagem: string | null
           nota_fiscal_id: string
+          payload_envio: Json | null
           payload_resumido: Json | null
+          payload_retorno: Json | null
           retorno_resumido: Json | null
+          status: string | null
+          tipo_operacao: string | null
+          user_id: string | null
         }
         Insert: {
+          ambiente?: string | null
+          codigo_retorno?: string | null
           created_at?: string
           duracao_ms?: number | null
           erro?: string | null
           etapa: string
           id?: string
           loja_id?: string | null
+          mensagem?: string | null
           nota_fiscal_id: string
+          payload_envio?: Json | null
           payload_resumido?: Json | null
+          payload_retorno?: Json | null
           retorno_resumido?: Json | null
+          status?: string | null
+          tipo_operacao?: string | null
+          user_id?: string | null
         }
         Update: {
+          ambiente?: string | null
+          codigo_retorno?: string | null
           created_at?: string
           duracao_ms?: number | null
           erro?: string | null
           etapa?: string
           id?: string
           loja_id?: string | null
+          mensagem?: string | null
           nota_fiscal_id?: string
+          payload_envio?: Json | null
           payload_resumido?: Json | null
+          payload_retorno?: Json | null
           retorno_resumido?: Json | null
+          status?: string | null
+          tipo_operacao?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -6733,6 +6890,130 @@ export type Database = {
           },
         ]
       }
+      pedido_desmembramento_itens: {
+        Row: {
+          ambiente_id: string | null
+          created_at: string
+          descricao: string
+          desmembramento_id: string
+          etapa_atual: string | null
+          id: string
+          pedido_id_original: string
+          quantidade: number
+          status_operacional: string
+          valor_operacional: number
+        }
+        Insert: {
+          ambiente_id?: string | null
+          created_at?: string
+          descricao: string
+          desmembramento_id: string
+          etapa_atual?: string | null
+          id?: string
+          pedido_id_original: string
+          quantidade?: number
+          status_operacional?: string
+          valor_operacional?: number
+        }
+        Update: {
+          ambiente_id?: string | null
+          created_at?: string
+          descricao?: string
+          desmembramento_id?: string
+          etapa_atual?: string | null
+          id?: string
+          pedido_id_original?: string
+          quantidade?: number
+          status_operacional?: string
+          valor_operacional?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_desmembramento_itens_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "ambientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_desmembramento_itens_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_desmembramento_itens_pedido_id_original_fkey"
+            columns: ["pedido_id_original"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_desmembramentos: {
+        Row: {
+          ativo: boolean
+          codigo_parcial: string
+          contrato_operacional_documento_id: string | null
+          contrato_operacional_storage_path: string | null
+          created_at: string
+          criado_por: string | null
+          data_assinatura_original: string | null
+          etapa_atual: string | null
+          id: string
+          observacao: string | null
+          pedido_id_original: string
+          status_operacional: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_parcial: string
+          contrato_operacional_documento_id?: string | null
+          contrato_operacional_storage_path?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_assinatura_original?: string | null
+          etapa_atual?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id_original: string
+          status_operacional?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_parcial?: string
+          contrato_operacional_documento_id?: string | null
+          contrato_operacional_storage_path?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_assinatura_original?: string | null
+          etapa_atual?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id_original?: string
+          status_operacional?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_desmembramentos_contrato_operacional_documento_id_fkey"
+            columns: ["contrato_operacional_documento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_desmembramentos_pedido_id_original_fkey"
+            columns: ["pedido_id_original"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_documentos: {
         Row: {
           assinado_em: string | null
@@ -6744,6 +7025,7 @@ export type Database = {
           categoria_projeto: string | null
           created_at: string
           created_by: string | null
+          desmembramento_id: string | null
           enviado_para_assinatura: boolean | null
           id: string
           mime_type: string | null
@@ -6765,6 +7047,7 @@ export type Database = {
           categoria_projeto?: string | null
           created_at?: string
           created_by?: string | null
+          desmembramento_id?: string | null
           enviado_para_assinatura?: boolean | null
           id?: string
           mime_type?: string | null
@@ -6786,6 +7069,7 @@ export type Database = {
           categoria_projeto?: string | null
           created_at?: string
           created_by?: string | null
+          desmembramento_id?: string | null
           enviado_para_assinatura?: boolean | null
           id?: string
           mime_type?: string | null
@@ -6798,6 +7082,13 @@ export type Database = {
           tamanho?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_documentos_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_documentos_pasta_id_fkey"
             columns: ["pasta_id"]
@@ -7086,6 +7377,80 @@ export type Database = {
           },
         ]
       }
+      pedido_revisao_itens: {
+        Row: {
+          ambiente_original_id: string | null
+          arquivo_nome: string | null
+          arquivo_storage_path: string | null
+          created_at: string
+          created_by: string | null
+          desmembramento_id: string | null
+          id: string
+          nome_subambiente: string
+          observacao: string | null
+          pedido_id: string
+          revisao_id: string
+          valor_revisado: number
+        }
+        Insert: {
+          ambiente_original_id?: string | null
+          arquivo_nome?: string | null
+          arquivo_storage_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          desmembramento_id?: string | null
+          id?: string
+          nome_subambiente: string
+          observacao?: string | null
+          pedido_id: string
+          revisao_id: string
+          valor_revisado?: number
+        }
+        Update: {
+          ambiente_original_id?: string | null
+          arquivo_nome?: string | null
+          arquivo_storage_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          desmembramento_id?: string | null
+          id?: string
+          nome_subambiente?: string
+          observacao?: string | null
+          pedido_id?: string
+          revisao_id?: string
+          valor_revisado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_revisao_itens_ambiente_original_id_fkey"
+            columns: ["ambiente_original_id"]
+            isOneToOne: false
+            referencedRelation: "ambientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_revisao_itens_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_revisao_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_revisao_itens_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_revisoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_revisoes: {
         Row: {
           ambiente_id: string
@@ -7093,6 +7458,7 @@ export type Database = {
           aprovada_em: string | null
           created_at: string
           created_by: string | null
+          desmembramento_id: string | null
           diff: Json | null
           id: string
           parsed_data: Json | null
@@ -7109,6 +7475,7 @@ export type Database = {
           aprovada_em?: string | null
           created_at?: string
           created_by?: string | null
+          desmembramento_id?: string | null
           diff?: Json | null
           id?: string
           parsed_data?: Json | null
@@ -7125,6 +7492,7 @@ export type Database = {
           aprovada_em?: string | null
           created_at?: string
           created_by?: string | null
+          desmembramento_id?: string | null
           diff?: Json | null
           id?: string
           parsed_data?: Json | null
@@ -7141,6 +7509,13 @@ export type Database = {
             columns: ["ambiente_id"]
             isOneToOne: false
             referencedRelation: "ambientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_revisoes_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
             referencedColumns: ["id"]
           },
           {
@@ -7682,7 +8057,9 @@ export type Database = {
           aliquota_ipi: number | null
           aliquota_pis: number | null
           ativo: boolean
+          categoria_comercial: string | null
           cest: string | null
+          cfop_interestadual: string | null
           cfop_padrao: string | null
           configuracao_tributaria_padrao_id: string | null
           created_at: string
@@ -7692,6 +8069,7 @@ export type Database = {
           cst_ipi: string | null
           cst_pis: string | null
           descricao: string | null
+          ean_gtin: string | null
           grupo_tributario: string | null
           id: string
           loja_id: string | null
@@ -7709,7 +8087,9 @@ export type Database = {
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
           ativo?: boolean
+          categoria_comercial?: string | null
           cest?: string | null
+          cfop_interestadual?: string | null
           cfop_padrao?: string | null
           configuracao_tributaria_padrao_id?: string | null
           created_at?: string
@@ -7719,6 +8099,7 @@ export type Database = {
           cst_ipi?: string | null
           cst_pis?: string | null
           descricao?: string | null
+          ean_gtin?: string | null
           grupo_tributario?: string | null
           id?: string
           loja_id?: string | null
@@ -7736,7 +8117,9 @@ export type Database = {
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
           ativo?: boolean
+          categoria_comercial?: string | null
           cest?: string | null
+          cfop_interestadual?: string | null
           cfop_padrao?: string | null
           configuracao_tributaria_padrao_id?: string | null
           created_at?: string
@@ -7746,6 +8129,7 @@ export type Database = {
           cst_ipi?: string | null
           cst_pis?: string | null
           descricao?: string | null
+          ean_gtin?: string | null
           grupo_tributario?: string | null
           id?: string
           loja_id?: string | null
@@ -9072,8 +9456,10 @@ export type Database = {
           cnae: string | null
           codigo_lc116: string | null
           codigo_servico_municipal: string | null
+          codigo_servico_nacional: string | null
           created_at: string
           descricao: string | null
+          descricao_fiscal: string | null
           id: string
           iss_retido: boolean
           loja_id: string | null
@@ -9087,8 +9473,10 @@ export type Database = {
           cnae?: string | null
           codigo_lc116?: string | null
           codigo_servico_municipal?: string | null
+          codigo_servico_nacional?: string | null
           created_at?: string
           descricao?: string | null
+          descricao_fiscal?: string | null
           id?: string
           iss_retido?: boolean
           loja_id?: string | null
@@ -9102,8 +9490,10 @@ export type Database = {
           cnae?: string | null
           codigo_lc116?: string | null
           codigo_servico_municipal?: string | null
+          codigo_servico_nacional?: string | null
           created_at?: string
           descricao?: string | null
+          descricao_fiscal?: string | null
           id?: string
           iss_retido?: boolean
           loja_id?: string | null
@@ -9171,6 +9561,7 @@ export type Database = {
           assinado_manualmente_por: string | null
           assinatura_cliente_url: string | null
           assinatura_loja_url: string | null
+          bucket_name: string | null
           cancelado_em: string | null
           cliente_assinado_em: string | null
           cliente_documento: string | null
@@ -9202,6 +9593,7 @@ export type Database = {
           loja_ip: string | null
           loja_user_agent: string | null
           metodo_assinatura: string | null
+          mime_type: string | null
           motivo_recusa: string | null
           observacao: string | null
           observacao_manual: string | null
@@ -9223,6 +9615,7 @@ export type Database = {
           assinado_manualmente_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
+          bucket_name?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
           cliente_documento?: string | null
@@ -9254,6 +9647,7 @@ export type Database = {
           loja_ip?: string | null
           loja_user_agent?: string | null
           metodo_assinatura?: string | null
+          mime_type?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           observacao_manual?: string | null
@@ -9275,6 +9669,7 @@ export type Database = {
           assinado_manualmente_por?: string | null
           assinatura_cliente_url?: string | null
           assinatura_loja_url?: string | null
+          bucket_name?: string | null
           cancelado_em?: string | null
           cliente_assinado_em?: string | null
           cliente_documento?: string | null
@@ -9306,6 +9701,7 @@ export type Database = {
           loja_ip?: string | null
           loja_user_agent?: string | null
           metodo_assinatura?: string | null
+          mime_type?: string | null
           motivo_recusa?: string | null
           observacao?: string | null
           observacao_manual?: string | null
@@ -9554,6 +9950,7 @@ export type Database = {
       }
       tarefas_pedido: {
         Row: {
+          agenda_evento_id: string | null
           bloqueio_proxima: boolean
           cargo_id: string | null
           cliente_id: string | null
@@ -9561,19 +9958,23 @@ export type Database = {
           concluido_por: string | null
           created_at: string
           criado_por: string | null
+          demanda: string | null
           depende_de: string | null
           descricao: string | null
+          desmembramento_id: string | null
           exibir_controle_prazos: boolean
           exibir_kanban: boolean
           exibir_meus_chamados: boolean
           exige_anexo: boolean
           exige_aprovacao: boolean
           id: string
+          inserir_na_agenda: boolean
           kanban_card_id: string | null
           loja_id: string | null
           modelo_id: string | null
           observacao_conclusao: string | null
           origem: string
+          origem_tarefa: string
           pedido_id: string
           prazo: string | null
           pre_alerta_em: string | null
@@ -9585,6 +9986,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agenda_evento_id?: string | null
           bloqueio_proxima?: boolean
           cargo_id?: string | null
           cliente_id?: string | null
@@ -9592,19 +9994,23 @@ export type Database = {
           concluido_por?: string | null
           created_at?: string
           criado_por?: string | null
+          demanda?: string | null
           depende_de?: string | null
           descricao?: string | null
+          desmembramento_id?: string | null
           exibir_controle_prazos?: boolean
           exibir_kanban?: boolean
           exibir_meus_chamados?: boolean
           exige_anexo?: boolean
           exige_aprovacao?: boolean
           id?: string
+          inserir_na_agenda?: boolean
           kanban_card_id?: string | null
           loja_id?: string | null
           modelo_id?: string | null
           observacao_conclusao?: string | null
           origem?: string
+          origem_tarefa?: string
           pedido_id: string
           prazo?: string | null
           pre_alerta_em?: string | null
@@ -9616,6 +10022,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agenda_evento_id?: string | null
           bloqueio_proxima?: boolean
           cargo_id?: string | null
           cliente_id?: string | null
@@ -9623,19 +10030,23 @@ export type Database = {
           concluido_por?: string | null
           created_at?: string
           criado_por?: string | null
+          demanda?: string | null
           depende_de?: string | null
           descricao?: string | null
+          desmembramento_id?: string | null
           exibir_controle_prazos?: boolean
           exibir_kanban?: boolean
           exibir_meus_chamados?: boolean
           exige_anexo?: boolean
           exige_aprovacao?: boolean
           id?: string
+          inserir_na_agenda?: boolean
           kanban_card_id?: string | null
           loja_id?: string | null
           modelo_id?: string | null
           observacao_conclusao?: string | null
           origem?: string
+          origem_tarefa?: string
           pedido_id?: string
           prazo?: string | null
           pre_alerta_em?: string | null
@@ -9647,6 +10058,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tarefas_pedido_agenda_evento_id_fkey"
+            columns: ["agenda_evento_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_eventos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tarefas_pedido_cargo_id_fkey"
             columns: ["cargo_id"]
@@ -9666,6 +10084,13 @@ export type Database = {
             columns: ["depende_de"]
             isOneToOne: false
             referencedRelation: "tarefas_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_pedido_desmembramento_id_fkey"
+            columns: ["desmembramento_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_desmembramentos"
             referencedColumns: ["id"]
           },
           {
@@ -9704,6 +10129,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tarefas_prazos_config: {
+        Row: {
+          created_at: string
+          id: string
+          prazo_alta_dias: number
+          prazo_baixa_dias: number
+          prazo_critica_dias: number
+          prazo_media_dias: number
+          singleton: boolean
+          tipo_contagem: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prazo_alta_dias?: number
+          prazo_baixa_dias?: number
+          prazo_critica_dias?: number
+          prazo_media_dias?: number
+          singleton?: boolean
+          tipo_contagem?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prazo_alta_dias?: number
+          prazo_baixa_dias?: number
+          prazo_critica_dias?: number
+          prazo_media_dias?: number
+          singleton?: boolean
+          tipo_contagem?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       templates_mensagem: {
         Row: {
@@ -9987,6 +10451,39 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversa_etiquetas: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          etiqueta_id: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          etiqueta_id: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          etiqueta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversa_etiquetas_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversa_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_etiquetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_conversas: {
         Row: {
           arquivado: boolean
@@ -9997,10 +10494,14 @@ export type Database = {
           contact_phone: string | null
           contato_id: string | null
           created_at: string
+          equipe_id: string | null
           id: string
           is_group: boolean
           loja_id: string
           nao_lidas: number
+          notas_internas: string | null
+          responsavel_user_id: string | null
+          status_atendimento: Database["public"]["Enums"]["whatsapp_status_atendimento"]
           titulo: string | null
           ultima_mensagem_em: string | null
           ultima_mensagem_preview: string | null
@@ -10016,10 +10517,14 @@ export type Database = {
           contact_phone?: string | null
           contato_id?: string | null
           created_at?: string
+          equipe_id?: string | null
           id?: string
           is_group?: boolean
           loja_id: string
           nao_lidas?: number
+          notas_internas?: string | null
+          responsavel_user_id?: string | null
+          status_atendimento?: Database["public"]["Enums"]["whatsapp_status_atendimento"]
           titulo?: string | null
           ultima_mensagem_em?: string | null
           ultima_mensagem_preview?: string | null
@@ -10035,10 +10540,14 @@ export type Database = {
           contact_phone?: string | null
           contato_id?: string | null
           created_at?: string
+          equipe_id?: string | null
           id?: string
           is_group?: boolean
           loja_id?: string
           nao_lidas?: number
+          notas_internas?: string | null
+          responsavel_user_id?: string | null
+          status_atendimento?: Database["public"]["Enums"]["whatsapp_status_atendimento"]
           titulo?: string | null
           ultima_mensagem_em?: string | null
           ultima_mensagem_preview?: string | null
@@ -10058,6 +10567,121 @@ export type Database = {
             columns: ["contato_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversas_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_equipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_equipe_membros: {
+        Row: {
+          created_at: string
+          equipe_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipe_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipe_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_equipe_membros_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_equipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_equipes: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          loja_id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          loja_id: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          loja_id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_equipes_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_etiquetas: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          descricao: string | null
+          id: string
+          loja_id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          loja_id: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          loja_id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_etiquetas_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
             referencedColumns: ["id"]
           },
         ]
@@ -10100,6 +10724,39 @@ export type Database = {
           },
         ]
       }
+      whatsapp_mensagem_etiquetas: {
+        Row: {
+          created_at: string
+          etiqueta_id: string
+          mensagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          etiqueta_id: string
+          mensagem_id: string
+        }
+        Update: {
+          created_at?: string
+          etiqueta_id?: string
+          mensagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensagem_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagem_etiquetas_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_mensagens: {
         Row: {
           conta_id: string
@@ -10112,6 +10769,12 @@ export type Database = {
           enviado_em: string
           id: string
           loja_id: string
+          media_caption: string | null
+          media_duration_seconds: number | null
+          media_name: string | null
+          media_size: number | null
+          media_storage_path: string | null
+          media_thumbnail: string | null
           media_url: string | null
           mime_type: string | null
           origem: string
@@ -10133,6 +10796,12 @@ export type Database = {
           enviado_em?: string
           id?: string
           loja_id: string
+          media_caption?: string | null
+          media_duration_seconds?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_storage_path?: string | null
+          media_thumbnail?: string | null
           media_url?: string | null
           mime_type?: string | null
           origem?: string
@@ -10154,6 +10823,12 @@ export type Database = {
           enviado_em?: string
           id?: string
           loja_id?: string
+          media_caption?: string | null
+          media_duration_seconds?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_storage_path?: string | null
+          media_thumbnail?: string | null
           media_url?: string | null
           mime_type?: string | null
           origem?: string
@@ -10275,10 +10950,16 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
-      fn_instanciar_tarefas_nativas: {
-        Args: { p_gatilho: string; p_pedido_id: string }
-        Returns: number
-      }
+      fn_instanciar_tarefas_nativas:
+        | { Args: { p_gatilho: string; p_pedido_id: string }; Returns: number }
+        | {
+            Args: {
+              p_desmembramento_id: string
+              p_gatilho: string
+              p_pedido_id: string
+            }
+            Returns: number
+          }
       fn_resolver_responsavel_tarefa: {
         Args: { p_fonte: string; p_pedido_id: string }
         Returns: string
@@ -10346,6 +11027,10 @@ export type Database = {
       loja_de_orcamento: { Args: { _orcamento_id: string }; Returns: string }
       loja_de_parceiro: { Args: { _parceiro_id: string }; Returns: string }
       loja_de_pedido: { Args: { _pedido_id: string }; Returns: string }
+      marcar_visualizacao_assinatura_publica: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       modulo_ativo: {
         Args: { _chave: string; _loja_id: string }
         Returns: boolean
@@ -10394,6 +11079,15 @@ export type Database = {
         Args: { p_solic: string }
         Returns: undefined
       }
+      recusar_assinatura_publica: {
+        Args: {
+          p_ip?: string
+          p_motivo: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       registrar_assinatura_manual: {
         Args: {
           p_contrato_path: string
@@ -10404,6 +11098,24 @@ export type Database = {
           p_solic: string
         }
         Returns: undefined
+      }
+      registrar_assinatura_publica: {
+        Args: {
+          p_aceite_texto?: string
+          p_assinatura_url: string
+          p_doc_url?: string
+          p_documento: string
+          p_ip?: string
+          p_localizacao?: Json
+          p_nome: string
+          p_representante_cargo?: string
+          p_representante_email?: string
+          p_representante_user_id?: string
+          p_selfie_url?: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
       }
       revisao_avancar_preparo_pj_final: {
         Args: { _pedido_id: string; _revisao_data: string }
@@ -10513,6 +11225,11 @@ export type Database = {
         | "parcial"
         | "erro"
       whatsapp_mensagem_direcao: "entrada" | "saida"
+      whatsapp_status_atendimento:
+        | "novo"
+        | "em_andamento"
+        | "pendente"
+        | "concluido"
       whatsapp_status_conexao:
         | "desconectado"
         | "aguardando_qr"
@@ -10720,6 +11437,12 @@ export const Constants = {
         "erro",
       ],
       whatsapp_mensagem_direcao: ["entrada", "saida"],
+      whatsapp_status_atendimento: [
+        "novo",
+        "em_andamento",
+        "pendente",
+        "concluido",
+      ],
       whatsapp_status_conexao: [
         "desconectado",
         "aguardando_qr",
