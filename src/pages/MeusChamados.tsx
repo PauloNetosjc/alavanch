@@ -28,10 +28,13 @@ import {
   Download,
   CheckCircle2,
   CalendarPlus,
+  CalendarDays,
+  List,
 } from "lucide-react";
 import { exportChamadosCSV, exportChamadosPDF, type ChamadoExport } from "@/lib/exportChamados";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { MinhasTarefasNativasPanel } from "@/components/tarefas/MinhasTarefasNativasPanel";
+import { PlanejamentoSemanalChamados } from "@/components/tarefas/PlanejamentoSemanalChamados";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -86,6 +89,7 @@ export default function MeusChamados() {
   const [tecnicos, setTecnicos] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [salvandoAg, setSalvandoAg] = useState(false);
   const [concluindoId, setConcluindoId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"lista" | "semana">("lista");
 
   const openAgendar = async (c: Chamado) => {
     setAgendarTarget(c);
@@ -240,6 +244,32 @@ export default function MeusChamados() {
         subtitle={isAdmin ? "TODOS OS CHAMADOS DA EMPRESA" : "CHAMADOS ATRIBUÍDOS A VOCÊ"}
       />
 
+      {/* Toggle Lista/Semana */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={viewMode === "lista" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setViewMode("lista")}
+        >
+          <List className="w-4 h-4" />
+          Lista
+        </Button>
+        <Button
+          variant={viewMode === "semana" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setViewMode("semana")}
+        >
+          <CalendarDays className="w-4 h-4" />
+          Planejamento semanal
+        </Button>
+      </div>
+
+      {viewMode === "semana" ? (
+        <PlanejamentoSemanalChamados />
+      ) : (
+      <>
       {/* Filtros */}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
@@ -437,6 +467,10 @@ export default function MeusChamados() {
         }
         return <div className="space-y-3">{filtered.map(renderCard)}</div>;
       })()}
+      </>
+      )}
+
+
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
       <MinhasTarefasNativasPanel />
