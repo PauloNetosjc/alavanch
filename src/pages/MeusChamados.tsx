@@ -89,6 +89,7 @@ export default function MeusChamados() {
   const [tecnicos, setTecnicos] = useState<{ user_id: string; nome_completo: string | null }[]>([]);
   const [salvandoAg, setSalvandoAg] = useState(false);
   const [concluindoId, setConcluindoId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"lista" | "semana">("lista");
 
   const openAgendar = async (c: Chamado) => {
     setAgendarTarget(c);
