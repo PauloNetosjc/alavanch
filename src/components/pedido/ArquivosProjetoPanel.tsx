@@ -411,7 +411,12 @@ export function ArquivosProjetoPanel({ pedido, desmembramentoId = null }: { pedi
           <Folder className="w-4 h-4" />
         </div>
         <div>
-          <h3 className="font-playfair text-[18px] font-semibold leading-none">Arquivos do Projeto</h3>
+          <h3 className="font-playfair text-[18px] font-semibold leading-none flex items-center gap-2">
+            Arquivos do Projeto
+            {desmembramentoId && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">PARC</span>
+            )}
+          </h3>
           <p className="text-[11px] text-muted-foreground mt-1">
             Fluxo sequencial: Vendido → Para Revisão → Revisado → Para Produção. Uploads concluem automaticamente as tarefas nativas correspondentes.
           </p>
