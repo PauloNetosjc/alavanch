@@ -92,7 +92,7 @@ type UploadItem = {
   erro?: string;
 };
 
-export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
+export function ArquivosProjetoPanel({ pedido, desmembramentoId = null }: { pedido: any; desmembramentoId?: string | null }) {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
 
@@ -117,13 +117,16 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
   const carregar = async () => {
     if (!pedido?.id) return;
     setLoading(true);
+    let docsQuery: any = supabase
+      .from("pedido_documentos")
+      .select("*")
+      .eq("pedido_id", pedido.id)
+      .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado", "projeto_para_producao"]);
+    docsQuery = desmembramentoId
+      ? docsQuery.eq("desmembramento_id", desmembramentoId)
+      : docsQuery.is("desmembramento_id", null);
     const [{ data: docsData }, { data: solic }] = await Promise.all([
-      supabase
-        .from("pedido_documentos")
-        .select("*")
-        .eq("pedido_id", pedido.id)
-        .in("categoria_projeto", ["projeto_vendido", "projeto_para_revisao", "projeto_revisado", "projeto_para_producao"])
-        .order("created_at", { ascending: false }),
+      docsQuery.order("created_at", { ascending: false }),
       supabase
         .from("solicitacoes_assinatura")
         .select("status")
@@ -153,7 +156,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
     carregar();
     if (!pedido?.id) return;
     const ch = supabase
-      .channel(`arquivos-projeto-${pedido.id}`)
+      .channel(`arquivos-projeto-${pedido.id}-${desmembramentoId || "orig"}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${pedido.id}` },
@@ -164,7 +167,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedido?.id]);
+  }, [pedido?.id, desmembramentoId]);
 
   const docsPor = useMemo(() => {
     const r: Record<Categoria, Doc[]> = { projeto_vendido: [], projeto_para_revisao: [], projeto_revisado: [], projeto_para_producao: [] };
@@ -241,6 +244,7 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
           categoria_projeto: cat,
           created_by: user?.id || null,
           bucket_name: "pedido-docs",
+          desmembramento_id: desmembramentoId || null,
         } as any);
         if (insErr) {
           await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
@@ -407,7 +411,12 @@ export function ArquivosProjetoPanel({ pedido }: { pedido: any }) {
           <Folder className="w-4 h-4" />
         </div>
         <div>
-          <h3 className="font-playfair text-[18px] font-semibold leading-none">Arquivos do Projeto</h3>
+          <h3 className="font-playfair text-[18px] font-semibold leading-none flex items-center gap-2">
+            Arquivos do Projeto
+            {desmembramentoId && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">PARC</span>
+            )}
+          </h3>
           <p className="text-[11px] text-muted-foreground mt-1">
             Fluxo sequencial: Vendido → Para Revisão → Revisado → Para Produção. Uploads concluem automaticamente as tarefas nativas correspondentes.
           </p>

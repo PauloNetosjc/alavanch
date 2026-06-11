@@ -177,10 +177,16 @@ export default function PedidoDetalhe() {
       orcId ? supabase.from("contratos").select("*").eq("orcamento_id", orcId).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null } as any),
       supabase.from("pedido_itens_avulsos").select("*").eq("pedido_id", id).order("ordem"),
       supabase.from("pedido_pastas").select("*").eq("pedido_id", id).order("ordem"),
-      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }),
+      supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then((res) => {
+        const rows = ((res.data as any[]) || []).filter((d: any) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
+        return { data: rows, error: res.error } as any;
+      }),
       orcId ? supabase.from("orcamento_documentos" as any).select("*").eq("orcamento_id", orcId).order("created_at", { ascending: false }) : Promise.resolve({ data: [] } as any),
       supabase.from("pedido_chat").select("*").eq("pedido_id", id).order("created_at"),
-      supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at"),
+      supabase.from("pedido_revisoes").select("*").eq("pedido_id", id).order("created_at").then((res) => {
+        const rows = ((res.data as any[]) || []).filter((r: any) => desmembramentoId ? r.desmembramento_id === desmembramentoId : !r.desmembramento_id);
+        return { data: rows, error: res.error } as any;
+      }),
       supabase.from("profiles").select("user_id, nome_completo").eq("ativo", true),
       ped.pedido_pai_id ? supabase.from("pedidos").select("id, codigo, valor_total").eq("id", ped.pedido_pai_id).maybeSingle() : Promise.resolve({ data: null } as any),
       ped.pedido_origem_complemento_id ? supabase.from("pedidos").select("id, codigo").eq("id", ped.pedido_origem_complemento_id).maybeSingle() : Promise.resolve({ data: null } as any),
@@ -331,7 +337,9 @@ export default function PedidoDetalhe() {
     // Preserva docs virtuais (orçamento) e substitui docs do pedido — exclui categoria_projeto operacional
     const CATEGORIAS_PROJ_OP = new Set(["projeto_vendido", "projeto_para_revisao", "projeto_revisado"]);
     const filtrarCentral = (rows: any[]) =>
-      rows.filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+      rows
+        .filter((d) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug))
+        .filter((d) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
     setDocs((prev) => {
       const virtuais = (prev || []).filter((d: any) => d._readonly);
       return [...virtuais, ...filtrarCentral((dcsRes.data as any[]) || [])];
@@ -340,7 +348,7 @@ export default function PedidoDetalhe() {
     setSolicAssin(saRes.data || null);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id, desmembramentoId]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -352,7 +360,9 @@ export default function PedidoDetalhe() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => {
-          const rows = (data || []).filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+          const rows = (data || [])
+            .filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug))
+            .filter((d: any) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
           setDocs((prev) => {
             const virtuais = (prev || []).filter((d: any) => d._readonly);
             return [...virtuais, ...rows];
@@ -733,6 +743,13 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
+      {/* AVISO DE ISOLAMENTO POR PARC */}
+      {desmembramentoAtual && (
+        <div className="rounded-md border border-purple-200 bg-purple-50/60 text-purple-900 px-4 py-2 text-[12px]">
+          Você está trabalhando no PARC <strong>{desmembramentoAtual.codigo_parcial}</strong>. Arquivos, tarefas, agenda e revisões serão vinculados somente a este PARC.
+        </div>
+      )}
+
       {/* DESMEMBRAMENTOS (PARC) */}
       <DesmembramentosPanel
         pedidoId={pedido.id}
@@ -742,11 +759,11 @@ export default function PedidoDetalhe() {
       />
 
       {/* ARQUIVOS DO PROJETO — sobe para posição anterior do Cronograma */}
-      <ArquivosProjetoPanel pedido={pedido} />
+      <ArquivosProjetoPanel pedido={pedido} desmembramentoId={desmembramentoId} />
 
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
-      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
+      <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} desmembramentoId={desmembramentoId} />
 
       {/* CENTRAL DE DOCUMENTOS + IMPORTAR REVISÃO DO PROJETO — lado a lado no desktop */}
       {revisaoPendente ? (
@@ -759,10 +776,11 @@ export default function PedidoDetalhe() {
               solicitacoes={solicitacoes}
               cliente={cliente}
               onChange={carregar}
+              desmembramentoId={desmembramentoId}
             />
           </div>
           <div className="min-w-0">
-            <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+            <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} desmembramentoId={desmembramentoId} />
           </div>
         </div>
       ) : (
@@ -773,14 +791,15 @@ export default function PedidoDetalhe() {
           solicitacoes={solicitacoes}
           cliente={cliente}
           onChange={carregar}
+          desmembramentoId={desmembramentoId}
         />
       )}
 
       {/* CRONOGRAMA E DATAS — desce para posição anterior dos Arquivos do Projeto */}
-      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} />
+      <Cronograma pedido={pedido} salvarPedido={salvarPedido} onIniciar={iniciarWorkflow} desmembramentoId={desmembramentoId} />
 
       {/* TAREFAS ASSOCIADAS AO PEDIDO (legado: agenda/tarefa_interna) */}
-      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" />
+      <TarefasPanel pedidoId={pedido.id} scope="pedido" title="Tarefas (Agenda)" desmembramentoId={desmembramentoId} />
 
       {/* PRODUTOS — antepenúltimo bloco, largura total */}
       <ProdutosTabela ambientes={ambientes} subItens={subItens} itensAvulsos={itensAvulsos} total={totalProjeto} />
@@ -825,7 +844,7 @@ export default function PedidoDetalhe() {
 
       {/* IMPORTAR REVISÃO PROMOB */}
       {!revisaoPendente && (
-        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} />
+        <RevisaoPromob pedido={pedido} ambientes={ambientes} revisoes={revisoes} cliente={cliente} onChange={carregar} desmembramentoId={desmembramentoId} />
       )}
     </div>
   );
@@ -834,7 +853,7 @@ export default function PedidoDetalhe() {
 /* ============================================================== */
 /*                        CRONOGRAMA                              */
 /* ============================================================== */
-function Cronograma({ pedido, salvarPedido }: any) {
+function Cronograma({ pedido, salvarPedido, desmembramentoId = null }: any) {
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [dataRevisao, setDataRevisao] = useState<string | null>(null);
   const [dataAssinaturaPdf, setDataAssinaturaPdf] = useState<string | null>(null);
@@ -846,14 +865,13 @@ function Cronograma({ pedido, salvarPedido }: any) {
 
   const carregar = async () => {
     // Revisão final: agendada junto com a medição técnica
-    const { data: rev } = await supabase
+    let revQ: any = supabase
       .from("agenda_eventos")
       .select("data")
       .eq("pedido_id", pedido.id)
-      .eq("tipo", "revisao_final")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("tipo", "revisao_final");
+    revQ = desmembramentoId ? revQ.eq("desmembramento_id", desmembramentoId) : revQ.is("desmembramento_id", null);
+    const { data: rev } = await revQ.order("created_at", { ascending: false }).limit(1).maybeSingle();
     setDataRevisao(rev?.data ? String(rev.data).slice(0, 10) : null);
 
     // Buscar todos os eventos kanban deste pedido
@@ -925,25 +943,28 @@ function Cronograma({ pedido, salvarPedido }: any) {
     setDataVistoria(evVistoria?.created_at ? String(evVistoria.created_at).slice(0, 10) : null);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id]);
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [pedido.id, desmembramentoId]);
 
   const onAgendaCriada = async () => {
-    const { data } = await supabase
+    let q: any = supabase
       .from("agenda_eventos")
       .select("data")
       .eq("pedido_id", pedido.id)
-      .eq("tipo", "medicao_tecnica")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("tipo", "medicao_tecnica");
+    q = desmembramentoId ? q.eq("desmembramento_id", desmembramentoId) : q.is("desmembramento_id", null);
+    const { data } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (data?.data) {
       const dataStr = String(data.data).slice(0, 10);
-      await salvarPedido({ data_medicao_tecnica: dataStr });
+      // No contexto do PARC, a data de medição não escreve no pedido original (Fase 3 trata avanço de etapa)
+      if (!desmembramentoId) {
+        await salvarPedido({ data_medicao_tecnica: dataStr });
+      }
       toast.success("Medição técnica agendada");
     }
-    // Blindagem: garante tarefas obrigatórias do cronograma
-    // (fazer_medicao_tecnica + preparo_projeto_revisao)
-    await ensureTarefasCronogramaPedido(pedido.id);
+    // Blindagem: garante tarefas obrigatórias do cronograma — só no original
+    if (!desmembramentoId) {
+      await ensureTarefasCronogramaPedido(pedido.id);
+    }
     await carregar();
   };
 
@@ -1026,6 +1047,7 @@ function Cronograma({ pedido, salvarPedido }: any) {
         onOpenChange={setAgendaOpen}
         pedidoId={pedido.id}
         defaultTipo="medicao_tecnica"
+        desmembramentoId={desmembramentoId}
         onCreated={onAgendaCriada}
       />
     </section>
@@ -1169,7 +1191,7 @@ function WhatsappCard({ cliente }: any) {
 /* ============================================================== */
 /*                  CENTRAL DE DOCUMENTOS                         */
 /* ============================================================== */
-function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange }: any) {
+function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onChange, desmembramentoId = null }: any) {
   const [pastaAtiva, setPastaAtiva] = useState<string | null>(pastas[0]?.id || null);
   const [novaPastaOpen, setNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
@@ -1336,7 +1358,8 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
     const { error: insErr } = await supabase.from("pedido_documentos").insert({
       pedido_id: pedidoId, pasta_id: pastaAtiva, nome: arquivoNome || arquivoFile.name,
       storage_path: path, tamanho: arquivoFile.size, mime_type: arquivoFile.type,
-    });
+      desmembramento_id: desmembramentoId || null,
+    } as any);
     if (insErr) {
       await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});
       return toast.error(insErr.message);
@@ -1392,7 +1415,12 @@ function CentralDocs({ pedidoId, pastas, docs, solicitacoes = [], cliente, onCha
       <div className="flex items-center gap-3 mb-5">
         <div className="w-11 h-11 rounded-full bg-purple-600 text-white flex items-center justify-center"><Folder className="w-5 h-5" /></div>
         <div>
-          <h2 className="font-playfair text-[22px] font-semibold">Central de Documentos</h2>
+          <h2 className="font-playfair text-[22px] font-semibold flex items-center gap-2">
+            Central de Documentos
+            {desmembramentoId && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">PARC</span>
+            )}
+          </h2>
           <p className="text-[12px] text-muted-foreground">Organize arquivos e documentações da venda</p>
         </div>
       </div>
@@ -2304,7 +2332,7 @@ function ResumoFinanceiroPedido({ pedido, ambientes, salvarPedido }: any) {
 /* ============================================================== */
 /*                   REVISÃO PROMOB                               */
 /* ============================================================== */
-function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) {
+function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange, desmembramentoId = null }: any) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [enviando, setEnviando] = useState<string | null>(null);
@@ -2327,7 +2355,8 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
         valor_revisado: diff.totals.valorRevisado,
         variacao_perc: diff.totals.variacaoPerc,
         created_by: user?.id,
-      }).select("id").single();
+        desmembramento_id: desmembramentoId || null,
+      } as any).select("id").single();
       if (revErr) throw revErr;
 
       // Espelhar o arquivo importado em Central de Documentos > Documentos.
@@ -2371,6 +2400,7 @@ function RevisaoPromob({ pedido, ambientes, revisoes, cliente, onChange }: any) 
             categoria_projeto: null,
             created_by: user?.id || null,
             bucket_name: "pedido-docs",
+            desmembramento_id: desmembramentoId || null,
           } as any);
           if (insErr) {
             await supabase.storage.from("pedido-docs").remove([path]).catch(() => {});

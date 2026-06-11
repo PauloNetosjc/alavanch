@@ -115,8 +115,8 @@ function fmtDate(s: string | null) {
 }
 
 export function PedidoTarefasPanel({
-  pedidoId, clienteId, lojaId,
-}: { pedidoId: string; clienteId?: string | null; lojaId?: string | null }) {
+  pedidoId, clienteId, lojaId, desmembramentoId = null,
+}: { pedidoId: string; clienteId?: string | null; lojaId?: string | null; desmembramentoId?: string | null }) {
   const { user } = useAuth();
   const { can, isAdmin, role } = usePermissions();
 
@@ -152,14 +152,21 @@ export function PedidoTarefasPanel({
     // Fallback de segurança: garante tarefas obrigatórias do cronograma
     // (fazer_medicao_tecnica + preparo_projeto_revisao) e fluxo Revisão Loja
     // → Preparo e envio de PDF Projeto Final antes de listar.
-    try { await ensureTarefasCronogramaPedido(pedidoId); } catch {}
-    try { await ensureFluxoRevisaoEPdfFinal(pedidoId); } catch {}
-    try { await ensureFluxoProjetoFinalProducaoEFabrica(pedidoId); } catch {}
+    // Os ensure_* só rodam no contexto do pedido original — PARC não dispara
+    // criação automática de tarefas nativas (Fase 3 cuidará disso).
+    if (!desmembramentoId) {
+      try { await ensureTarefasCronogramaPedido(pedidoId); } catch {}
+      try { await ensureFluxoRevisaoEPdfFinal(pedidoId); } catch {}
+      try { await ensureFluxoProjetoFinalProducaoEFabrica(pedidoId); } catch {}
+    }
+    let tQuery: any = (supabase as any).from("tarefas_pedido")
+      .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")
+      .eq("pedido_id", pedidoId);
+    tQuery = desmembramentoId
+      ? tQuery.eq("desmembramento_id", desmembramentoId)
+      : tQuery.is("desmembramento_id", null);
     const [t, c, p, me] = await Promise.all([
-      (supabase as any).from("tarefas_pedido")
-        .select("*, rh_cargos(nome), profiles(nome_completo), tarefas_nativas_modelos(conclui_por_upload_categoria)")
-        .eq("pedido_id", pedidoId)
-        .order("prazo", { ascending: true, nullsFirst: false }),
+      tQuery.order("prazo", { ascending: true, nullsFirst: false }),
 
       supabase.from("rh_cargos").select("id,nome").order("nome"),
       supabase.from("profiles").select("id,nome_completo,user_id").eq("ativo", true).order("nome_completo"),
@@ -176,7 +183,7 @@ export function PedidoTarefasPanel({
   useEffect(() => {
     if (podeVer && pedidoId) load();
     /* eslint-disable-next-line */
-  }, [pedidoId, podeVer]);
+  }, [pedidoId, podeVer, desmembramentoId]);
 
   const filtradas = useMemo(() => {
     return tarefas.filter((t) => {
@@ -237,7 +244,12 @@ export function PedidoTarefasPanel({
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-primary/10 p-2"><ListChecks className="h-5 w-5 text-primary" /></div>
           <div>
-            <h2 className="font-playfair text-[22px] font-semibold leading-tight">Tarefas do Pedido</h2>
+            <h2 className="font-playfair text-[22px] font-semibold leading-tight flex items-center gap-2">
+              Tarefas do Pedido
+              {desmembramentoId && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">PARC</span>
+              )}
+            </h2>
             <p className="text-[12px] text-muted-foreground">Tarefas operacionais geradas automaticamente para este pedido.</p>
           </div>
         </div>
@@ -393,6 +405,7 @@ export function PedidoTarefasPanel({
         open={openManual} setOpen={setOpenManual} onDone={load}
         pedidoId={pedidoId} clienteId={clienteId || null} lojaId={lojaId || null}
         cargos={cargos} profiles={profiles} userId={user?.id || null}
+        desmembramentoId={desmembramentoId}
       />
       <GerarTarefasDialog open={openGerar} setOpen={setOpenGerar} pedidoId={pedidoId} onDone={load} />
     </section>
@@ -796,11 +809,12 @@ export function HistoricoDialog({
 }
 
 function NovaManualDialog({
-  open, setOpen, onDone, pedidoId, clienteId, lojaId, cargos, profiles, userId,
+  open, setOpen, onDone, pedidoId, clienteId, lojaId, cargos, profiles, userId, desmembramentoId = null,
 }: {
   open: boolean; setOpen: (b: boolean) => void; onDone: () => void;
   pedidoId: string; clienteId: string | null; lojaId: string | null;
   cargos: { id: string; nome: string }[]; profiles: { id: string; nome_completo: string | null }[]; userId: string | null;
+  desmembramentoId?: string | null;
 }) {
   const EMPTY = {
     titulo: "", descricao: "", setor: "", cargo_id: null as string | null,
@@ -827,6 +841,7 @@ function NovaManualDialog({
       status: "pendente",
       prazo: f.prazo ? new Date(f.prazo).toISOString() : null,
       criado_por: userId,
+      desmembramento_id: desmembramentoId || null,
     };
     const { data, error } = await (supabase as any).from("tarefas_pedido").insert(payload).select("id").single();
     setSaving(false);

@@ -54,11 +54,13 @@ interface Props {
   defaultTipo?: AgendaTipo;
   defaultDate?: string;
   onCreated?: () => void;
+  /** Se informado, o evento será vinculado a este PARC (desmembramento). */
+  desmembramentoId?: string | null;
 }
 
 interface Loja { id: string; nome: string }
 
-export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, defaultTipo = "tarefa_interna", defaultDate, onCreated }: Props) {
+export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, defaultTipo = "tarefa_interna", defaultDate, onCreated, desmembramentoId = null }: Props) {
   const { user, role } = useAuth();
   const { selectedLojaId: lojaCtxId } = useLoja();
   const isAdmin = role === "admin" || role === "diretor";
@@ -367,6 +369,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
         excecao_autorizador_id: null,
         excecao_motivo: usaExcecao ? excecaoMotivo || null : null,
         created_by: user?.id || null,
+        desmembramento_id: desmembramentoId || null,
       };
       // Quando exceção: evento entra pendente de aprovação e não é confirmado ainda
       if (usaExcecao) payload.status = "pendente_aprovacao";
@@ -492,6 +495,7 @@ export function AgendaEventoDialog({ open, onOpenChange, pedidoId, orcamentoId, 
           responsavel_id: responsavelId,
           excecao: false,
           created_by: user?.id || null,
+          desmembramento_id: desmembramentoId || null,
         };
         const { error: fErr } = await supabase.from("agenda_eventos" as any).insert(followupPayload);
         if (fErr) {
