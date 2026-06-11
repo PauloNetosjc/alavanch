@@ -706,6 +706,8 @@ export default function PedidoDetalhe() {
             criarComplemento={criarComplemento}
             salvarPedido={salvarPedido}
             navigate={navigate}
+            desmembramentoId={desmembramentoId}
+            desmembramentoAtual={desmembramentoAtual}
           />
         </div>
       </div>
@@ -3325,7 +3327,7 @@ function ResumoFinanceiroPedidoButton({ orcamento, ambientes, pagamentos, pedido
 function PedidoAcoesMenu({
   pedido, orcamento, ambientes, pagamentos, contrato, ehAdendo,
   criandoAdendo, criandoComplemento, criarAdendo, criarComplemento,
-  salvarPedido, navigate,
+  salvarPedido, navigate, desmembramentoId = null, desmembramentoAtual = null,
 }: any) {
   const [resumoOpen, setResumoOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -3366,6 +3368,17 @@ function PedidoAcoesMenu({
     }
     setCancelando(true);
     try {
+      // Em contexto PARC, o cancelamento é restrito ao desmembramento — não
+      // mexe em orçamento, contratos, parcelas ou kanban_cards do pedido original.
+      if (desmembramentoId) {
+        await salvarPedido({ status: "cancelado" });
+        setCancelOpen(false);
+        setConfirmText("");
+        toast.success(`PARC ${desmembramentoAtual?.codigo_parcial || ""} cancelado.`);
+        navigate(`/pedidos/${pedido.id}`);
+        return;
+      }
+
       // 1) Reverte o orçamento INTEGRALMENTE para a fase de negociação
       //    (status, datas de confirmação, descontos e pagamentos)
       if (pedido?.orcamento_id) {
