@@ -346,7 +346,7 @@ export default function PedidoDetalhe() {
     setSolicAssin(saRes.data || null);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [id, desmembramentoId]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -358,7 +358,9 @@ export default function PedidoDetalhe() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pedido_documentos", filter: `pedido_id=eq.${id}` }, () => {
         supabase.from("pedido_documentos").select("*").eq("pedido_id", id).order("created_at", { ascending: false }).then(({ data }) => {
-          const rows = (data || []).filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug));
+          const rows = (data || [])
+            .filter((d: any) => !CATEGORIAS_PROJ_OP.has(d.categoria_projeto) && !CATEGORIAS_PROJ_OP.has(d.tipo_documento_slug))
+            .filter((d: any) => desmembramentoId ? d.desmembramento_id === desmembramentoId : !d.desmembramento_id);
           setDocs((prev) => {
             const virtuais = (prev || []).filter((d: any) => d._readonly);
             return [...virtuais, ...rows];
