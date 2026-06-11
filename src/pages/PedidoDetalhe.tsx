@@ -28,6 +28,7 @@ import { AgendaEventoDialog } from "@/components/agenda/AgendaEventoDialog";
 import { TarefasPanel } from "@/components/tarefas/TarefasPanel";
 import { PedidoTarefasPanel } from "@/components/tarefas/PedidoTarefasPanel";
 import { ArquivosProjetoPanel } from "@/components/pedido/ArquivosProjetoPanel";
+import DesmembramentosPanel from "@/components/pedido/DesmembramentosPanel";
 import { NovaSolicitacaoAssinaturaDialog } from "@/components/assinaturas/NovaSolicitacaoAssinaturaDialog";
 import { EvidenciasDialog } from "@/components/assinaturas/EvidenciasDialog";
 import { AssinarPelaLojaDialog } from "@/components/assinaturas/AssinarPelaLojaDialog";
