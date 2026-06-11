@@ -708,8 +708,42 @@ export default function PedidoDetalhe() {
 
       {/* (vínculo entre pedido raiz e adendos foi movido para a tarja vermelha + abas no topo) */}
 
+      {/* BANNER DE CONTEXTO PARC */}
+      {desmembramentoAtual && (
+        <div className="rounded-md border border-purple-300 bg-purple-50 text-purple-900 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600 text-white">
+              PARC
+            </span>
+            <span className="text-[15px] font-bold">{desmembramentoAtual.codigo_parcial}</span>
+            <span className="text-[12px]">
+              Pedido original: <strong>{pedido?.codigo}</strong>
+            </span>
+            <span className="text-[11px] px-2 py-0.5 rounded bg-purple-100 border border-purple-300">
+              Etapa: {desmembramentoAtual.etapa_atual || desmembramentoAtual.status_operacional || "venda_futura"}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate(`/pedidos/${pedido.id}`)}
+          >
+            Voltar ao pedido original
+          </Button>
+        </div>
+      )}
+
+      {/* DESMEMBRAMENTOS (PARC) */}
+      <DesmembramentosPanel
+        pedidoId={pedido.id}
+        codigoPedido={pedido.codigo}
+        lojaId={pedido.loja_id}
+        ambientes={ambientes.map((a: any) => ({ id: a.id, nome: a.nome }))}
+      />
+
       {/* ARQUIVOS DO PROJETO — sobe para posição anterior do Cronograma */}
       <ArquivosProjetoPanel pedido={pedido} />
+
 
       {/* TAREFAS NATIVAS DO PEDIDO */}
       <PedidoTarefasPanel pedidoId={pedido.id} clienteId={pedido.cliente_id} lojaId={pedido.loja_id} />
