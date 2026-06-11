@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
+import { TopbarLojaSwitcher } from "@/components/TopbarLojaSwitcher";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,7 @@ export default function NotasFiscais() {
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <h1 className="text-2xl font-display flex items-center gap-2"><FileText className="w-5 h-5"/> Notas Fiscais</h1>
         <div className="flex items-center gap-2">
+          <TopbarLojaSwitcher />
           <Badge variant={ambiente === "producao" ? "default" : "secondary"}>
             Ambiente: {ambiente === "producao" ? "Produção" : "Homologação"}
           </Badge>
@@ -119,6 +121,7 @@ export default function NotasFiscais() {
             <Settings className="w-4 h-4 mr-1.5"/> Configurações
           </Button>
         </div>
+
       </div>
 
       {isConfigView ? (
