@@ -99,6 +99,19 @@ function CategoriaDetalhes({ a }: { a: Autorizacao }) {
       </div>
     );
   }
+  if (a.origem_modulo === "desmembramento") {
+    const nomes: string[] = ctx.ambiente_nomes || [];
+    return (
+      <div className="text-[12px] mt-1">
+        <div>
+          Pedido: <strong>{ctx.codigo_pedido || "—"}</strong>
+        </div>
+        <div>
+          Ambientes a desmembrar: <strong>{nomes.join(", ") || "—"}</strong>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 
