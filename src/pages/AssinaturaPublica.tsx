@@ -84,6 +84,9 @@ export default function AssinaturaPublica() {
   const [loja, setLoja] = useState<any>(null);
   const [tpl, setTpl] = useState<ContratoTemplate | null>(null);
   const [docHtml, setDocHtml] = useState<string>("");
+  const [documentoUrl, setDocumentoUrl] = useState<string>("");
+  const [documentoNome, setDocumentoNome] = useState<string>("");
+  const [documentoMime, setDocumentoMime] = useState<string>("");
   const [erro, setErro] = useState<string>("");
   const [requerLoja, setRequerLoja] = useState(false);
 
